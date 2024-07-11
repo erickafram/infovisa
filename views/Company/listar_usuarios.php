@@ -23,7 +23,8 @@ $mensagem = isset($_GET['mensagem']) ? $_GET['mensagem'] : '';
 $tipoMensagem = isset($_GET['tipoMensagem']) ? $_GET['tipoMensagem'] : '';
 
 // Função para buscar estabelecimentos vinculados a um usuário
-function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel) {
+function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel)
+{
     return $estabelecimentoModel->getEstabelecimentosByUsuarioExterno($usuarioId);
 }
 
@@ -31,6 +32,7 @@ function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel) {
 
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -88,13 +90,13 @@ function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel) {
             <h4>Listar Usuários</h4>
         </div>
 
-        <?php if ($mensagem): ?>
+        <?php if ($mensagem) : ?>
             <div class="alert alert-<?php echo htmlspecialchars($tipoMensagem); ?>" role="alert">
                 <?php echo htmlspecialchars($mensagem); ?>
             </div>
         <?php endif; ?>
 
-        <form method="GET" action="lista_usuarios.php" class="mb-3">
+        <form method="GET" action="listar_usuarios.php" class="mb-3">
             <div class="input-group">
                 <input type="text" class="form-control" name="search" placeholder="Buscar por nome ou CPF" value="<?php echo htmlspecialchars($search); ?>">
                 <div class="input-group-append">
@@ -118,12 +120,18 @@ function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel) {
                                         <div>
                                             <strong>Nome:</strong> <?php echo htmlspecialchars($usuario['nome_completo']); ?><br>
                                             <strong>Email:</strong> <?php echo htmlspecialchars($usuario['email']); ?><br>
+                                            <strong>Telefone:</strong> <?php echo htmlspecialchars($usuario['telefone']); ?><br>
                                             <strong>CPF:</strong> <?php echo htmlspecialchars($usuario['cpf']); ?><br>
                                             <div style="margin-top:5px !important; font-weight:bold;font-size:12px;">Estabelecimentos Vinculados:</div>
                                             <ul style="font-size:11px;">
                                                 <?php foreach ($estabelecimentos as $estabelecimento) : ?>
-                                                    <li><?php echo htmlspecialchars($estabelecimento['nome_fantasia']); ?></li>
+                                                    <li>
+                                                        <a href="../Estabelecimento/detalhes_estabelecimento.php?id=<?php echo urlencode($estabelecimento['id']); ?>">
+                                                         <?php echo htmlspecialchars($estabelecimento['nome_fantasia']); ?> - <?php echo htmlspecialchars($estabelecimento['cnpj']); ?>
+                                                    </li>
+                                                </a>
                                                 <?php endforeach; ?>
+
                                             </ul>
                                         </div>
                                         <div>
@@ -149,4 +157,5 @@ function buscarEstabelecimentosVinculados($usuarioId, $estabelecimentoModel) {
         ?>
     </div>
 </body>
+
 </html>

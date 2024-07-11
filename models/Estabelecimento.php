@@ -225,11 +225,12 @@ class Estabelecimento
     public function getEstabelecimentosByUsuarioExterno($usuarioExternoId)
     {
         $sql = "
-            SELECT e.nome_fantasia 
-            FROM estabelecimentos e
-            JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
-            WHERE ue.usuario_id = ?
-        ";
+        SELECT e.id, e.nome_fantasia, e.cnpj 
+        FROM estabelecimentos e
+        JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
+        WHERE ue.usuario_id = ?
+    ";
+
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param("i", $usuarioExternoId);
         $stmt->execute();
@@ -535,7 +536,8 @@ class Estabelecimento
         return $row['total'];
     }
 
-    public function getMunicipioByCnpj($cnpj) {
+    public function getMunicipioByCnpj($cnpj)
+    {
         $stmt = $this->conn->prepare("SELECT municipio FROM estabelecimentos WHERE cnpj = ?");
         $stmt->bind_param("s", $cnpj);
         $stmt->execute();
@@ -543,7 +545,7 @@ class Estabelecimento
         $row = $result->fetch_assoc();
         return $row['municipio'];
     }
-    
+
 
 
     public function checkCnpjExists($cnpj)
