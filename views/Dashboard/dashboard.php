@@ -78,11 +78,13 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
+            border-color: #c3c3c3;
         }
 
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            border-color: #1244d1;
         }
 
         .card-title {
@@ -100,51 +102,13 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
         }
 
         .welcome-message {
-            background: linear-gradient(90deg, #007bff, #0056b3);
+            background: linear-gradient(90deg, #006ee7, #1083ff);
+            /* background-color: #007bff; */
             color: #fff;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
         }
-
-        .welcome-message::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 10px;
-            border: 2px solid transparent;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(90deg, #ff6a00, #ee0979, #007bff, #0056b3, #00c6ff);
-            background-size: 300% 300%;
-            animation: borderAnimation 6s infinite;
-            z-index: 1;
-        }
-
-        @keyframes borderAnimation {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-        .welcome-message h4,
-        .welcome-message p {
-            position: relative;
-            z-index: 2;
-        }
-
 
         .welcome-message h4 {
             margin-bottom: 10px;
