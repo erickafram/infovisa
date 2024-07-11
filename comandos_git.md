@@ -11,6 +11,9 @@ git commit -m "Descrição das mudanças feitas"
 # Enviar as mudanças para o repositório remoto
 git push origin master
 
+//CLONAR DO GIT PARA LOCAL
+git clone https://github.com/erickafram/infovisa.git
+
 
 //COMANDO PARA LISTAR TODAS AS PASTAS NO PROJETO.
 1 - ABRA O TERMINAL DO VISUAL CODE E COLE ISSO, LEMBRANDO QUE ESSE CODIGO EXCLUI A PASTA VENDOR
