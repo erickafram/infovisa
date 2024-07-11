@@ -49,17 +49,14 @@ function formatDate($date)
 $nomeFantasia = $ordem['nome_fantasia'];
 $endereco = $ordem['endereco'];
 
-// Extração do endereço usando expressão regular
-preg_match('/^(.+?),\s*(\d+)\s*(.*?),\s*([^,]+)\s*-\s*([^,]+),\s*CEP:\s*([\d-]+)/', $endereco, $matches);
-$rua = $matches[1] ?? '';
-$numero = $matches[2] ?? '';
-$complemento = $matches[3] ?? '';
-$cidade = $matches[4] ?? '';
-$estado = $matches[5] ?? '';
-$cep = $matches[6] ?? '';
+// Extração da cidade, estado e CEP usando expressão regular
+preg_match('/,\s*([^,]+)\s*-\s*([^,]+),\s*CEP:\s*([\d-]+)/', $endereco, $matches);
+$cidade = $matches[1] ?? '';
+$estado = $matches[2] ?? '';
+$cep = $matches[3] ?? '';
 
 // Construção do endereço para o Google Maps
-$enderecoGoogleMaps = trim("{$nomeFantasia}, {$rua}, {$numero}, {$complemento}, {$cidade}, {$estado}, {$cep}");
+$enderecoGoogleMaps = trim("{$nomeFantasia}, {$cidade}, {$estado}, {$cep}");
 $enderecoUrl = urlencode($enderecoGoogleMaps);
 ?>
 
