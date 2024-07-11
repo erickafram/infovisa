@@ -227,7 +227,7 @@ $enderecoUrl = urlencode($enderecoGoogleMaps);
                                 <td>
                                     <form action="gerar_pdf.php" method="post" target="_blank">
                                         <input type="hidden" name="ordem_id" value="<?php echo htmlspecialchars($id); ?>">
-                                        <button type="submit" class="btn btn-info">Gerar PDF</button>
+                                        <button type="submit" class="btn btn-info btn-sm">Gerar PDF</button>
                                     </form>
                                 </td>
                             </tr>
@@ -236,11 +236,11 @@ $enderecoUrl = urlencode($enderecoGoogleMaps);
                             <iframe src="https://maps.google.com/maps?q=<?php echo $enderecoUrl; ?>&t=&z=15&ie=UTF8&iwloc=&output=embed" width="100%" height="400" allowfullscreen></iframe>
                         </div>
                         <div id="local-info" class="mt-3">
-                            <button class="btn btn-primary btn-custom" onclick="openGoogleMaps()">
+                            <button class="btn btn-primary btn-sm" onclick="openGoogleMaps()">
                                 <i class="fas fa-map-marker-alt"></i> Ver no Google Maps
                             </button>
-                            <button class="btn btn-success btn-custom" onclick="sendWhatsApp()">
-                                <i class="fab fa-whatsapp"></i> Enviar Localização via WhatsApp
+                            <button class="btn btn-success btn-sm" onclick="sendWhatsApp()">
+                                <i class="fab fa-whatsapp"></i> Enviar Localização
                             </button>
                         </div>
                     </div>

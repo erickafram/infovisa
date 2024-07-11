@@ -85,6 +85,10 @@ $totalNotificacoes = $alertasCount + $processosParadosCount + $documentosNegados
             margin: -4px -14px;
         }
 
+        .bg-light {
+            box-shadow: rgb(13 43 89 / 10%) 0px 1px 4px;
+        }
+
         .nav-link .fa {
             font-size: 20px;
         }

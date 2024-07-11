@@ -69,7 +69,8 @@ $result = $conn->query($sql);
 $chavesApi = [];
 while ($row = $result->fetch_assoc()) {
     $chavesApi[$row['nome_api']] = $row['chave_api'];
-}'';
+}
+'';
 
 ?>
 <!DOCTYPE html>
@@ -111,6 +112,10 @@ while ($row = $result->fetch_assoc()) {
             transform-origin: top right;
             right: 0.15rem;
             margin-top: -0.25rem;
+        }
+
+        .bg-light {
+            box-shadow: rgb(13 43 89 / 10%) 0px 1px 4px;
         }
 
         .bg-danger {
@@ -172,7 +177,7 @@ while ($row = $result->fetch_assoc()) {
         }
     </style>
 
-     <!-- Adicione os scripts das APIs configuradas -->
+    <!-- Adicione os scripts das APIs configuradas -->
     <?php if (isset($chavesApi['tiny'])) : ?>
         <script src="https://cdn.tiny.cloud/1/<?php echo htmlspecialchars($chavesApi['tiny']); ?>/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
     <?php endif; ?>
