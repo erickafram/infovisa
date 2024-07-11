@@ -1,0 +1,6 @@
+[20-Jun-2024 23:39:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`vigilanc_infovisa`.`usuarios_estabelecimentos`, CONSTRAINT `usuarios_estabelecimentos_ibfk_2` FOREIGN KEY (`estabelecimento_id`) REFERENCES `estabelecimentos` (`id`)) in /home/vigilanc/public_html/visamunicipal/models/Estabelecimento.php:89
+Stack trace:
+#0 /home/vigilanc/public_html/visamunicipal/models/Estabelecimento.php(89): mysqli_stmt->execute()
+#1 /home/vigilanc/public_html/visamunicipal/views/Estabelecimento/excluir_estabelecimento.php(16): Estabelecimento->delete()
+#2 {main}
+  thrown in /home/vigilanc/public_html/visamunicipal/models/Estabelecimento.php on line 89

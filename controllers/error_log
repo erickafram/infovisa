@@ -1,0 +1,161 @@
+[19-Jun-2024 12:48:35 UTC] PHP Warning:  Undefined array key "descricao_identificador_matriz_filial" in /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php on line 81
+[19-Jun-2024 12:48:35 UTC] PHP Stack trace:
+[19-Jun-2024 12:48:35 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:0
+[19-Jun-2024 12:48:35 UTC] PHP   2. EstabelecimentoController->update() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:225
+[19-Jun-2024 12:48:44 UTC] PHP Warning:  Undefined array key "descricao_identificador_matriz_filial" in /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php on line 81
+[19-Jun-2024 12:48:44 UTC] PHP Stack trace:
+[19-Jun-2024 12:48:44 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:0
+[19-Jun-2024 12:48:44 UTC] PHP   2. EstabelecimentoController->update() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:225
+[19-Jun-2024 13:14:54 UTC] Data Início: 2024-06-18
+[19-Jun-2024 13:14:54 UTC] Data Fim: 2024-06-18
+[19-Jun-2024 13:14:54 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[19-Jun-2024 13:14:54 UTC] Técnicos IDs: ["14","15","17"]
+[20-Jun-2024 01:40:26 UTC] Data Início: 2024-06-19
+[20-Jun-2024 01:40:26 UTC] Data Fim: 2024-06-19
+[20-Jun-2024 01:40:26 UTC] Ações Executadas: Array
+(
+    [0] => 31
+)
+
+[20-Jun-2024 01:40:26 UTC] Técnicos IDs: ["14","17"]
+[20-Jun-2024 19:28:28 UTC] PHP Warning:  Undefined array key "status" in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 62
+[20-Jun-2024 19:28:28 UTC] PHP Stack trace:
+[20-Jun-2024 19:28:28 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:0
+[20-Jun-2024 19:28:28 UTC] PHP   2. UserController->login() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:176
+[20-Jun-2024 19:28:37 UTC] PHP Warning:  Undefined array key "status" in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 62
+[20-Jun-2024 19:28:37 UTC] PHP Stack trace:
+[20-Jun-2024 19:28:37 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:0
+[20-Jun-2024 19:28:37 UTC] PHP   2. UserController->login() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:176
+[20-Jun-2024 19:28:43 UTC] PHP Warning:  Undefined array key "status" in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 62
+[20-Jun-2024 19:28:43 UTC] PHP Stack trace:
+[20-Jun-2024 19:28:43 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:0
+[20-Jun-2024 19:28:43 UTC] PHP   2. UserController->login() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:176
+[20-Jun-2024 19:28:59 UTC] PHP Warning:  Undefined array key "status" in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 62
+[20-Jun-2024 19:28:59 UTC] PHP Stack trace:
+[20-Jun-2024 19:28:59 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:0
+[20-Jun-2024 19:28:59 UTC] PHP   2. UserController->login() /home/vigilanc/public_html/visamunicipal/controllers/UserController.php:176
+[27-Jun-2024 14:56:43 UTC] Data Início: 2024-06-27
+[27-Jun-2024 14:56:43 UTC] Data Fim: 2024-06-27
+[27-Jun-2024 14:56:43 UTC] Ações Executadas: Array
+(
+    [0] => 7
+    [1] => 8
+    [2] => 9
+    [3] => 10
+    [4] => 11
+    [5] => 12
+    [6] => 13
+    [7] => 14
+    [8] => 15
+    [9] => 16
+    [10] => 17
+    [11] => 18
+    [12] => 19
+    [13] => 20
+    [14] => 21
+    [15] => 22
+    [16] => 23
+    [17] => 24
+    [18] => 25
+    [19] => 26
+    [20] => 27
+    [21] => 28
+    [22] => 29
+    [23] => 30
+    [24] => 31
+    [25] => 32
+    [26] => 33
+    [27] => 34
+    [28] => 35
+    [29] => 36
+    [30] => 37
+    [31] => 38
+    [32] => 39
+    [33] => 40
+    [34] => 41
+    [35] => 42
+    [36] => 43
+    [37] => 44
+    [38] => 45
+    [39] => 46
+    [40] => 47
+    [41] => 48
+)
+
+[27-Jun-2024 14:56:43 UTC] Técnicos IDs: ["14","15","17"]
+[28-Jun-2024 14:11:57 UTC] PHP Warning:  Undefined array key "municipio" in /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php on line 17
+[28-Jun-2024 14:11:57 UTC] PHP Stack trace:
+[28-Jun-2024 14:11:57 UTC] PHP   1. {main}() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:0
+[28-Jun-2024 14:11:57 UTC] PHP   2. EstabelecimentoController->register() /home/vigilanc/public_html/visamunicipal/controllers/EstabelecimentoController.php:219
+[28-Jun-2024 16:33:36 UTC] Data Início: 2024-06-28
+[28-Jun-2024 16:33:36 UTC] Data Fim: 2024-06-29
+[28-Jun-2024 16:33:36 UTC] Ações Executadas: Array
+(
+    [0] => 7
+    [1] => 8
+    [2] => 9
+)
+
+[28-Jun-2024 16:33:36 UTC] Técnicos IDs: ["14","15","17"]
+[30-Jun-2024 18:24:17 UTC] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function User::update(), 8 passed in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 172 and exactly 11 expected in /home/vigilanc/public_html/visamunicipal/models/User.php:137
+Stack trace:
+#0 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(172): User->update()
+#1 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(214): UserController->update()
+#2 {main}
+  thrown in /home/vigilanc/public_html/visamunicipal/models/User.php on line 137
+[30-Jun-2024 18:25:13 UTC] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function User::update(), 8 passed in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 172 and exactly 11 expected in /home/vigilanc/public_html/visamunicipal/models/User.php:137
+Stack trace:
+#0 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(172): User->update()
+#1 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(214): UserController->update()
+#2 {main}
+  thrown in /home/vigilanc/public_html/visamunicipal/models/User.php on line 137
+[30-Jun-2024 18:27:19 UTC] Data Início: 2024-06-30
+[30-Jun-2024 18:27:19 UTC] Data Fim: 2024-07-01
+[30-Jun-2024 18:27:19 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[30-Jun-2024 18:27:19 UTC] Técnicos IDs: ["14","15","17","23"]
+[30-Jun-2024 22:18:39 UTC] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function User::update(), 8 passed in /home/vigilanc/public_html/visamunicipal/controllers/UserController.php on line 172 and exactly 11 expected in /home/vigilanc/public_html/visamunicipal/models/User.php:137
+Stack trace:
+#0 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(172): User->update()
+#1 /home/vigilanc/public_html/visamunicipal/controllers/UserController.php(214): UserController->update()
+#2 {main}
+  thrown in /home/vigilanc/public_html/visamunicipal/models/User.php on line 137
+[09-Jul-2024 17:51:08 UTC] Data Início: 2024-07-09
+[09-Jul-2024 17:51:08 UTC] Data Fim: 2024-07-10
+[09-Jul-2024 17:51:08 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[09-Jul-2024 17:51:08 UTC] Técnicos IDs: ["14"]
+[09-Jul-2024 17:52:38 UTC] Data Início: 2024-07-09
+[09-Jul-2024 17:52:38 UTC] Data Fim: 2024-07-10
+[09-Jul-2024 17:52:38 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[09-Jul-2024 17:52:38 UTC] Técnicos IDs: ["14","15","17"]
+[09-Jul-2024 19:28:35 UTC] Data Início: 2024-07-09
+[09-Jul-2024 19:28:35 UTC] Data Fim: 2024-07-10
+[09-Jul-2024 19:28:35 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[09-Jul-2024 19:28:35 UTC] Técnicos IDs: ["14"]
+[10-Jul-2024 18:30:56 UTC] Data Início: 2024-07-10
+[10-Jul-2024 18:30:56 UTC] Data Fim: 2024-07-11
+[10-Jul-2024 18:30:56 UTC] Ações Executadas: Array
+(
+    [0] => 7
+)
+
+[10-Jul-2024 18:30:56 UTC] Técnicos IDs: ["14"]
