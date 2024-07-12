@@ -17,7 +17,7 @@
         <div id="chat-body" class="chat-body"></div>
         <div class="chat-footer">
             <input type="text" id="chat-input" placeholder="Digite sua mensagem aqui..." />
-            <button id="chat-send" onclick="sendMessage()">Enviar</button>
+            <button id="chat-send" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
 </div>
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatBody.innerHTML = localStorage.getItem('chatHistory');
         chatBody.scrollTop = chatBody.scrollHeight;
     } else {
-        const initialMessage = `Olá, ${userName}. Aqui você pode consultar informações de estabelecimento e processo. Por favor, inicie digitando o nome do estabelecimento ou CNPJ do estabelecimento.`;
+        const initialMessage = `Olá, ${userName}. Sou a AnaVisa. Aqui você pode consultar informações de estabelecimento e processo.\n\nPor favor, escolha uma das opções abaixo para continuar:\n1. Consultar estabelecimento e saber andamento do processo\n2. Saber quais documentos são necessários para o processo de licenciamento sanitário.\n3. Tire suas dúvidas.`;
         typeEffect(initialMessage, 'bot-message');
     }
 
@@ -124,59 +124,75 @@ function saveChatHistory() {
     bottom: 20px;
     right: 20px;
     width: 350px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Adicionado para melhorar a sombra */
+    border-radius: 10px; /* Adicionado para cantos arredondados */
+    overflow: hidden; /* Adicionado para evitar conteúdo transbordando */
     font-family: Arial, sans-serif;
-    z-index: 9999; /* Adicione esta linha para que o chat-container fique acima de todos os outros elementos */
+    z-index: 9999; /* Adicionado para que o chat-container fique acima de todos os outros elementos */
 }
 
 .chat-box {
     background-color: #fff;
-    border-radius: 10px;
-    overflow: hidden;
 }
+
 .chat-header {
     background-color: #007bff;
     color: #fff;
-    padding: 10px;
+    padding: 15px; /* Aumentado para melhor espaçamento */
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-top-left-radius: 10px; /* Adicionado para arredondar os cantos */
+    border-top-right-radius: 10px; /* Adicionado para arredondar os cantos */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
 .chat-header .icon {
     font-size: 24px;
     margin-right: 10px;
 }
+
 .chat-header .status-online {
     background-color: #28a745;
     color: #fff;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 12px;
+    border-radius: 12px; /* Aumentado para melhor aparência */
+    padding: 5px 10px; /* Aumentado para melhor espaçamento */
+    font-size: 14px; /* Aumentado para melhor legibilidade */
 }
+
 .chat-header .chat-toggle {
     background: none;
     border: none;
     color: #fff;
-    font-size: 16px;
+    font-size: 20px; /* Aumentado para maior clique */
     cursor: pointer;
 }
+
 .chat-body {
-    height: 200px;
+    height: 300px; /* Aumentado para mais espaço de visualização */
     overflow-y: auto;
     padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
 .chat-footer {
     display: flex;
     padding: 10px;
     background-color: #f1f1f1;
+    border-bottom-left-radius: 10px; /* Adicionado para arredondar os cantos */
+    border-bottom-right-radius: 10px; /* Adicionado para arredondar os cantos */
+    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
 #chat-input {
     flex: 1;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
     margin-right: 10px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Adicionado para efeito de sombra interna */
 }
+
 #chat-send {
     background-color: #007bff;
     color: #fff;
@@ -184,14 +200,22 @@ function saveChatHistory() {
     border-radius: 5px;
     padding: 10px;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
+#chat-send i {
+    font-size: 16px; /* Ajusta o tamanho do ícone */
+}
+
 .user-message {
     background-color: #e0f7fa;
     padding: 10px;
     margin: 5px 0;
     border-radius: 10px;
     text-align: right;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
 .bot-message {
     background-color: #f1f8e9;
     padding: 10px;
@@ -199,7 +223,9 @@ function saveChatHistory() {
     border-radius: 10px;
     text-align: left;
     white-space: pre-line; /* Preserva quebras de linha */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adicionado para sombra */
 }
+
 .hidden {
     display: none;
 }
