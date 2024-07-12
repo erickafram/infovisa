@@ -42,6 +42,22 @@ if (isset($_GET['id'])) {
     exit();
 }
 
+function generateUniqueFileName($dir, $filename)
+{
+    $path_info = pathinfo($filename);
+    $basename = $path_info['filename'];
+    $extension = isset($path_info['extension']) ? '.' . $path_info['extension'] : '';
+    $new_filename = $filename;
+    $counter = 1;
+
+    while (file_exists($dir . $new_filename)) {
+        $new_filename = $basename . '(' . $counter . ')' . $extension;
+        $counter++;
+    }
+
+    return $new_filename;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
     if ($dadosProcesso['status'] !== 'ARQUIVADO') {
         $total_files = count($_FILES['files']['name']);
@@ -51,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
             $file_name = basename($_FILES["files"]["name"][$i]);
             $file_type = mime_content_type($_FILES["files"]["tmp_name"][$i]);
             $file_size = $_FILES["files"]["size"][$i];
-            $target_file = $upload_dir . $file_name;
+            $target_file = $upload_dir . generateUniqueFileName($upload_dir, $file_name);
 
             // Verifica se o arquivo é um PDF
             if ($file_type !== 'application/pdf') {
@@ -66,8 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
             }
 
             if (move_uploaded_file($_FILES["files"]["tmp_name"][$i], $target_file)) {
-                $caminho_arquivo = 'uploads/' . $file_name;
-                $documentoModel->createDocumento($processoId, $file_name, $caminho_arquivo);
+                $caminho_arquivo = 'uploads/' . basename($target_file);
+                $documentoModel->createDocumento($processoId, basename($target_file), $caminho_arquivo);
                 touch($target_file); // Atualiza a data de modificação do arquivo para agora
             } else {
                 echo "Erro ao fazer upload do arquivo: " . $file_name;
@@ -80,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
         echo "Erro: Não é permitido fazer upload de arquivo para processos arquivados.";
     }
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_arquivo_negado'])) {
     if ($dadosProcesso['status'] !== 'ARQUIVADO') {
@@ -270,8 +287,30 @@ include '../../includes/header_empresa.php';
         </div>
 
         <div class="row">
+            <!-- Coluna direita: Upload de Arquivos -->
+            <div class="col-md-4">
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Upload de Arquivos</h5>
+                        <?php if ($dadosProcesso['status'] === 'ARQUIVADO') : ?>
+                            <p>O upload de Arquivo não é permitido para processos arquivados.</p>
+                        <?php else : ?>
+                            <form action="detalhes_processo_empresa.php?id=<?php echo $processoId; ?>" method="POST" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="files" class="form-label">Escolha os arquivos (somente PDF)</label>
+                                    <input class="form-control" type="file" id="files" name="files[]" accept="application/pdf" multiple required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+                            </form>
+                        <?php endif; ?>
+                        <hr>
+                        <a href="gerar_pdf_processo.php?id=<?php echo $processoId; ?>" class="btn btn-secondary btn-sm" target="_blank">Protocolo do Processo</a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Coluna esquerda: Documentos e Arquivos -->
-            <div class="col-md-8">
+            <div class="col-md-8" style="padding-bottom:20px;">
                 <div class="card mt-4">
                     <div class="card-body">
                         <h5 class="card-title">Documentos e Arquivos do Processo</h5>
@@ -351,47 +390,26 @@ include '../../includes/header_empresa.php';
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Coluna direita: Upload de Arquivos -->
-            <div class="col-md-4">
-                <div class="card mt-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Upload de Arquivo</h5>
-                        <?php if ($dadosProcesso['status'] === 'ARQUIVADO') : ?>
-                            <p>O upload de Arquivo não é permitido para processos arquivados.</p>
-                        <?php else : ?>
-                            <form action="detalhes_processo_empresa.php?id=<?php echo $processoId; ?>" method="POST" enctype="multipart/form-data">
-                                <div class="mb-3">
-                                    <label for="files" class="form-label">Escolha os arquivos (somente PDF)</label>
-                                    <input class="form-control" type="file" id="files" name="files[]" accept="application/pdf" multiple required>
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-                            </form>
-                        <?php endif; ?>
-                        <hr>
-                        <a href="gerar_pdf_processo.php?id=<?php echo $processoId; ?>" class="btn btn-secondary btn-sm" target="_blank">Protocolo do Processo</a>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                function registrarVisualizacao(arquivoId) {
-                    fetch('registrar_visualizacao.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            arquivo_id: arquivoId,
-                            usuario_id: <?php echo $_SESSION['user']['id']; ?>
-                        })
-                    }).then(response => response.json()).then(data => {
-                        console.log(data.message);
-                    }).catch(error => {
-                        console.error('Erro:', error);
-                    });
-                }
-            </script>
+        <script>
+            function registrarVisualizacao(arquivoId) {
+                fetch('registrar_visualizacao.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        arquivo_id: arquivoId,
+                        usuario_id: <?php echo $_SESSION['user']['id']; ?>
+                    })
+                }).then(response => response.json()).then(data => {
+                    console.log(data.message);
+                }).catch(error => {
+                    console.error('Erro:', error);
+                });
+            }
+        </script>
 
 </body>
 

@@ -74,7 +74,7 @@ while ($row = $result->fetch_assoc()) {
 
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">

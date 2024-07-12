@@ -66,7 +66,7 @@ if (isset($_GET['arquivo_id']) && isset($_GET['processo_id']) && isset($_GET['es
         include '../header.php';
 ?>
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="pt-BR">
 
         <head>
             <meta charset="UTF-8">

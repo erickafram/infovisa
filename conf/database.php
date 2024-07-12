@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "vigilanc_infovisa";
+$dbname = "visamunicipal";
 
 // Cria a conexão
 

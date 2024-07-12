@@ -66,7 +66,7 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
@@ -80,7 +80,6 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
             transition: all 0.3s ease;
             border-color: #c3c3c3;
         }
-
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
@@ -117,6 +116,16 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
         .mr-2,
         .mx-2 {
             margin-right: .5rem !important;
+        }
+
+        .transition-effect {
+            transition: all 0.5s ease-in-out;
+        }
+        .transition-effect.filled {
+            background-color: #e9f7ef;
+            /* Cor de fundo para indicar preenchido */
+            border-color: #2ecc71;
+            /* Cor da borda para indicar preenchido */
         }
     </style>
 </head>
@@ -361,12 +370,10 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
                                 <?php endforeach; ?>
                             </ul>
 
-
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
-
 
             <!-- Modal para Inserir Motivo de Rejeição -->
             <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
@@ -380,9 +387,26 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
                             <div class="modal-body">
                                 <input type="hidden" name="id" id="rejectEstabelecimentoId">
                                 <div class="form-group">
-                                    <label for="motivo">Motivo da Rejeição</label>
-                                    <textarea class="form-control" id="motivo" name="motivo" rows="3" required></textarea>
+                                    <label for="motivoSelect">Selecione o Motivo da Rejeição</label>
+                                    <select class="form-control" id="motivoSelect">
+                                        <option value="">Selecione um motivo Predefinido</option>
+                                        <option value="1" data-full-text="Estabelecimento não é de competência da VISA Municipal de {municipio}. Para dar abertura ao seu processo, acesse o site https://vigilancia-to.com.br ou entre em contato com a Vigilância Sanitária Estadual através do número (63) 3218-3264.">
+                                            Competência estadual
+                                        </option>
+                                        <option value="2" data-full-text="Entre em contato com a vigilancia sanitária de {municipio} para saber o motivo da reprovação do seu estabelecimento.">
+                                            Contato com a vigilância
+                                        </option>
+                                        <option value="3" data-full-text="">
+                                            Escrever Motivo
+                                        </option>
+                                    </select>
                                 </div>
+                                <div class="form-group">
+                                    <label for="motivo">Motivo da Rejeição</label>
+                                    <textarea class="form-control transition-effect" id="motivo" name="motivo" rows="5" required></textarea>
+                                </div>
+
+
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -392,56 +416,106 @@ $assinaturasPendentes = $assinaturaModel->getAssinaturasPendentes($user_id);
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <?php if ($camposIncompletos) : ?>
-        <div class="modal fade" id="incompleteProfileModal" tabindex="-1" aria-labelledby="incompleteProfileModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="incompleteProfileModalLabel">Informações Incompletas</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Você precisa atualizar suas informações cadastrais. Por favor, complete os campos do cadastro do usuário.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="../Admin/editar_cadastro_usuario.php" class="btn btn-primary">Atualizar Agora</a>
+
+            <?php if ($camposIncompletos) : ?>
+                <div class="modal fade" id="incompleteProfileModal" tabindex="-1" aria-labelledby="incompleteProfileModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="incompleteProfileModalLabel">Informações Incompletas</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Você precisa atualizar suas informações cadastrais. Por favor, complete os campos do cadastro do usuário.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="../Admin/editar_cadastro_usuario.php" class="btn btn-primary">Atualizar Agora</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <script>
-            $(document).ready(function() {
-                $('#incompleteProfileModal').modal('show');
-            });
-        </script>
-    <?php endif; ?>
+                <script>
+                    $(document).ready(function() {
+                        $('#incompleteProfileModal').modal('show');
+                    });
+                </script>
+            <?php endif; ?>
 
 
-    <script>
-        var rejectModal = document.getElementById('rejectModal');
-        rejectModal.addEventListener('show.bs.modal', function(event) {
-            var button = event.relatedTarget; // Botão que acionou o modal
-            var estabelecimentoId = button.getAttribute('data-id'); // Extrair informação dos atributos data-*
+            <script>
+                var rejectModal = document.getElementById('rejectModal');
+                rejectModal.addEventListener('show.bs.modal', function(event) {
+                    var button = event.relatedTarget; // Botão que acionou o modal
+                    var estabelecimentoId = button.getAttribute('data-id'); // Extrair informação dos atributos data-*
 
-            // Atualizar os dados no modal
-            var modalBodyInput = rejectModal.querySelector('.modal-body input#rejectEstabelecimentoId');
-            modalBodyInput.value = estabelecimentoId;
-        });
+                    // Atualizar os dados no modal
+                    var modalBodyInput = rejectModal.querySelector('.modal-body input#rejectEstabelecimentoId');
+                    modalBodyInput.value = estabelecimentoId;
+                });
 
-        function confirmFinalize(processoId) {
-            if (confirm("Tem certeza que você resolveu as pendências neste processo?")) {
-                window.location.href = '../../controllers/ProcessoController.php?action=finalize&id=' + processoId;
-            }
-        }
-    </script>
+                function confirmFinalize(processoId) {
+                    if (confirm("Tem certeza que você resolveu as pendências neste processo?")) {
+                        window.location.href = '../../controllers/ProcessoController.php?action=finalize&id=' + processoId;
+                    }
+                }
+                document.getElementById('motivoSelect').addEventListener('change', function() {
+                    var selectedOption = this.options[this.selectedIndex];
+                    var fullText = selectedOption.getAttribute('data-full-text');
+                    var motivoTextarea = document.getElementById('motivo');
+                    var motivoLabel = document.querySelector('label[for="motivo"]');
 
+                    // Substituir {municipio} pelo município do usuário logado
+                    var municipio = '<?php echo htmlspecialchars($municipioUsuario); ?>';
+                    if (fullText) {
+                        fullText = fullText.replace('{municipio}', municipio);
+                    }
 
-    <?php $conn->close(); ?>
+                    motivoTextarea.value = fullText;
+
+                    // Mostrar o campo motivo e seu label se qualquer opção for selecionada
+                    if (this.value !== "") {
+                        motivoTextarea.style.display = "block";
+                        motivoTextarea.disabled = false;
+                        motivoLabel.style.display = "block";
+                    } else {
+                        motivoTextarea.style.display = "none";
+                        motivoTextarea.disabled = true;
+                        motivoLabel.style.display = "none";
+                    }
+
+                    // Adicionar a classe 'filled' para o efeito visual
+                    motivoTextarea.classList.add('filled');
+                });
+
+                // Inicialmente ocultar o campo motivo e seu label se a opção "Selecione um motivo Predefinido" estiver selecionada
+                document.addEventListener('DOMContentLoaded', function() {
+                    var motivoTextarea = document.getElementById('motivo');
+                    var motivoLabel = document.querySelector('label[for="motivo"]');
+                    motivoTextarea.style.display = "none";
+                    motivoTextarea.disabled = true;
+                    motivoLabel.style.display = "none";
+                });
+
+                // Remover a classe 'filled' quando o conteúdo da textarea for removido
+                document.getElementById('motivo').addEventListener('input', function() {
+                    if (this.value === '') {
+                        this.classList.remove('filled');
+                    }
+                });
+
+                // Verificar o motivo selecionado antes de enviar o formulário
+                document.querySelector('form[action="../../controllers/EstabelecimentoController.php?action=rejectEstabelecimento"]').addEventListener('submit', function(event) {
+                    var motivoSelect = document.getElementById('motivoSelect');
+                    if (motivoSelect.value === "") {
+                        event.preventDefault();
+                        alert('Por favor, selecione um motivo válido para a rejeição.');
+                    }
+                });
+            </script>
+
+            <?php $conn->close(); ?>
 
 </body>
-
 </html>

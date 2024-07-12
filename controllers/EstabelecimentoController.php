@@ -2,14 +2,17 @@
 require_once '../conf/database.php';
 require_once '../models/Estabelecimento.php';
 
-class EstabelecimentoController {
+class EstabelecimentoController
+{
     private $estabelecimento;
 
-    public function __construct($conn) {
+    public function __construct($conn)
+    {
         $this->estabelecimento = new Estabelecimento($conn);
     }
 
-    public function register() {
+    public function register()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             session_start();
             $usuarioMunicipio = $_SESSION['user']['municipio'];
@@ -58,7 +61,8 @@ class EstabelecimentoController {
         }
     }
 
-    public function checkCnpj() {
+    public function checkCnpj()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $cnpj = $_POST['cnpj'];
             $exists = $this->estabelecimento->checkCnpjExists($cnpj);
@@ -66,7 +70,8 @@ class EstabelecimentoController {
         }
     }
 
-    public function checkCnpjDuplicado() {
+    public function checkCnpjDuplicado()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $cnpj = $_POST['cnpj'];
             $exists = $this->estabelecimento->checkCnpjExists($cnpj);
@@ -74,7 +79,8 @@ class EstabelecimentoController {
         }
     }
 
-    public function update() {
+    public function update()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $id = $_GET['id'];
             $data = [
@@ -107,18 +113,19 @@ class EstabelecimentoController {
         }
     }
 
-    public function registerEmpresa() {
+    public function registerEmpresa()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             session_start();
             $usuarioExternoId = $_SESSION['user']['id']; // Pegando o ID do usuário externo logado
-    
+
             $cnpj = $_POST['cnpj'];
             if ($this->estabelecimento->checkCnpjExists($cnpj)) {
                 $municipio = $this->estabelecimento->getMunicipioByCnpj($cnpj);
                 header("Location: ../views/Company/cadastro_estabelecimento_empresa.php?error=" . urlencode("Estabelecimento já existe. Entre em contato com a Vigilância Sanitária Municipal de " . $municipio . "."));
                 exit();
             }
-    
+
             $data = [
                 'cnpj' => $_POST['cnpj'],
                 'descricao_identificador_matriz_filial' => $_POST['descricao_identificador_matriz_filial'],
@@ -145,12 +152,12 @@ class EstabelecimentoController {
                 'status' => 'pendente',
                 'usuario_externo_id' => $usuarioExternoId // Adicionando o ID do usuário externo
             ];
-    
+
             $estabelecimentoId = $this->estabelecimento->create($data);
             if ($estabelecimentoId) {
                 // Vincula o usuário externo ao estabelecimento
                 $this->estabelecimento->vincularUsuarioEstabelecimento($usuarioExternoId, $estabelecimentoId, 'CONTADOR');
-                
+
                 header("Location: ../views/Company/cadastro_estabelecimento_empresa.php?success=1");
                 exit();
             } else {
@@ -159,9 +166,10 @@ class EstabelecimentoController {
             }
         }
     }
-    
 
-    public function reiniciar() {
+
+    public function reiniciar()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['id'])) {
             $id = $_GET['id'];
             if ($this->estabelecimento->reiniciarEstabelecimento($id)) {
@@ -173,11 +181,9 @@ class EstabelecimentoController {
             }
         }
     }
-    
-    
-    
-    
-    public function approveEstabelecimento() {
+
+    public function approveEstabelecimento()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id'])) {
             $id = $_POST['id'];
             if ($this->estabelecimento->approve($id)) {
@@ -191,19 +197,20 @@ class EstabelecimentoController {
     }
 
 
-    public function rejectEstabelecimento() {
+    public function rejectEstabelecimento()
+    {
         if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id']) && isset($_POST['motivo'])) {
             $id = $_POST['id'];
             $motivo = $_POST['motivo'];
             if ($this->estabelecimento->reject($id, $motivo)) {
-                header("Location: ../views/Estabelecimento/listar_estabelecimentos.php?success=1");
+                header("Location: ../views/Dashboard/dashboard.php?success=1");
                 exit();
             } else {
                 header("Location: ../views/Estabelecimento/listar_estabelecimentos.php?error=" . urlencode("Erro ao rejeitar estabelecimento."));
                 exit();
             }
         }
-    }    
+    }
 }
 
 // Processa a ação com base no parâmetro de URL
@@ -237,5 +244,3 @@ if (isset($_GET['action'])) {
 
     $conn->close();
 }
-
-?>
