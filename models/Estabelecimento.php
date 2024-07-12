@@ -563,4 +563,65 @@ class Estabelecimento
     {
         return $this->lastError;
     }
+
+    public function searchEstabelecimento($searchTerm) {
+        $query = "SELECT * FROM estabelecimentos WHERE nome_fantasia LIKE ? OR razao_social LIKE ? OR cnpj LIKE ?";
+        $stmt = $this->conn->prepare($query);
+        $searchTerm = '%' . $searchTerm . '%';
+        $stmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function searchByNameOrRazaoSocial($search, $userId)
+    {
+        $search = "%$search%";
+        $stmt = $this->conn->prepare("
+            SELECT e.*
+            FROM estabelecimentos e
+            JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
+            WHERE ue.usuario_id = ? AND (e.nome_fantasia LIKE ? OR e.razao_social LIKE ?)
+        ");
+        $stmt->bind_param("iss", $userId, $search, $search);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function findByCnpj($cnpj)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM estabelecimentos WHERE cnpj = ?");
+        $stmt->bind_param("s", $cnpj);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc();
+    }
+
+    public function findByCnpjAndUsuario($cnpj, $usuarioId)
+{
+    $stmt = $this->conn->prepare("
+        SELECT e.*
+        FROM estabelecimentos e
+        JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
+        WHERE e.cnpj = ? AND ue.usuario_id = ?
+    ");
+    $stmt->bind_param("si", $cnpj, $usuarioId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
+}
+
+public function searchByNameAndUsuario($name, $usuarioId)
+{
+    $name = "%$name%";
+    $stmt = $this->conn->prepare("
+        SELECT e.*
+        FROM estabelecimentos e
+        JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
+        WHERE e.nome_fantasia LIKE ? AND ue.usuario_id = ?
+    ");
+    $stmt->bind_param("si", $name, $usuarioId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+    
 }

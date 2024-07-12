@@ -148,6 +148,9 @@ $totalNotificacoes = $alertasCount + $processosParadosCount + $documentosNegados
 </head>
 
 <body>
+
+<?php include '../Chat/chat.php'; ?>
+
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="#">
