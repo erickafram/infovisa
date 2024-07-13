@@ -19,15 +19,12 @@ if (!isset($_SESSION['chat_state'])) {
 $processoModel = new Processo($conn);
 $estabelecimentoModel = new Estabelecimento($conn);
 
-// Função para buscar respostas no FAQ com base em palavras-chave
+// Função para buscar respostas no FAQ
 function searchFaq($message, $faq) {
     $message = strtolower($message);
-    $keywords = explode(' ', $message);
     foreach ($faq as $question => $answer) {
-        foreach ($keywords as $keyword) {
-            if (stripos($question, $keyword) !== false) {
-                return $answer;
-            }
+        if (stripos($message, $question) !== false) {
+            return $answer . "\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
         }
     }
     return null;
@@ -37,21 +34,29 @@ switch ($_SESSION['chat_state']) {
     case 'initial':
         if ($message === '1') {
             $_SESSION['chat_state'] = 'consulta';
-            $response['reply'] = 'Por favor, digite o CNPJ ou nome do estabelecimento:';
-        } elseif ($message === '2') {
-            $_SESSION['chat_state'] = 'licenciamento';
-            $response['reply'] = 'Para mais informações sobre os documentos necessários para o processo de licenciamento sanitário, visite: [link para o sistema]';
-            $response['reply'] .= "\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
-            $_SESSION['chat_state'] = 'after_consulta';
-        } elseif ($message === '3') {
-            $_SESSION['chat_state'] = 'faq';
-            $response['reply'] = 'Digite sua dúvida ou palavras-chave relacionadas, e eu tentarei encontrar a resposta no FAQ:';
+            $response['reply'] = "Por favor, escolha uma das opções abaixo para continuar:\n1. Você deseja saber sobre o andamento do seu processo\n2. Informações de quais documentos devem ser apresentados para o Processo de Licenciamento Sanitário\n3. Tire suas dúvidas sobre qualquer tema.";
         } else {
-            $response['reply'] = "Opção inválida. Por favor, escolha uma das opções abaixo para continuar:\n1. Consultar estabelecimento e saber andamento do processo\n2. Saber quais documentos são necessários para o processo de licenciamento sanitário\n3. Tire suas dúvidas.";
+            $response['reply'] = "Opção inválida. Por favor, escolha uma das opções abaixo para continuar:\nDigite 1 para tirar suas dúvidas.";
         }
         break;
 
     case 'consulta':
+        if ($message === '1') {
+            $_SESSION['chat_state'] = 'process_status';
+            $response['reply'] = 'Por favor, digite o CNPJ ou nome do estabelecimento:';
+        } elseif ($message === '2') {
+            $_SESSION['chat_state'] = 'licenciamento';
+            $response['reply'] = 'Para mais informações sobre os documentos necessários para o processo de licenciamento sanitário, visite: [link para o sistema]\n\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa';
+            $_SESSION['chat_state'] = 'after_consulta';
+        } elseif ($message === '3') {
+            $_SESSION['chat_state'] = 'faq';
+            $response['reply'] = 'Digite sua dúvida e eu tentarei encontrar a resposta no FAQ:';
+        } else {
+            $response['reply'] = "Opção inválida. Por favor, escolha uma das opções abaixo para continuar:\n1. Você deseja saber sobre o andamento do seu processo\n2. Informações de quais documentos devem ser apresentados para o Processo de Licenciamento Sanitário\n3. Tire suas dúvidas sobre qualquer tema.";
+        }
+        break;
+
+    case 'process_status':
         if (preg_match('/^\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}$/', $message)) {
             // Se a mensagem for um CNPJ
             $estabelecimento = $estabelecimentoModel->findByCnpjAndUsuario($message, $_SESSION['user']['id']);
@@ -87,17 +92,17 @@ switch ($_SESSION['chat_state']) {
                 $response['reply'] = "Nenhum estabelecimento encontrado com o nome $message.";
             }
         }
-        $response['reply'] .= "\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
+        $response['reply'] .= "\n\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
         $_SESSION['chat_state'] = 'after_consulta';
         break;
 
     case 'after_consulta':
         if ($message === '1') {
             $_SESSION['chat_state'] = 'consulta';
-            $response['reply'] = 'Por favor, digite o CNPJ ou nome do estabelecimento:';
+            $response['reply'] = "Por favor, escolha uma das opções abaixo para continuar:\n1. Você deseja saber sobre o andamento do seu processo\n2. Informações de quais documentos devem ser apresentados para o Processo de Licenciamento Sanitário\n3. Tire suas dúvidas sobre qualquer tema.";
         } elseif ($message === '3') {
             $_SESSION['chat_state'] = 'initial';
-            $response['reply'] = "Por favor, escolha uma das opções abaixo para continuar:\n1. Consultar estabelecimento e saber andamento do processo\n2. Saber quais documentos são necessários para o processo de licenciamento sanitário\n3. Tire suas dúvidas.";
+            $response['reply'] = "Digite 1 para tirar suas dúvidas.";
         } else {
             $response['reply'] = 'Atendimento finalizado. Obrigado por usar o serviço de chat.';
             $_SESSION['chat_state'] = 'initial';
@@ -105,8 +110,7 @@ switch ($_SESSION['chat_state']) {
         break;
 
     case 'licenciamento':
-        $response['reply'] = 'Para mais informações sobre os documentos necessários para o processo de licenciamento sanitário, visite: [link para o sistema]';
-        $response['reply'] .= "\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
+        $response['reply'] = 'Para mais informações sobre os documentos necessários para o processo de licenciamento sanitário, visite: [link para o sistema]\n\nDeseja realizar uma nova consulta ou finalizar o atendimento?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa';
         $_SESSION['chat_state'] = 'after_consulta';
         break;
 
@@ -115,11 +119,7 @@ switch ($_SESSION['chat_state']) {
         if ($faqResponse) {
             $response['reply'] = $faqResponse;
         } else {
-            $response['reply'] = "Desculpe, não encontrei uma resposta para sua dúvida. Aqui estão as principais dúvidas do sistema:\n";
-            foreach ($faq as $question => $answer) {
-                $response['reply'] .= "- $question\n";
-            }
-            $response['reply'] .= "\nPara mais dúvidas, visite: [link para arquivo de perguntas e respostas]";
+            $response['reply'] = "Desculpe, não encontrei uma resposta para sua dúvida. Aqui estão as principais dúvidas do sistema:\n- como consultar o andamento de um processo\n- documentos necessários para o licenciamento sanitário\n- quais documentos devo apresentar\n\nPara mais dúvidas, acesse nosso [FAQ](duvidas.php).\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
             $_SESSION['chat_state'] = 'initial';
         }
         break;

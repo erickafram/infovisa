@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "vigilanc_infovisa";
+$dbname = "visamunicipal";
 
 // Cria a conexão
 
@@ -14,4 +14,3 @@ if ($conn->connect_error) {
     die("Conexão falhou: " . $conn->connect_error);
 }
 ?>
-
