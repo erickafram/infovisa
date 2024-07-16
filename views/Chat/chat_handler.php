@@ -22,11 +22,29 @@ $estabelecimentoModel = new Estabelecimento($conn);
 // Função para buscar respostas no FAQ
 function searchFaq($message, $faq) {
     $message = strtolower($message);
+    $bestMatch = null;
+    $bestMatchCount = 0;
+    
     foreach ($faq as $question => $answer) {
-        if (stripos($message, $question) !== false) {
-            return $answer . "\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
+        $keywords = explode(' ', strtolower($question));
+        $matchCount = 0;
+        
+        foreach ($keywords as $keyword) {
+            if (stripos($message, $keyword) !== false) {
+                $matchCount++;
+            }
+        }
+        
+        if ($matchCount > $bestMatchCount) {
+            $bestMatchCount = $matchCount;
+            $bestMatch = $answer;
         }
     }
+    
+    if ($bestMatch) {
+        return $bestMatch . "\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
+    }
+    
     return null;
 }
 
@@ -50,7 +68,7 @@ switch ($_SESSION['chat_state']) {
             $_SESSION['chat_state'] = 'after_consulta';
         } elseif ($message === '3') {
             $_SESSION['chat_state'] = 'faq';
-            $response['reply'] = 'Digite sua dúvida e eu tentarei encontrar a resposta no FAQ:';
+            $response['reply'] = 'Digite sua dúvida e eu tentarei encontrar a resposta no manual do sistema:';
         } else {
             $response['reply'] = "Opção inválida. Por favor, escolha uma das opções abaixo para continuar:\n1. Você deseja saber sobre o andamento do seu processo\n2. Informações de quais documentos devem ser apresentados para o Processo de Licenciamento Sanitário\n3. Tire suas dúvidas sobre qualquer tema.";
         }
@@ -119,7 +137,7 @@ switch ($_SESSION['chat_state']) {
         if ($faqResponse) {
             $response['reply'] = $faqResponse;
         } else {
-            $response['reply'] = "Desculpe, não encontrei uma resposta para sua dúvida. Aqui estão as principais dúvidas do sistema:\n- como consultar o andamento de um processo\n- documentos necessários para o licenciamento sanitário\n- quais documentos devo apresentar\n\nPara mais dúvidas, acesse nosso [FAQ](duvidas.php).\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
+            $response['reply'] = "Desculpe, não encontrei uma resposta para sua dúvida. Aqui estão as principais dúvidas do sistema:\n- como consultar o andamento de um processo\n- documentos necessários para o licenciamento sanitário\n- quais documentos devo apresentar\n\nPara mais dúvidas, acesse nosso [Manual do Sistema](manual.php).\n\nTem mais alguma coisa que posso ajudar ou deseja encerrar?\n1. Nova consulta\n2. Finalizar atendimento\n3. Iniciar nova conversa";
             $_SESSION['chat_state'] = 'initial';
         }
         break;

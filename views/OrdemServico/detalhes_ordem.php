@@ -46,18 +46,7 @@ function formatDate($date)
     return $dateTime->format('d/m/Y');
 }
 
-$nomeFantasia = $ordem['nome_fantasia'];
 $endereco = $ordem['endereco'];
-
-// Extração da cidade, estado e CEP usando expressão regular
-preg_match('/,\s*([^,]+)\s*-\s*([^,]+),\s*CEP:\s*([\d-]+)/', $endereco, $matches);
-$cidade = $matches[1] ?? '';
-$estado = $matches[2] ?? '';
-$cep = $matches[3] ?? '';
-
-// Construção do endereço para o Google Maps
-$enderecoGoogleMaps = trim("{$nomeFantasia}, {$cidade}, {$estado}, {$cep}");
-$enderecoUrl = urlencode($enderecoGoogleMaps);
 ?>
 
 <!DOCTYPE html>
@@ -65,33 +54,60 @@ $enderecoUrl = urlencode($enderecoGoogleMaps);
 
 <head>
     <title>Detalhes da Ordem de Serviço</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        #map {
-            height: 400px;
-            width: 100%;
-        }
-        .btn-custom {
-            margin-right: 5px;
-        }
-    </style>
     <script>
-        function sendWhatsApp() {
-            var enderecoCompleto = '<?php echo $enderecoGoogleMaps; ?>';
-            var message = `Localização do estabelecimento:\n${enderecoCompleto}\n\nAbra no Google Maps: https://www.google.com/maps?q=${encodeURIComponent(enderecoCompleto)}`;
-            var whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
+        function initMap() {
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode({
+                'address': '<?php echo $endereco; ?>'
+            }, function(results, status) {
+                if (status === 'OK') {
+                    var mapOptions = {
+                        zoom: 15,
+                        center: results[0].geometry.location
+                    };
+                    var map = new google.maps.Map(document.getElementById('map'), mapOptions);
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location
+                    });
+
+                    var latitude = results[0].geometry.location.lat();
+                    var longitude = results[0].geometry.location.lng();
+                    var locationInfo = `
+                        <p><strong>Localização:</strong> ${results[0].formatted_address}</p>
+                        <p> <button class="btn btn-success" onclick="sendWhatsApp('${latitude}', '${longitude}')"> <i class="fab fa-whatsapp"></i> Enviar Localização via WhatsApp </button> </p>
+                    `;
+                    document.getElementById('local-info').innerHTML = locationInfo;
+                } else {
+                    if (status === 'REQUEST_DENIED') {
+                        setTimeout(function() {
+                            location.reload();
+                        }, 5000); // Atualiza a página após 5 segundos
+                    } else {
+                        alert('Geocode was not successful for the following reason: ' + status);
+                    }
+                }
+            });
         }
 
-        function openGoogleMaps() {
-            var enderecoCompleto = '<?php echo $enderecoGoogleMaps; ?>';
-            var mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(enderecoCompleto)}`;
-            window.open(mapsUrl, '_blank');
+        function copyToClipboard(elementId) {
+            var copyText = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(copyText).then(function() {
+                alert('Copiado: ' + copyText);
+            }, function(err) {
+                alert('Erro ao copiar: ' + err);
+            });
+        }
+
+        function sendWhatsApp(latitude, longitude) {
+            var message = `Localização do estabelecimento:\nLatitude: ${latitude}\nLongitude: ${longitude}\n\nAbra no Google Maps: https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+            var whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
         }
     </script>
 </head>
 
-<body>
+<body onload="initMap()">
 
     <div class="container mt-5">
         <?php if (isset($_GET['success'])) : ?>
@@ -224,22 +240,13 @@ $enderecoUrl = urlencode($enderecoGoogleMaps);
                                 <td>
                                     <form action="gerar_pdf.php" method="post" target="_blank">
                                         <input type="hidden" name="ordem_id" value="<?php echo htmlspecialchars($id); ?>">
-                                        <button type="submit" class="btn btn-info btn-sm">Gerar PDF</button>
+                                        <button type="submit" class="btn btn-info">Gerar PDF</button>
                                     </form>
                                 </td>
                             </tr>
                         </table>
-                        <div id="map">
-                            <iframe src="https://maps.google.com/maps?q=<?php echo $enderecoUrl; ?>&t=&z=15&ie=UTF8&iwloc=&output=embed" width="100%" height="400" allowfullscreen></iframe>
-                        </div>
-                        <div id="local-info" class="mt-3">
-                            <button class="btn btn-primary btn-sm" onclick="openGoogleMaps()">
-                                <i class="fas fa-map-marker-alt"></i> Ver no Google Maps
-                            </button>
-                            <button class="btn btn-success btn-sm" onclick="sendWhatsApp()">
-                                <i class="fab fa-whatsapp"></i> Enviar Localização
-                            </button>
-                        </div>
+                        <div id="map" style="height: 400px; width: 100%;"></div>
+                        <div id="local-info" class="mt-3"></div>
                     </div>
                 </div>
             </div>

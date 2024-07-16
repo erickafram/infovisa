@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatBody.innerHTML = localStorage.getItem('chatHistory');
         chatBody.scrollTop = chatBody.scrollHeight;
     } else {
-        const initialMessage = `Olá, ${userName}. Sou a AnaVisa.\n\nDigite 1 para tirar suas Dúvidas.`;
+        const initialMessage = `Olá, ${userName}. Sou a AnaVisa, sua assistente virtual e fui desenvolvida para ajudar a tirar suas dúvidas sobre o uso do sistema e fazer consultas.\n\nVamos começar, digite 1 no campo abaixo para iniciarmos.`;
         typeEffect(initialMessage, 'bot-message');
     }
 
