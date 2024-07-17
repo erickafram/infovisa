@@ -149,7 +149,8 @@ $totalNotificacoes = $alertasCount + $processosParadosCount + $documentosNegados
 
 <body>
 
-<?php include '../Chat/chat.php'; ?>
+<!-- CHAT DESATIVADO -->
+<?php // include '../Chat/chat.php'; ?>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">

@@ -19,12 +19,15 @@ $municipios = $relatoriosModel->getMunicipios($nivel_acesso, $municipioUsuario);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $municipioSelecionado = $_POST['municipio'];
-    $estabelecimentos = $relatoriosModel->getEstabelecimentosByMunicipio($municipioSelecionado);
-    gerarPDF($estabelecimentos, $municipioSelecionado);
+    $dataInicio = $_POST['data_inicio'];
+    $dataFim = $_POST['data_fim'];
+    $estabelecimentos = $relatoriosModel->getEstabelecimentosByMunicipio($municipioSelecionado, $dataInicio, $dataFim);
+    gerarPDF($estabelecimentos, $municipioSelecionado, $dataInicio, $dataFim);
     exit(); // Certifique-se de sair após gerar o PDF
 }
 
-function gerarPDF($estabelecimentos, $municipio) {
+function gerarPDF($estabelecimentos, $municipio, $dataInicio, $dataFim)
+{
     $dompdf = new Dompdf();
 
     $html = '
@@ -64,6 +67,7 @@ function gerarPDF($estabelecimentos, $municipio) {
         </head>
         <body>
             <h1>Relatório de Estabelecimentos - ' . htmlspecialchars($municipio) . '</h1>
+            <h3>Período: ' . htmlspecialchars($dataInicio) . ' a ' . htmlspecialchars($dataFim) . '</h3>
             <table>
                 <thead>
                     <tr>
@@ -71,6 +75,7 @@ function gerarPDF($estabelecimentos, $municipio) {
                         <th>Nome Fantasia</th>
                         <th>Razão Social</th>
                         <th>Telefone</th>
+                        <th>Data de Cadastro</th>
                     </tr>
                 </thead>
                 <tbody>';
@@ -82,6 +87,8 @@ function gerarPDF($estabelecimentos, $municipio) {
                 <td>' . htmlspecialchars($estabelecimento['nome_fantasia']) . '</td>
                 <td>' . htmlspecialchars($estabelecimento['razao_social']) . '</td>
                 <td>' . htmlspecialchars($estabelecimento['ddd_telefone_1']) . '</td>
+                                <td>' . htmlspecialchars(date('d/m/Y H:i:s', strtotime($estabelecimento['data_cadastro']))) . '</td>
+
             </tr>';
     }
 
@@ -104,15 +111,29 @@ include '../header.php';
 <div class="container mt-5">
     <h4 class="mb-4">Relatório de Estabelecimentos por Município</h4>
     <form method="POST" action="relatorio_estabelecimentos.php" class="mb-4">
-        <div class="form-group">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="data_inicio">Data de Início:</label>
+                    <input type="date" id="data_inicio" name="data_inicio" class="form-control" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="data_fim">Data de Fim:</label>
+                    <input type="date" id="data_fim" name="data_fim" class="form-control" required>
+                </div>
+            </div>
+        </div>
+        <div class="form-group mt-3">
             <label for="municipio">Escolha o Município:</label>
             <select id="municipio" name="municipio" class="form-control" required>
-                <?php foreach ($municipios as $municipio): ?>
+                <?php foreach ($municipios as $municipio) : ?>
                     <option value="<?php echo htmlspecialchars($municipio['municipio']); ?>"><?php echo htmlspecialchars($municipio['municipio']); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top:8px !important;">Gerar PDF</button>
+        <button type="submit" class="btn btn-primary mt-3">Gerar PDF</button>
     </form>
 </div>
 

@@ -19,9 +19,9 @@ class Estabelecimento
                 logradouro, numero, complemento, bairro, cep, uf, municipio, 
                 ddd_telefone_1, ddd_telefone_2, razao_social, natureza_juridica, 
                 qsa, cnaes_secundarios, nome_socio_1, qualificacao_socio_1, 
-                nome_socio_2, qualificacao_socio_2, nome_socio_3, qualificacao_socio_3, status, usuario_externo_id
+                nome_socio_2, qualificacao_socio_2, nome_socio_3, qualificacao_socio_3, status, usuario_externo_id, data_cadastro
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW()
             )"
         );
 
@@ -564,7 +564,8 @@ class Estabelecimento
         return $this->lastError;
     }
 
-    public function searchEstabelecimento($searchTerm) {
+    public function searchEstabelecimento($searchTerm)
+    {
         $query = "SELECT * FROM estabelecimentos WHERE nome_fantasia LIKE ? OR razao_social LIKE ? OR cnpj LIKE ?";
         $stmt = $this->conn->prepare($query);
         $searchTerm = '%' . $searchTerm . '%';
@@ -596,32 +597,30 @@ class Estabelecimento
     }
 
     public function findByCnpjAndUsuario($cnpj, $usuarioId)
-{
-    $stmt = $this->conn->prepare("
+    {
+        $stmt = $this->conn->prepare("
         SELECT e.*
         FROM estabelecimentos e
         JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
         WHERE e.cnpj = ? AND ue.usuario_id = ?
     ");
-    $stmt->bind_param("si", $cnpj, $usuarioId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
-}
+        $stmt->bind_param("si", $cnpj, $usuarioId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
 
-public function searchByNameAndUsuario($name, $usuarioId)
-{
-    $name = "%$name%";
-    $stmt = $this->conn->prepare("
+    public function searchByNameAndUsuario($name, $usuarioId)
+    {
+        $name = "%$name%";
+        $stmt = $this->conn->prepare("
         SELECT e.*
         FROM estabelecimentos e
         JOIN usuarios_estabelecimentos ue ON e.id = ue.estabelecimento_id
         WHERE e.nome_fantasia LIKE ? AND ue.usuario_id = ?
     ");
-    $stmt->bind_param("si", $name, $usuarioId);
-    $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-    
+        $stmt->bind_param("si", $name, $usuarioId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
 }

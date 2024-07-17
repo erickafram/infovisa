@@ -166,20 +166,20 @@ function getAnoProcesso($data)
                             <p><strong>Razão Social:</strong> <?php echo htmlspecialchars($dadosEstabelecimento['razao_social']); ?></p>
                             <p><strong>Data Início Atividade:</strong> <?php echo htmlspecialchars((new DateTime($dadosEstabelecimento['data_inicio_atividade']))->format('d/m/Y')); ?></p>
                             <p><strong>Situação Cadastral:</strong>
-                            <span style="
+                                <span style="
                              display: inline-block;
                              padding: 2px 8px;
                              color: white;
                              background-color: <?php
-                            $situacao = htmlspecialchars($dadosEstabelecimento['descricao_situacao_cadastral']);
-                            if ($situacao == 'ATIVA') {
-                                echo 'green';
-                            } elseif (in_array($situacao, ['SUSPENSA', 'BAIXADA'])) {
-                                echo 'red';
-                            } else {
-                                echo 'orange';
-                            }
-                            ?>;
+                                                $situacao = htmlspecialchars($dadosEstabelecimento['descricao_situacao_cadastral']);
+                                                if ($situacao == 'ATIVA') {
+                                                    echo 'green';
+                                                } elseif (in_array($situacao, ['SUSPENSA', 'BAIXADA'])) {
+                                                    echo 'red';
+                                                } else {
+                                                    echo 'orange';
+                                                }
+                                                ?>;
                             border-radius: 5px;">
                                     <?php echo $situacao; ?>
                                 </span>
@@ -193,8 +193,22 @@ function getAnoProcesso($data)
                         </div>
                     </div>
                 </div>
-
             </div>
+
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informações Infovisa</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Data de cadastro:</strong> <?php echo htmlspecialchars((new DateTime($dadosEstabelecimento['data_cadastro']))->format('d/m/Y')); ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php if (!empty($gruposRiscoUnicos)) : ?>
                 <div class="card mt-4">
                     <div class="card-header">

@@ -18,13 +18,14 @@ class Relatorios {
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function getEstabelecimentosByMunicipio($municipio) {
-        $stmt = $this->conn->prepare("SELECT * FROM estabelecimentos WHERE municipio = ?");
-        $stmt->bind_param("s", $municipio);
+    public function getEstabelecimentosByMunicipio($municipio, $data_inicio, $data_fim) {
+        $stmt = $this->conn->prepare("SELECT * FROM estabelecimentos WHERE municipio = ? AND data_cadastro BETWEEN ? AND ?");
+        $stmt->bind_param("sss", $municipio, $data_inicio, $data_fim);
         $stmt->execute();
         $result = $stmt->get_result();
         return $result->fetch_all(MYSQLI_ASSOC);
     }
+    
 
     public function getAtividades($nivel_acesso, $municipioUsuario) {
         $atividades = [];
