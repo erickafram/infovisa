@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Alpine.js - Hide elements before Alpine initializes */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Smooth scroll */
+html {
+    scroll-behavior: smooth;
+}
