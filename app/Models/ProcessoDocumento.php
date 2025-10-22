@@ -9,6 +9,7 @@ class ProcessoDocumento extends Model
 {
     protected $fillable = [
         'processo_id',
+        'pasta_id',
         'usuario_id',
         'tipo_usuario',
         'nome_arquivo',
@@ -33,6 +34,11 @@ class ProcessoDocumento extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(UsuarioInterno::class, 'usuario_id');
+    }
+
+    public function pasta(): BelongsTo
+    {
+        return $this->belongsTo(ProcessoPasta::class, 'pasta_id');
     }
 
     public function getTamanhoFormatadoAttribute(): string

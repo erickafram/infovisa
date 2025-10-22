@@ -14,6 +14,7 @@ class DocumentoDigital extends Model
     protected $fillable = [
         'tipo_documento_id',
         'processo_id',
+        'pasta_id',
         'usuario_criador_id',
         'numero_documento',
         'conteudo',
@@ -73,6 +74,14 @@ class DocumentoDigital extends Model
     public function assinaturas()
     {
         return $this->hasMany(DocumentoAssinatura::class);
+    }
+
+    /**
+     * Relacionamento com pasta
+     */
+    public function pasta()
+    {
+        return $this->belongsTo(ProcessoPasta::class, 'pasta_id');
     }
 
     /**

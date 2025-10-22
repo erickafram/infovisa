@@ -110,6 +110,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Gerar documento digital
     Route::post('/estabelecimentos/{id}/processos/{processo}/gerar-documento', [\App\Http\Controllers\ProcessoController::class, 'gerarDocumento'])->name('estabelecimentos.processos.gerarDocumento');
     
+    // Pastas do Processo
+    Route::get('/estabelecimentos/{id}/processos/{processo}/pastas', [\App\Http\Controllers\ProcessoPastaController::class, 'index'])->name('estabelecimentos.processos.pastas.index');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/pastas', [\App\Http\Controllers\ProcessoPastaController::class, 'store'])->name('estabelecimentos.processos.pastas.store');
+    Route::put('/estabelecimentos/{id}/processos/{processo}/pastas/{pasta}', [\App\Http\Controllers\ProcessoPastaController::class, 'update'])->name('estabelecimentos.processos.pastas.update');
+    Route::delete('/estabelecimentos/{id}/processos/{processo}/pastas/{pasta}', [\App\Http\Controllers\ProcessoPastaController::class, 'destroy'])->name('estabelecimentos.processos.pastas.destroy');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/pastas/mover', [\App\Http\Controllers\ProcessoPastaController::class, 'moverItem'])->name('estabelecimentos.processos.pastas.mover');
+    
     Route::resource('/estabelecimentos', EstabelecimentoController::class)->names([
         'index' => 'estabelecimentos.index',
         'create' => 'estabelecimentos.create',

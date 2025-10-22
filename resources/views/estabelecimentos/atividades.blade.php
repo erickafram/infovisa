@@ -4,7 +4,7 @@
 @section('page-title', 'Gerenciar Atividades')
 
 @section('content')
-<div class="max-w-5xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-4">

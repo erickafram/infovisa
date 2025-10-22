@@ -3,7 +3,28 @@
 @section('title', 'Criar Novo Documento')
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-6" x-data="documentoEditor()">
+<div class="max-w-8xl mx-auto px-4 py-6" x-data="documentoEditor()">
+    {{-- Botão Voltar --}}
+    <div class="mb-4">
+        @if(isset($processo))
+            <a href="{{ route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]) }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Voltar para o Processo
+            </a>
+        @else
+            <a href="{{ route('admin.documentos.index') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Voltar para Documentos
+            </a>
+        @endif
+    </div>
+
     @if(isset($processo))
         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div class="flex items-center gap-2 text-sm">
@@ -34,43 +55,27 @@
                 <h2 class="text-xl font-semibold text-gray-900">Criar Novo Documento</h2>
             </div>
 
-            <!-- Tipo de Documento e Sigiloso -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Tipo de Documento -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Documento
-                    </label>
-                    <select name="tipo_documento_id" 
-                            x-model="tipoSelecionado"
-                            @change="carregarModelos($event.target.value)"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            required>
-                        <option value="">Selecione o tipo de documento</option>
-                        @foreach($tiposDocumento as $tipo)
-                            <option value="{{ $tipo->id }}">{{ strtoupper($tipo->nome) }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Selecione o tipo para carregar um modelo predefinido
-                    </p>
-                </div>
-
-                <!-- Documento Sigiloso -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Documento Sigiloso
-                    </label>
-                    <select name="sigiloso" 
-                            x-model="sigiloso"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="0">Não</option>
-                        <option value="1">Sim</option>
-                    </select>
-                </div>
+            <!-- Tipo de Documento -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Documento
+                </label>
+                <select name="tipo_documento_id" 
+                        x-model="tipoSelecionado"
+                        @change="carregarModelos($event.target.value)"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required>
+                    <option value="">Selecione o tipo de documento</option>
+                    @foreach($tiposDocumento as $tipo)
+                        <option value="{{ $tipo->id }}">{{ strtoupper($tipo->nome) }}</option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Selecione o tipo para carregar um modelo predefinido
+                </p>
             </div>
 
             <!-- Conteúdo do Documento -->

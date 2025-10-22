@@ -4,7 +4,7 @@
 @section('page-title', 'Editar Modelo de Documento')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Breadcrumb --}}
     <div class="mb-6">
         <nav class="flex items-center gap-2 text-sm text-gray-600">

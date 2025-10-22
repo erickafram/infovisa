@@ -77,12 +77,17 @@ class CnpjService
     {
         try {
             $response = Http::timeout(self::TIMEOUT)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'InfoVISA/3.0'
+                ])
                 ->get(self::MINHA_RECEITA_URL . '/' . $cnpj);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
-                if (isset($data['cnpj']) && $data['cnpj'] === $cnpj) {
+                // A API retorna o CNPJ sem formatação
+                if (isset($data['cnpj'])) {
                     return $this->formatarMinhaReceita($data);
                 }
             }
@@ -164,6 +169,10 @@ class CnpjService
      */
     private function formatarMinhaReceita(array $data): array
     {
+        // Formata endereço completo
+        $endereco = ($data['descricao_tipo_de_logradouro'] ?? '') . ' ' . ($data['logradouro'] ?? '');
+        $endereco = trim($endereco);
+        
         return [
             // Dados básicos
             'cnpj' => $data['cnpj'] ?? null,
@@ -171,8 +180,8 @@ class CnpjService
             'nome_fantasia' => $data['nome_fantasia'] ?? $data['razao_social'] ?? null,
             
             // Endereço
-            'logradouro' => $data['logradouro'] ?? null,
-            'endereco' => $data['logradouro'] ?? null,
+            'logradouro' => $endereco ?: ($data['logradouro'] ?? null),
+            'endereco' => $endereco ?: ($data['logradouro'] ?? null),
             'numero' => $data['numero'] ?? 'S/N',
             'complemento' => $data['complemento'] ?? null,
             'bairro' => $data['bairro'] ?? null,
@@ -208,8 +217,10 @@ class CnpjService
             
             // Outros dados
             'capital_social' => $data['capital_social'] ?? null,
-            'opcao_pelo_mei' => $data['opcao_pelo_mei'] ?? null,
-            'opcao_pelo_simples' => $data['opcao_pelo_simples'] ?? null,
+            'opcao_pelo_mei' => $data['opcao_pelo_mei'] ?? false,
+            'opcao_pelo_simples' => $data['opcao_pelo_simples'] ?? false,
+            'data_opcao_pelo_simples' => $this->formatarData($data['data_opcao_pelo_simples'] ?? null),
+            'data_exclusao_do_simples' => $this->formatarData($data['data_exclusao_do_simples'] ?? null),
             'regime_tributario' => $data['regime_tributario'] ?? [],
             'situacao_especial' => $data['situacao_especial'] ?? '',
             'motivo_situacao_cadastral' => $data['motivo_situacao_cadastral'] ?? '',

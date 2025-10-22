@@ -4,7 +4,7 @@
 @section('page-title', 'Cadastrar Pessoa Jurídica')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-4">

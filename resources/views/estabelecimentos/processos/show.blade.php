@@ -4,7 +4,7 @@
 @section('page-title', 'Detalhes do Processo')
 
 @section('content')
-<div class="max-w-8xl mx-auto" x-data="{ modalUpload: false, modalVisualizador: false, pdfUrl: '', modalEditarNome: false, documentoEditando: null, nomeEditando: '', modalDocumentoDigital: false }">
+<div class="max-w-8xl mx-auto" x-data="processoData()">
     {{-- Botão Voltar --}}
     <div class="mb-6">
         <a href="{{ route('admin.estabelecimentos.processos.index', $estabelecimento->id) }}" 
@@ -222,9 +222,9 @@
                         </svg>
                         Processo na Íntegra
                     </button>
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                    <button @click="modalPastas = true; carregarPastas()" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                         </svg>
                         Pastas Processo
                     </button>
@@ -303,11 +303,33 @@
 
                 {{-- Tabs de Documentos --}}
                 <div class="border-b border-gray-200">
-                    <nav class="flex px-6" aria-label="Tabs">
-                        <button class="px-4 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
+                    <nav class="flex px-6 overflow-x-auto" aria-label="Tabs">
+                        <button @click="pastaAtiva = null" 
+                                :class="pastaAtiva === null ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap">
                             Todos
-                            <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">{{ $processo->documentos->count() }}</span>
+                            <span class="ml-2 px-2 py-0.5 text-xs rounded-full"
+                                  :class="pastaAtiva === null ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'">
+                                {{ $processo->documentos->count() }}
+                            </span>
                         </button>
+                        
+                        {{-- Pastas Dinâmicas --}}
+                        <template x-for="pasta in pastas" :key="pasta.id">
+                            <button @click="pastaAtiva = pasta.id"
+                                    :class="pastaAtiva === pasta.id ? 'border-b-2' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                                    :style="pastaAtiva === pasta.id ? `color: ${pasta.cor}; border-color: ${pasta.cor}` : ''"
+                                    class="px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                </svg>
+                                <span x-text="pasta.nome"></span>
+                                <span class="ml-1 px-2 py-0.5 text-xs rounded-full"
+                                      :style="`background-color: ${pasta.cor}20; color: ${pasta.cor}`"
+                                      x-text="contarDocumentosPorPasta(pasta.id)">
+                                </span>
+                            </button>
+                        </template>
                     </nav>
                 </div>
 
@@ -330,7 +352,8 @@
                     @else
                         <div class="space-y-3">
                             @foreach($processo->documentos as $documento)
-                                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                                <div x-show="pastaAtiva === null || pastaAtiva === {{ $documento->pasta_id ?? 'null' }}"
+                                     class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                                     <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}'; modalVisualizador = true" 
                                          class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                         {{-- Ícone do arquivo --}}
@@ -363,12 +386,59 @@
                                                 <span class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full font-medium whitespace-nowrap">
                                                     Arquivo Externo
                                                 </span>
+                                                @if($documento->pasta_id)
+                                                    <span class="flex items-center gap-1 px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
+                                                          x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
+                                                          :style="pasta ? `background-color: ${pasta.cor}20; color: ${pasta.cor}` : 'background-color: #E5E7EB; color: #6B7280'">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                        </svg>
+                                                        <span x-text="pasta ? pasta.nome : 'Pasta'"></span>
+                                                    </span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
                                     
                                     {{-- Ações --}}
                                     <div class="flex items-center gap-2 sm:flex-shrink-0">
+                                        {{-- Mover para Pasta --}}
+                                        <div class="relative" x-data="{ menuAberto: false }">
+                                            <button @click.stop="menuAberto = !menuAberto"
+                                                    class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                                    title="Mover para pasta">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                </svg>
+                                            </button>
+                                            
+                                            {{-- Dropdown Menu --}}
+                                            <div x-show="menuAberto" 
+                                                 @click.away="menuAberto = false"
+                                                 x-transition
+                                                 class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null); menuAberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                        </svg>
+                                                        Todos (sem pasta)
+                                                    </button>
+                                                    <template x-for="pasta in pastas" :key="pasta.id">
+                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id); menuAberto = false"
+                                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                            <svg class="w-4 h-4" :style="`color: ${pasta.cor}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                            </svg>
+                                                            <span x-text="pasta.nome"></span>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <button @click.stop="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true"
                                                 class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                                                 title="Editar nome">
@@ -664,5 +734,272 @@
             </div>
         </div>
     </template>
+
+    {{-- Modal de Pastas do Processo --}}
+    <template x-if="modalPastas">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalPastas" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalPastas = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    {{-- Header --}}
+                    <div class="px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                </svg>
+                                Gerenciar Pastas do Processo
+                            </h3>
+                            <button @click="modalPastas = false" class="text-white hover:text-gray-200 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Body --}}
+                    <div class="px-6 py-4">
+                        {{-- Formulário de Nova Pasta --}}
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-3">
+                                <span x-show="!pastaEditando">Nova Pasta</span>
+                                <span x-show="pastaEditando">Editar Pasta</span>
+                            </h4>
+                            <form @submit.prevent="salvarPasta()" class="space-y-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Nome da Pasta *</label>
+                                        <input type="text" x-model="nomePasta" required
+                                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                               placeholder="Ex: Documentos Técnicos">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Cor</label>
+                                        <input type="color" x-model="corPasta"
+                                               class="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
+                                    <textarea x-model="descricaoPasta" rows="2"
+                                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                              placeholder="Descrição opcional da pasta"></textarea>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
+                                        <span x-show="!pastaEditando">Criar Pasta</span>
+                                        <span x-show="pastaEditando">Salvar Alterações</span>
+                                    </button>
+                                    <button type="button" x-show="pastaEditando" @click="cancelarEdicao()"
+                                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {{-- Lista de Pastas --}}
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-900 mb-3">Pastas Criadas</h4>
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                <template x-if="pastas.length === 0">
+                                    <div class="text-center py-8 text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                        </svg>
+                                        <p class="text-sm">Nenhuma pasta criada ainda</p>
+                                    </div>
+                                </template>
+                                <template x-for="pasta in pastas" :key="pasta.id">
+                                    <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+                                        <div class="flex items-center gap-3 flex-1">
+                                            <div class="w-10 h-10 rounded-lg flex items-center justify-center" :style="`background-color: ${pasta.cor}20`">
+                                                <svg class="w-5 h-5" :style="`color: ${pasta.cor}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="flex-1">
+                                                <h5 class="text-sm font-medium text-gray-900" x-text="pasta.nome"></h5>
+                                                <p class="text-xs text-gray-500" x-text="pasta.descricao || 'Sem descrição'"></p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button @click="editarPasta(pasta)" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                            <button @click="excluirPasta(pasta.id)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <button @click="modalPastas = false" class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Scripts Alpine.js --}}
+    <script>
+        function processoData() {
+            return {
+                // Modais
+                modalUpload: false,
+                modalVisualizador: false,
+                modalEditarNome: false,
+                modalDocumentoDigital: false,
+                modalPastas: false,
+                
+                // Dados gerais
+                pdfUrl: '',
+                documentoEditando: null,
+                nomeEditando: '',
+                
+                // Pastas
+                pastas: [],
+                pastaAtiva: null, // null = Todos, ou ID da pasta
+                pastaEditando: null,
+                nomePasta: '',
+                descricaoPasta: '',
+                corPasta: '#3B82F6',
+                
+                // Documentos (para contagem)
+                documentos: @json($processo->documentos->map(function($doc) {
+                    return ['id' => $doc->id, 'pasta_id' => $doc->pasta_id];
+                })),
+
+                // Inicialização
+                init() {
+                    this.carregarPastas();
+                },
+
+                // Métodos de Pastas
+                carregarPastas() {
+                    fetch('{{ route('admin.estabelecimentos.processos.pastas.index', [$estabelecimento->id, $processo->id]) }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            this.pastas = data;
+                        })
+                        .catch(error => console.error('Erro ao carregar pastas:', error));
+                },
+
+                salvarPasta() {
+                    const url = this.pastaEditando 
+                        ? '{{ route('admin.estabelecimentos.processos.pastas.update', [$estabelecimento->id, $processo->id, ':id']) }}'.replace(':id', this.pastaEditando.id)
+                        : '{{ route('admin.estabelecimentos.processos.pastas.store', [$estabelecimento->id, $processo->id]) }}';
+                    
+                    const method = this.pastaEditando ? 'PUT' : 'POST';
+
+                    fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            nome: this.nomePasta,
+                            descricao: this.descricaoPasta,
+                            cor: this.corPasta
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            this.cancelarEdicao();
+                            this.carregarPastas();
+                            // Pequeno delay para garantir que as pastas foram carregadas antes de fechar
+                            setTimeout(() => {
+                                alert(result.message);
+                            }, 100);
+                        }
+                    })
+                    .catch(error => console.error('Erro ao salvar pasta:', error));
+                },
+
+                editarPasta(pasta) {
+                    this.pastaEditando = pasta;
+                    this.nomePasta = pasta.nome;
+                    this.descricaoPasta = pasta.descricao || '';
+                    this.corPasta = pasta.cor;
+                },
+
+                cancelarEdicao() {
+                    this.pastaEditando = null;
+                    this.nomePasta = '';
+                    this.descricaoPasta = '';
+                    this.corPasta = '#3B82F6';
+                },
+
+                excluirPasta(pastaId) {
+                    if (!confirm('Tem certeza que deseja excluir esta pasta? Os documentos e arquivos serão movidos para "Todos".')) {
+                        return;
+                    }
+
+                    fetch('{{ route('admin.estabelecimentos.processos.pastas.destroy', [$estabelecimento->id, $processo->id, ':id']) }}'.replace(':id', pastaId), {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            this.carregarPastas();
+                            alert(result.message);
+                        }
+                    })
+                    .catch(error => console.error('Erro ao excluir pasta:', error));
+                },
+
+                moverParaPasta(itemId, tipo, pastaId) {
+                    fetch('{{ route('admin.estabelecimentos.processos.pastas.mover', [$estabelecimento->id, $processo->id]) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            tipo: tipo,
+                            item_id: itemId,
+                            pasta_id: pastaId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert(result.message);
+                            // Recarrega a página para atualizar a lista
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao mover item:', error);
+                        alert('Erro ao mover o item. Tente novamente.');
+                    });
+                },
+
+                contarDocumentosPorPasta(pastaId) {
+                    return this.documentos.filter(doc => doc.pasta_id === pastaId).length;
+                }
+            }
+        }
+    </script>
 </div>
 @endsection

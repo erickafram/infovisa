@@ -115,6 +115,14 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com pastas do processo
+     */
+    public function pastas()
+    {
+        return $this->hasMany(ProcessoPasta::class);
+    }
+
+    /**
      * Accessor para nome do tipo formatado
      */
     public function getTipoNomeAttribute(): string
