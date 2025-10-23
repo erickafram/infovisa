@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Máscara de CPF
     const cpfDisplay = document.getElementById('cpf_display');
     const cpfHidden = document.getElementById('cpf');
+    
     cpfDisplay.addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '');
         // Atualiza o campo hidden sem máscara
@@ -162,7 +163,90 @@ document.addEventListener('DOMContentLoaded', function() {
         // Aplica máscara no display
         v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
         e.target.value = v;
+        
+        // Remove feedback anterior
+        cpfDisplay.classList.remove('border-red-500', 'border-green-500');
+        const feedbackDiv = document.getElementById('cpf-feedback');
+        if (feedbackDiv) feedbackDiv.remove();
     });
+    
+    // Validação de CPF ao sair do campo
+    cpfDisplay.addEventListener('blur', function() {
+        const cpf = cpfHidden.value;
+        
+        if (cpf.length === 11) {
+            // Valida CPF
+            if (!validarCPF(cpf)) {
+                cpfDisplay.classList.add('border-red-500');
+                mostrarFeedback(cpfDisplay, 'CPF inválido', 'error');
+                return;
+            }
+            
+            cpfDisplay.classList.add('border-green-500');
+            mostrarFeedback(cpfDisplay, 'CPF válido', 'success');
+            
+            // Busca se CPF já existe no banco
+            buscarDadosPorCPF(cpf);
+        }
+    });
+    
+    // Função para validar CPF
+    function validarCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        
+        let soma = 0;
+        let resto;
+        
+        for (let i = 1; i <= 9; i++) {
+            soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+        }
+        
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+        
+        soma = 0;
+        for (let i = 1; i <= 10; i++) {
+            soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+        }
+        
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+        
+        return true;
+    }
+    
+    // Função para mostrar feedback visual
+    function mostrarFeedback(element, message, type) {
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.id = 'cpf-feedback';
+        feedbackDiv.className = `text-xs mt-1 ${type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-blue-600'}`;
+        feedbackDiv.textContent = message;
+        element.parentNode.appendChild(feedbackDiv);
+    }
+    
+    // Função para buscar dados por CPF no banco
+    function buscarDadosPorCPF(cpf) {
+        fetch(`/admin/estabelecimentos/buscar-por-cpf/${cpf}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.existe) {
+                    if (confirm(`Este CPF já está cadastrado para: ${data.nome}\n\nDeseja preencher os dados automaticamente?`)) {
+                        // Preenche os campos
+                        document.querySelector('input[name="nome_completo"]').value = data.nome || '';
+                        document.querySelector('input[name="rg"]').value = data.rg || '';
+                        document.querySelector('input[name="orgao_emissor"]').value = data.orgao_emissor || '';
+                        document.querySelector('input[name="nome_fantasia"]').value = data.nome_fantasia || '';
+                        document.querySelector('input[name="email"]').value = data.email || '';
+                        document.querySelector('input[name="telefone"]').value = data.telefone || '';
+                    }
+                }
+            })
+            .catch(error => console.log('CPF não encontrado no banco'));
+    }
     
     // Máscara de CEP
     const cepDisplay = document.getElementById('cep_display');

@@ -4,7 +4,7 @@
 @section('page-title', 'Usuários Vinculados ao Estabelecimento')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6" x-data="usuariosVinculo()">
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
@@ -38,16 +38,65 @@
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-1">
-                    <label for="usuario_externo_id" class="block text-sm font-medium text-gray-700 mb-2">Usuário *</label>
-                    <select id="usuario_externo_id" name="usuario_externo_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Selecione um usuário</option>
-                        @foreach($usuariosDisponiveis as $usuario)
-                            <option value="{{ $usuario->id }}">
-                                {{ $usuario->nome }} - {{ $usuario->email }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <label for="busca_usuario" class="block text-sm font-medium text-gray-700 mb-2">Usuário *</label>
+                    <div class="relative">
+                        <input type="text" 
+                               id="busca_usuario"
+                               x-model="buscaUsuario"
+                               @input="buscarUsuarios()"
+                               @focus="mostrarResultados = true"
+                               placeholder="Digite nome ou CPF..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               autocomplete="off">
+                        
+                        <input type="hidden" id="usuario_externo_id" name="usuario_externo_id" x-model="usuarioSelecionadoId" required>
+                        
+                        {{-- Loading --}}
+                        <div x-show="carregando" class="absolute right-3 top-3">
+                            <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        
+                        {{-- Dropdown de Resultados --}}
+                        <div x-show="mostrarResultados && resultados.length > 0"
+                             @click.away="mostrarResultados = false"
+                             class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                             style="display: none;">
+                            <template x-for="usuario in resultados" :key="usuario.id">
+                                <div @click="selecionarUsuario(usuario)"
+                                     class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0">
+                                    <div class="font-medium text-gray-900" x-text="usuario.nome"></div>
+                                    <div class="text-sm text-gray-600">
+                                        <span x-text="usuario.cpf"></span> • <span x-text="usuario.email"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        {{-- Mensagem de nenhum resultado --}}
+                        <div x-show="mostrarResultados && !carregando && resultados.length === 0 && buscaUsuario.length >= 3"
+                             class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500 text-sm"
+                             style="display: none;">
+                            Nenhum usuário encontrado
+                        </div>
+                        
+                        {{-- Usuário Selecionado --}}
+                        <div x-show="usuarioSelecionado"
+                             class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between"
+                             style="display: none;">
+                            <div>
+                                <div class="font-medium text-blue-900" x-text="usuarioSelecionado?.nome"></div>
+                                <div class="text-sm text-blue-700" x-text="usuarioSelecionado?.email"></div>
+                            </div>
+                            <button type="button" @click="limparSelecao()" class="text-blue-600 hover:text-blue-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     @error('usuario_externo_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -255,4 +304,62 @@
         @endif
     </div>
 </div>
+
+<script>
+function usuariosVinculo() {
+    return {
+        buscaUsuario: '',
+        resultados: [],
+        mostrarResultados: false,
+        carregando: false,
+        usuarioSelecionado: null,
+        usuarioSelecionadoId: '',
+        timeoutBusca: null,
+        estabelecimentoId: {{ $estabelecimento->id }},
+
+        buscarUsuarios() {
+            // Limpa timeout anterior
+            clearTimeout(this.timeoutBusca);
+            
+            // Se busca vazia, limpa resultados
+            if (this.buscaUsuario.length < 3) {
+                this.resultados = [];
+                return;
+            }
+            
+            // Aguarda 300ms após parar de digitar
+            this.timeoutBusca = setTimeout(() => {
+                this.carregando = true;
+                
+                fetch(`/admin/usuarios-externos/buscar?q=${encodeURIComponent(this.buscaUsuario)}&estabelecimento_id=${this.estabelecimentoId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        this.resultados = data;
+                        this.mostrarResultados = true;
+                        this.carregando = false;
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar usuários:', error);
+                        this.carregando = false;
+                    });
+            }, 300);
+        },
+
+        selecionarUsuario(usuario) {
+            this.usuarioSelecionado = usuario;
+            this.usuarioSelecionadoId = usuario.id;
+            this.buscaUsuario = usuario.nome;
+            this.mostrarResultados = false;
+            this.resultados = [];
+        },
+
+        limparSelecao() {
+            this.usuarioSelecionado = null;
+            this.usuarioSelecionadoId = '';
+            this.buscaUsuario = '';
+            this.resultados = [];
+        }
+    }
+}
+</script>
 @endsection

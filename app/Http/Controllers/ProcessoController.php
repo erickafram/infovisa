@@ -186,7 +186,13 @@ class ProcessoController extends Controller
             ->ordenado()
             ->get();
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento'));
+        // Busca documentos digitais do processo (incluindo rascunhos)
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas'])
+            ->where('processo_id', $processoId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais'));
     }
 
     /**
@@ -299,14 +305,35 @@ class ProcessoController extends Controller
      */
     public function visualizarArquivo($estabelecimentoId, $processoId, $documentoId)
     {
+        // Tenta buscar como documento digital primeiro
+        $docDigital = \App\Models\DocumentoDigital::where('processo_id', $processoId)
+            ->where('id', $documentoId)
+            ->first();
+        
+        if ($docDigital && $docDigital->arquivo_pdf) {
+            // É um documento digital
+            $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $docDigital->arquivo_pdf);
+            
+            if (!file_exists($caminhoCompleto)) {
+                abort(404, 'PDF não encontrado');
+            }
+            
+            return response()->file($caminhoCompleto);
+        }
+        
+        // Senão, busca como arquivo externo
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
-        // Normaliza o caminho para Windows (todas as barras invertidas)
-        $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        // Verifica se é documento digital (salvo em public) ou arquivo externo (salvo em app)
+        if ($documento->tipo_documento === 'documento_digital') {
+            $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        } else {
+            $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        }
         
         if (!file_exists($caminhoCompleto)) {
-            abort(404, 'Arquivo não encontrado: ' . $caminhoCompleto);
+            abort(404, 'Arquivo não encontrado');
         }
         
         // Retorna o arquivo para visualização inline
@@ -321,8 +348,12 @@ class ProcessoController extends Controller
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
-        // Normaliza o caminho para Windows
-        $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        // Verifica se é documento digital (salvo em public) ou arquivo externo (salvo em app)
+        if ($documento->tipo_documento === 'documento_digital') {
+            $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        } else {
+            $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        }
         
         if (!file_exists($caminhoCompleto)) {
             abort(404, 'Arquivo não encontrado.');

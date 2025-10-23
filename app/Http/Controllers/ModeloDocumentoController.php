@@ -71,12 +71,16 @@ class ModeloDocumentoController extends Controller
     {
         $validated = $request->validate([
             'tipo_documento_id' => 'required|exists:tipo_documentos,id',
+            'codigo' => 'nullable|string|max:255',
             'descricao' => 'nullable|string',
             'conteudo' => 'required|string',
             'variaveis' => 'nullable|array',
             'ativo' => 'boolean',
-            'ordem' => 'integer|min:0',
+            'ordem' => 'nullable|integer|min:0',
         ]);
+
+        // Converte checkbox ativo
+        $validated['ativo'] = $request->has('ativo') ? true : false;
 
         $modeloDocumento->update($validated);
 

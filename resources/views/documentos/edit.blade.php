@@ -1,40 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Criar Novo Documento')
+@section('title', 'Editar Rascunho')
 
 @section('content')
 <div class="min-h-screen bg-gray-50" x-data="documentoEditor()">
     <div class="max-w-8xl mx-auto px-4 py-8">
-        {{-- Mensagens de Erro --}}
-        @if ($errors->any())
-            <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div class="flex-1">
-                        <h3 class="text-sm font-semibold text-red-800 mb-2">Erro ao salvar documento:</h3>
-                        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-sm text-red-700">{{ session('error') }}</p>
-                </div>
-            </div>
-        @endif
-
         {{-- Header com Breadcrumb --}}
         <div class="mb-6">
             <div class="flex items-center gap-2 text-sm text-gray-600 mb-3">
@@ -50,16 +20,16 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
-                <span class="text-gray-900 font-medium">Novo Documento</span>
+                <span class="text-gray-900 font-medium">Editar Rascunho</span>
             </div>
-                        
+            
             <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <div class="p-2 bg-blue-100 rounded-lg">
                     <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                 </div>
-                Criar Documento Digital
+                Editar Rascunho
             </h1>
             
             @if(isset($processo))
@@ -72,12 +42,9 @@
             @endif
         </div>
 
-    <form method="POST" action="{{ route('admin.documentos.store') }}" @submit="handleSubmit">
+    <form method="POST" action="{{ route('admin.documentos.update', $documento->id) }}" @submit="handleSubmit">
         @csrf
-        
-        @if(isset($processo))
-            <input type="hidden" name="processo_id" value="{{ $processo->id }}">
-        @endif
+        @method('PUT')
         
         {{-- Campo hidden para o conteúdo do editor --}}
         <input type="hidden" name="conteudo" x-model="conteudo">
@@ -98,7 +65,7 @@
                         required>
                     <option value="">Selecione o tipo de documento</option>
                     @foreach($tiposDocumento as $tipo)
-                        <option value="{{ $tipo->id }}">{{ $tipo->nome }}</option>
+                        <option value="{{ $tipo->id }}" {{ $documento->tipo_documento_id == $tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
                     @endforeach
                 </select>
                 <p class="text-sm text-gray-500 mt-2 flex items-center gap-1.5">
@@ -344,6 +311,7 @@
                             <input type="checkbox" 
                                    name="assinaturas[]" 
                                    value="{{ $usuario->id }}"
+                                   {{ $documento->assinaturas->contains('usuario_interno_id', $usuario->id) ? 'checked' : '' }}
                                    class="mt-1 h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
                             <div class="ml-3 flex-1">
                                 <div class="text-sm font-semibold text-gray-900 group-hover:text-purple-900">
@@ -432,21 +400,10 @@ function documentoEditor() {
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
 
         init() {
-            // Carrega rascunho do localStorage
-            this.carregarRascunho();
-        },
-
-        carregarRascunho() {
-            const rascunho = localStorage.getItem(this.chaveLocalStorage);
-            if (rascunho) {
-                const dados = JSON.parse(rascunho);
-                this.conteudo = dados.conteudo || '';
-                document.getElementById('editor').innerHTML = this.conteudo;
-                this.ultimoSalvo = 'há ' + this.tempoDecorrido(dados.timestamp);
-            } else {
-                this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
-                document.getElementById('editor').innerHTML = this.conteudo;
-            }
+            // Carrega conteúdo do documento
+            this.tipoSelecionado = {{ $documento->tipo_documento_id ?? 'null' }};
+            this.conteudo = {!! json_encode($documento->conteudo) !!};
+            document.getElementById('editor').innerHTML = this.conteudo;
         },
 
         salvarAutomaticamente() {
@@ -539,22 +496,10 @@ function documentoEditor() {
         },
 
         handleSubmit(event) {
-            // Debug: verifica o conteúdo
-            console.log('Conteúdo:', this.conteudo);
-            console.log('Tipo selecionado:', this.tipoSelecionado);
-            
             const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]:checked');
-            console.log('Assinaturas selecionadas:', assinaturas.length);
-            
             if (assinaturas.length === 0) {
                 event.preventDefault();
                 alert('Selecione pelo menos um usuário para assinar o documento!');
-                return false;
-            }
-            
-            if (!this.conteudo || this.conteudo.trim() === '' || this.conteudo === '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>') {
-                event.preventDefault();
-                alert('Digite o conteúdo do documento!');
                 return false;
             }
             
@@ -563,7 +508,7 @@ function documentoEditor() {
             if (acao === 'finalizar') {
                 localStorage.removeItem(this.chaveLocalStorage);
             }
-        },
+        }
     }
 }
 </script>

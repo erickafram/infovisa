@@ -153,6 +153,22 @@ class UsuarioInterno extends Authenticatable
     }
 
     /**
+     * Scope para filtrar apenas usuários ativos (singular)
+     */
+    public function scopeAtivo($query)
+    {
+        return $query->where('ativo', true);
+    }
+
+    /**
+     * Scope para ordenar por nome
+     */
+    public function scopeOrdenado($query)
+    {
+        return $query->orderBy('nome', 'asc');
+    }
+
+    /**
      * Scope para filtrar por nível de acesso
      */
     public function scopeNivelAcesso($query, NivelAcesso|string $nivel)

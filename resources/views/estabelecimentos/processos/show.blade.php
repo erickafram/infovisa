@@ -351,9 +351,160 @@
                         </div>
                     @else
                         <div class="space-y-3">
+                            {{-- Documentos Digitais (Rascunhos e Finalizados) --}}
+                            @foreach($documentosDigitais as $docDigital)
+                                <div x-show="pastaAtiva === null || pastaAtiva === {{ $docDigital->pasta_id ?? 'null' }}"
+                                     class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-green-500 hover:bg-gray-100 transition-colors">
+                                    
+                                    {{-- Checkbox de seleção --}}
+                                    <input type="checkbox" 
+                                           x-show="selecionarMultiplos" 
+                                           :value="'doc_digital_{{ $docDigital->id }}'"
+                                           @change="toggleDocumento('doc_digital_{{ $docDigital->id }}')"
+                                           class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                    
+                                    @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
+                                        <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" 
+                                             class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                                    @else
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    @endif
+                                        {{-- Ícone do documento digital --}}
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                                <span class="text-2xl">📄</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {{-- Informações do documento --}}
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-gray-900">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">{{ $docDigital->numero_documento }}</p>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
+                                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                    {{ $docDigital->created_at->format('d/m/Y H:i') }}
+                                                </span>
+                                                <span class="flex items-center gap-1">
+                                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                    </svg>
+                                                    {{ $docDigital->usuarioCriador->nome }}
+                                                </span>
+                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap">
+                                                    Interno
+                                                </span>
+                                                @if($docDigital->status === 'rascunho')
+                                                    <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                        </svg>
+                                                        Rascunho
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                        Documento Digital
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Ações --}}
+                                    <div class="flex items-center gap-2 sm:flex-shrink-0">
+                                        {{-- Mover para Pasta --}}
+                                        <div class="relative" x-data="{ menuAberto: false }">
+                                            <button @click.stop="menuAberto = !menuAberto"
+                                                    class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                                    title="Mover para pasta">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                </svg>
+                                            </button>
+                                            <div x-show="menuAberto" 
+                                                 @click.away="menuAberto = false"
+                                                 x-transition
+                                                 class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null); menuAberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                        </svg>
+                                                        Todos (sem pasta)
+                                                    </button>
+                                                    <template x-for="pasta in pastas" :key="pasta.id">
+                                                        <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, pasta.id); menuAberto = false"
+                                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                            <svg class="w-4 h-4" :style="`color: ${pasta.cor}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                                            </svg>
+                                                            <span x-text="pasta.nome"></span>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
+                                            <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
+                                               class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                               title="Download">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                            </a>
+                                        @endif
+
+                                        {{-- Menu de 3 Pontos --}}
+                                        <div class="relative" x-data="{ menuAberto: false }">
+                                            <button @click.stop="menuAberto = !menuAberto"
+                                                    class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                                    title="Mais opções">
+                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                                </svg>
+                                            </button>
+                                            <div x-show="menuAberto" 
+                                                 @click.away="menuAberto = false"
+                                                 x-transition
+                                                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    @if($docDigital->status === 'rascunho')
+                                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}"
+                                                           class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                            </svg>
+                                                            Editar
+                                                        </a>
+                                                    @endif
+
+                                                    <button @click="if(confirm('Tem certeza que deseja excluir este documento?')) { excluirDocumentoDigital({{ $docDigital->id }}) }; menuAberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
+                                                        Excluir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                            
+                            {{-- Arquivos Externos --}}
                             @foreach($processo->documentos as $documento)
                                 <div x-show="pastaAtiva === null || pastaAtiva === {{ $documento->pasta_id ?? 'null' }}"
-                                     class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                                     class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-red-500 hover:bg-gray-100 transition-colors">
                                     <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}'; modalVisualizador = true" 
                                          class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                         {{-- Ícone do arquivo --}}
@@ -383,9 +534,18 @@
                                                     {{ $documento->tipo_usuario === 'interno' ? 'Interno' : 'Externo' }}
                                                 </span>
                                                 <span class="text-gray-400 whitespace-nowrap">{{ $documento->tamanho_formatado }}</span>
-                                                <span class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full font-medium whitespace-nowrap">
-                                                    Arquivo Externo
-                                                </span>
+                                                @if($documento->tipo_documento === 'documento_digital')
+                                                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                        Documento Digital
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full font-medium whitespace-nowrap">
+                                                        Arquivo Externo
+                                                    </span>
+                                                @endif
                                                 @if($documento->pasta_id)
                                                     <span class="flex items-center gap-1 px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
                                                           x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
@@ -439,13 +599,6 @@
                                             </div>
                                         </div>
 
-                                        <button @click.stop="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true"
-                                                class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                                                title="Editar nome">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
                                         <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" 
                                            class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                            title="Download">
@@ -453,19 +606,48 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                             </svg>
                                         </a>
-                                        <form action="{{ route('admin.estabelecimentos.processos.deleteArquivo', [$estabelecimento->id, $processo->id, $documento->id]) }}" 
-                                              method="POST"
-                                              onsubmit="return confirm('Tem certeza que deseja remover este arquivo?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Remover">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+
+                                        {{-- Menu de 3 Pontos --}}
+                                        <div class="relative" x-data="{ menuAberto: false }">
+                                            <button @click.stop="menuAberto = !menuAberto"
+                                                    class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                                    title="Mais opções">
+                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                                                 </svg>
                                             </button>
-                                        </form>
+                                            
+                                            {{-- Dropdown Menu --}}
+                                            <div x-show="menuAberto" 
+                                                 @click.away="menuAberto = false"
+                                                 x-transition
+                                                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    <button @click="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true; menuAberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                        </svg>
+                                                        Renomear
+                                                    </button>
+
+                                                    <form action="{{ route('admin.estabelecimentos.processos.deleteArquivo', [$estabelecimento->id, $processo->id, $documento->id]) }}" 
+                                                          method="POST"
+                                                          onsubmit="return confirm('Tem certeza que deseja remover este arquivo?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" 
+                                                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                            </svg>
+                                                            Excluir
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach
@@ -997,6 +1179,75 @@
 
                 contarDocumentosPorPasta(pastaId) {
                     return this.documentos.filter(doc => doc.pasta_id === pastaId).length;
+                },
+
+                // Métodos para Documentos Digitais
+                moverDocumentoDigitalParaPasta(documentoId, pastaId) {
+                    fetch(`/admin/documentos/${documentoId}/mover-pasta`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({ pasta_id: pastaId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Erro ao mover documento');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert('Erro ao mover documento');
+                    });
+                },
+
+                renomearDocumentoDigital(documentoId, novoNome) {
+                    fetch(`/admin/documentos/${documentoId}/renomear`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({ nome: novoNome })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Erro ao renomear documento');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert('Erro ao renomear documento');
+                    });
+                },
+
+                excluirDocumentoDigital(documentoId) {
+                    fetch(`/admin/documentos/${documentoId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Erro ao excluir documento');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert('Erro ao excluir documento');
+                    });
                 }
             }
         }

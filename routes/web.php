@@ -69,6 +69,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/desativados', [EstabelecimentoController::class, 'desativados'])->name('estabelecimentos.desativados');
     Route::get('/estabelecimentos/create/juridica', [EstabelecimentoController::class, 'createJuridica'])->name('estabelecimentos.create.juridica');
     Route::get('/estabelecimentos/create/fisica', [EstabelecimentoController::class, 'createFisica'])->name('estabelecimentos.create.fisica');
+    Route::get('/estabelecimentos/buscar-por-cpf/{cpf}', [EstabelecimentoController::class, 'buscarPorCpf'])->name('estabelecimentos.buscar-cpf');
     Route::get('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'editAtividades'])->name('estabelecimentos.atividades.edit');
     Route::post('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'updateAtividades'])->name('estabelecimentos.atividades.update');
     Route::get('/estabelecimentos/{id}/historico', [EstabelecimentoController::class, 'historico'])->name('estabelecimentos.historico');
@@ -84,6 +85,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/estabelecimentos/{id}/usuarios/vincular', [EstabelecimentoController::class, 'vincularUsuario'])->name('estabelecimentos.usuarios.vincular');
     Route::delete('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'desvincularUsuario'])->name('estabelecimentos.usuarios.desvincular');
     Route::put('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'atualizarVinculo'])->name('estabelecimentos.usuarios.atualizar');
+    Route::get('/usuarios-externos/buscar', [EstabelecimentoController::class, 'buscarUsuarios'])->name('usuarios-externos.buscar');
     
     // Responsáveis
     Route::get('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\ResponsavelController::class, 'index'])->name('estabelecimentos.responsaveis.index');
@@ -101,6 +103,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/documentos/create', [\App\Http\Controllers\DocumentoDigitalController::class, 'create'])->name('documentos.create');
     Route::post('/documentos', [\App\Http\Controllers\DocumentoDigitalController::class, 'store'])->name('documentos.store');
     Route::get('/documentos/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'show'])->name('documentos.show');
+    Route::get('/documentos/{id}/edit', [\App\Http\Controllers\DocumentoDigitalController::class, 'edit'])->name('documentos.edit');
+    Route::put('/documentos/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'update'])->name('documentos.update');
+    Route::delete('/documentos/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'destroy'])->name('documentos.destroy');
+    Route::post('/documentos/{id}/mover-pasta', [\App\Http\Controllers\DocumentoDigitalController::class, 'moverPasta'])->name('documentos.mover-pasta');
+    Route::post('/documentos/{id}/renomear', [\App\Http\Controllers\DocumentoDigitalController::class, 'renomear'])->name('documentos.renomear');
     Route::get('/documentos/modelos/{tipoId}', [\App\Http\Controllers\DocumentoDigitalController::class, 'buscarModelos'])->name('documentos.modelos');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');
     Route::post('/documentos/{id}/assinar', [\App\Http\Controllers\DocumentoDigitalController::class, 'assinar'])->name('documentos.assinar');

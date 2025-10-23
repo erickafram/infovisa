@@ -16,7 +16,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
-            <span class="text-gray-900 font-medium">Editar: {{ $modeloDocumento->nome }}</span>
+            <span class="text-gray-900 font-medium">Editar: {{ $modeloDocumento->tipoDocumento->nome ?? 'Modelo' }}</span>
         </nav>
     </div>
 
@@ -30,43 +30,23 @@
             <h3 class="text-lg font-bold text-gray-900 mb-6">Informações do Modelo</h3>
 
             <div class="space-y-6">
-                {{-- Nome --}}
-                <div>
-                    <label for="nome" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nome do Modelo <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" 
-                           name="nome" 
-                           id="nome" 
-                           value="{{ old('nome', $modeloDocumento->nome) }}"
-                           required
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nome') border-red-500 @enderror"
-                           placeholder="Ex: Alvará Sanitário">
-                    @error('nome')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
                 {{-- Tipo de Documento --}}
                 <div>
-                    <label for="tipo_documento" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="tipo_documento_id" class="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Documento <span class="text-red-500">*</span>
                     </label>
-                    <select name="tipo_documento" 
-                            id="tipo_documento" 
+                    <select name="tipo_documento_id" 
+                            id="tipo_documento_id" 
                             required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_documento') border-red-500 @enderror">
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_documento_id') border-red-500 @enderror">
                         <option value="">Selecione o tipo</option>
-                        <option value="alvara" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'alvara' ? 'selected' : '' }}>Alvará</option>
-                        <option value="memorando" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'memorando' ? 'selected' : '' }}>Memorando</option>
-                        <option value="notificacao" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'notificacao' ? 'selected' : '' }}>Notificação</option>
-                        <option value="oficio" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'oficio' ? 'selected' : '' }}>Ofício</option>
-                        <option value="termo" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'termo' ? 'selected' : '' }}>Termo</option>
-                        <option value="relatorio" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'relatorio' ? 'selected' : '' }}>Relatório</option>
-                        <option value="declaracao" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'declaracao' ? 'selected' : '' }}>Declaração</option>
-                        <option value="atestado" {{ old('tipo_documento', $modeloDocumento->tipo_documento) == 'atestado' ? 'selected' : '' }}>Atestado</option>
+                        @foreach($tiposDocumento as $tipo)
+                            <option value="{{ $tipo->id }}" {{ old('tipo_documento_id', $modeloDocumento->tipo_documento_id) == $tipo->id ? 'selected' : '' }}>
+                                {{ $tipo->nome }}
+                            </option>
+                        @endforeach
                     </select>
-                    @error('tipo_documento')
+                    @error('tipo_documento_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

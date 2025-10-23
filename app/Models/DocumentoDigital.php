@@ -17,6 +17,7 @@ class DocumentoDigital extends Model
         'pasta_id',
         'usuario_criador_id',
         'numero_documento',
+        'nome',
         'conteudo',
         'sigiloso',
         'status',
@@ -35,13 +36,24 @@ class DocumentoDigital extends Model
     public static function gerarNumeroDocumento(): string
     {
         $ano = date('Y');
-        $ultimo = self::whereYear('created_at', $ano)
-            ->orderBy('id', 'desc')
+        
+        // Busca o último número de documento do ano (incluindo soft deleted)
+        $ultimo = self::withTrashed()
+            ->where('numero_documento', 'like', "DOC-{$ano}-%")
+            ->orderByRaw("CAST(SUBSTRING(numero_documento FROM 10) AS INTEGER) DESC")
             ->first();
 
         $sequencial = $ultimo ? (int) substr($ultimo->numero_documento, -5) + 1 : 1;
 
-        return sprintf('DOC-%s-%05d', $ano, $sequencial);
+        // Garante que o número seja único tentando até encontrar um disponível
+        $tentativas = 0;
+        do {
+            $numeroDocumento = sprintf('DOC-%s-%05d', $ano, $sequencial + $tentativas);
+            $existe = self::withTrashed()->where('numero_documento', $numeroDocumento)->exists();
+            $tentativas++;
+        } while ($existe && $tentativas < 100);
+
+        return $numeroDocumento;
     }
 
     /**

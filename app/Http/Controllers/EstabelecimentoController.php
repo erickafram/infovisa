@@ -804,4 +804,66 @@ class EstabelecimentoController extends Controller
             ->route('admin.estabelecimentos.usuarios.index', $estabelecimento->id)
             ->with('success', 'Vínculo atualizado com sucesso.');
     }
+
+    /**
+     * Buscar estabelecimento por CPF
+     */
+    public function buscarPorCpf($cpf)
+    {
+        // Remove máscara do CPF
+        $cpf = preg_replace('/\D/', '', $cpf);
+        
+        // Busca estabelecimento por CPF
+        $estabelecimento = Estabelecimento::where('cpf', $cpf)->first();
+        
+        if ($estabelecimento) {
+            return response()->json([
+                'existe' => true,
+                'nome' => $estabelecimento->nome_completo,
+                'rg' => $estabelecimento->rg,
+                'orgao_emissor' => $estabelecimento->orgao_emissor,
+                'nome_fantasia' => $estabelecimento->nome_fantasia,
+                'email' => $estabelecimento->email,
+                'telefone' => $estabelecimento->telefone,
+            ]);
+        }
+        
+        return response()->json(['existe' => false]);
+    }
+
+    /**
+     * Buscar usuários externos por nome ou CPF
+     */
+    public function buscarUsuarios(Request $request)
+    {
+        $query = $request->input('q');
+        $estabelecimentoId = $request->input('estabelecimento_id');
+        
+        if (strlen($query) < 3) {
+            return response()->json([]);
+        }
+        
+        // Busca usuários ativos que não estão vinculados ao estabelecimento
+        $usuarios = UsuarioExterno::where('ativo', true)
+            ->where(function($q) use ($query) {
+                $q->where('nome', 'ILIKE', "%{$query}%")
+                  ->orWhere('cpf', 'LIKE', "%{$query}%")
+                  ->orWhere('email', 'ILIKE', "%{$query}%");
+            })
+            ->whereNotIn('id', function($subquery) use ($estabelecimentoId) {
+                $subquery->select('usuario_externo_id')
+                    ->from('estabelecimento_usuario_externo')
+                    ->where('estabelecimento_id', $estabelecimentoId);
+            })
+            ->limit(10)
+            ->get(['id', 'nome', 'cpf', 'email']);
+        
+        // Formata CPF para exibição
+        $usuarios->transform(function($usuario) {
+            $usuario->cpf = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $usuario->cpf);
+            return $usuario;
+        });
+        
+        return response()->json($usuarios);
+    }
 }
