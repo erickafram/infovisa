@@ -64,10 +64,26 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Estabelecimentos
+    Route::get('/estabelecimentos/pendentes', [EstabelecimentoController::class, 'pendentes'])->name('estabelecimentos.pendentes');
+    Route::get('/estabelecimentos/rejeitados', [EstabelecimentoController::class, 'rejeitados'])->name('estabelecimentos.rejeitados');
+    Route::get('/estabelecimentos/desativados', [EstabelecimentoController::class, 'desativados'])->name('estabelecimentos.desativados');
     Route::get('/estabelecimentos/create/juridica', [EstabelecimentoController::class, 'createJuridica'])->name('estabelecimentos.create.juridica');
     Route::get('/estabelecimentos/create/fisica', [EstabelecimentoController::class, 'createFisica'])->name('estabelecimentos.create.fisica');
     Route::get('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'editAtividades'])->name('estabelecimentos.atividades.edit');
     Route::post('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'updateAtividades'])->name('estabelecimentos.atividades.update');
+    Route::get('/estabelecimentos/{id}/historico', [EstabelecimentoController::class, 'historico'])->name('estabelecimentos.historico');
+    Route::post('/estabelecimentos/{id}/aprovar', [EstabelecimentoController::class, 'aprovar'])->name('estabelecimentos.aprovar');
+    Route::post('/estabelecimentos/{id}/rejeitar', [EstabelecimentoController::class, 'rejeitar'])->name('estabelecimentos.rejeitar');
+    Route::post('/estabelecimentos/{id}/reiniciar', [EstabelecimentoController::class, 'reiniciar'])->name('estabelecimentos.reiniciar');
+    Route::post('/estabelecimentos/{id}/voltar-pendente', [EstabelecimentoController::class, 'voltarPendente'])->name('estabelecimentos.voltar-pendente');
+    Route::post('/estabelecimentos/{id}/desativar', [EstabelecimentoController::class, 'desativar'])->name('estabelecimentos.desativar');
+    Route::post('/estabelecimentos/{id}/ativar', [EstabelecimentoController::class, 'ativar'])->name('estabelecimentos.ativar');
+    
+    // Usuários Vinculados ao Estabelecimento
+    Route::get('/estabelecimentos/{id}/usuarios', [EstabelecimentoController::class, 'usuariosIndex'])->name('estabelecimentos.usuarios.index');
+    Route::post('/estabelecimentos/{id}/usuarios/vincular', [EstabelecimentoController::class, 'vincularUsuario'])->name('estabelecimentos.usuarios.vincular');
+    Route::delete('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'desvincularUsuario'])->name('estabelecimentos.usuarios.desvincular');
+    Route::put('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'atualizarVinculo'])->name('estabelecimentos.usuarios.atualizar');
     
     // Responsáveis
     Route::get('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\ResponsavelController::class, 'index'])->name('estabelecimentos.responsaveis.index');

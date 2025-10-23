@@ -16,7 +16,7 @@
 <body class="bg-gray-50 font-sans antialiased">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex items-center justify-between w-full">
                 <!-- Logo -->
                 <a href="{{ route('home') }}" class="flex items-center space-x-2 flex-shrink-0">

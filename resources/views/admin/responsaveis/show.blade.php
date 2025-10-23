@@ -4,142 +4,132 @@
 @section('page-title', 'Detalhes do Responsável')
 
 @section('content')
-<div class="max-w-8xl mx-auto space-y-6">
+<div class="space-y-4">
     {{-- Header com botão voltar --}}
-    <div>
+    <div class="flex items-center justify-between">
         <a href="{{ route('admin.responsaveis.index') }}" 
-           class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            Voltar para lista
+            Voltar
         </a>
+        <h1 class="text-xl font-bold text-gray-900">{{ $responsavel->nome }}</h1>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Coluna Esquerda - Dados do Responsável --}}
-        <div class="lg:col-span-1">
-            {{-- Card Principal --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
-                <div class="text-center mb-6">
-                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-2xl font-bold text-white">{{ strtoupper(substr($responsavel->nome, 0, 2)) }}</span>
-                    </div>
-                    <h2 class="text-xl font-bold text-gray-900">{{ $responsavel->nome }}</h2>
-                    <p class="text-sm text-gray-500 mt-1">CPF: {{ $responsavel->cpf_formatado }}</p>
-                </div>
-
-                <div class="space-y-4 border-t pt-4">
-                    {{-- Tipos --}}
-                    <div>
-                        <label class="text-xs font-medium text-gray-500 uppercase">Tipos</label>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            @foreach($responsavel->tipos as $tipo)
-                                @if($tipo === 'legal')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                        </svg>
-                                        Responsável Legal
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        Responsável Técnico
-                                    </span>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-
-                    {{-- Email --}}
-                    <div>
-                        <label class="text-xs font-medium text-gray-500 uppercase">Email</label>
-                        <p class="text-sm text-gray-900 mt-1">{{ $responsavel->email }}</p>
-                    </div>
-
-                    {{-- Telefone --}}
-                    <div>
-                        <label class="text-xs font-medium text-gray-500 uppercase">Telefone</label>
-                        <p class="text-sm text-gray-900 mt-1">{{ $responsavel->telefone_formatado }}</p>
-                    </div>
-
-                    {{-- Informações Adicionais por Tipo --}}
-                    @foreach($responsavel->registros as $registro)
-                        @if($registro->tipo === 'tecnico' && $registro->conselho)
-                            <div class="border-t pt-4 mt-4">
-                                <h4 class="text-xs font-semibold text-gray-700 uppercase mb-3">Informações Técnicas</h4>
-                                
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-500 uppercase">Conselho</label>
-                                        <p class="text-sm text-gray-900 mt-1">{{ $registro->conselho }}</p>
-                                    </div>
-
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-500 uppercase">Nº Registro</label>
-                                        <p class="text-sm text-gray-900 mt-1">{{ $registro->numero_registro_conselho }}</p>
-                                    </div>
-
-                                    @if($registro->carteirinha_conselho)
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-500 uppercase">Carteirinha</label>
-                                        <a href="{{ asset('storage/' . $registro->carteirinha_conselho) }}" 
-                                           target="_blank"
-                                           class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                            </svg>
-                                            Ver Carteirinha
-                                        </a>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
-                        @if($registro->tipo === 'legal' && $registro->tipo_documento)
-                            <div class="border-t pt-4 mt-4">
-                                <h4 class="text-xs font-semibold text-gray-700 uppercase mb-3">Informações Legais</h4>
-                                
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-500 uppercase">Tipo de Documento</label>
-                                        <p class="text-sm text-gray-900 mt-1">{{ strtoupper($registro->tipo_documento) }}</p>
-                                    </div>
-
-                                    @if($registro->documento_identificacao)
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-500 uppercase">Documento</label>
-                                        <a href="{{ asset('storage/' . $registro->documento_identificacao) }}" 
-                                           target="_blank"
-                                           class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                            </svg>
-                                            Ver Documento
-                                        </a>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
+    {{-- Informações Básicas em uma linha --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase">CPF</label>
+                <p class="text-sm text-gray-900 mt-1 font-mono">{{ $responsavel->cpf_formatado }}</p>
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase">Email</label>
+                <p class="text-sm text-gray-900 mt-1 truncate" title="{{ $responsavel->email }}">{{ $responsavel->email }}</p>
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase">Telefone</label>
+                <p class="text-sm text-gray-900 mt-1">{{ $responsavel->telefone_formatado }}</p>
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase">Tipo(s)</label>
+                <div class="flex flex-wrap gap-1 mt-1">
+                    @foreach($responsavel->tipos as $tipo)
+                        <span class="px-2 py-0.5 rounded text-xs font-medium {{ $tipo === 'legal' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                            {{ $tipo === 'legal' ? 'Legal' : 'Técnico' }}
+                        </span>
                     @endforeach
                 </div>
             </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase">Estabelecimentos</label>
+                <p class="text-sm text-gray-900 mt-1 font-semibold">{{ $responsavel->estabelecimentos->count() }}</p>
+            </div>
         </div>
 
-        {{-- Coluna Direita - Estabelecimentos Vinculados --}}
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">Estabelecimentos Vinculados</h3>
-                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                        {{ $responsavel->estabelecimentos->count() }} estabelecimento(s)
-                    </span>
-                </div>
+        {{-- Informações Técnicas/Legais (se houver) --}}
+        @php
+            $temInfoExtra = false;
+            foreach($responsavel->registros as $registro) {
+                if(($registro->tipo === 'tecnico' && $registro->conselho) || ($registro->tipo === 'legal' && $registro->tipo_documento)) {
+                    $temInfoExtra = true;
+                    break;
+                }
+            }
+        @endphp
+        
+        @if($temInfoExtra)
+        <div class="border-t pt-4 mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                @foreach($responsavel->registros as $registro)
+                    @if($registro->tipo === 'tecnico' && $registro->conselho)
+                    <div>
+                        <h4 class="text-xs font-semibold text-gray-700 uppercase mb-2">Informações Técnicas</h4>
+                                
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-xs font-medium text-gray-500">Conselho</label>
+                                <p class="text-sm text-gray-900">{{ $registro->conselho }}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-500">Nº Registro</label>
+                                <p class="text-sm text-gray-900">{{ $registro->numero_registro_conselho }}</p>
+                            </div>
+                            @if($registro->carteirinha_conselho)
+                            <div>
+                                <a href="{{ asset('storage/' . $registro->carteirinha_conselho) }}" 
+                                   target="_blank"
+                                   class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ver Carteirinha
+                                </a>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($registro->tipo === 'legal' && $registro->tipo_documento)
+                    <div>
+                        <h4 class="text-xs font-semibold text-gray-700 uppercase mb-2">Informações Legais</h4>
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-xs font-medium text-gray-500">Tipo de Documento</label>
+                                <p class="text-sm text-gray-900">{{ strtoupper($registro->tipo_documento) }}</p>
+                            </div>
+                            @if($registro->documento_identificacao)
+                            <div>
+                                <a href="{{ asset('storage/' . $registro->documento_identificacao) }}" 
+                                   target="_blank"
+                                   class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ver Documento
+                                </a>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+
+    {{-- Estabelecimentos Vinculados --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-gray-900">Estabelecimentos Vinculados</h3>
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                {{ $responsavel->estabelecimentos->count() }}
+            </span>
+        </div>
 
                 @if($responsavel->estabelecimentos->count() > 0)
                     <div class="grid grid-cols-1 gap-4">

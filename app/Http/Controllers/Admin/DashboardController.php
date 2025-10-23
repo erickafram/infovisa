@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\UsuarioExterno;
 use App\Models\UsuarioInterno;
+use App\Models\Estabelecimento;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -21,6 +22,7 @@ class DashboardController extends Controller
             'usuarios_internos' => UsuarioInterno::count(),
             'usuarios_internos_ativos' => UsuarioInterno::where('ativo', true)->count(),
             'administradores' => UsuarioInterno::administradores()->count(),
+            'estabelecimentos_pendentes' => Estabelecimento::pendentes()->doMunicipioUsuario()->count(),
         ];
 
         $usuarios_externos_recentes = UsuarioExterno::latest()
@@ -31,10 +33,19 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Buscar os 5 últimos estabelecimentos pendentes
+        $estabelecimentos_pendentes = Estabelecimento::pendentes()
+            ->doMunicipioUsuario()
+            ->with('usuarioExterno')
+            ->latest()
+            ->take(5)
+            ->get();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
-            'usuarios_internos_recentes'
+            'usuarios_internos_recentes',
+            'estabelecimentos_pendentes'
         ));
     }
 }

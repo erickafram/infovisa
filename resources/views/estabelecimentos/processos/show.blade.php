@@ -74,8 +74,8 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-xs font-medium text-gray-500 uppercase">CNPJ</label>
-                            <p class="text-sm text-gray-900 mt-1">{{ $estabelecimento->cnpj_formatado }}</p>
+                            <label class="text-xs font-medium text-gray-500 uppercase">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}</label>
+                            <p class="text-sm text-gray-900 mt-1">{{ $estabelecimento->documento_formatado }}</p>
                         </div>
                         <div>
                             <label class="text-xs font-medium text-gray-500 uppercase">Telefone(s)</label>

@@ -20,6 +20,8 @@ class Estabelecimento extends Model
         'cnpj',
         'cpf',
         'nome_completo',
+        'rg',
+        'orgao_emissor',
         'inscricao_estadual',
         'endereco',
         'numero',
@@ -33,6 +35,8 @@ class Estabelecimento extends Model
         'tipo_estabelecimento',
         'atividade_principal',
         'ativo',
+        'motivo_desativacao',
+        'situacao',
         'usuario_externo_id',
         // Campos da API
         'natureza_juridica',
@@ -63,6 +67,12 @@ class Estabelecimento extends Model
         'descricao_motivo_situacao_cadastral',
         'identificador_matriz_filial',
         'qualificacao_do_responsavel',
+        // Campos de aprovação
+        'status',
+        'municipio',
+        'motivo_rejeicao',
+        'aprovado_por',
+        'aprovado_em',
     ];
 
     /**
@@ -83,6 +93,7 @@ class Estabelecimento extends Model
         'regime_tributario' => 'array',
         'atividades_exercidas' => 'array',
         'tipo_setor' => TipoSetor::class,
+        'aprovado_em' => 'datetime',
     ];
 
     /**
@@ -125,6 +136,32 @@ class Estabelecimento extends Model
     public function processos()
     {
         return $this->hasMany(Processo::class);
+    }
+
+    /**
+     * Relacionamento com histórico
+     */
+    public function historicos()
+    {
+        return $this->hasMany(EstabelecimentoHistorico::class);
+    }
+
+    /**
+     * Relacionamento com usuário que aprovou
+     */
+    public function aprovadoPor()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'aprovado_por');
+    }
+
+    /**
+     * Relacionamento com usuários externos vinculados
+     */
+    public function usuariosVinculados()
+    {
+        return $this->belongsToMany(UsuarioExterno::class, 'estabelecimento_usuario_externo')
+                    ->withPivot('tipo_vinculo', 'observacao', 'vinculado_por')
+                    ->withTimestamps();
     }
 
     /**
@@ -266,6 +303,69 @@ class Estabelecimento extends Model
     }
 
     /**
+     * Retorna o label da situação cadastral (vem da API)
+     */
+    public function getSituacaoLabelAttribute(): string
+    {
+        // A API da Receita Federal retorna códigos numéricos
+        $situacao = $this->situacao_cadastral ?? $this->descricao_situacao_cadastral ?? '2';
+        
+        // Se for texto, usa direto
+        if (!is_numeric($situacao)) {
+            $situacao = strtoupper($situacao);
+            return match($situacao) {
+                'ATIVA' => 'Ativa',
+                'BAIXADA' => 'Baixada',
+                'SUSPENSA' => 'Suspensa',
+                'INAPTA' => 'Inapta',
+                'NULA' => 'Nula',
+                default => ucfirst(strtolower($situacao)),
+            };
+        }
+        
+        // Mapeamento dos códigos da Receita Federal
+        return match((string)$situacao) {
+            '1' => 'Nula',
+            '2' => 'Ativa',
+            '3' => 'Suspensa',
+            '4' => 'Inapta',
+            '8' => 'Baixada',
+            default => 'Ativa',
+        };
+    }
+
+    /**
+     * Retorna a cor da badge da situação cadastral
+     */
+    public function getSituacaoCorAttribute(): string
+    {
+        $situacao = $this->situacao_cadastral ?? $this->descricao_situacao_cadastral ?? '2';
+        
+        // Se for texto, converte
+        if (!is_numeric($situacao)) {
+            $situacao = strtoupper($situacao);
+            return match($situacao) {
+                'ATIVA' => 'bg-green-100 text-green-800',
+                'BAIXADA' => 'bg-gray-100 text-gray-800',
+                'SUSPENSA' => 'bg-yellow-100 text-yellow-800',
+                'INAPTA' => 'bg-red-100 text-red-800',
+                'NULA' => 'bg-red-100 text-red-800',
+                default => 'bg-gray-100 text-gray-800',
+            };
+        }
+        
+        // Mapeamento dos códigos da Receita Federal
+        return match((string)$situacao) {
+            '1' => 'bg-red-100 text-red-800',      // Nula
+            '2' => 'bg-green-100 text-green-800',  // Ativa
+            '3' => 'bg-yellow-100 text-yellow-800', // Suspensa
+            '4' => 'bg-red-100 text-red-800',      // Inapta
+            '8' => 'bg-gray-100 text-gray-800',    // Baixada
+            default => 'bg-green-100 text-green-800',
+        };
+    }
+
+    /**
      * Verifica se o estabelecimento está ativo
      */
     public function isAtivo(): bool
@@ -297,4 +397,159 @@ class Estabelecimento extends Model
         $usuarioId = $usuarioId ?? auth('externo')->id();
         return $query->where('usuario_externo_id', $usuarioId);
     }
+
+    /**
+     * Scope para filtrar por município
+     */
+    public function scopePorMunicipio($query, $municipio)
+    {
+        return $query->where('municipio', $municipio);
+    }
+
+    /**
+     * Scope para filtrar por status
+     */
+    public function scopePorStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope para estabelecimentos pendentes
+     */
+    public function scopePendentes($query)
+    {
+        return $query->where('status', 'pendente');
+    }
+
+    /**
+     * Scope para estabelecimentos aprovados
+     */
+    public function scopeAprovados($query)
+    {
+        return $query->where('status', 'aprovado');
+    }
+
+    /**
+     * Scope para estabelecimentos rejeitados
+     */
+    public function scopeRejeitados($query)
+    {
+        return $query->where('status', 'rejeitado');
+    }
+
+    /**
+     * Scope para filtrar estabelecimentos do município do usuário logado
+     */
+    public function scopeDoMunicipioUsuario($query)
+    {
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            // Se não for administrador, filtra por município
+            if (!$usuario->nivel_acesso->isAdmin()) {
+                return $query->where('municipio', $usuario->municipio);
+            }
+        }
+        return $query;
+    }
+
+    /**
+     * Verifica se o estabelecimento está aprovado
+     */
+    public function isAprovado(): bool
+    {
+        return $this->status === 'aprovado';
+    }
+
+    /**
+     * Verifica se o estabelecimento está pendente
+     */
+    public function isPendente(): bool
+    {
+        return $this->status === 'pendente';
+    }
+
+    /**
+     * Verifica se o estabelecimento está rejeitado
+     */
+    public function isRejeitado(): bool
+    {
+        return $this->status === 'rejeitado';
+    }
+
+    /**
+     * Aprova o estabelecimento
+     */
+    public function aprovar(?string $observacao = null)
+    {
+        $statusAnterior = $this->status;
+        
+        $this->update([
+            'status' => 'aprovado',
+            'aprovado_por' => auth('interno')->id(),
+            'aprovado_em' => now(),
+            'motivo_rejeicao' => null,
+        ]);
+
+        EstabelecimentoHistorico::registrar(
+            $this->id,
+            'aprovado',
+            $statusAnterior,
+            'aprovado',
+            $observacao
+        );
+
+        return $this;
+    }
+
+    /**
+     * Rejeita o estabelecimento
+     */
+    public function rejeitar(string $motivo, ?string $observacao = null)
+    {
+        $statusAnterior = $this->status;
+        
+        $this->update([
+            'status' => 'rejeitado',
+            'aprovado_por' => auth('interno')->id(),
+            'aprovado_em' => now(),
+            'motivo_rejeicao' => $motivo,
+        ]);
+
+        EstabelecimentoHistorico::registrar(
+            $this->id,
+            'rejeitado',
+            $statusAnterior,
+            'rejeitado',
+            $observacao ?? $motivo
+        );
+
+        return $this;
+    }
+
+    /**
+     * Reinicia o estabelecimento (volta para pendente)
+     */
+    public function reiniciar(?string $observacao = null)
+    {
+        $statusAnterior = $this->status;
+        
+        $this->update([
+            'status' => 'pendente',
+            'aprovado_por' => null,
+            'aprovado_em' => null,
+            'motivo_rejeicao' => null,
+        ]);
+
+        EstabelecimentoHistorico::registrar(
+            $this->id,
+            'reiniciado',
+            $statusAnterior,
+            'pendente',
+            $observacao
+        );
+
+        return $this;
+    }
+
 }

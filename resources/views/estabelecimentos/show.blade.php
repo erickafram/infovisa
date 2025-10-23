@@ -21,12 +21,85 @@
         </div>
 
         {{-- Badge de Status --}}
-        <div>
+        <div class="flex items-center gap-2">
+            @php
+                $statusConfig = [
+                    'pendente' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'label' => 'Pendente'],
+                    'aprovado' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'label' => 'Aprovado'],
+                    'rejeitado' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'label' => 'Rejeitado'],
+                    'arquivado' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'label' => 'Arquivado'],
+                ];
+                $config = $statusConfig[$estabelecimento->status] ?? $statusConfig['pendente'];
+            @endphp
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $config['bg'] }} {{ $config['text'] }}">
+                {{ $config['label'] }}
+            </span>
             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $estabelecimento->ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                {{ $estabelecimento->ativo ? 'Estabelecimento Ativo' : 'Estabelecimento Inativo' }}
+                {{ $estabelecimento->ativo ? 'Ativo' : 'Inativo' }}
             </span>
         </div>
     </div>
+
+    {{-- Alerta de Status Pendente/Rejeitado --}}
+    @if($estabelecimento->status === 'pendente')
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm font-medium text-yellow-800">
+                    Este estabelecimento está aguardando aprovação
+                </p>
+                <p class="mt-1 text-sm text-yellow-700">
+                    Analise os dados e aprove ou rejeite o cadastro.
+                </p>
+            </div>
+        </div>
+    </div>
+    @elseif($estabelecimento->status === 'rejeitado')
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm font-medium text-red-800">
+                    Este estabelecimento foi rejeitado
+                </p>
+                @if($estabelecimento->motivo_rejeicao)
+                <p class="mt-1 text-sm text-red-700">
+                    <strong>Motivo:</strong> {{ $estabelecimento->motivo_rejeicao }}
+                </p>
+                @endif
+                @if($estabelecimento->aprovadoPor)
+                <p class="mt-1 text-xs text-red-600">
+                    Rejeitado por {{ $estabelecimento->aprovadoPor->nome }} em {{ $estabelecimento->aprovado_em->format('d/m/Y H:i') }}
+                </p>
+                @endif
+            </div>
+        </div>
+    </div>
+    @elseif($estabelecimento->status === 'aprovado' && $estabelecimento->aprovadoPor)
+    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-green-700">
+                    Aprovado por <strong>{{ $estabelecimento->aprovadoPor->nome }}</strong> em {{ $estabelecimento->aprovado_em->format('d/m/Y H:i') }}
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Layout de 2 Colunas --}}
     <style>
@@ -50,6 +123,7 @@
             <div class="estabelecimento-menu-sticky bg-white rounded-lg shadow-sm border border-gray-200 p-4 sticky top-20">
                 <h3 class="text-sm font-semibold text-gray-900 mb-4">Ações</h3>
                 <div class="space-y-2">
+                    @if($estabelecimento->ativo)
                     {{-- Editar --}}
                     <a href="{{ route('admin.estabelecimentos.edit', $estabelecimento->id) }}" 
                        class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
@@ -59,7 +133,8 @@
                         Editar Dados
                     </a>
 
-                    {{-- Responsáveis --}}
+                    {{-- Responsáveis (apenas para pessoa jurídica) --}}
+                    @if($estabelecimento->tipo_pessoa === 'juridica')
                     <a href="{{ route('admin.estabelecimentos.responsaveis.index', $estabelecimento->id) }}" 
                        class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
                         <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,6 +142,7 @@
                         </svg>
                         Responsáveis
                     </a>
+                    @endif
 
                     {{-- Atividades --}}
                     <a href="{{ route('admin.estabelecimentos.atividades.edit', $estabelecimento->id) }}" 
@@ -94,33 +170,106 @@
                     </button>
 
                     {{-- Histórico --}}
-                    <button class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
+                    <a href="{{ route('admin.estabelecimentos.historico', $estabelecimento->id) }}" 
+                       class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
                         <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Histórico
-                    </button>
+                    </a>
+
+                    {{-- Usuários Vinculados --}}
+                    <a href="{{ route('admin.estabelecimentos.usuarios.index', $estabelecimento->id) }}" 
+                       class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        Usuários Vinculados
+                    </a>
 
                     <hr class="my-4">
 
-                    {{-- Desativar/Ativar --}}
-                    @if($estabelecimento->ativo)
-                    <button class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group">
+                    {{-- Ações de Aprovação --}}
+                    @if($estabelecimento->status === 'pendente')
+                        <button onclick="document.getElementById('modal-aprovar').classList.remove('hidden')"
+                                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Aprovar
+                        </button>
+
+                        <button onclick="document.getElementById('modal-rejeitar').classList.remove('hidden')"
+                                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Rejeitar
+                        </button>
+                    @elseif($estabelecimento->status === 'rejeitado')
+                        <button onclick="document.getElementById('modal-reiniciar').classList.remove('hidden')"
+                                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Reiniciar
+                        </button>
+                    @endif
+
+                    @if(auth('interno')->user()->nivel_acesso->isAdmin())
+                    <hr class="my-4">
+
+                    {{-- Voltar para Pendente (apenas para aprovados sem processos) --}}
+                    @if($estabelecimento->status === 'aprovado' && $estabelecimento->processos()->count() === 0)
+                        <button onclick="document.getElementById('modal-voltar-pendente').classList.remove('hidden')"
+                                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/>
+                            </svg>
+                            Voltar para Pendente
+                        </button>
+                    @endif
+
+                    {{-- Desativar --}}
+                    <button onclick="document.getElementById('modal-desativar').classList.remove('hidden')"
+                            class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group">
                         <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                         </svg>
                         Desativar
                     </button>
-                    @else
-                    <button class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Ativar
-                    </button>
                     @endif
 
-                    {{-- Excluir --}}
+                    @else
+                    {{-- Estabelecimento Desativado - Mostrar apenas Histórico, Ativar e Excluir --}}
+                    {{-- Histórico --}}
+                    <a href="{{ route('admin.estabelecimentos.historico', $estabelecimento->id) }}" 
+                       class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors group">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Histórico
+                    </a>
+
+                    @if(auth('interno')->user()->nivel_acesso->isAdmin())
+                    <hr class="my-4">
+
+                    <form action="{{ route('admin.estabelecimentos.ativar', $estabelecimento->id) }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                                onclick="return confirm('Tem certeza que deseja reativar este estabelecimento?')"
+                                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Ativar
+                        </button>
+                    </form>
+                    @endif
+                    @endif
+
+                    {{-- Excluir (apenas admin) --}}
+                    @if(auth('interno')->user()->nivel_acesso->isAdmin())
                     <form action="{{ route('admin.estabelecimentos.destroy', $estabelecimento->id) }}" 
                           method="POST" 
                           onsubmit="return confirm('⚠️ ATENÇÃO!\n\nTem certeza que deseja EXCLUIR este estabelecimento?\n\nEsta ação é IRREVERSÍVEL e irá remover:\n- Todos os dados do estabelecimento\n- Responsáveis vinculados\n- Histórico de processos\n- Documentos anexados\n\nDeseja continuar?');"
@@ -135,6 +284,7 @@
                             Excluir Estabelecimento
                         </button>
                     </form>
+                    @endif
                 </div>
             </div>
         </div>
@@ -151,20 +301,43 @@
                 </h3>
                 <div class="grid grid-cols-2 gap-x-8">
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Razão Social / Nome</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->razao_social ?? $estabelecimento->nome }}</p>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'Razão Social' : 'Nome Completo' }}</label>
+                        <p class="text-sm text-gray-900">{{ $estabelecimento->nome_razao_social }}</p>
                     </div>
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-500 mb-2">Nome Fantasia</label>
                         <p class="text-sm text-gray-900">{{ $estabelecimento->nome_fantasia ?? '-' }}</p>
                     </div>
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">CNPJ/CPF</label>
+                        <label class="block text-sm font-medium text-gray-500 mb-2">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}</label>
                         <p class="text-sm text-gray-900 font-mono">{{ $estabelecimento->documento_formatado }}</p>
                     </div>
+                    
+                    @if($estabelecimento->tipo_pessoa === 'fisica')
+                    {{-- Campos específicos de Pessoa Física --}}
+                    @if($estabelecimento->rg)
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-500 mb-2">RG</label>
+                        <p class="text-sm text-gray-900">{{ $estabelecimento->rg }}</p>
+                    </div>
+                    @endif
+                    @if($estabelecimento->orgao_emissor)
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Órgão Emissor</label>
+                        <p class="text-sm text-gray-900">{{ $estabelecimento->orgao_emissor }}</p>
+                    </div>
+                    @endif
+                    @endif
+                    
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-500 mb-2">Tipo de Setor</label>
                         <p class="text-sm text-gray-900">{{ $estabelecimento->tipo_setor ? ucfirst($estabelecimento->tipo_setor->value) : '-' }}</p>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-500 mb-2">Situação Cadastral</label>
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $estabelecimento->situacao_cor }}">
+                            {{ $estabelecimento->situacao_label }}
+                        </span>
                     </div>
                     @if($estabelecimento->natureza_juridica)
                     <div class="mb-6">
@@ -317,5 +490,190 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Aprovar --}}
+    <div id="modal-aprovar" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Aprovar Estabelecimento</h3>
+                    <button onclick="document.getElementById('modal-aprovar').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <form action="{{ route('admin.estabelecimentos.aprovar', $estabelecimento->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="observacao" class="block text-sm font-medium text-gray-700 mb-2">Observação (opcional)</label>
+                        <textarea id="observacao" name="observacao" rows="3" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                  placeholder="Adicione uma observação sobre a aprovação..."></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-aprovar').classList.add('hidden')"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            Aprovar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Rejeitar --}}
+    <div id="modal-rejeitar" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Rejeitar Estabelecimento</h3>
+                    <button onclick="document.getElementById('modal-rejeitar').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <form action="{{ route('admin.estabelecimentos.rejeitar', $estabelecimento->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="motivo_rejeicao" class="block text-sm font-medium text-gray-700 mb-2">Motivo da Rejeição *</label>
+                        <textarea id="motivo_rejeicao" name="motivo_rejeicao" rows="4" required
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                  placeholder="Descreva o motivo da rejeição..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="observacao_rejeitar" class="block text-sm font-medium text-gray-700 mb-2">Observação (opcional)</label>
+                        <textarea id="observacao_rejeitar" name="observacao" rows="2" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                  placeholder="Observações adicionais..."></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-rejeitar').classList.add('hidden')"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                            Rejeitar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Reiniciar --}}
+    <div id="modal-reiniciar" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Reiniciar Estabelecimento</h3>
+                    <button onclick="document.getElementById('modal-reiniciar').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">O status do estabelecimento voltará para "Pendente" e poderá ser reanalisado.</p>
+                <form action="{{ route('admin.estabelecimentos.reiniciar', $estabelecimento->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="observacao_reiniciar" class="block text-sm font-medium text-gray-700 mb-2">Observação (opcional)</label>
+                        <textarea id="observacao_reiniciar" name="observacao" rows="3" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                  placeholder="Motivo do reinício..."></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-reiniciar').classList.add('hidden')"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                            Reiniciar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Desativar --}}
+    <div id="modal-desativar" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Desativar Estabelecimento</h3>
+                    <button onclick="document.getElementById('modal-desativar').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">O estabelecimento será desativado e ficará inativo no sistema.</p>
+                <form action="{{ route('admin.estabelecimentos.desativar', $estabelecimento->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="motivo_desativar" class="block text-sm font-medium text-gray-700 mb-2">Motivo da Desativação *</label>
+                        <textarea id="motivo_desativar" name="motivo" rows="4" required
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                  placeholder="Descreva o motivo da desativação..."></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-desativar').classList.add('hidden')"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                            Desativar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Voltar para Pendente --}}
+    <div id="modal-voltar-pendente" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Voltar para Pendente</h3>
+                    <button onclick="document.getElementById('modal-voltar-pendente').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">O estabelecimento voltará para o status "Pendente" e poderá ser reanalisado ou rejeitado.</p>
+                <form action="{{ route('admin.estabelecimentos.voltar-pendente', $estabelecimento->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="observacao_voltar" class="block text-sm font-medium text-gray-700 mb-2">Motivo *</label>
+                        <textarea id="observacao_voltar" name="observacao" rows="3" required
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                  placeholder="Informe o motivo para voltar para pendente..."></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-voltar-pendente').classList.add('hidden')"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                            Confirmar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
