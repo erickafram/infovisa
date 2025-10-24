@@ -2,6 +2,12 @@
 
 @section('title', 'Criar Novo Documento')
 
+@push('styles')
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen bg-gray-50" x-data="documentoEditor()">
     <div class="max-w-8xl mx-auto px-4 py-8">
@@ -35,6 +41,28 @@
             </div>
         @endif
 
+        {{-- Mensagem de recuperação de dados --}}
+        <div x-show="dadosRecuperados" 
+             x-transition
+             class="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <div class="flex items-start justify-between">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-semibold text-blue-800 mb-1">Rascunho recuperado</h3>
+                        <p class="text-sm text-blue-700">Seus dados foram recuperados automaticamente. Continue editando de onde parou.</p>
+                    </div>
+                </div>
+                <button @click="dadosRecuperados = false" class="text-blue-500 hover:text-blue-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
         {{-- Header com Breadcrumb --}}
         <div class="mb-6">
             <div class="flex items-center gap-2 text-sm text-gray-600 mb-3">
@@ -52,15 +80,6 @@
                 </svg>
                 <span class="text-gray-900 font-medium">Novo Documento</span>
             </div>
-                        
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div class="p-2 bg-blue-100 rounded-lg">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                Criar Documento Digital
-            </h1>
             
             @if(isset($processo))
                 <div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm">
@@ -93,7 +112,7 @@
             <div class="p-3">
                 <select name="tipo_documento_id" 
                         x-model="tipoSelecionado"
-                        @change="carregarModelos($event.target.value)"
+                        @change="carregarModelos($event.target.value); salvarAutomaticamente()"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         required>
                     <option value="">Selecione o tipo de documento</option>
@@ -121,25 +140,25 @@
             <div class="p-3">
                 
                 <!-- Toolbar do Editor -->
-                <div class="border border-gray-300 rounded-t-lg bg-gray-50 p-1.5 space-y-1.5">
+                <div class="border border-gray-300 rounded-t-lg bg-gradient-to-b from-gray-50 to-gray-100 p-2 space-y-2 shadow-sm">
                     {{-- Primeira linha: Desfazer, Títulos e Formatação básica --}}
-                    <div class="flex items-center gap-1 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap">
                         {{-- Desfazer/Refazer --}}
-                        <button type="button" onclick="document.execCommand('undo')" class="p-1.5 hover:bg-gray-200 rounded" title="Desfazer (Ctrl+Z)">
+                        <button type="button" onclick="document.execCommand('undo')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Desfazer (Ctrl+Z)">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('redo')" class="p-1.5 hover:bg-gray-200 rounded" title="Refazer (Ctrl+Y)">
+                        <button type="button" onclick="document.execCommand('redo')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Refazer (Ctrl+Y)">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
                             </svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
                         {{-- Títulos --}}
-                        <select onchange="document.execCommand('formatBlock', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Estilo">
+                        <select onchange="document.execCommand('formatBlock', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all font-medium" title="Estilo">
                             <option value="">Estilo</option>
                             <option value="h1">Título 1</option>
                             <option value="h2">Título 2</option>
@@ -149,7 +168,7 @@
                         </select>
 
                         {{-- Tamanho da fonte --}}
-                        <select onchange="document.execCommand('fontSize', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Tamanho">
+                        <select onchange="document.execCommand('fontSize', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Tamanho">
                             <option value="">Tamanho</option>
                             <option value="1">Muito pequeno</option>
                             <option value="2">Pequeno</option>
@@ -161,7 +180,7 @@
                         </select>
 
                         {{-- Fonte --}}
-                        <select onchange="document.execCommand('fontName', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Fonte">
+                        <select onchange="document.execCommand('fontName', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Fonte">
                             <option value="">Fonte</option>
                             <option value="Arial">Arial</option>
                             <option value="Times New Roman">Times New Roman</option>
@@ -171,32 +190,32 @@
                             <option value="Tahoma">Tahoma</option>
                         </select>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
-                        <button type="button" onclick="document.execCommand('bold')" class="p-1.5 hover:bg-gray-200 rounded font-bold" title="Negrito">
+                        <button type="button" onclick="document.execCommand('bold')" class="p-2 hover:bg-white hover:shadow rounded font-bold text-sm transition-all" title="Negrito">
                             B
                         </button>
-                        <button type="button" onclick="document.execCommand('italic')" class="p-1.5 hover:bg-gray-200 rounded italic" title="Itálico">
+                        <button type="button" onclick="document.execCommand('italic')" class="p-2 hover:bg-white hover:shadow rounded italic text-sm transition-all" title="Itálico">
                             I
                         </button>
-                        <button type="button" onclick="document.execCommand('underline')" class="p-1.5 hover:bg-gray-200 rounded underline" title="Sublinhado">
+                        <button type="button" onclick="document.execCommand('underline')" class="p-2 hover:bg-white hover:shadow rounded underline text-sm transition-all" title="Sublinhado">
                             U
                         </button>
-                        <button type="button" onclick="document.execCommand('strikeThrough')" class="p-1.5 hover:bg-gray-200 rounded line-through" title="Tachado">
+                        <button type="button" onclick="document.execCommand('strikeThrough')" class="p-2 hover:bg-white hover:shadow rounded line-through text-sm transition-all" title="Tachado">
                             S
                         </button>
-                        <button type="button" onclick="document.execCommand('subscript')" class="p-1.5 hover:bg-gray-200 rounded text-xs" title="Subscrito">
+                        <button type="button" onclick="document.execCommand('subscript')" class="p-2 hover:bg-white hover:shadow rounded text-sm transition-all" title="Subscrito">
                             X<sub>2</sub>
                         </button>
-                        <button type="button" onclick="document.execCommand('superscript')" class="p-1.5 hover:bg-gray-200 rounded text-xs" title="Sobrescrito">
+                        <button type="button" onclick="document.execCommand('superscript')" class="p-2 hover:bg-white hover:shadow rounded text-sm transition-all" title="Sobrescrito">
                             X<sup>2</sup>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
                         {{-- Cor do texto --}}
                         <div class="relative" x-data="{ showColorPicker: false }">
-                            <button type="button" @click="showColorPicker = !showColorPicker" class="p-1.5 hover:bg-gray-200 rounded flex items-center gap-1" title="Cor do texto">
+                            <button type="button" @click="showColorPicker = !showColorPicker" class="p-2 hover:bg-white hover:shadow rounded flex items-center gap-1 transition-all" title="Cor do texto">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                 </svg>
@@ -224,7 +243,7 @@
 
                         {{-- Cor de fundo --}}
                         <div class="relative" x-data="{ showBgPicker: false }">
-                            <button type="button" @click="showBgPicker = !showBgPicker" class="p-1.5 hover:bg-gray-200 rounded" title="Cor de fundo">
+                            <button type="button" @click="showBgPicker = !showBgPicker" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Cor de fundo">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
                                 </svg>
@@ -243,92 +262,103 @@
                     </div>
 
                     {{-- Segunda linha: Alinhamento e listas --}}
-                    <div class="flex items-center gap-1 flex-wrap">
-                        <button type="button" onclick="document.execCommand('justifyLeft')" class="p-1.5 hover:bg-gray-200 rounded" title="Alinhar à esquerda">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="document.execCommand('justifyLeft')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Alinhar à esquerda">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm0 4h10v2H2V8zm0 4h16v2H2v-2zm0 4h10v2H2v-2z"/></svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('justifyCenter')" class="p-1.5 hover:bg-gray-200 rounded" title="Centralizar">
+                        <button type="button" onclick="document.execCommand('justifyCenter')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Centralizar">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm3 4h10v2H5V8zm-3 4h16v2H2v-2zm3 4h10v2H5v-2z"/></svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('justifyRight')" class="p-1.5 hover:bg-gray-200 rounded" title="Alinhar à direita">
+                        <button type="button" onclick="document.execCommand('justifyRight')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Alinhar à direita">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm6 4h10v2H8V8zm-6 4h16v2H2v-2zm6 4h10v2H8v-2z"/></svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('justifyFull')" class="p-1.5 hover:bg-gray-200 rounded" title="Justificar">
+                        <button type="button" onclick="document.execCommand('justifyFull')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Justificar">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm0 4h16v2H2V8zm0 4h16v2H2v-2zm0 4h16v2H2v-2z"/></svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
-                        <button type="button" onclick="document.execCommand('insertUnorderedList')" class="p-1.5 hover:bg-gray-200 rounded" title="Lista">
+                        <button type="button" onclick="document.execCommand('insertUnorderedList')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Lista">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h2v2H3V4zm4 0h10v2H7V4zM3 9h2v2H3V9zm4 0h10v2H7V9zm-4 5h2v2H3v-2zm4 0h10v2H7v-2z"/></svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('insertOrderedList')" class="p-1.5 hover:bg-gray-200 rounded" title="Lista numerada">
+                        <button type="button" onclick="document.execCommand('insertOrderedList')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Lista numerada">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h1v3H3V4zm0 5h1v3H3V9zm0 5h1v3H3v-3zm4-9h10v2H7V5zm0 5h10v2H7v-2zm0 5h10v2H7v-2z"/></svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
-                        <button type="button" onclick="document.execCommand('indent')" class="p-1.5 hover:bg-gray-200 rounded" title="Aumentar recuo">
+                        <button type="button" onclick="document.execCommand('indent')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Aumentar recuo">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h14v2H3V4zm0 4h14v2H3V8zm0 4h14v2H3v-2zm0 4h14v2H3v-2zM1 8l3 3-3 3V8z"/></svg>
                         </button>
-                        <button type="button" onclick="document.execCommand('outdent')" class="p-1.5 hover:bg-gray-200 rounded" title="Diminuir recuo">
+                        <button type="button" onclick="document.execCommand('outdent')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Diminuir recuo">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h14v2H3V4zm0 4h14v2H3V8zm0 4h14v2H3v-2zm0 4h14v2H3v-2zM7 8L4 11l3 3V8z"/></svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
                         {{-- Botão Inserir Imagem --}}
-                        <button type="button" @click="$refs.imageInput.click()" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir Imagem">
+                        <button type="button" @click="$refs.imageInput.click()" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir Imagem">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
                             </svg>
                         </button>
                         <input type="file" x-ref="imageInput" @change="inserirImagem($event)" accept="image/*" class="hidden">
 
-                        <button type="button" onclick="document.execCommand('createLink', false, prompt('Digite a URL:'))" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir link">
+                        <button type="button" onclick="document.execCommand('createLink', false, prompt('Digite a URL:'))" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir link">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
                             </svg>
                         </button>
 
-                        <button type="button" onclick="document.execCommand('unlink')" class="p-1.5 hover:bg-gray-200 rounded" title="Remover link">
+                        <button type="button" onclick="document.execCommand('unlink')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Remover link">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 6.707 6.293a1 1 0 00-1.414 1.414L8.586 11l-3.293 3.293a1 1 0 101.414 1.414L10 12.414l3.293 3.293a1 1 0 001.414-1.414L11.414 11l3.293-3.293z" clip-rule="evenodd"/>
                             </svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
                         {{-- Tabela --}}
-                        <button type="button" @click="inserirTabela()" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir tabela">
+                        <button type="button" @click="inserirTabela()" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir tabela">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"/>
                             </svg>
                         </button>
 
                         {{-- Linha horizontal --}}
-                        <button type="button" onclick="document.execCommand('insertHorizontalRule')" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir linha horizontal">
+                        <button type="button" onclick="document.execCommand('insertHorizontalRule')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir linha horizontal">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
                             </svg>
                         </button>
 
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
-                        <button type="button" onclick="document.execCommand('removeFormat')" class="p-1.5 hover:bg-gray-200 rounded" title="Limpar formatação">
+                        <button type="button" onclick="document.execCommand('removeFormat')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Limpar formatação">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
 
-                        <button type="button" @click="limparTudo()" class="p-1.5 hover:bg-red-200 rounded text-red-600" title="Limpar tudo">
+                        <div class="relative">
+                            <button type="button" @click="verificarOrtografia()" class="p-2 hover:bg-green-100 hover:shadow rounded text-green-600 transition-all" title="Verificar ortografia">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </button>
+                            <span x-show="contadorErros > 0" 
+                                  x-text="contadorErros"
+                                  class="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full border-2 border-white"></span>
+                        </div>
+
+                        <button type="button" @click="limparTudo()" class="p-2 hover:bg-red-100 hover:shadow rounded text-red-600 transition-all" title="Limpar tudo">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
                         </button>
                     
-                    <span x-show="salvandoAuto" class="ml-auto text-xs text-green-600 flex items-center gap-1">
-                        <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <span x-show="salvandoAuto" class="ml-auto text-sm text-green-600 flex items-center gap-1.5 font-medium">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -339,10 +369,10 @@
                 <!-- Editor -->
                 <div id="editor" 
                      contenteditable="true"
-                     @input="conteudo = $el.innerHTML; salvarAutomaticamente()"
+                     @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
-                     class="min-h-[280px] max-h-[380px] overflow-y-auto p-3 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.5;">
+                     class="min-h-[400px] max-h-[600px] overflow-y-auto p-6 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                     style="font-family: 'Times New Roman', serif; font-size: 16px; line-height: 1.6;">
                     <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
                 <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
@@ -404,6 +434,17 @@
                             Voltar
                         </a>
                     @endif
+                    
+                    {{-- Botão Pré-visualizar --}}
+                    <button type="button" 
+                            @click="modalPreview = true"
+                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Pré-visualizar
+                    </button>
                 </div>
 
                 <div class="flex gap-2 w-full sm:w-auto">
@@ -430,6 +471,95 @@
             </div>
         </div>
     </form>
+    
+    {{-- Modal de Pré-visualização --}}
+    <div x-show="modalPreview" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Overlay --}}
+            <div x-show="modalPreview"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 @click="modalPreview = false"
+                 class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+            {{-- Modal Content --}}
+            <div x-show="modalPreview"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block w-full max-w-5xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                
+                {{-- Header --}}
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Pré-visualização do Documento
+                        </h3>
+                        <button @click="modalPreview = false" 
+                                class="text-white hover:text-gray-200 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Body --}}
+                <div class="px-6 py-6 max-h-[70vh] overflow-y-auto">
+                    {{-- Informações do Documento --}}
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 mb-1">Tipo de Documento</p>
+                                <p class="text-sm text-gray-900" x-text="tipoSelecionado ? document.querySelector('select[name=tipo_documento_id] option[value=\'' + tipoSelecionado + '\']')?.text : 'Não selecionado'"></p>
+                            </div>
+                            @if(isset($processo))
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 mb-1">Processo Vinculado</p>
+                                <p class="text-sm text-gray-900">{{ $processo->numero_processo }}</p>
+                            </div>
+                            @endif
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 mb-1">Documento Sigiloso</p>
+                                <p class="text-sm text-gray-900" x-text="sigiloso ? 'Sim' : 'Não'"></p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 mb-1">Palavras</p>
+                                <p class="text-sm text-gray-900" x-text="contarPalavras()"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Conteúdo do Documento --}}
+                    <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border border-gray-200">
+                        <div x-html="conteudo || '<p class=\'text-gray-400 italic\'>Nenhum conteúdo digitado ainda...</p>'"></div>
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                    <button @click="modalPreview = false"
+                            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -442,14 +572,51 @@ function documentoEditor() {
         salvandoAuto: false,
         ultimoSalvo: '',
         timeoutSalvar: null,
+        dadosRecuperados: false,
+        modalPreview: false,
+        contadorErros: 0,
+        timeoutVerificacao: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
 
         init() {
-            // Limpa o localStorage ao criar novo documento
-            localStorage.removeItem(this.chaveLocalStorage);
-            // Inicia com editor vazio
-            this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
-            document.getElementById('editor').innerHTML = this.conteudo;
+            // Tenta recuperar dados salvos do localStorage
+            const dadosSalvos = localStorage.getItem(this.chaveLocalStorage);
+            
+            if (dadosSalvos) {
+                try {
+                    const dados = JSON.parse(dadosSalvos);
+                    
+                    // Recupera o conteúdo
+                    if (dados.conteudo) {
+                        this.conteudo = dados.conteudo;
+                        document.getElementById('editor').innerHTML = this.conteudo;
+                        this.dadosRecuperados = true;
+                    }
+                    
+                    // Recupera o tipo de documento selecionado
+                    if (dados.tipoSelecionado) {
+                        this.tipoSelecionado = dados.tipoSelecionado;
+                        // Aguarda o próximo tick para garantir que o select foi renderizado
+                        this.$nextTick(() => {
+                            const selectTipo = document.querySelector('select[name="tipo_documento_id"]');
+                            if (selectTipo) {
+                                selectTipo.value = dados.tipoSelecionado;
+                            }
+                        });
+                    }
+                    
+                    console.log('Dados recuperados do localStorage:', dados);
+                } catch (e) {
+                    console.error('Erro ao recuperar dados do localStorage:', e);
+                    // Se houver erro, inicia com editor vazio
+                    this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
+                    document.getElementById('editor').innerHTML = this.conteudo;
+                }
+            } else {
+                // Inicia com editor vazio
+                this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
+                document.getElementById('editor').innerHTML = this.conteudo;
+            }
         },
 
         salvarAutomaticamente() {
@@ -459,12 +626,48 @@ function documentoEditor() {
             this.timeoutSalvar = setTimeout(() => {
                 const dados = {
                     conteudo: this.conteudo,
+                    tipoSelecionado: this.tipoSelecionado,
                     timestamp: Date.now()
                 };
                 localStorage.setItem(this.chaveLocalStorage, JSON.stringify(dados));
                 this.salvandoAuto = false;
                 this.ultimoSalvo = 'agora';
+                console.log('Dados salvos automaticamente:', dados);
             }, 1000);
+        },
+
+        verificarErrosTempoReal() {
+            clearTimeout(this.timeoutVerificacao);
+            
+            this.timeoutVerificacao = setTimeout(async () => {
+                const editor = document.getElementById('editor');
+                const texto = editor.innerText || editor.textContent;
+                
+                if (!texto.trim() || texto.length < 10) {
+                    this.contadorErros = 0;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('https://api.languagetool.org/v2/check', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            text: texto,
+                            language: 'pt-BR',
+                            enabledOnly: 'false'
+                        })
+                    });
+
+                    const data = await response.json();
+                    this.contadorErros = data.matches ? data.matches.length : 0;
+                } catch (error) {
+                    console.error('Erro na verificação em tempo real:', error);
+                    this.contadorErros = 0;
+                }
+            }, 2000); // Aguarda 2 segundos após parar de digitar
         },
 
         tempoDecorrido(timestamp) {
@@ -547,6 +750,166 @@ function documentoEditor() {
             }
         },
 
+        async verificarOrtografia() {
+            const editor = document.getElementById('editor');
+            const conteudoHTML = editor.innerHTML;
+            const texto = editor.innerText || editor.textContent;
+            
+            if (!texto.trim()) {
+                alert('Digite algum texto para verificar a ortografia.');
+                return;
+            }
+
+            // Mostrar indicador de carregamento
+            const btnVerificar = event.target.closest('button');
+            const originalHTML = btnVerificar.innerHTML;
+            btnVerificar.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            btnVerificar.disabled = true;
+
+            try {
+                // Usar API pública do LanguageTool
+                const response = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        text: texto,
+                        language: 'pt-BR',
+                        enabledOnly: 'false'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.matches && data.matches.length > 0) {
+                    // Criar lista de erros com botões de substituição
+                    let errosHTML = '<div style="max-height: 400px; overflow-y: auto;"><ul style="list-style: none; padding: 0;" id="lista-erros">';
+                    
+                    data.matches.forEach((erro, index) => {
+                        const palavraErrada = texto.substring(erro.offset, erro.offset + erro.length);
+                        const sugestoes = erro.replacements.slice(0, 3);
+                        
+                        errosHTML += `
+                            <li id="erro-${index}" style="padding: 12px; margin-bottom: 10px; border-left: 3px solid #ef4444; background: #fef2f2; border-radius: 4px; transition: all 0.3s;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <strong style="color: #dc2626; font-size: 15px;">${palavraErrada}</strong>
+                                        <p style="margin: 5px 0; font-size: 14px; color: #374151;">${erro.message}</p>
+                                        ${sugestoes.length > 0 ? `
+                                            <div style="margin-top: 8px;">
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: 600;">Clique para substituir:</p>
+                                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                                    ${sugestoes.map(s => `
+                                                        <button 
+                                                            onclick="substituirPalavra('${palavraErrada.replace(/'/g, "\\'")}', '${s.value.replace(/'/g, "\\'")}', ${index})"
+                                                            style="padding: 6px 12px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                                                            onmouseover="this.style.background='#047857'"
+                                                            onmouseout="this.style.background='#059669'">
+                                                            ${s.value}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : '<p style="margin: 5px 0; font-size: 13px; color: #6b7280; font-style: italic;">Sem sugestões disponíveis</p>'}
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    
+                    errosHTML += '</ul></div>';
+                    
+                    // Criar modal customizado
+                    const modal = document.createElement('div');
+                    modal.id = 'modal-ortografia';
+                    modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+                    modal.innerHTML = `
+                        <div style="background: white; border-radius: 12px; max-width: 650px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+                            <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; color: white;">
+                                <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Verificação Ortográfica</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Encontrados <span id="contador-erros">${data.matches.length}</span> possíveis erros</p>
+                            </div>
+                            <div style="padding: 20px;">
+                                ${errosHTML}
+                            </div>
+                            <div style="padding: 15px 20px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                                <span id="status-correcoes" style="font-size: 13px; color: #059669; font-weight: 500;"></span>
+                                <button onclick="this.closest('[style*=fixed]').remove()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Função global para substituir palavra
+                    window.substituirPalavra = (palavraErrada, sugestao, index) => {
+                        const editor = document.getElementById('editor');
+                        let conteudo = editor.innerHTML;
+                        
+                        // Criar regex para encontrar a palavra (case insensitive)
+                        const regex = new RegExp(`\\b${palavraErrada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+                        
+                        // Substituir primeira ocorrência sem destaque (para não aparecer no PDF)
+                        let substituido = false;
+                        conteudo = conteudo.replace(regex, (match) => {
+                            if (!substituido) {
+                                substituido = true;
+                                return sugestao;
+                            }
+                            return match;
+                        });
+                        
+                        // Atualizar editor
+                        editor.innerHTML = conteudo;
+                        this.conteudo = conteudo;
+                        this.salvarAutomaticamente();
+                        
+                        // Marcar erro como corrigido no modal
+                        const erroItem = document.getElementById(`erro-${index}`);
+                        if (erroItem) {
+                            erroItem.style.borderLeftColor = '#059669';
+                            erroItem.style.background = '#d1fae5';
+                            erroItem.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <svg style="width: 24px; height: 24px; color: #059669; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <strong style="color: #065f46;">${palavraErrada}</strong> → <strong style="color: #059669;">${sugestao}</strong>
+                                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #047857;">✓ Substituído com sucesso!</p>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Atualizar contador
+                            const errosRestantes = document.querySelectorAll('#lista-erros li[style*="border-left: 3px solid rgb(239, 68, 68)"]').length;
+                            document.getElementById('contador-erros').textContent = errosRestantes;
+                            
+                            // Atualizar status
+                            const totalCorrigidos = data.matches.length - errosRestantes;
+                            document.getElementById('status-correcoes').textContent = 
+                                totalCorrigidos > 0 ? `✓ ${totalCorrigidos} correção(ões) aplicada(s)` : '';
+                        }
+                    };
+                    
+                    document.body.appendChild(modal);
+                    modal.onclick = (e) => {
+                        if (e.target === modal) modal.remove();
+                    };
+                } else {
+                    alert('✓ Nenhum erro encontrado! Seu texto está correto.');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar ortografia:', error);
+                alert('Erro ao verificar ortografia. Verifique sua conexão com a internet.');
+            } finally {
+                // Restaurar botão
+                btnVerificar.innerHTML = originalHTML;
+                btnVerificar.disabled = false;
+            }
+        },
+
         async carregarModelos(tipoId) {
             if (!tipoId) {
                 console.log('Tipo de documento não selecionado');
@@ -615,11 +978,9 @@ function documentoEditor() {
                 return false;
             }
             
-            // Limpa o localStorage após enviar
-            const acao = event.submitter.value;
-            if (acao === 'finalizar') {
-                localStorage.removeItem(this.chaveLocalStorage);
-            }
+            // Limpa o localStorage após enviar (tanto rascunho quanto finalizar)
+            localStorage.removeItem(this.chaveLocalStorage);
+            console.log('localStorage limpo após submissão');
         },
     }
 }

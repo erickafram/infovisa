@@ -282,6 +282,17 @@
                             </svg>
                         </button>
 
+                        <div class="relative">
+                            <button type="button" @click="verificarOrtografia()" class="p-1.5 hover:bg-green-200 rounded text-green-600" title="Verificar ortografia">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </button>
+                            <span x-show="contadorErros > 0" 
+                                  x-text="contadorErros"
+                                  class="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full border-2 border-white"></span>
+                        </div>
+
                         <button type="button" @click="limparTudo()" class="p-1.5 hover:bg-red-200 rounded text-red-600" title="Limpar tudo">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -300,7 +311,7 @@
                 <!-- Editor -->
                 <div id="editor" 
                      contenteditable="true"
-                     @input="conteudo = $el.innerHTML; salvarAutomaticamente()"
+                     @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
                      class="min-h-[280px] max-h-[380px] overflow-y-auto p-3 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                      style="font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.5;">
@@ -447,16 +458,6 @@
                             Voltar
                         </a>
                     @endif
-
-                    <button type="button" 
-                            @click="previsualizar = !previsualizar"
-                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        <span x-text="previsualizar ? 'Editar' : 'Pré-visualizar'"></span>
-                    </button>
                 </div>
 
                 <div class="flex gap-3 w-full sm:w-auto">
@@ -495,6 +496,8 @@ function documentoEditor() {
         salvandoAuto: false,
         ultimoSalvo: '',
         timeoutSalvar: null,
+        contadorErros: 0,
+        timeoutVerificacao: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
 
         init() {
@@ -632,6 +635,182 @@ function documentoEditor() {
         contarPalavras() {
             const texto = this.conteudo.replace(/<[^>]*>/g, '').trim();
             return texto.split(/\s+/).filter(word => word.length > 0).length;
+        },
+
+        verificarErrosTempoReal() {
+            clearTimeout(this.timeoutVerificacao);
+            
+            this.timeoutVerificacao = setTimeout(async () => {
+                const editor = document.getElementById('editor');
+                const texto = editor.innerText || editor.textContent;
+                
+                if (!texto.trim() || texto.length < 10) {
+                    this.contadorErros = 0;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('https://api.languagetool.org/v2/check', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            text: texto,
+                            language: 'pt-BR',
+                            enabledOnly: 'false'
+                        })
+                    });
+
+                    const data = await response.json();
+                    this.contadorErros = data.matches ? data.matches.length : 0;
+                } catch (error) {
+                    console.error('Erro na verificação em tempo real:', error);
+                    this.contadorErros = 0;
+                }
+            }, 2000);
+        },
+
+        async verificarOrtografia() {
+            const editor = document.getElementById('editor');
+            const texto = editor.innerText || editor.textContent;
+            
+            if (!texto.trim()) {
+                alert('Digite algum texto para verificar a ortografia.');
+                return;
+            }
+
+            const btnVerificar = event.target.closest('button');
+            const originalHTML = btnVerificar.innerHTML;
+            btnVerificar.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            btnVerificar.disabled = true;
+
+            try {
+                const response = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        text: texto,
+                        language: 'pt-BR',
+                        enabledOnly: 'false'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.matches && data.matches.length > 0) {
+                    let errosHTML = '<div style="max-height: 400px; overflow-y: auto;"><ul style="list-style: none; padding: 0;" id="lista-erros">';
+                    
+                    data.matches.forEach((erro, index) => {
+                        const palavraErrada = texto.substring(erro.offset, erro.offset + erro.length);
+                        const sugestoes = erro.replacements.slice(0, 3);
+                        
+                        errosHTML += `
+                            <li id="erro-${index}" style="padding: 12px; margin-bottom: 10px; border-left: 3px solid #ef4444; background: #fef2f2; border-radius: 4px; transition: all 0.3s;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <strong style="color: #dc2626; font-size: 15px;">${palavraErrada}</strong>
+                                        <p style="margin: 5px 0; font-size: 14px; color: #374151;">${erro.message}</p>
+                                        ${sugestoes.length > 0 ? `
+                                            <div style="margin-top: 8px;">
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: 600;">Clique para substituir:</p>
+                                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                                    ${sugestoes.map(s => `
+                                                        <button 
+                                                            onclick="substituirPalavra('${palavraErrada.replace(/'/g, "\\'")}', '${s.value.replace(/'/g, "\\'")}', ${index})"
+                                                            style="padding: 6px 12px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                                                            onmouseover="this.style.background='#047857'"
+                                                            onmouseout="this.style.background='#059669'">
+                                                            ${s.value}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : '<p style="margin: 5px 0; font-size: 13px; color: #6b7280; font-style: italic;">Sem sugestões disponíveis</p>'}
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    
+                    errosHTML += '</ul></div>';
+                    
+                    const modal = document.createElement('div');
+                    modal.id = 'modal-ortografia';
+                    modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+                    modal.innerHTML = `
+                        <div style="background: white; border-radius: 12px; max-width: 650px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+                            <div style="background: linear-gradient(to right, #ef4444, #dc2626); padding: 20px; color: white;">
+                                <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Verificação Ortográfica</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Encontrados <span id="contador-erros">${data.matches.length}</span> possíveis erros</p>
+                            </div>
+                            <div style="padding: 20px;">
+                                ${errosHTML}
+                            </div>
+                            <div style="padding: 15px 20px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                                <span id="status-correcoes" style="font-size: 13px; color: #059669; font-weight: 500;"></span>
+                                <button onclick="this.closest('[style*=fixed]').remove()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    window.substituirPalavra = (palavraErrada, sugestao, index) => {
+                        const editor = document.getElementById('editor');
+                        let conteudo = editor.innerHTML;
+                        const regex = new RegExp(`\\b${palavraErrada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+                        let substituido = false;
+                        conteudo = conteudo.replace(regex, (match) => {
+                            if (!substituido) {
+                                substituido = true;
+                                return sugestao;
+                            }
+                            return match;
+                        });
+                        editor.innerHTML = conteudo;
+                        this.conteudo = conteudo;
+                        this.salvarAutomaticamente();
+                        
+                        const erroItem = document.getElementById(`erro-${index}`);
+                        if (erroItem) {
+                            erroItem.style.borderLeftColor = '#059669';
+                            erroItem.style.background = '#d1fae5';
+                            erroItem.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <svg style="width: 24px; height: 24px; color: #059669; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <strong style="color: #065f46;">${palavraErrada}</strong> → <strong style="color: #059669;">${sugestao}</strong>
+                                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #047857;">✓ Substituído com sucesso!</p>
+                                    </div>
+                                </div>
+                            `;
+                            const errosRestantes = document.querySelectorAll('#lista-erros li[style*="border-left: 3px solid rgb(239, 68, 68)"]').length;
+                            document.getElementById('contador-erros').textContent = errosRestantes;
+                            const totalCorrigidos = data.matches.length - errosRestantes;
+                            document.getElementById('status-correcoes').textContent = 
+                                totalCorrigidos > 0 ? `✓ ${totalCorrigidos} correção(ões) aplicada(s)` : '';
+                        }
+                    };
+                    
+                    document.body.appendChild(modal);
+                    modal.onclick = (e) => {
+                        if (e.target === modal) modal.remove();
+                    };
+                } else {
+                    alert('✓ Nenhum erro encontrado! Seu texto está correto.');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar ortografia:', error);
+                alert('Erro ao verificar ortografia. Verifique sua conexão com a internet.');
+            } finally {
+                btnVerificar.innerHTML = originalHTML;
+                btnVerificar.disabled = false;
+            }
         },
 
         handleSubmit(event) {

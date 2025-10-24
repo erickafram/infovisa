@@ -172,6 +172,28 @@
                 min-width: unset !important;
             }
         }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
     </style>
     <div class="processo-container" style="display: flex; gap: 1.5rem;">
         {{-- Coluna Esquerda: Menus e Ações --}}
@@ -364,7 +386,8 @@
                         <div class="space-y-3">
                             {{-- Documentos Digitais (Rascunhos e Finalizados) --}}
                             @foreach($documentosDigitais as $docDigital)
-                                <div x-show="pastaAtiva === null || pastaAtiva === {{ $docDigital->pasta_id ?? 'null' }}"
+                                <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }} }"
+                                     x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
                                      class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-green-500 hover:bg-gray-100 transition-colors">
                                     
                                     {{-- Checkbox de seleção --}}
@@ -374,7 +397,10 @@
                                            @change="toggleDocumento('doc_digital_{{ $docDigital->id }}')"
                                            class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
                                     
-                                    @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
+                                    @if($docDigital->status === 'rascunho')
+                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" 
+                                           class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:bg-gray-200 rounded-lg p-2 -m-2 transition-colors">
+                                    @elseif($docDigital->arquivo_pdf)
                                         <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" 
                                              class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                     @else
@@ -424,11 +450,16 @@
                                                 @endif
                                             </div>
                                         </div>
-                                    </div>
+                                    @if($docDigital->status === 'rascunho')
+                                        </a>
+                                    @else
+                                        </div>
+                                    @endif
                                     
                                     {{-- Ações --}}
                                     <div class="flex items-center gap-2 sm:flex-shrink-0">
-                                        {{-- Mover para Pasta --}}
+                                        {{-- Mover para Pasta - Apenas se NÃO for rascunho --}}
+                                        @if($docDigital->status !== 'rascunho')
                                         <div class="relative" x-data="{ menuAberto: false }">
                                             <button @click.stop="menuAberto = !menuAberto"
                                                     class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -443,7 +474,7 @@
                                                  class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                                                  style="display: none;">
                                                 <div class="py-1">
-                                                    <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null); menuAberto = false"
+                                                    <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
                                                             class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -451,7 +482,7 @@
                                                         Todos (sem pasta)
                                                     </button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
-                                                        <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, pasta.id); menuAberto = false"
+                                                        <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, pasta.id, $el); menuAberto = false"
                                                                 class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                                                             <svg class="w-4 h-4" :style="`color: ${pasta.cor}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -462,6 +493,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
 
                                         @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
                                             <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
@@ -514,7 +546,8 @@
                             
                             {{-- Arquivos Externos (excluindo PDFs de documentos digitais que já são mostrados acima) --}}
                             @foreach($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $documento)
-                                <div x-show="pastaAtiva === null || pastaAtiva === {{ $documento->pasta_id ?? 'null' }}"
+                                <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }} }"
+                                     x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
                                      class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-red-500 hover:bg-gray-100 transition-colors">
                                     <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}'; modalVisualizador = true" 
                                          class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
@@ -590,7 +623,7 @@
                                                  class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                                                  style="display: none;">
                                                 <div class="py-1">
-                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null); menuAberto = false"
+                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false"
                                                             class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -598,7 +631,7 @@
                                                         Todos (sem pasta)
                                                     </button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
-                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id); menuAberto = false"
+                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false"
                                                                 class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                                                             <svg class="w-4 h-4" :style="`color: ${pasta.cor}`" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -1073,14 +1106,44 @@
                 descricaoPasta: '',
                 corPasta: '#3B82F6',
                 
-                // Documentos (para contagem)
-                documentos: @json($processo->documentos->map(function($doc) {
-                    return ['id' => $doc->id, 'pasta_id' => $doc->pasta_id];
-                })),
+                // Documentos (para contagem) - incluindo documentos digitais e arquivos
+                documentos: [
+                    @foreach($documentosDigitais as $docDigital)
+                        { id: {{ $docDigital->id }}, pasta_id: {{ $docDigital->pasta_id ?? 'null' }}, tipo: 'digital' },
+                    @endforeach
+                    @foreach($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $documento)
+                        { id: {{ $documento->id }}, pasta_id: {{ $documento->pasta_id ?? 'null' }}, tipo: 'arquivo' },
+                    @endforeach
+                ],
 
                 // Inicialização
                 init() {
                     this.carregarPastas();
+                },
+
+                // Função para mostrar notificações
+                mostrarNotificacao(mensagem, tipo = 'success') {
+                    const container = document.createElement('div');
+                    container.className = `fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 ${tipo === 'success' ? 'border-green-500' : 'border-red-500'} p-4 animate-slide-in`;
+                    container.style.animation = 'slideIn 0.3s ease-out';
+                    
+                    container.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 ${tipo === 'success' ? 'text-green-500' : 'text-red-500'} mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                ${tipo === 'success' 
+                                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+                                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'}
+                            </svg>
+                            <p class="text-sm font-medium ${tipo === 'success' ? 'text-green-800' : 'text-red-800'}">${mensagem}</p>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(container);
+                    
+                    setTimeout(() => {
+                        container.style.animation = 'slideOut 0.3s ease-in';
+                        setTimeout(() => container.remove(), 300);
+                    }, 3000);
                 },
 
                 // Métodos de Pastas
@@ -1161,7 +1224,7 @@
                     .catch(error => console.error('Erro ao excluir pasta:', error));
                 },
 
-                moverParaPasta(itemId, tipo, pastaId) {
+                moverParaPasta(itemId, tipo, pastaId, element) {
                     fetch('{{ route('admin.estabelecimentos.processos.pastas.mover', [$estabelecimento->id, $processo->id]) }}', {
                         method: 'POST',
                         headers: {
@@ -1177,14 +1240,26 @@
                     .then(response => response.json())
                     .then(result => {
                         if (result.success) {
-                            alert(result.message);
-                            // Recarrega a página para atualizar a lista
-                            window.location.reload();
+                            // Encontrar o elemento pai com x-data
+                            const docElement = element.closest('[x-data]');
+                            if (docElement && docElement.__x) {
+                                // Atualizar a variável pastaDocumento do Alpine.js
+                                docElement.__x.$data.pastaDocumento = pastaId;
+                            }
+                            
+                            // Atualizar o array de documentos
+                            const docIndex = this.documentos.findIndex(doc => doc.id === itemId && doc.tipo === tipo);
+                            if (docIndex !== -1) {
+                                this.documentos[docIndex].pasta_id = pastaId;
+                            }
+                            
+                            // Mostrar mensagem de sucesso
+                            this.mostrarNotificacao(result.message, 'success');
                         }
                     })
                     .catch(error => {
                         console.error('Erro ao mover item:', error);
-                        alert('Erro ao mover o item. Tente novamente.');
+                        this.mostrarNotificacao('Erro ao mover o item. Tente novamente.', 'error');
                     });
                 },
 
@@ -1193,7 +1268,7 @@
                 },
 
                 // Métodos para Documentos Digitais
-                moverDocumentoDigitalParaPasta(documentoId, pastaId) {
+                moverDocumentoDigitalParaPasta(documentoId, pastaId, element) {
                     fetch(`/admin/documentos/${documentoId}/mover-pasta`, {
                         method: 'POST',
                         headers: {
@@ -1205,14 +1280,28 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            window.location.reload();
+                            // Encontrar o elemento pai com x-data
+                            const docElement = element.closest('[x-data]');
+                            if (docElement && docElement.__x) {
+                                // Atualizar a variável pastaDocumento do Alpine.js
+                                docElement.__x.$data.pastaDocumento = pastaId;
+                            }
+                            
+                            // Atualizar o array de documentos
+                            const docIndex = this.documentos.findIndex(doc => doc.id === documentoId && doc.tipo === 'digital');
+                            if (docIndex !== -1) {
+                                this.documentos[docIndex].pasta_id = pastaId;
+                            }
+                            
+                            // Mostrar mensagem de sucesso
+                            this.mostrarNotificacao(data.message || 'Documento movido com sucesso!', 'success');
                         } else {
-                            alert(data.message || 'Erro ao mover documento');
+                            this.mostrarNotificacao(data.message || 'Erro ao mover documento', 'error');
                         }
                     })
                     .catch(error => {
                         console.error('Erro:', error);
-                        alert('Erro ao mover documento');
+                        this.mostrarNotificacao('Erro ao mover documento', 'error');
                     });
                 },
 

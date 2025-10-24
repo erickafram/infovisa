@@ -4,7 +4,7 @@
 @section('page-title', 'Modelos de Documentos')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Breadcrumb --}}
     <div class="mb-6">
         <nav class="flex items-center gap-2 text-sm text-gray-600">

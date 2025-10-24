@@ -552,4 +552,90 @@ class Estabelecimento extends Model
         return $this;
     }
 
+    /**
+     * Determina se o estabelecimento é de competência estadual
+     * Um estabelecimento é estadual se PELO MENOS UMA de suas atividades for estadual
+     */
+    public function isCompetenciaEstadual()
+    {
+        // Pega todas as atividades do estabelecimento
+        $atividades = $this->getTodasAtividades();
+        
+        // Se pelo menos uma atividade for estadual, o estabelecimento é estadual
+        foreach ($atividades as $cnae) {
+            if (Pactuacao::isAtividadeEstadual($cnae)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Determina se o estabelecimento é de competência municipal
+     * Um estabelecimento é municipal se TODAS as suas atividades forem municipais
+     * e NENHUMA for estadual
+     */
+    public function isCompetenciaMunicipal()
+    {
+        return !$this->isCompetenciaEstadual();
+    }
+    
+    /**
+     * Retorna todas as atividades (CNAEs) do estabelecimento
+     */
+    public function getTodasAtividades()
+    {
+        $atividades = [];
+        
+        // Adiciona CNAE principal
+        if ($this->cnae_fiscal) {
+            $atividades[] = $this->cnae_fiscal;
+        }
+        
+        // Adiciona CNAEs secundários
+        if ($this->cnaes_secundarios && is_array($this->cnaes_secundarios)) {
+            foreach ($this->cnaes_secundarios as $cnae) {
+                if (isset($cnae['codigo'])) {
+                    $atividades[] = $cnae['codigo'];
+                }
+            }
+        }
+        
+        // Adiciona atividades exercidas
+        if ($this->atividades_exercidas && is_array($this->atividades_exercidas)) {
+            $atividades = array_merge($atividades, $this->atividades_exercidas);
+        }
+        
+        return array_unique(array_filter($atividades));
+    }
+    
+    /**
+     * Scope para filtrar estabelecimentos por competência do usuário
+     */
+    public function scopeParaUsuario($query, $usuario)
+    {
+        // Administrador vê tudo
+        if ($usuario->tipo_usuario === 'administrador') {
+            return $query;
+        }
+        
+        // Gestor/Técnico Municipal - vê apenas do seu município E que sejam de competência municipal
+        if (in_array($usuario->tipo_usuario, ['gestor_municipal', 'tecnico_municipal'])) {
+            return $query->where('municipio', $usuario->municipio)
+                ->whereHas('id', function($q) {
+                    // Filtra apenas estabelecimentos de competência municipal
+                    $q->whereRaw('1=1'); // Placeholder - filtro será feito em memória
+                });
+        }
+        
+        // Gestor/Técnico Estadual - vê estabelecimentos de competência estadual de qualquer município
+        if (in_array($usuario->tipo_usuario, ['gestor_estadual', 'tecnico_estadual'])) {
+            // Filtro será feito em memória para verificar competência
+            return $query;
+        }
+        
+        return $query->whereRaw('1=0'); // Nenhum acesso por padrão
+    }
+
 }

@@ -66,22 +66,23 @@
             </div>
         </a>
 
-        {{-- Placeholder para futuras configurações --}}
-        <div class="block bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-6">
+        {{-- Pactuação --}}
+        <a href="{{ route('admin.configuracoes.pactuacao.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-lg font-bold text-gray-400 mb-1">Mais configurações</h3>
-                    <p class="text-sm text-gray-400">Em breve</p>
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Pactuação</h3>
+                    <p class="text-sm text-gray-600">Configure competências municipais e estaduais por atividade (CNAE)</p>
                 </div>
             </div>
-        </div>
+        </a>
 
     </div>
 </div>

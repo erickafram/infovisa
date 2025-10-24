@@ -181,6 +181,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         Route::resource('modelos-documento', \App\Http\Controllers\ModeloDocumentoController::class)->parameters([
             'modelos-documento' => 'modeloDocumento'
         ]);
+        
+        // Pactuação (Competências Municipais e Estaduais)
+        Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'store'])->name('store');
+            Route::post('/multiple', [\App\Http\Controllers\Admin\PactuacaoController::class, 'storeMultiple'])->name('store-multiple');
+            Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\PactuacaoController::class, 'toggleStatus'])->name('toggle');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
+            Route::get('/buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
+        });
     });
 });
 
