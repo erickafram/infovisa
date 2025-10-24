@@ -83,18 +83,18 @@
         <input type="hidden" name="conteudo" x-model="conteudo">
 
         {{-- Seção: Tipo de Documento --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <span class="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-full text-xs font-bold">1</span>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+            <div class="px-3 py-2 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <span class="flex items-center justify-center w-4 h-4 bg-blue-600 text-white rounded-full text-xs font-bold">1</span>
                     Tipo de Documento
                 </h2>
             </div>
-            <div class="p-6">
+            <div class="p-3">
                 <select name="tipo_documento_id" 
                         x-model="tipoSelecionado"
                         @change="carregarModelos($event.target.value)"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         required>
                     <option value="">Selecione o tipo de documento</option>
                     @foreach($tiposDocumento as $tipo)
@@ -111,21 +111,45 @@
         </div>
 
         {{-- Seção: Editor de Conteúdo --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-white border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <span class="flex items-center justify-center w-6 h-6 bg-green-600 text-white rounded-full text-xs font-bold">2</span>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+            <div class="px-3 py-2 bg-gradient-to-r from-green-50 to-white border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <span class="flex items-center justify-center w-4 h-4 bg-green-600 text-white rounded-full text-xs font-bold">2</span>
                     Conteúdo do Documento
                 </h2>
             </div>
-            <div class="p-6">
+            <div class="p-3">
                 
                 <!-- Toolbar do Editor -->
-                <div class="border border-gray-300 rounded-t-lg bg-gray-50 p-2 space-y-2">
-                    {{-- Primeira linha: Formatação básica --}}
+                <div class="border border-gray-300 rounded-t-lg bg-gray-50 p-1.5 space-y-1.5">
+                    {{-- Primeira linha: Desfazer, Títulos e Formatação básica --}}
                     <div class="flex items-center gap-1 flex-wrap">
+                        {{-- Desfazer/Refazer --}}
+                        <button type="button" onclick="document.execCommand('undo')" class="p-1.5 hover:bg-gray-200 rounded" title="Desfazer (Ctrl+Z)">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                        </button>
+                        <button type="button" onclick="document.execCommand('redo')" class="p-1.5 hover:bg-gray-200 rounded" title="Refazer (Ctrl+Y)">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
+                            </svg>
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+                        {{-- Títulos --}}
+                        <select onchange="document.execCommand('formatBlock', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Estilo">
+                            <option value="">Estilo</option>
+                            <option value="h1">Título 1</option>
+                            <option value="h2">Título 2</option>
+                            <option value="h3">Título 3</option>
+                            <option value="h4">Título 4</option>
+                            <option value="p">Parágrafo</option>
+                        </select>
+
                         {{-- Tamanho da fonte --}}
-                        <select onchange="document.execCommand('fontSize', false, this.value)" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Tamanho">
+                        <select onchange="document.execCommand('fontSize', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Tamanho">
                             <option value="">Tamanho</option>
                             <option value="1">Muito pequeno</option>
                             <option value="2">Pequeno</option>
@@ -137,7 +161,7 @@
                         </select>
 
                         {{-- Fonte --}}
-                        <select onchange="document.execCommand('fontName', false, this.value)" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Fonte">
+                        <select onchange="document.execCommand('fontName', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Fonte">
                             <option value="">Fonte</option>
                             <option value="Arial">Arial</option>
                             <option value="Times New Roman">Times New Roman</option>
@@ -160,6 +184,12 @@
                         </button>
                         <button type="button" onclick="document.execCommand('strikeThrough')" class="p-1.5 hover:bg-gray-200 rounded line-through" title="Tachado">
                             S
+                        </button>
+                        <button type="button" onclick="document.execCommand('subscript')" class="p-1.5 hover:bg-gray-200 rounded text-xs" title="Subscrito">
+                            X<sub>2</sub>
+                        </button>
+                        <button type="button" onclick="document.execCommand('superscript')" class="p-1.5 hover:bg-gray-200 rounded text-xs" title="Sobrescrito">
+                            X<sup>2</sup>
                         </button>
 
                         <div class="w-px h-6 bg-gray-300 mx-1"></div>
@@ -269,90 +299,84 @@
 
                         <div class="w-px h-6 bg-gray-300 mx-1"></div>
 
-                        <button type="button" onclick="document.execCommand('removeFormat')" class="p-1.5 hover:bg-gray-200 rounded text-xs" title="Limpar formatação">
-                            🧹
+                        {{-- Tabela --}}
+                        <button type="button" @click="inserirTabela()" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir tabela">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+
+                        {{-- Linha horizontal --}}
+                        <button type="button" onclick="document.execCommand('insertHorizontalRule')" class="p-1.5 hover:bg-gray-200 rounded" title="Inserir linha horizontal">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+
+                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+                        <button type="button" onclick="document.execCommand('removeFormat')" class="p-1.5 hover:bg-gray-200 rounded" title="Limpar formatação">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+
+                        <button type="button" @click="limparTudo()" class="p-1.5 hover:bg-red-200 rounded text-red-600" title="Limpar tudo">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
                         </button>
                     
-                    <div class="ml-auto flex items-center gap-3">
-                        <span class="text-xs text-gray-500" x-text="contarPalavras() + ' palavras'"></span>
-                        <span x-show="salvandoAuto" class="text-xs text-green-600 flex items-center gap-1">
-                            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Salvando...
-                        </span>
-                        <span x-show="!salvandoAuto && ultimoSalvo" class="text-xs text-gray-500">
-                            Salvo <span x-text="ultimoSalvo"></span>
-                        </span>
-                    </div>
-                    
-                    <button type="button" 
-                            @click="previsualizar = !previsualizar"
-                            class="ml-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
-                        <span x-show="!previsualizar">👁️ Pré-visualizar</span>
-                        <span x-show="previsualizar">✏️ Editar</span>
-                    </button>
+                    <span x-show="salvandoAuto" class="ml-auto text-xs text-green-600 flex items-center gap-1">
+                        <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Salvando...
+                    </span>
                 </div>
 
                 <!-- Editor -->
-                <div x-show="!previsualizar">
-                    <div id="editor" 
-                         contenteditable="true"
-                         @input="conteudo = $el.innerHTML; salvarAutomaticamente()"
-                         @paste="handlePaste($event)"
-                         class="min-h-[400px] max-h-[600px] overflow-y-auto p-4 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                         style="font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6;">
-                        <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
-                    </div>
-                    <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
+                <div id="editor" 
+                     contenteditable="true"
+                     @input="conteudo = $el.innerHTML; salvarAutomaticamente()"
+                     @paste="handlePaste($event)"
+                     class="min-h-[280px] max-h-[380px] overflow-y-auto p-3 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                     style="font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.5;">
+                    <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
-
-                <!-- Pré-visualização -->
-                <div x-show="previsualizar" 
-                     class="min-h-[400px] p-4 border border-t-0 border-gray-300 rounded-b-lg bg-white"
-                     style="font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6;"
-                     x-html="conteudo"></div>
+                <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
 
             </div>
         </div>
 
         {{-- Seção: Assinaturas Digitais --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+            <div class="px-3 py-2 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <span class="flex items-center justify-center w-6 h-6 bg-purple-600 text-white rounded-full text-xs font-bold">3</span>
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <span class="flex items-center justify-center w-4 h-4 bg-purple-600 text-white rounded-full text-xs font-bold">3</span>
                         Assinaturas Digitais
                     </h2>
-                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
+                    <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
                 </div>
             </div>
-            <div class="p-6">
-                <div class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <p class="text-sm text-purple-900 flex items-start gap-2">
-                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>Selecione pelo menos um usuário interno para assinar digitalmente este documento.</span>
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1">
+            <div class="p-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
                     @foreach($usuariosInternos as $usuario)
-                        <label class="flex items-start p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group">
+                        <label class="flex items-start p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group">
                             <input type="checkbox" 
                                    name="assinaturas[]" 
                                    value="{{ $usuario->id }}"
-                                   class="mt-1 h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
-                            <div class="ml-3 flex-1">
-                                <div class="text-sm font-semibold text-gray-900 group-hover:text-purple-900">
+                                   class="mt-0.5 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                            <div class="ml-2 flex-1">
+                                <div class="text-xs font-semibold text-gray-900 group-hover:text-purple-900">
                                     {{ $usuario->nome }}
                                     @if($usuario->id == auth('interno')->id())
-                                        <span class="ml-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">Você</span>
+                                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">Você</span>
                                     @endif
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5">CPF: {{ $usuario->cpf }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ $usuario->cpf }}</div>
                             </div>
                         </label>
                     @endforeach
@@ -360,9 +384,9 @@
             </div>
 
         {{-- Botões de Ação --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex gap-3 w-full sm:w-auto">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex gap-2 w-full sm:w-auto">
                     @if(isset($processo))
                         <a href="{{ route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]) }}" 
                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition">
@@ -380,19 +404,9 @@
                             Voltar
                         </a>
                     @endif
-
-                    <button type="button" 
-                            @click="previsualizar = !previsualizar"
-                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        <span x-text="previsualizar ? 'Editar' : 'Pré-visualizar'"></span>
-                    </button>
                 </div>
 
-                <div class="flex gap-3 w-full sm:w-auto">
+                <div class="flex gap-2 w-full sm:w-auto">
                     <button type="submit" 
                             name="acao" 
                             value="rascunho"
@@ -425,28 +439,17 @@ function documentoEditor() {
         sigiloso: false,
         conteudo: '',
         modelos: [],
-        previsualizar: false,
         salvandoAuto: false,
         ultimoSalvo: '',
         timeoutSalvar: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
 
         init() {
-            // Carrega rascunho do localStorage
-            this.carregarRascunho();
-        },
-
-        carregarRascunho() {
-            const rascunho = localStorage.getItem(this.chaveLocalStorage);
-            if (rascunho) {
-                const dados = JSON.parse(rascunho);
-                this.conteudo = dados.conteudo || '';
-                document.getElementById('editor').innerHTML = this.conteudo;
-                this.ultimoSalvo = 'há ' + this.tempoDecorrido(dados.timestamp);
-            } else {
-                this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
-                document.getElementById('editor').innerHTML = this.conteudo;
-            }
+            // Limpa o localStorage ao criar novo documento
+            localStorage.removeItem(this.chaveLocalStorage);
+            // Inicia com editor vazio
+            this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
+            document.getElementById('editor').innerHTML = this.conteudo;
         },
 
         salvarAutomaticamente() {
@@ -515,18 +518,72 @@ function documentoEditor() {
             }
         },
 
+        inserirTabela() {
+            const linhas = prompt('Número de linhas:', '3');
+            const colunas = prompt('Número de colunas:', '3');
+            
+            if (!linhas || !colunas) return;
+            
+            let tabela = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+            for (let i = 0; i < parseInt(linhas); i++) {
+                tabela += '<tr>';
+                for (let j = 0; j < parseInt(colunas); j++) {
+                    tabela += '<td style="border: 1px solid #ddd; padding: 8px;">&nbsp;</td>';
+                }
+                tabela += '</tr>';
+            }
+            tabela += '</table><p>&nbsp;</p>';
+            
+            document.execCommand('insertHTML', false, tabela);
+            this.conteudo = document.getElementById('editor').innerHTML;
+            this.salvarAutomaticamente();
+        },
+
+        limparTudo() {
+            if (confirm('Tem certeza que deseja limpar todo o conteúdo? Esta ação não pode ser desfeita.')) {
+                document.getElementById('editor').innerHTML = '<p><br></p>';
+                this.conteudo = '<p><br></p>';
+                this.salvarAutomaticamente();
+            }
+        },
+
         async carregarModelos(tipoId) {
-            if (!tipoId) return;
+            if (!tipoId) {
+                console.log('Tipo de documento não selecionado');
+                return;
+            }
+            
+            console.log('Carregando modelos para tipo:', tipoId);
             
             try {
-                const response = await fetch(`/admin/documentos/modelos/${tipoId}`);
+                const url = `/admin/documentos/modelos/${tipoId}`;
+                console.log('Fazendo requisição para:', url);
+                
+                const response = await fetch(url);
+                console.log('Status da resposta:', response.status);
+                
+                if (!response.ok) {
+                    console.warn('Nenhum modelo encontrado para este tipo de documento (Status:', response.status, ')');
+                    return;
+                }
+                
                 this.modelos = await response.json();
+                console.log('Modelos carregados:', this.modelos);
                 
                 // Se houver modelos, carrega o primeiro automaticamente e preenche o editor
-                if (this.modelos.length > 0) {
+                if (this.modelos && this.modelos.length > 0) {
+                    console.log('Carregando modelo:', this.modelos[0]);
                     this.conteudo = this.modelos[0].conteudo;
-                    document.getElementById('editor').innerHTML = this.conteudo;
-                    this.salvarAutomaticamente();
+                    const editor = document.getElementById('editor');
+                    if (editor) {
+                        editor.innerHTML = this.conteudo;
+                        console.log('Modelo carregado no editor com sucesso!');
+                        this.salvarAutomaticamente();
+                    } else {
+                        console.error('Editor não encontrado no DOM');
+                    }
+                } else {
+                    console.log('Nenhum modelo disponível para este tipo de documento');
                 }
             } catch (error) {
                 console.error('Erro ao carregar modelos:', error);

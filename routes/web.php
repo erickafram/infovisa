@@ -111,6 +111,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/documentos/modelos/{tipoId}', [\App\Http\Controllers\DocumentoDigitalController::class, 'buscarModelos'])->name('documentos.modelos');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');
     Route::post('/documentos/{id}/assinar', [\App\Http\Controllers\DocumentoDigitalController::class, 'assinar'])->name('documentos.assinar');
+    Route::post('/documentos/{id}/versoes/{versao}/restaurar', [\App\Http\Controllers\DocumentoDigitalController::class, 'restaurarVersao'])->name('documentos.restaurarVersao');
     
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
@@ -121,6 +122,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/estabelecimentos/{id}/processos', [\App\Http\Controllers\ProcessoController::class, 'store'])->name('estabelecimentos.processos.store');
     Route::get('/estabelecimentos/{id}/processos/{processo}', [\App\Http\Controllers\ProcessoController::class, 'show'])->name('estabelecimentos.processos.show');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/status', [\App\Http\Controllers\ProcessoController::class, 'updateStatus'])->name('estabelecimentos.processos.updateStatus');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/acompanhar', [\App\Http\Controllers\ProcessoController::class, 'toggleAcompanhamento'])->name('estabelecimentos.processos.toggleAcompanhamento');
     Route::delete('/estabelecimentos/{id}/processos/{processo}', [\App\Http\Controllers\ProcessoController::class, 'destroy'])->name('estabelecimentos.processos.destroy');
     
     // Upload de arquivos em processos
@@ -148,6 +150,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         'edit' => 'estabelecimentos.edit',
         'update' => 'estabelecimentos.update',
         'destroy' => 'estabelecimentos.destroy',
+    ]);
+
+    // Usuários Internos
+    Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([
+        'usuarios-internos' => 'usuarioInterno'
+    ]);
+    
+    // Usuários Externos
+    Route::resource('usuarios-externos', \App\Http\Controllers\UsuarioExternoController::class)->parameters([
+        'usuarios-externos' => 'usuarioExterno'
     ]);
 
     // Configurações

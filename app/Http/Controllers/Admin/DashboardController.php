@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\UsuarioExterno;
 use App\Models\UsuarioInterno;
 use App\Models\Estabelecimento;
+use App\Models\Processo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -41,11 +43,21 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Buscar processos que o usuário está acompanhando
+        $processos_acompanhados = Processo::whereHas('acompanhamentos', function($query) {
+                $query->where('usuario_interno_id', Auth::guard('interno')->id());
+            })
+            ->with(['estabelecimento', 'usuario'])
+            ->orderBy('updated_at', 'desc')
+            ->take(10)
+            ->get();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
             'usuarios_internos_recentes',
-            'estabelecimentos_pendentes'
+            'estabelecimentos_pendentes',
+            'processos_acompanhados'
         ));
     }
 }

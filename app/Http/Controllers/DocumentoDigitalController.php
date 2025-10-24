@@ -104,6 +104,13 @@ class DocumentoDigitalController extends Controller
                 ]);
             }
 
+            // Salva a primeira versão do documento
+            $documento->salvarVersao(
+                Auth::guard('interno')->id(),
+                $request->conteudo,
+                null
+            );
+
             // Se finalizar, gera PDF e salva no processo
             if ($request->acao === 'finalizar' && $request->processo_id) {
                 $this->gerarESalvarPDF($documento, $request->processo_id);
@@ -143,7 +150,7 @@ class DocumentoDigitalController extends Controller
      */
     public function edit($id)
     {
-        $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas'])
+        $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas', 'versoes.usuarioInterno'])
             ->findOrFail($id);
 
         // Apenas rascunhos podem ser editados
@@ -199,6 +206,14 @@ class DocumentoDigitalController extends Controller
                     'status' => 'pendente',
                 ]);
             }
+
+            // SEMPRE salva nova versão quando salvar como rascunho
+            // Isso garante que cada salvamento seja registrado no histórico
+            $documento->salvarVersao(
+                Auth::guard('interno')->id(),
+                $request->conteudo,
+                null
+            );
 
             // Se finalizar, gera PDF e salva no processo
             if ($request->acao === 'finalizar' && $documento->processo_id) {
@@ -316,11 +331,47 @@ class DocumentoDigitalController extends Controller
     }
 
     /**
+     * Restaura uma versão anterior do documento
+     */
+    public function restaurarVersao($documentoId, $versaoId)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($documentoId);
+            
+            // Apenas rascunhos podem ter versões restauradas
+            if ($documento->status !== 'rascunho') {
+                return back()->with('error', 'Apenas documentos em rascunho podem ter versões restauradas.');
+            }
+            
+            $versao = \App\Models\DocumentoDigitalVersao::where('documento_digital_id', $documentoId)
+                ->findOrFail($versaoId);
+            
+            // Apenas restaura o conteúdo, SEM criar nova versão
+            // A versão será criada quando o usuário salvar como rascunho
+            $documento->update([
+                'conteudo' => $versao->conteudo
+            ]);
+            
+            return back()->with('success', 'Versão ' . $versao->versao . ' restaurada com sucesso! Salve como rascunho para registrar a alteração.');
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao restaurar versão: ' . $e->getMessage());
+            return back()->with('error', 'Erro ao restaurar versão.');
+        }
+    }
+
+    /**
      * Gera PDF e salva como arquivo no processo
      */
     private function gerarESalvarPDF($documento, $processoId)
     {
         try {
+            // Verifica se já existe um PDF gerado para este documento
+            if ($documento->arquivo_pdf) {
+                \Log::info('PDF já existe para o documento: ' . $documento->numero_documento);
+                return;
+            }
+            
             // Gera o PDF
             $pdf = Pdf::loadHTML($documento->conteudo)
                 ->setPaper('a4')
@@ -337,19 +388,26 @@ class DocumentoDigitalController extends Controller
             $caminho = 'processos/' . $processoId . '/' . $nomeArquivoSalvo;
             \Storage::disk('public')->put($caminho, $pdf->output());
             
-            // Cria registro no banco
-            \App\Models\ProcessoDocumento::create([
-                'processo_id' => $processoId,
-                'usuario_id' => Auth::guard('interno')->id(),
-                'tipo_usuario' => 'interno',
-                'nome_arquivo' => $nomeArquivoSalvo,
-                'nome_original' => $nomeArquivo,
-                'caminho' => $caminho,
-                'extensao' => 'pdf',
-                'tamanho' => strlen($pdf->output()),
-                'tipo_documento' => 'documento_digital', // Marca como documento digital
-                'observacoes' => 'Documento Digital: ' . $documento->numero_documento,
-            ]);
+            // Verifica se já existe um registro de ProcessoDocumento para este documento digital
+            $documentoExistente = \App\Models\ProcessoDocumento::where('processo_id', $processoId)
+                ->where('observacoes', 'Documento Digital: ' . $documento->numero_documento)
+                ->first();
+            
+            if (!$documentoExistente) {
+                // Cria registro no banco
+                \App\Models\ProcessoDocumento::create([
+                    'processo_id' => $processoId,
+                    'usuario_id' => Auth::guard('interno')->id(),
+                    'tipo_usuario' => 'interno',
+                    'nome_arquivo' => $nomeArquivoSalvo,
+                    'nome_original' => $nomeArquivo,
+                    'caminho' => $caminho,
+                    'extensao' => 'pdf',
+                    'tamanho' => strlen($pdf->output()),
+                    'tipo_documento' => 'documento_digital', // Marca como documento digital
+                    'observacoes' => 'Documento Digital: ' . $documento->numero_documento,
+                ]);
+            }
             
             // Atualiza o documento digital com o caminho do PDF
             $documento->update(['arquivo_pdf' => $caminho]);

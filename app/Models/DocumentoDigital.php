@@ -97,6 +97,14 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Relacionamento com versões
+     */
+    public function versoes()
+    {
+        return $this->hasMany(DocumentoDigitalVersao::class);
+    }
+
+    /**
      * Verifica se todas assinaturas obrigatórias foram feitas
      */
     public function todasAssinaturasCompletas(): bool
@@ -105,5 +113,20 @@ class DocumentoDigital extends Model
             ->where('obrigatoria', true)
             ->where('status', '!=', 'assinado')
             ->exists();
+    }
+
+    /**
+     * Salva uma nova versão do documento
+     */
+    public function salvarVersao($usuarioId, $conteudo, $alteracoes = null)
+    {
+        $ultimaVersao = $this->versoes()->max('versao') ?? 0;
+        
+        return $this->versoes()->create([
+            'usuario_interno_id' => $usuarioId,
+            'versao' => $ultimaVersao + 1,
+            'conteudo' => $conteudo,
+            'alteracoes' => $alteracoes,
+        ]);
     }
 }

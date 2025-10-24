@@ -39,6 +39,20 @@ enum NivelAcesso: string
     }
 
     /**
+     * Retorna as classes CSS de cor para o badge
+     */
+    public function color(): string
+    {
+        return match($this) {
+            self::Administrador => 'bg-red-100 text-red-800',
+            self::GestorEstadual => 'bg-purple-100 text-purple-800',
+            self::GestorMunicipal => 'bg-blue-100 text-blue-800',
+            self::TecnicoEstadual => 'bg-green-100 text-green-800',
+            self::TecnicoMunicipal => 'bg-teal-100 text-teal-800',
+        };
+    }
+
+    /**
      * Verifica se o nível é de administrador
      */
     public function isAdmin(): bool

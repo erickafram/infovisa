@@ -123,6 +123,33 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com acompanhamentos
+     */
+    public function acompanhamentos()
+    {
+        return $this->hasMany(ProcessoAcompanhamento::class);
+    }
+
+    /**
+     * Relacionamento com usuários que acompanham
+     */
+    public function usuariosAcompanhando()
+    {
+        return $this->belongsToMany(UsuarioInterno::class, 'processo_acompanhamentos', 'processo_id', 'usuario_interno_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Verifica se um usuário está acompanhando o processo
+     */
+    public function estaAcompanhadoPor($usuarioId): bool
+    {
+        return $this->acompanhamentos()
+            ->where('usuario_interno_id', $usuarioId)
+            ->exists();
+    }
+
+    /**
      * Accessor para nome do tipo formatado
      */
     public function getTipoNomeAttribute(): string

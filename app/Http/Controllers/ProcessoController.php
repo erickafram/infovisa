@@ -6,6 +6,7 @@ use App\Models\Processo;
 use App\Models\Estabelecimento;
 use App\Models\TipoProcesso;
 use App\Models\ProcessoDocumento;
+use App\Models\ProcessoAcompanhamento;
 use App\Models\ModeloDocumento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -176,7 +177,7 @@ class ProcessoController extends Controller
     public function show($estabelecimentoId, $processoId)
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
-        $processo = Processo::with(['usuario', 'estabelecimento', 'documentos.usuario'])
+        $processo = Processo::with(['usuario', 'estabelecimento', 'documentos.usuario', 'usuariosAcompanhando'])
             ->where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -193,6 +194,36 @@ class ProcessoController extends Controller
             ->get();
         
         return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais'));
+    }
+
+    /**
+     * Adiciona/Remove acompanhamento do processo
+     */
+    public function toggleAcompanhamento($estabelecimentoId, $processoId)
+    {
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $usuarioId = Auth::guard('interno')->id();
+        
+        $acompanhamento = ProcessoAcompanhamento::where('processo_id', $processoId)
+            ->where('usuario_interno_id', $usuarioId)
+            ->first();
+        
+        if ($acompanhamento) {
+            // Remove acompanhamento
+            $acompanhamento->delete();
+            $mensagem = 'Você parou de acompanhar este processo.';
+        } else {
+            // Adiciona acompanhamento
+            ProcessoAcompanhamento::create([
+                'processo_id' => $processoId,
+                'usuario_interno_id' => $usuarioId,
+            ]);
+            $mensagem = 'Você está acompanhando este processo.';
+        }
+        
+        return redirect()->back()->with('success', $mensagem);
     }
 
     /**
