@@ -4,7 +4,7 @@
 @section('page-title', 'Pactuação de Competências')
 
 @section('content')
-<div class="max-w-7xl mx-auto" x-data="pactuacaoManager()">
+<div class="max-w-8xl mx-auto" x-data="pactuacaoManager()">
     
     {{-- Informações --}}
     <div class="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
@@ -87,6 +87,7 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código CNAE</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Municípios Descentralizados</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                             </tr>
@@ -98,7 +99,36 @@
                                     {{ $pactuacao->cnae_codigo }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ $pactuacao->cnae_descricao }}
+                                    <div>{{ $pactuacao->cnae_descricao }}</div>
+                                    @if($pactuacao->observacao)
+                                        <div class="mt-1 text-xs text-gray-500 italic">
+                                            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            {{ $pactuacao->observacao }}
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    @if($pactuacao->municipios_excecao && count($pactuacao->municipios_excecao) > 0)
+                                        <div class="flex flex-wrap gap-1 mb-2">
+                                            @foreach($pactuacao->municipios_excecao as $mun)
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                    {{ $mun }}
+                                                    <button @click="removerExcecao({{ $pactuacao->id }}, '{{ $mun }}')" 
+                                                            class="hover:text-blue-900">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    <button @click="abrirModalExcecao({{ $pactuacao->id }}, '{{ $pactuacao->cnae_codigo }}')" 
+                                            class="text-xs text-blue-600 hover:text-blue-900">
+                                        + Adicionar município
+                                    </button>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $pactuacao->ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
@@ -106,6 +136,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button @click="abrirModalEditar({{ $pactuacao->id }}, '{{ addslashes($pactuacao->observacao ?? '') }}')" 
+                                            class="text-gray-600 hover:text-gray-900 mr-3">
+                                        Editar
+                                    </button>
                                     <button @click="toggleStatus({{ $pactuacao->id }})" 
                                             class="text-blue-600 hover:text-blue-900 mr-3">
                                         {{ $pactuacao->ativo ? 'Desativar' : 'Ativar' }}
@@ -246,8 +280,35 @@
                             Digite os códigos CNAE separados por vírgula. As descrições serão buscadas automaticamente.
                         </p>
                     </div>
+                    
+                    <div class="mb-3" x-show="tipoModal === 'estadual'">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Municípios Descentralizados (Exceções)
+                            <span class="text-xs text-gray-500">(separados por vírgula)</span>
+                        </label>
+                        <textarea 
+                            x-model="municipiosExcecaoTexto" 
+                            rows="2"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ex: Araguaína, Palmas, Gurupi"></textarea>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Municípios que receberam descentralização para fiscalizar esta atividade.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Observações
+                            <span class="text-xs text-gray-500">(opcional)</span>
+                        </label>
+                        <textarea 
+                            x-model="observacaoTexto" 
+                            rows="2"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ex: Aplica-se apenas se não for produto artesanal"></textarea>
+                    </div>
 
-                    <div class="flex justify-end gap-2">
+                    <div class="flex justify-end gap-2 mt-4">
                         <button type="button" 
                                 @click="modalAdicionar = false"
                                 class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -265,6 +326,128 @@
         </div>
     </div>
 
+    {{-- Modal Adicionar Exceção --}}
+    <div x-show="modalExcecao" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div x-show="modalExcecao"
+                 @click="modalExcecao = false"
+                 class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+
+            <div x-show="modalExcecao"
+                 class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
+                
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-white">
+                            Adicionar Município Descentralizado
+                        </h3>
+                        <button @click="modalExcecao = false" class="text-white hover:text-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <form @submit.prevent="adicionarExcecao" class="p-4">
+                    <p class="text-sm text-gray-600 mb-3">
+                        CNAE: <strong x-text="excecaoCnae"></strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Nome do Município
+                        </label>
+                        <select 
+                            x-model="excecaoMunicipio" 
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
+                            <option value="">Selecione o município...</option>
+                            @foreach($todosMunicipios as $municipio)
+                                <option value="{{ $municipio->nome }}">{{ $municipio->nome }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Este município terá competência para fiscalizar esta atividade.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" 
+                                @click="modalExcecao = false"
+                                class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                :disabled="processando"
+                                class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                            <span x-show="!processando">Adicionar</span>
+                            <span x-show="processando">Processando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Editar Observação --}}
+    <div x-show="modalEditar" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div x-show="modalEditar"
+                 @click="modalEditar = false"
+                 class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+
+            <div x-show="modalEditar"
+                 class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
+                
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-white">
+                            Editar Observação
+                        </h3>
+                        <button @click="modalEditar = false" class="text-white hover:text-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <form @submit.prevent="salvarObservacao" class="p-4">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Observação
+                        </label>
+                        <textarea 
+                            x-model="editarObservacao" 
+                            rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ex: Aplica-se apenas se não for produto artesanal"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" 
+                                @click="modalEditar = false"
+                                class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                :disabled="processando"
+                                class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                            <span x-show="!processando">Salvar</span>
+                            <span x-show="processando">Salvando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -272,9 +455,18 @@ function pactuacaoManager() {
     return {
         abaAtiva: 'estadual',
         modalAdicionar: false,
+        modalExcecao: false,
+        modalEditar: false,
         tipoModal: 'estadual',
         municipioModal: null,
         cnaesTexto: '',
+        municipiosExcecaoTexto: '',
+        observacaoTexto: '',
+        excecaoId: null,
+        excecaoCnae: '',
+        excecaoMunicipio: '',
+        editarId: null,
+        editarObservacao: '',
         processando: false,
 
         async adicionarAtividades() {
@@ -326,6 +518,12 @@ function pactuacaoManager() {
                     }
                 }
 
+                // Prepara municípios de exceção se for estadual
+                let municipiosExcecao = null;
+                if (this.tipoModal === 'estadual' && this.municipiosExcecaoTexto.trim()) {
+                    municipiosExcecao = this.municipiosExcecaoTexto.split(',').map(m => m.trim()).filter(m => m);
+                }
+
                 // Envia todas as atividades de uma vez
                 const response = await fetch('{{ route('admin.configuracoes.pactuacao.store-multiple') }}', {
                     method: 'POST',
@@ -336,7 +534,9 @@ function pactuacaoManager() {
                     body: JSON.stringify({
                         tipo: this.tipoModal,
                         municipio: this.municipioModal,
-                        atividades: atividades
+                        atividades: atividades,
+                        municipios_excecao: municipiosExcecao,
+                        observacao: this.observacaoTexto.trim() || null
                     })
                 });
 
@@ -405,6 +605,115 @@ function pactuacaoManager() {
             } catch (error) {
                 console.error('Erro:', error);
                 alert('Erro ao remover atividade');
+            }
+        },
+
+        abrirModalExcecao(id, cnae) {
+            this.excecaoId = id;
+            this.excecaoCnae = cnae;
+            this.excecaoMunicipio = '';
+            this.modalExcecao = true;
+        },
+
+        async adicionarExcecao() {
+            if (!this.excecaoMunicipio.trim()) {
+                alert('Digite o nome do município');
+                return;
+            }
+
+            this.processando = true;
+
+            try {
+                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${this.excecaoId}/adicionar-excecao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        municipio: this.excecaoMunicipio.trim()
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao adicionar exceção');
+            } finally {
+                this.processando = false;
+            }
+        },
+
+        async removerExcecao(id, municipio) {
+            if (!confirm(`Deseja remover ${municipio} das exceções?`)) return;
+
+            try {
+                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${id}/remover-excecao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        municipio: municipio
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao remover exceção');
+            }
+        },
+
+        abrirModalEditar(id, observacao) {
+            this.editarId = id;
+            this.editarObservacao = observacao;
+            this.modalEditar = true;
+        },
+
+        async salvarObservacao() {
+            this.processando = true;
+
+            try {
+                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${this.editarId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        observacao: this.editarObservacao.trim() || null
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar observação');
+            } finally {
+                this.processando = false;
             }
         }
     }

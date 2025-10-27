@@ -182,6 +182,15 @@
                                         Desativado
                                     </span>
                                     @endif
+                                    @if($estabelecimento->isCompetenciaEstadual())
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800" title="Competência Estadual">
+                                        🏛️ Estadual
+                                    </span>
+                                    @else
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" title="Competência Municipal">
+                                        🏢 Municipal
+                                    </span>
+                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-sm">

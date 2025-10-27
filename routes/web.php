@@ -187,9 +187,25 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');
             Route::post('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'store'])->name('store');
             Route::post('/multiple', [\App\Http\Controllers\Admin\PactuacaoController::class, 'storeMultiple'])->name('store-multiple');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'update'])->name('update');
             Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\PactuacaoController::class, 'toggleStatus'])->name('toggle');
+            Route::post('/{id}/adicionar-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'adicionarExcecao'])->name('adicionar-excecao');
+            Route::post('/{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
             Route::delete('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
             Route::get('/buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
+        });
+        
+        // Municípios
+        Route::prefix('municipios')->name('municipios.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\MunicipioController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'store'])->name('store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\MunicipioController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'update'])->name('update');
+            Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\MunicipioController::class, 'toggleStatus'])->name('toggle');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'destroy'])->name('destroy');
+            Route::get('/buscar', [\App\Http\Controllers\Admin\MunicipioController::class, 'buscar'])->name('buscar');
         });
     });
 });

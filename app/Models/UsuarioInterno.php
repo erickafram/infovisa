@@ -29,6 +29,7 @@ class UsuarioInterno extends Authenticatable
         'cargo',
         'nivel_acesso',
         'municipio',
+        'municipio_id',
         'password',
         'ativo',
         'email_verified_at',
@@ -54,6 +55,39 @@ class UsuarioInterno extends Authenticatable
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Relacionamento com município
+     */
+    public function municipioRelacionado()
+    {
+        return $this->belongsTo(Municipio::class, 'municipio_id');
+    }
+
+    /**
+     * Accessor para nome do município
+     * Se o campo municipio estiver vazio, busca do relacionamento
+     */
+    public function getMunicipioAttribute($value)
+    {
+        // Se já tem valor no campo, retorna
+        if ($value) {
+            return $value;
+        }
+        
+        // Se não tem, busca do relacionamento
+        if ($this->municipio_id && $this->relationLoaded('municipioRelacionado')) {
+            return $this->municipioRelacionado?->nome;
+        }
+        
+        // Se não tem relacionamento carregado, carrega agora
+        if ($this->municipio_id) {
+            $municipio = Municipio::find($this->municipio_id);
+            return $municipio?->nome;
+        }
+        
+        return null;
+    }
 
     /**
      * Accessor para CPF formatado

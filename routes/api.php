@@ -11,3 +11,6 @@ Route::get('/user', function (Request $request) {
 // Rotas da API para consulta de CNPJ
 Route::post('/consultar-cnpj', [CnpjController::class, 'consultar']);
 Route::get('/verificar-cnpj/{cnpj}', [CnpjController::class, 'verificarExistente']);
+
+// Rota para verificar competência de atividades
+Route::post('/verificar-competencia', [CnpjController::class, 'verificarCompetencia']);

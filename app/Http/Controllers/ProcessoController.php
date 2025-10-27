@@ -73,7 +73,10 @@ class ProcessoController extends Controller
         $processos = $query->paginate(20)->withQueryString();
 
         // Dados para filtros
-        $tiposProcesso = TipoProcesso::ativos()->ordenado()->get();
+        $tiposProcesso = TipoProcesso::ativos()
+            ->paraUsuario(auth('interno')->user())
+            ->ordenado()
+            ->get();
         $statusDisponiveis = Processo::statusDisponiveis();
         $anos = Processo::select('ano')->distinct()->orderBy('ano', 'desc')->pluck('ano');
 
@@ -92,8 +95,11 @@ class ProcessoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        // Busca tipos de processo ativos e ordenados
-        $tiposProcesso = TipoProcesso::ativos()->ordenado()->get();
+        // Busca tipos de processo ativos e ordenados (filtrados por usuário)
+        $tiposProcesso = TipoProcesso::ativos()
+            ->paraUsuario(auth('interno')->user())
+            ->ordenado()
+            ->get();
         
         return view('estabelecimentos.processos.index', compact('estabelecimento', 'processos', 'tiposProcesso'));
     }
@@ -116,8 +122,11 @@ class ProcessoController extends Controller
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         
-        // Busca códigos dos tipos ativos
-        $codigosAtivos = TipoProcesso::ativos()->pluck('codigo')->toArray();
+        // Busca códigos dos tipos ativos (filtrados por usuário)
+        $codigosAtivos = TipoProcesso::ativos()
+            ->paraUsuario(auth('interno')->user())
+            ->pluck('codigo')
+            ->toArray();
         
         $validated = $request->validate([
             'tipo' => 'required|in:' . implode(',', $codigosAtivos),

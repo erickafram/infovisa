@@ -24,9 +24,13 @@ class EstabelecimentoController extends Controller
             $query->doUsuario(auth('externo')->id());
         }
 
-        // Se usuário interno estiver logado, aplicar filtro de município se não for admin
+        // Se usuário interno estiver logado, aplicar filtros baseados no perfil
         if (auth('interno')->check()) {
-            $query->doMunicipioUsuario();
+            $usuario = auth('interno')->user();
+            
+            // Aplica filtro baseado no perfil do usuário
+            $query->paraUsuario($usuario);
+            
             // Mostrar apenas estabelecimentos aprovados
             $query->aprovados();
         }
@@ -48,17 +52,43 @@ class EstabelecimentoController extends Controller
             });
         }
 
-        $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor'])
+        $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+        
+        // Filtra estabelecimentos por competência baseado no perfil do usuário
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários ESTADUAIS veem APENAS estabelecimentos de competência ESTADUAL
+            if ($usuario->isEstadual()) {
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) {
+                    return $estabelecimento->isCompetenciaEstadual();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+            
+            // Usuários MUNICIPAIS veem APENAS estabelecimentos de competência MUNICIPAL
+            if ($usuario->isMunicipal()) {
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) {
+                    return $estabelecimento->isCompetenciaMunicipal();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+        }
 
         // Estatísticas para o dashboard
+        $estatisticasQuery = Estabelecimento::query();
+        if (auth('interno')->check()) {
+            $estatisticasQuery->paraUsuario(auth('interno')->user());
+        }
+        
         $estatisticas = [
-            'total' => Estabelecimento::doMunicipioUsuario()->aprovados()->count(), // Inclui ativos e desativados
-            'pendentes' => Estabelecimento::doMunicipioUsuario()->pendentes()->count(),
-            'aprovados' => Estabelecimento::doMunicipioUsuario()->aprovados()->where('ativo', true)->count(), // Apenas ativos
-            'rejeitados' => Estabelecimento::doMunicipioUsuario()->rejeitados()->count(),
-            'desativados' => Estabelecimento::doMunicipioUsuario()->where('ativo', false)->count(),
+            'total' => $estatisticasQuery->aprovados()->count(),
+            'pendentes' => $estatisticasQuery->pendentes()->count(),
+            'aprovados' => $estatisticasQuery->aprovados()->where('ativo', true)->count(),
+            'rejeitados' => $estatisticasQuery->rejeitados()->count(),
+            'desativados' => $estatisticasQuery->where('ativo', false)->count(),
         ];
 
         return view('estabelecimentos.index', compact('estabelecimentos', 'estatisticas'));
@@ -183,6 +213,50 @@ class EstabelecimentoController extends Controller
 
         // Define o município baseado na cidade
         $validated['municipio'] = $validated['cidade'];
+        
+        // Normaliza o município e obtém o ID
+        $nomeMunicipio = $validated['cidade'];
+        $codigoIbge = $validated['codigo_municipio_ibge'] ?? null;
+        
+        if ($nomeMunicipio) {
+            // Remove " - TO" ou "/TO" do nome se existir
+            $nomeMunicipio = preg_replace('/\s*[-\/]\s*TO\s*$/i', '', $nomeMunicipio);
+            
+            $municipioId = \App\Helpers\MunicipioHelper::normalizarEObterIdPorNome($nomeMunicipio, $codigoIbge);
+            if ($municipioId) {
+                $validated['municipio_id'] = $municipioId;
+                $validated['municipio'] = $nomeMunicipio;
+            }
+        }
+
+        // VALIDAÇÃO: Usuários municipais só podem cadastrar estabelecimentos do seu município
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            if ($usuario->isMunicipal()) {
+                // Verifica se o usuário tem município vinculado
+                if (!$usuario->municipio_id) {
+                    return back()->withErrors([
+                        'cidade' => 'Seu usuário não possui município vinculado. Entre em contato com o administrador.'
+                    ])->withInput();
+                }
+                
+                // Verifica se o município do estabelecimento é o mesmo do usuário
+                if (isset($validated['municipio_id']) && $validated['municipio_id'] != $usuario->municipio_id) {
+                    $municipioUsuario = $usuario->municipioRelacionado->nome ?? 'seu município';
+                    return back()->withErrors([
+                        'cidade' => "Você só pode cadastrar estabelecimentos do município de {$municipioUsuario}. O estabelecimento informado pertence a {$nomeMunicipio}."
+                    ])->withInput();
+                }
+                
+                // Se não conseguiu identificar o município do estabelecimento
+                if (!isset($validated['municipio_id'])) {
+                    return back()->withErrors([
+                        'cidade' => 'Não foi possível identificar o município do estabelecimento. Verifique se a cidade está correta.'
+                    ])->withInput();
+                }
+            }
+        }
 
         // Remove formatação de campos numéricos
         if (isset($validated['cnpj'])) {
@@ -226,6 +300,21 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
         
+        // Verifica se o usuário tem permissão para acessar este estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários MUNICIPAIS só podem acessar estabelecimentos MUNICIPAIS
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para acessá-lo.');
+            }
+            
+            // Usuários ESTADUAIS só podem acessar estabelecimentos ESTADUAIS
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para acessá-lo.');
+            }
+        }
+        
         return view('estabelecimentos.show', compact('estabelecimento'));
     }
 
@@ -235,6 +324,21 @@ class EstabelecimentoController extends Controller
     public function edit(string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Verifica se o usuário tem permissão para editar este estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários MUNICIPAIS só podem editar estabelecimentos MUNICIPAIS
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para editá-lo.');
+            }
+            
+            // Usuários ESTADUAIS só podem editar estabelecimentos ESTADUAIS
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para editá-lo.');
+            }
+        }
         
         // Redireciona para view específica baseado no tipo de pessoa
         if ($estabelecimento->tipo_pessoa === 'fisica') {
@@ -250,6 +354,21 @@ class EstabelecimentoController extends Controller
     public function update(Request $request, string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Verifica se o usuário tem permissão para atualizar este estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários MUNICIPAIS só podem atualizar estabelecimentos MUNICIPAIS
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para atualizá-lo.');
+            }
+            
+            // Usuários ESTADUAIS só podem atualizar estabelecimentos ESTADUAIS
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para atualizá-lo.');
+            }
+        }
         
         $rules = [
             'tipo_setor' => 'required|in:publico,privado',
@@ -346,6 +465,21 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
         
+        // Verifica se o usuário tem permissão para editar atividades deste estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários MUNICIPAIS só podem editar atividades de estabelecimentos MUNICIPAIS
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para editar suas atividades.');
+            }
+            
+            // Usuários ESTADUAIS só podem editar atividades de estabelecimentos ESTADUAIS
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para editar suas atividades.');
+            }
+        }
+        
         // Para pessoa física, usa view específica com API IBGE
         if ($estabelecimento->tipo_pessoa === 'fisica') {
             return view('estabelecimentos.atividades-fisica', compact('estabelecimento'));
@@ -397,6 +531,21 @@ class EstabelecimentoController extends Controller
     public function updateAtividades(Request $request, string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Verifica se o usuário tem permissão para atualizar atividades deste estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Usuários MUNICIPAIS só podem atualizar atividades de estabelecimentos MUNICIPAIS
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para atualizar suas atividades.');
+            }
+            
+            // Usuários ESTADUAIS só podem atualizar atividades de estabelecimentos ESTADUAIS
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para atualizar suas atividades.');
+            }
+        }
         
         $validated = $request->validate([
             'atividades_exercidas' => 'nullable|string',

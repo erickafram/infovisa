@@ -21,6 +21,25 @@
         </div>
     </div>
 
+    {{-- Alerta para Usuários Municipais --}}
+    @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-semibold text-blue-900">Restrição de Município</h3>
+                    <p class="text-sm text-blue-800 mt-1">
+                        Você só pode cadastrar estabelecimentos do município de 
+                        <strong>{{ auth('interno')->user()->municipioRelacionado->nome ?? 'seu município' }}</strong>.
+                        Estabelecimentos de outros municípios serão rejeitados automaticamente.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Formulário --}}
     <form id="formEstabelecimento" method="POST" action="{{ route('admin.estabelecimentos.store') }}" 
           x-data="estabelecimentoForm()" 
@@ -618,6 +637,55 @@
                             </span>
                             <span class="text-sm font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full" x-text="atividadesExercidas.length"></span>
                         </div>
+
+                        {{-- Alerta de Competência (apenas para usuários municipais) --}}
+                        @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+                        <div x-show="atividadesExercidas.length > 0 || atividadePrincipalMarcada" class="mt-4">
+                            {{-- Alerta Estadual --}}
+                            <div x-show="competenciaEstadual" class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <p class="text-sm font-bold text-purple-900">
+                                            ⚠️ ATENÇÃO: Este estabelecimento será de COMPETÊNCIA ESTADUAL
+                                        </p>
+                                        <p class="mt-2 text-sm text-purple-800">
+                                            <strong>Motivo:</strong> Pelo menos uma das atividades selecionadas está configurada como de competência estadual.
+                                        </p>
+                                        <p class="mt-2 text-sm text-purple-700">
+                                            <strong>Importante:</strong> Após o cadastro, este estabelecimento será visível apenas para <strong>Gestores e Técnicos Estaduais</strong>. Você (usuário municipal) não terá acesso a ele.
+                                        </p>
+                                        <p class="mt-2 text-xs text-purple-600">
+                                            💡 Se isso não estiver correto, revise as atividades selecionadas ou entre em contato com o administrador.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Alerta Municipal --}}
+                            <div x-show="!competenciaEstadual" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <p class="text-sm font-bold text-blue-900">
+                                            ✅ Este estabelecimento será de COMPETÊNCIA MUNICIPAL
+                                        </p>
+                                        <p class="mt-2 text-sm text-blue-800">
+                                            Todas as atividades selecionadas são de competência municipal. Você terá acesso a este estabelecimento após o cadastro.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
 
@@ -779,6 +847,7 @@ function estabelecimentoForm() {
         abaAtiva: 'dados-gerais',
         atividadesExercidas: [],
         atividadePrincipalMarcada: true,
+        competenciaEstadual: false,
         modalErro: {
             visivel: false,
             mensagens: []
@@ -829,6 +898,67 @@ function estabelecimentoForm() {
             qualificacao_do_responsavel: ''
         },
 
+        init() {
+            // Watchers para verificar competência quando atividades mudarem
+            this.$watch('atividadesExercidas', () => this.verificarCompetencia());
+            this.$watch('atividadePrincipalMarcada', () => this.verificarCompetencia());
+        },
+
+        async verificarCompetencia() {
+            const atividades = [];
+            
+            // Adiciona CNAE principal se marcado
+            if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
+                atividades.push(this.dados.cnae_fiscal);
+            }
+            
+            // Adiciona atividades secundárias selecionadas
+            this.atividadesExercidas.forEach(codigo => {
+                atividades.push(codigo);
+            });
+            
+            console.log('🔍 Verificando competência:', {
+                atividadePrincipalMarcada: this.atividadePrincipalMarcada,
+                cnae_fiscal: this.dados.cnae_fiscal,
+                atividadesExercidas: this.atividadesExercidas,
+                atividades: atividades,
+                municipio: this.dados.cidade
+            });
+            
+            if (atividades.length === 0) {
+                this.competenciaEstadual = false;
+                return;
+            }
+            
+            // Consulta API para verificar competência
+            try {
+                const response = await fetch('/api/verificar-competencia', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        atividades: atividades,
+                        municipio: this.dados.cidade
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ Resultado da API:', result);
+                
+                this.competenciaEstadual = result.competencia === 'estadual';
+                
+                console.log('📊 Competência definida:', {
+                    competenciaEstadual: this.competenciaEstadual,
+                    resultado: result.competencia
+                });
+            } catch (error) {
+                console.error('❌ Erro ao verificar competência:', error);
+                this.competenciaEstadual = false;
+            }
+        },
+
         formatarCnpj() {
             let valor = this.cnpjBusca.replace(/\D/g, '');
             valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
@@ -866,6 +996,38 @@ function estabelecimentoForm() {
                     
                     // Armazena a fonte da API para exibir na mensagem
                     const apiSource = result.api_source || 'API';
+                    
+                    // VALIDAÇÃO DE MUNICÍPIO PARA USUÁRIOS MUNICIPAIS
+                    @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+                        const municipioUsuario = '{{ auth('interno')->user()->municipioRelacionado->nome ?? '' }}';
+                        const municipioUsuarioId = {{ auth('interno')->user()->municipio_id ?? 'null' }};
+                        
+                        if (!municipioUsuarioId) {
+                            this.mostrarMensagem('❌ Seu usuário não possui município vinculado. Entre em contato com o administrador.', 'error');
+                            this.dadosCarregados = false;
+                            this.limparFormulario();
+                            return;
+                        }
+                        
+                        // Função para remover acentos
+                        function removerAcentos(texto) {
+                            return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                        }
+                        
+                        // Normaliza o município do estabelecimento (remove " - TO" ou "/TO" e acentos)
+                        let cidadeEstabelecimento = result.data.cidade || '';
+                        cidadeEstabelecimento = cidadeEstabelecimento.replace(/\s*[-\/]\s*TO\s*$/i, '').trim().toUpperCase();
+                        cidadeEstabelecimento = removerAcentos(cidadeEstabelecimento);
+                        
+                        const municipioUsuarioNormalizado = removerAcentos(municipioUsuario.toUpperCase());
+                        
+                        if (cidadeEstabelecimento !== municipioUsuarioNormalizado) {
+                            this.mostrarMensagem(`❌ MUNICÍPIO NÃO PERMITIDO!\n\nVocê só pode cadastrar estabelecimentos do município de ${municipioUsuario}.\nO estabelecimento consultado pertence a ${result.data.cidade.replace(/\s*[-\/]\s*TO\s*$/i, '').trim()}.`, 'error');
+                            this.dadosCarregados = false;
+                            this.limparFormulario();
+                            return;
+                        }
+                    @endif
                     
                     // Verifica situação cadastral
                     if (result.data.descricao_situacao_cadastral && result.data.descricao_situacao_cadastral !== 'ATIVA') {
@@ -934,6 +1096,14 @@ function estabelecimentoForm() {
             if (apiData.ddd_telefone_2) {
                 this.dados.telefone2 = this.formatarTelefone(apiData.ddd_telefone_2);
             }
+            
+            // Verifica competência após carregar dados (para usuários municipais)
+            @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+            // Aguarda um pouco para garantir que os dados foram processados
+            setTimeout(() => {
+                this.verificarCompetencia();
+            }, 100);
+            @endif
         },
 
         mostrarMensagem(texto, tipo) {

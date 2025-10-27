@@ -142,22 +142,6 @@
                         @enderror
                     </div>
 
-                    {{-- Município --}}
-                    <div>
-                        <label for="municipio" class="block text-sm font-medium text-gray-700 mb-1">
-                            Município
-                        </label>
-                        <input type="text" 
-                               id="municipio" 
-                               name="municipio" 
-                               value="{{ old('municipio', $usuarioInterno->municipio) }}"
-                               maxlength="100"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('municipio') border-red-500 @enderror">
-                        @error('municipio')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
                     {{-- Nível de Acesso --}}
                     <div>
                         <label for="nivel_acesso" class="block text-sm font-medium text-gray-700 mb-1">
@@ -179,6 +163,29 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                         <p class="mt-1 text-xs text-gray-500" id="nivel-descricao"></p>
+                    </div>
+
+                    {{-- Município (apenas para Gestor/Técnico Municipal) --}}
+                    <div id="campo-municipio" style="display: none;">
+                        <label for="municipio_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            Município <span class="text-red-500" id="municipio-obrigatorio">*</span>
+                        </label>
+                        <select id="municipio_id" 
+                                name="municipio_id" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('municipio_id') border-red-500 @enderror">
+                            <option value="">Selecione um município</option>
+                            @if(isset($municipios))
+                                @foreach($municipios as $mun)
+                                    <option value="{{ $mun->id }}" {{ old('municipio_id', $usuarioInterno->municipio_id) == $mun->id ? 'selected' : '' }}>
+                                        {{ $mun->nome }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                        @error('municipio_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500" id="municipio-ajuda"></p>
                     </div>
                 </div>
             </div>
@@ -267,45 +274,73 @@
     </div>
 </div>
 
-@push('scripts')
 <script>
+// Executar após o DOM estar completamente carregado
+(function() {
+    console.log('Script de edição de usuário interno iniciando...');
+    
     // Formatar CPF ao carregar
-    window.addEventListener('DOMContentLoaded', function() {
-        const cpfInput = document.getElementById('cpf');
+    const cpfInput = document.getElementById('cpf');
+    if (cpfInput) {
         let value = cpfInput.value.replace(/\D/g, '');
         if (value.length === 11) {
             value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
             cpfInput.value = value;
         }
-    });
 
-    // Máscara de CPF
-    document.getElementById('cpf').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 11) {
-            value = value.replace(/(\d{3})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            e.target.value = value;
-        }
-    });
+        // Máscara de CPF
+        cpfInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                e.target.value = value;
+            }
+        });
+    }
 
     // Máscara de Telefone
-    document.getElementById('telefone').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length <= 11) {
-            if (value.length <= 10) {
-                value = value.replace(/(\d{2})(\d)/, '($1) $2');
-                value = value.replace(/(\d{4})(\d)/, '$1-$2');
-            } else {
-                value = value.replace(/(\d{2})(\d)/, '($1) $2');
-                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+    const telefoneInput = document.getElementById('telefone');
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                if (value.length <= 10) {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+                } else {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                }
+                e.target.value = value;
             }
-            e.target.value = value;
-        }
-    });
+        });
+    }
 
-    // Descrição do nível de acesso
+    // Remove máscara do CPF e telefone antes de enviar o formulário
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('Formulário de edição sendo enviado...');
+            
+            // Remove máscara do CPF
+            if (cpfInput) {
+                console.log('CPF antes de remover máscara:', cpfInput.value);
+                cpfInput.value = cpfInput.value.replace(/\D/g, '');
+                console.log('CPF após remover máscara:', cpfInput.value);
+            }
+            
+            // Remove máscara do telefone
+            if (telefoneInput && telefoneInput.value) {
+                console.log('Telefone antes de remover máscara:', telefoneInput.value);
+                telefoneInput.value = telefoneInput.value.replace(/\D/g, '');
+                console.log('Telefone após remover máscara:', telefoneInput.value);
+            }
+        });
+    }
+
+    // Descrição do nível de acesso e controle do campo município
     const nivelSelect = document.getElementById('nivel_acesso');
     const nivelDescricao = document.getElementById('nivel-descricao');
     
@@ -317,14 +352,59 @@
         'tecnico_municipal': 'Análise técnica de processos em nível municipal'
     };
 
-    nivelSelect.addEventListener('change', function() {
-        nivelDescricao.textContent = descricoes[this.value] || '';
-    });
+    if (nivelSelect) {
+        nivelSelect.addEventListener('change', function() {
+            console.log('Nível selecionado:', this.value);
+            if (nivelDescricao) {
+                nivelDescricao.textContent = descricoes[this.value] || '';
+            }
+            toggleCampoMunicipio(this.value);
+        });
 
-    // Mostrar descrição inicial
-    if (nivelSelect.value) {
-        nivelDescricao.textContent = descricoes[nivelSelect.value] || '';
+        // Mostrar descrição e campo de município inicial
+        if (nivelSelect.value) {
+            if (nivelDescricao) {
+                nivelDescricao.textContent = descricoes[nivelSelect.value] || '';
+            }
+            toggleCampoMunicipio(nivelSelect.value);
+        }
     }
+
+    // Controla exibição do campo município
+    function toggleCampoMunicipio(nivelAcesso) {
+        console.log('toggleCampoMunicipio chamado com:', nivelAcesso);
+        
+        const campoMunicipio = document.getElementById('campo-municipio');
+        const selectMunicipio = document.getElementById('municipio_id');
+        const municipioObrigatorio = document.getElementById('municipio-obrigatorio');
+        const municipioAjuda = document.getElementById('municipio-ajuda');
+        
+        console.log('Elemento campo-municipio:', campoMunicipio);
+        console.log('Elemento municipio_id:', selectMunicipio);
+        
+        if (!campoMunicipio || !selectMunicipio) {
+            console.error('Elementos do município não encontrados!');
+            return;
+        }
+        
+        // Perfis municipais precisam de município
+        const perfisMunicipais = ['gestor_municipal', 'tecnico_municipal'];
+        
+        if (perfisMunicipais.includes(nivelAcesso)) {
+            console.log('Mostrando campo de município');
+            campoMunicipio.style.display = 'block';
+            selectMunicipio.required = true;
+            if (municipioObrigatorio) municipioObrigatorio.style.display = 'inline';
+            if (municipioAjuda) municipioAjuda.textContent = 'Obrigatório para usuários municipais';
+        } else {
+            console.log('Escondendo campo de município');
+            campoMunicipio.style.display = 'none';
+            selectMunicipio.required = false;
+            if (municipioObrigatorio) municipioObrigatorio.style.display = 'none';
+            if (municipioAjuda) municipioAjuda.textContent = '';
+        }
+    }
+})();
 </script>
-@endpush
+
 @endsection

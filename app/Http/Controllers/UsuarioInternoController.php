@@ -51,8 +51,8 @@ class UsuarioInternoController extends Controller
         $sortDirection = $request->get('direction', 'asc');
         $query->orderBy($sortField, $sortDirection);
 
-        // Paginação
-        $usuarios = $query->paginate(15)->withQueryString();
+        // Paginação com relacionamento
+        $usuarios = $query->with('municipioRelacionado')->paginate(15)->withQueryString();
 
         return view('admin.usuarios-internos.index', compact('usuarios'));
     }
@@ -62,7 +62,8 @@ class UsuarioInternoController extends Controller
      */
     public function create()
     {
-        return view('admin.usuarios-internos.create');
+        $municipios = \App\Models\Municipio::orderBy('nome')->get();
+        return view('admin.usuarios-internos.create', compact('municipios'));
     }
 
     /**
@@ -70,17 +71,37 @@ class UsuarioInternoController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        // Remove máscara do CPF e telefone antes de validar
+        $request->merge([
+            'cpf' => preg_replace('/[^0-9]/', '', $request->cpf),
+            'telefone' => $request->telefone ? preg_replace('/[^0-9]/', '', $request->telefone) : null,
+        ]);
+
+        $rules = [
             'nome' => 'required|string|max:255',
             'cpf' => 'required|string|size:11|unique:usuarios_internos,cpf',
             'email' => 'required|email|unique:usuarios_internos,email',
-            'telefone' => 'nullable|string|max:20',
+            'telefone' => 'nullable|string|max:11',
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
             'nivel_acesso' => 'required|string',
-            'municipio' => 'nullable|string|max:100',
             'password' => 'required|string|min:8|confirmed',
             'ativo' => 'boolean',
+        ];
+
+        // Município é obrigatório para perfis municipais
+        if (in_array($request->nivel_acesso, ['gestor_municipal', 'tecnico_municipal'])) {
+            $rules['municipio_id'] = 'required|exists:municipios,id';
+        } else {
+            $rules['municipio_id'] = 'nullable|exists:municipios,id';
+        }
+
+        $validated = $request->validate($rules, [
+            'cpf.size' => 'O CPF deve ter exatamente 11 dígitos',
+            'cpf.unique' => 'Este CPF já está cadastrado',
+            'telefone.max' => 'O telefone deve ter no máximo 11 dígitos',
+            'municipio_id.required' => 'O município é obrigatório para usuários municipais',
+            'municipio_id.exists' => 'Município inválido',
         ]);
 
         $validated['password'] = bcrypt($validated['password']);
@@ -97,6 +118,7 @@ class UsuarioInternoController extends Controller
      */
     public function show(UsuarioInterno $usuarioInterno)
     {
+        $usuarioInterno->load('municipioRelacionado');
         return view('admin.usuarios-internos.show', compact('usuarioInterno'));
     }
 
@@ -105,7 +127,8 @@ class UsuarioInternoController extends Controller
      */
     public function edit(UsuarioInterno $usuarioInterno)
     {
-        return view('admin.usuarios-internos.edit', compact('usuarioInterno'));
+        $municipios = \App\Models\Municipio::orderBy('nome')->get();
+        return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios'));
     }
 
     /**
@@ -113,17 +136,37 @@ class UsuarioInternoController extends Controller
      */
     public function update(Request $request, UsuarioInterno $usuarioInterno)
     {
-        $validated = $request->validate([
+        // Remove máscara do CPF e telefone antes de validar
+        $request->merge([
+            'cpf' => preg_replace('/[^0-9]/', '', $request->cpf),
+            'telefone' => $request->telefone ? preg_replace('/[^0-9]/', '', $request->telefone) : null,
+        ]);
+
+        $rules = [
             'nome' => 'required|string|max:255',
             'cpf' => 'required|string|size:11|unique:usuarios_internos,cpf,' . $usuarioInterno->id,
             'email' => 'required|email|unique:usuarios_internos,email,' . $usuarioInterno->id,
-            'telefone' => 'nullable|string|max:20',
+            'telefone' => 'nullable|string|max:11',
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
             'nivel_acesso' => 'required|string',
-            'municipio' => 'nullable|string|max:100',
             'password' => 'nullable|string|min:8|confirmed',
             'ativo' => 'boolean',
+        ];
+
+        // Município é obrigatório para perfis municipais
+        if (in_array($request->nivel_acesso, ['gestor_municipal', 'tecnico_municipal'])) {
+            $rules['municipio_id'] = 'required|exists:municipios,id';
+        } else {
+            $rules['municipio_id'] = 'nullable|exists:municipios,id';
+        }
+
+        $validated = $request->validate($rules, [
+            'cpf.size' => 'O CPF deve ter exatamente 11 dígitos',
+            'cpf.unique' => 'Este CPF já está cadastrado',
+            'telefone.max' => 'O telefone deve ter no máximo 11 dígitos',
+            'municipio_id.required' => 'O município é obrigatório para usuários municipais',
+            'municipio_id.exists' => 'Município inválido',
         ]);
 
         if ($request->filled('password')) {

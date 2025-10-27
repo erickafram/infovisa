@@ -118,6 +118,49 @@
         {{-- Campo hidden com JSON das atividades --}}
         <input type="hidden" name="atividades_exercidas" :value="getAtividadesJSON()">
 
+        {{-- Alerta de Competência Estadual (apenas para usuários municipais) --}}
+        @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+        <div x-show="atividadesSelecionadas.length > 0 && competenciaEstadual" 
+             x-cloak
+             class="bg-purple-50 border-l-4 border-purple-500 p-5 rounded-lg">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <p class="text-base font-bold text-purple-900 mb-3">
+                        ⚠️ ATENÇÃO: Este estabelecimento PASSARÁ para COMPETÊNCIA ESTADUAL
+                    </p>
+                    <p class="text-sm text-purple-800 mb-3">
+                        <strong>Motivo:</strong> Você selecionou pelo menos uma atividade econômica (CNAE) que está configurada como de competência estadual.
+                    </p>
+                    
+                    {{-- Lista de atividades estaduais selecionadas --}}
+                    <div x-show="atividadesEstaduais.length > 0" class="mb-3">
+                        <p class="text-sm font-semibold text-purple-900 mb-2">🏛️ Atividades Estaduais Selecionadas:</p>
+                        <ul class="list-disc list-inside space-y-1 ml-2">
+                            <template x-for="atividade in atividadesEstaduais" :key="atividade.codigo">
+                                <li class="text-sm text-purple-800">
+                                    <span class="font-mono font-semibold" x-text="atividade.codigo"></span> - 
+                                    <span x-text="atividade.descricao"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    
+                    <p class="text-sm text-purple-700 mb-3">
+                        <strong>Importante:</strong> Após salvar, este estabelecimento será transferido para a competência <strong>Estadual</strong> e será visível apenas para <strong>Gestores e Técnicos Estaduais</strong>. Você (usuário municipal) <strong>perderá o acesso</strong> a ele.
+                    </p>
+                    <p class="text-xs text-purple-600">
+                        💡 Se isso não estiver correto, desmarque as atividades estaduais antes de salvar ou entre em contato com o administrador.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Botões de ação --}}
         <div class="flex items-center justify-between gap-4 pt-4">
             <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}"
@@ -140,6 +183,8 @@ function atividadesForm() {
     return {
         atividadesDisponiveis: @json($atividadesApi),
         atividadesSelecionadas: [],
+        competenciaEstadual: false,
+        atividadesEstaduais: [],
 
         init() {
             // Inicializa com as atividades já salvas
@@ -157,6 +202,61 @@ function atividadesForm() {
             }
             
             console.log('Atividades selecionadas após init:', this.atividadesSelecionadas);
+            
+            // Verifica competência inicial
+            this.verificarCompetencia();
+            
+            // Watcher para verificar competência quando atividades mudarem
+            this.$watch('atividadesSelecionadas', () => {
+                this.verificarCompetencia();
+            });
+        },
+        
+        async verificarCompetencia() {
+            if (this.atividadesSelecionadas.length === 0) {
+                this.competenciaEstadual = false;
+                this.atividadesEstaduais = [];
+                return;
+            }
+            
+            const codigos = this.atividadesSelecionadas.map(a => a.codigo);
+            
+            console.log('🔍 Verificando competência para:', codigos);
+            
+            try {
+                const response = await fetch('/api/verificar-competencia', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        atividades: codigos,
+                        municipio: '{{ $estabelecimento->cidade }}'
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ Resultado da API:', result);
+                
+                this.competenciaEstadual = result.competencia === 'estadual';
+                
+                // Filtra atividades estaduais
+                if (result.detalhes) {
+                    this.atividadesEstaduais = this.atividadesSelecionadas.filter(atividade => {
+                        const codigoNormalizado = String(atividade.codigo).replace(/[^0-9]/g, '');
+                        const detalhe = result.detalhes.find(d => d.cnae === codigoNormalizado);
+                        return detalhe && detalhe.estadual;
+                    });
+                }
+                
+                console.log('📊 Competência:', this.competenciaEstadual ? 'ESTADUAL' : 'MUNICIPAL');
+                console.log('🏛️ Atividades estaduais:', this.atividadesEstaduais);
+            } catch (error) {
+                console.error('❌ Erro ao verificar competência:', error);
+                this.competenciaEstadual = false;
+                this.atividadesEstaduais = [];
+            }
         },
 
         isAtividadeSelecionada(codigo) {

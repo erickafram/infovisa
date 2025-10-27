@@ -4,7 +4,7 @@
 @section('page-title', 'Editar Tipo de Processo')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-4">
@@ -93,6 +93,78 @@
                     @error('ordem')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
+                </div>
+            </div>
+        </div>
+
+        {{-- Card Competência e Descentralização --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-data="{ competencia: '{{ old('competencia', $tipoProcesso->competencia ?? 'municipal') }}', municipiosSelecionados: {{ json_encode(old('municipios_descentralizados', $tipoProcesso->municipios_descentralizados ?? [])) }} }">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Competência e Descentralização</h3>
+
+            <div class="space-y-6">
+                {{-- Competência --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">
+                        Competência <span class="text-red-500">*</span>
+                    </label>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="radio" 
+                                       name="competencia" 
+                                       id="competencia_municipal"
+                                       value="municipal"
+                                       x-model="competencia"
+                                       {{ old('competencia', $tipoProcesso->competencia ?? 'municipal') === 'municipal' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3">
+                                <label for="competencia_municipal" class="font-medium text-gray-700">🏢 Municipal</label>
+                                <p class="text-sm text-gray-500">Todos os municípios podem criar este tipo de processo</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="radio" 
+                                       name="competencia" 
+                                       id="competencia_estadual"
+                                       value="estadual"
+                                       x-model="competencia"
+                                       {{ old('competencia', $tipoProcesso->competencia) === 'estadual' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3">
+                                <label for="competencia_estadual" class="font-medium text-gray-700">🏛️ Estadual</label>
+                                <p class="text-sm text-gray-500">Apenas o estado pode criar, exceto municípios descentralizados</p>
+                            </div>
+                        </div>
+                    </div>
+                    @error('competencia')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Municípios Descentralizados (apenas para estadual) --}}
+                <div x-show="competencia === 'estadual'" x-cloak>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Municípios Descentralizados
+                    </label>
+                    <select name="municipios_descentralizados[]" 
+                            multiple
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            size="8">
+                        @foreach($municipios as $municipio)
+                            <option value="{{ $municipio->nome }}" 
+                                    {{ in_array($municipio->nome, old('municipios_descentralizados', $tipoProcesso->municipios_descentralizados ?? [])) ? 'selected' : '' }}>
+                                {{ $municipio->nome }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Selecione os municípios que terão permissão para criar este tipo de processo (mesmo sendo estadual). 
+                        Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplos.
+                    </p>
                 </div>
             </div>
         </div>

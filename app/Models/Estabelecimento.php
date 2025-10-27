@@ -70,6 +70,7 @@ class Estabelecimento extends Model
         // Campos de aprovação
         'status',
         'municipio',
+        'municipio_id',
         'motivo_rejeicao',
         'aprovado_por',
         'aprovado_em',
@@ -102,6 +103,14 @@ class Estabelecimento extends Model
     public function usuarioExterno()
     {
         return $this->belongsTo(UsuarioExterno::class);
+    }
+
+    /**
+     * Relacionamento com município
+     */
+    public function municipio()
+    {
+        return $this->belongsTo(Municipio::class);
     }
 
     /**
@@ -555,15 +564,23 @@ class Estabelecimento extends Model
     /**
      * Determina se o estabelecimento é de competência estadual
      * Um estabelecimento é estadual se PELO MENOS UMA de suas atividades for estadual
+     * Considera exceções de descentralização para o município do estabelecimento
      */
     public function isCompetenciaEstadual()
     {
         // Pega todas as atividades do estabelecimento
         $atividades = $this->getTodasAtividades();
         
-        // Se pelo menos uma atividade for estadual, o estabelecimento é estadual
+        // Normaliza o nome do município (remove " - TO" ou "/TO")
+        $municipio = $this->cidade;
+        if ($municipio) {
+            $municipio = preg_replace('/\s*[-\/]\s*TO\s*$/i', '', $municipio);
+            $municipio = trim($municipio);
+        }
+        
+        // Se pelo menos uma atividade for estadual (considerando exceções), o estabelecimento é estadual
         foreach ($atividades as $cnae) {
-            if (Pactuacao::isAtividadeEstadual($cnae)) {
+            if (Pactuacao::isAtividadeEstadual($cnae, $municipio)) {
                 return true;
             }
         }
@@ -582,9 +599,57 @@ class Estabelecimento extends Model
     }
     
     /**
-     * Retorna todas as atividades (CNAEs) do estabelecimento
+     * Retorna APENAS as atividades que o estabelecimento REALMENTE EXERCE
+     * Essas são as atividades marcadas pelo estabelecimento no cadastro
+     * 
+     * IMPORTANTE: A competência (estadual/municipal) é determinada pelas atividades
+     * que o estabelecimento EXERCE, não por todas as atividades cadastradas na Receita.
      */
     public function getTodasAtividades()
+    {
+        $atividades = [];
+        
+        // Retorna APENAS as atividades exercidas (marcadas pelo estabelecimento)
+        if ($this->atividades_exercidas && is_array($this->atividades_exercidas)) {
+            foreach ($this->atividades_exercidas as $atividade) {
+                $codigo = null;
+                
+                // Se for um array (com código e descrição), pega apenas o código
+                if (is_array($atividade) && isset($atividade['codigo'])) {
+                    $codigo = $atividade['codigo'];
+                } 
+                // Se for uma string (apenas o código CNAE), usa diretamente
+                elseif (is_string($atividade)) {
+                    $codigo = $atividade;
+                }
+                
+                // Normaliza o código removendo formatação (pontos, traços, etc)
+                if ($codigo) {
+                    $codigo = preg_replace('/[^0-9]/', '', $codigo);
+                    if (!empty($codigo)) {
+                        $atividades[] = $codigo;
+                    }
+                }
+            }
+        }
+        
+        // Se não houver atividades exercidas marcadas, considera o CNAE principal como fallback
+        // (para estabelecimentos antigos que não têm atividades exercidas cadastradas)
+        if (empty($atividades) && $this->cnae_fiscal) {
+            $cnae = preg_replace('/[^0-9]/', '', $this->cnae_fiscal);
+            if (!empty($cnae)) {
+                $atividades[] = $cnae;
+            }
+        }
+        
+        return array_unique(array_filter($atividades));
+    }
+    
+    /**
+     * Retorna TODAS as atividades cadastradas (incluindo as não exercidas)
+     * Usado apenas para exibição/informação, NÃO para determinar competência
+     */
+    public function getTodasAtividadesCadastradas()
     {
         $atividades = [];
         
@@ -602,11 +667,6 @@ class Estabelecimento extends Model
             }
         }
         
-        // Adiciona atividades exercidas
-        if ($this->atividades_exercidas && is_array($this->atividades_exercidas)) {
-            $atividades = array_merge($atividades, $this->atividades_exercidas);
-        }
-        
         return array_unique(array_filter($atividades));
     }
     
@@ -616,26 +676,33 @@ class Estabelecimento extends Model
     public function scopeParaUsuario($query, $usuario)
     {
         // Administrador vê tudo
-        if ($usuario->tipo_usuario === 'administrador') {
+        if ($usuario->isAdmin()) {
             return $query;
         }
         
-        // Gestor/Técnico Municipal - vê apenas do seu município E que sejam de competência municipal
-        if (in_array($usuario->tipo_usuario, ['gestor_municipal', 'tecnico_municipal'])) {
-            return $query->where('municipio', $usuario->municipio)
-                ->whereHas('id', function($q) {
-                    // Filtra apenas estabelecimentos de competência municipal
-                    $q->whereRaw('1=1'); // Placeholder - filtro será feito em memória
-                });
+        // Gestor/Técnico Municipal - vê apenas do seu município
+        if ($usuario->isMunicipal()) {
+            if (!$usuario->municipio_id) {
+                return $query->whereRaw('1=0'); // Sem município vinculado, não vê nada
+            }
+            return $query->where('municipio_id', $usuario->municipio_id);
         }
         
         // Gestor/Técnico Estadual - vê estabelecimentos de competência estadual de qualquer município
-        if (in_array($usuario->tipo_usuario, ['gestor_estadual', 'tecnico_estadual'])) {
-            // Filtro será feito em memória para verificar competência
+        // O filtro de competência será aplicado no controller
+        if ($usuario->isEstadual()) {
             return $query;
         }
         
         return $query->whereRaw('1=0'); // Nenhum acesso por padrão
+    }
+    
+    /**
+     * Scope para filtrar apenas estabelecimentos de um município específico
+     */
+    public function scopeDoMunicipio($query, $municipioId)
+    {
+        return $query->where('municipio_id', $municipioId);
     }
 
 }

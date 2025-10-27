@@ -49,6 +49,9 @@
                         Código
                     </th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Competência
+                    </th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Anual
                     </th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -76,6 +79,22 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700">{{ $tipo->codigo }}</code>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            @if(($tipo->competencia ?? 'municipal') === 'estadual')
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    🏛️ Estadual
+                                </span>
+                                @if($tipo->municipios_descentralizados && count($tipo->municipios_descentralizados) > 0)
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ count($tipo->municipios_descentralizados) }} município(s)
+                                    </div>
+                                @endif
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    🏢 Municipal
+                                </span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @if($tipo->anual)

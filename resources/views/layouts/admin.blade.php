@@ -196,5 +196,8 @@
     </div>
     </div>
 
+    {{-- Scripts adicionais --}}
+    @stack('scripts')
+
 </body>
 </html>

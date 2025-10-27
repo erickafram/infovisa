@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pactuacao;
 use App\Models\Estabelecimento;
+use App\Models\Municipio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,9 @@ class PactuacaoController extends Controller
             ->orderBy('municipio')
             ->pluck('municipio');
         
+        // Busca todos os municípios cadastrados no sistema (para dropdown)
+        $todosMunicipios = Municipio::orderBy('nome')->get();
+        
         // Busca pactuações municipais agrupadas por município
         $pactuacoesMunicipais = Pactuacao::where('tipo', 'municipal')
             ->orderBy('municipio')
@@ -36,6 +40,7 @@ class PactuacaoController extends Controller
         
         return view('admin.pactuacoes.index', compact(
             'municipios',
+            'todosMunicipios',
             'pactuacoesMunicipais',
             'pactuacoesEstaduais'
         ));
@@ -51,6 +56,8 @@ class PactuacaoController extends Controller
             'municipio' => 'required_if:tipo,municipal',
             'cnae_codigo' => 'required|string',
             'cnae_descricao' => 'required|string',
+            'municipios_excecao' => 'nullable|array',
+            'observacao' => 'nullable|string',
         ]);
         
         try {
@@ -59,6 +66,8 @@ class PactuacaoController extends Controller
                 'municipio' => $request->tipo === 'municipal' ? $request->municipio : null,
                 'cnae_codigo' => $request->cnae_codigo,
                 'cnae_descricao' => $request->cnae_descricao,
+                'municipios_excecao' => $request->tipo === 'estadual' ? $request->municipios_excecao : null,
+                'observacao' => $request->observacao,
                 'ativo' => true,
             ]);
             
@@ -85,6 +94,8 @@ class PactuacaoController extends Controller
             'atividades' => 'required|array',
             'atividades.*.codigo' => 'required|string',
             'atividades.*.descricao' => 'required|string',
+            'municipios_excecao' => 'nullable|array',
+            'observacao' => 'nullable|string',
         ]);
         
         try {
@@ -99,6 +110,8 @@ class PactuacaoController extends Controller
                     ],
                     [
                         'cnae_descricao' => $atividade['descricao'],
+                        'municipios_excecao' => $request->tipo === 'estadual' ? $request->municipios_excecao : null,
+                        'observacao' => $request->observacao,
                         'ativo' => true,
                     ]
                 );
@@ -182,5 +195,109 @@ class PactuacaoController extends Controller
             ->get();
         
         return response()->json($cnaes);
+    }
+    
+    /**
+     * Adiciona um município à lista de exceções de uma pactuação estadual
+     */
+    public function adicionarExcecao(Request $request, $id)
+    {
+        $request->validate([
+            'municipio' => 'required|string',
+        ]);
+        
+        try {
+            $pactuacao = Pactuacao::findOrFail($id);
+            
+            if ($pactuacao->tipo !== 'estadual') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exceções só podem ser adicionadas a pactuações estaduais'
+                ], 422);
+            }
+            
+            $pactuacao->adicionarMunicipioExcecao($request->municipio);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Município adicionado às exceções com sucesso!',
+                'municipios_excecao' => $pactuacao->municipios_excecao
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao adicionar exceção: ' . $e->getMessage()
+            ], 422);
+        }
+    }
+    
+    /**
+     * Remove um município da lista de exceções de uma pactuação estadual
+     */
+    public function removerExcecao(Request $request, $id)
+    {
+        $request->validate([
+            'municipio' => 'required|string',
+        ]);
+        
+        try {
+            $pactuacao = Pactuacao::findOrFail($id);
+            
+            if ($pactuacao->tipo !== 'estadual') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exceções só podem ser removidas de pactuações estaduais'
+                ], 422);
+            }
+            
+            $pactuacao->removerMunicipioExcecao($request->municipio);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Município removido das exceções com sucesso!',
+                'municipios_excecao' => $pactuacao->municipios_excecao
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao remover exceção: ' . $e->getMessage()
+            ], 422);
+        }
+    }
+    
+    /**
+     * Atualiza observação e exceções de uma pactuação
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'observacao' => 'nullable|string',
+            'municipios_excecao' => 'nullable|array',
+        ]);
+        
+        try {
+            $pactuacao = Pactuacao::findOrFail($id);
+            
+            if ($request->has('observacao')) {
+                $pactuacao->observacao = $request->observacao;
+            }
+            
+            if ($request->has('municipios_excecao') && $pactuacao->tipo === 'estadual') {
+                $pactuacao->municipios_excecao = $request->municipios_excecao;
+            }
+            
+            $pactuacao->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Pactuação atualizada com sucesso!',
+                'pactuacao' => $pactuacao
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar pactuação: ' . $e->getMessage()
+            ], 422);
+        }
     }
 }
