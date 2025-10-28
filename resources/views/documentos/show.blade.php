@@ -137,12 +137,28 @@
             {{-- Assinaturas --}}
             @if($documento->assinaturas->count() > 0)
                 <div class="p-5 border-t border-gray-200 bg-gray-50">
-                    <h2 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                        </svg>
-                        Assinaturas Digitais
-                    </h2>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            Assinaturas Digitais
+                        </h2>
+                        @php
+                            $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
+                            $usuarioLogado = auth('interno')->user();
+                            $isAdmin = $usuarioLogado->isAdmin();
+                        @endphp
+                        @if((!$temAssinaturaFeita || $isAdmin) && $documento->status !== 'assinado')
+                            <button onclick="abrirModalGerenciarAssinantes()" 
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Gerenciar Assinantes
+                            </button>
+                        @endif
+                    </div>
                     <div class="space-y-2">
                         @foreach($documento->assinaturas as $assinatura)
                             <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
@@ -157,7 +173,7 @@
                                         <p class="text-xs text-gray-600">{{ $assinatura->usuarioInterno->cargo ?? 'Cargo não informado' }}</p>
                                     </div>
                                 </div>
-                                <div>
+                                <div class="flex items-center gap-2">
                                     @if($assinatura->status === 'assinado')
                                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,11 +188,31 @@
                                             </svg>
                                             Pendente
                                         </span>
+                                        @if(!$temAssinaturaFeita || $isAdmin)
+                                            <button onclick="removerAssinante({{ $assinatura->id }})" 
+                                                    class="text-red-600 hover:text-red-800 transition">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
                         @endforeach
                     </div>
+                    @if((!$temAssinaturaFeita || $isAdmin) && $documento->status !== 'assinado')
+                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-xs text-blue-800">
+                                <strong>💡 Dica:</strong> 
+                                @if($isAdmin)
+                                    Como administrador, você pode adicionar ou remover assinantes a qualquer momento.
+                                @else
+                                    Você pode adicionar ou remover assinantes enquanto nenhuma assinatura foi feita.
+                                @endif
+                            </p>
+                        </div>
+                    @endif
                 </div>
             @endif
         </div>
@@ -204,4 +240,113 @@
         </div>
     </div>
 </div>
+
+{{-- Modal para Gerenciar Assinantes --}}
+<div id="modalGerenciarAssinantes" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">👥 Gerenciar Assinantes</h3>
+            <button onclick="fecharModalGerenciarAssinantes()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <form action="{{ route('admin.documentos.gerenciar-assinantes', $documento->id) }}" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Selecione os usuários que devem assinar este documento
+                </label>
+                <div class="max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                    @php
+                        $usuarioLogado = auth('interno')->user();
+                        $usuariosInternosQuery = \App\Models\UsuarioInterno::where('ativo', true);
+                        
+                        // Filtra por município do usuário logado
+                        if ($usuarioLogado->municipio_id) {
+                            $usuariosInternosQuery->where('municipio_id', $usuarioLogado->municipio_id);
+                        }
+                        
+                        // Exclui administradores do sistema (sem município)
+                        $usuariosInternosQuery->whereNotNull('municipio_id');
+                        
+                        $usuariosInternos = $usuariosInternosQuery->orderBy('nome')->get();
+                        $assinantesAtuais = $documento->assinaturas->pluck('usuario_interno_id')->toArray();
+                    @endphp
+                    @foreach($usuariosInternos as $usuario)
+                        <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                            <input type="checkbox" 
+                                   name="assinantes[]" 
+                                   value="{{ $usuario->id }}"
+                                   {{ in_array($usuario->id, $assinantesAtuais) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">{{ $usuario->nome }}</p>
+                                <p class="text-xs text-gray-500">{{ $usuario->cargo ?? 'Cargo não informado' }}</p>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                    Selecione os usuários que devem assinar o documento. A ordem será definida automaticamente.
+                </p>
+            </div>
+            
+            <div class="flex gap-3 justify-end">
+                <button type="button" onclick="fecharModalGerenciarAssinantes()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                    Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalGerenciarAssinantes() {
+    document.getElementById('modalGerenciarAssinantes').classList.remove('hidden');
+}
+
+function fecharModalGerenciarAssinantes() {
+    document.getElementById('modalGerenciarAssinantes').classList.add('hidden');
+}
+
+function removerAssinante(assinaturaId) {
+    if (confirm('Tem certeza que deseja remover este assinante?')) {
+        fetch(`/admin/documentos/assinaturas/${assinaturaId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Erro ao remover assinante');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao remover assinante');
+        });
+    }
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('modalGerenciarAssinantes')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalGerenciarAssinantes();
+    }
+});
+</script>
 @endsection

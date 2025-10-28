@@ -17,11 +17,16 @@ class Pactuacao extends Model
         'municipios_excecao',
         'municipios_excecao_ids',
         'observacao',
-        'ativo'
+        'ativo',
+        'tabela',
+        'requer_questionario',
+        'pergunta',
+        'classificacao_risco'
     ];
     
     protected $casts = [
         'ativo' => 'boolean',
+        'requer_questionario' => 'boolean',
         'municipios_excecao' => 'array',
         'municipios_excecao_ids' => 'array',
     ];

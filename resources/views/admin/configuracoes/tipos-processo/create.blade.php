@@ -222,6 +222,21 @@
                     </div>
                 </div>
 
+                {{-- Usuário Externo Pode Visualizar --}}
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" 
+                               name="usuario_externo_pode_visualizar" 
+                               id="usuario_externo_pode_visualizar"
+                               {{ old('usuario_externo_pode_visualizar', true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    </div>
+                    <div class="ml-3">
+                        <label for="usuario_externo_pode_visualizar" class="font-medium text-gray-700">Usuário Externo Pode Visualizar</label>
+                        <p class="text-sm text-gray-500">Permite que usuários externos (empresas) possam visualizar este processo quando aberto por usuário interno. Desmarque para processos internos como Descentralização, Denúncia, etc.</p>
+                    </div>
+                </div>
+
                 {{-- Ativo --}}
                 <div class="flex items-start">
                     <div class="flex items-center h-5">

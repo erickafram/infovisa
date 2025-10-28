@@ -1,0 +1,15 @@
+INSTRUÇÕES PARA POPULAR O SEEDER:
+
+Devido ao grande volume de dados (centenas de CNAEs), vou criar o seeder em partes.
+
+O arquivo PactuacaoSeeder.php deve importar os dados das seguintes tabelas:
+
+TABELA I - Atividades Municipais (139 municípios)
+TABELA II - Atividades Estaduais Exclusivas  
+TABELA III - Atividades Alto Risco Pactuadas
+TABELA IV - Atividades com Questionário (Estadual ou Municipal)
+TABELA V - Atividades com Questionário (VISA ou Não VISA)
+
+Total estimado: ~200 CNAEs
+
+Vou criar o seeder base agora e você pode adicionar os CNAEs conforme necessário.

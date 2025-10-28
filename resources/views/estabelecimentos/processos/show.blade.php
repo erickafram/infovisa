@@ -397,10 +397,24 @@
                                            @change="toggleDocumento('doc_digital_{{ $docDigital->id }}')"
                                            class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
                                     
+                                    @php
+                                        $assinaturasPendentes = $docDigital->assinaturas()->where('status', 'pendente')->count();
+                                        $todasAssinaturas = $docDigital->assinaturas()->count();
+                                        $temAssinaturasPendentes = $assinaturasPendentes > 0;
+                                        
+                                        // Verificar se o usuário logado precisa assinar este documento
+                                        $usuarioLogado = auth('interno')->user();
+                                        $assinaturaUsuario = $docDigital->assinaturas()
+                                            ->where('usuario_interno_id', $usuarioLogado->id)
+                                            ->where('status', 'pendente')
+                                            ->first();
+                                        $usuarioPrecisaAssinar = $assinaturaUsuario !== null && $docDigital->status !== 'rascunho';
+                                    @endphp
+                                    
                                     @if($docDigital->status === 'rascunho')
                                         <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" 
                                            class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:bg-gray-200 rounded-lg p-2 -m-2 transition-colors">
-                                    @elseif($docDigital->arquivo_pdf)
+                                    @elseif($docDigital->arquivo_pdf && !$temAssinaturasPendentes)
                                         <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" 
                                              class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                     @else
@@ -440,13 +454,31 @@
                                                         </svg>
                                                         Rascunho
                                                     </span>
+                                                @elseif($temAssinaturasPendentes)
+                                                    <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        Aguardando {{ $assinaturasPendentes }}/{{ $todasAssinaturas }} assinatura(s)
+                                                    </span>
                                                 @else
                                                     <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
                                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                         </svg>
-                                                        Documento Digital
+                                                        Assinado
                                                     </span>
+                                                @endif
+                                                
+                                                {{-- Botão Assinar se o usuário logado precisa assinar --}}
+                                                @if($usuarioPrecisaAssinar)
+                                                    <a href="{{ route('admin.assinatura.assinar', $docDigital->id) }}" 
+                                                       class="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1 whitespace-nowrap">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                        </svg>
+                                                        Assinar Agora
+                                                    </a>
                                                 @endif
                                             </div>
                                         </div>
@@ -1097,6 +1129,7 @@
                 pdfUrl: '',
                 documentoEditando: null,
                 nomeEditando: '',
+                selecionarMultiplos: false, // Para seleção múltipla de documentos
                 
                 // Pastas
                 pastas: [],

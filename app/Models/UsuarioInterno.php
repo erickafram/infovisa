@@ -31,6 +31,7 @@ class UsuarioInterno extends Authenticatable
         'municipio',
         'municipio_id',
         'password',
+        'senha_assinatura_digital',
         'ativo',
         'email_verified_at',
     ];
@@ -40,6 +41,7 @@ class UsuarioInterno extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'senha_assinatura_digital',
         'remember_token',
     ];
 
@@ -49,6 +51,7 @@ class UsuarioInterno extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'senha_assinatura_digital' => 'hashed',
         'nivel_acesso' => NivelAcesso::class,
         'ativo' => 'boolean',
         'created_at' => 'datetime',
@@ -176,6 +179,14 @@ class UsuarioInterno extends Authenticatable
     public function isAtivo(): bool
     {
         return $this->ativo === true;
+    }
+
+    /**
+     * Verifica se o usuário tem senha de assinatura digital cadastrada
+     */
+    public function temSenhaAssinatura(): bool
+    {
+        return !empty($this->senha_assinatura_digital);
     }
 
     /**

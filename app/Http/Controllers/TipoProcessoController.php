@@ -42,6 +42,7 @@ class TipoProcessoController extends Controller
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
         $validated['anual'] = $request->has('anual');
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
+        $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         
@@ -96,6 +97,7 @@ class TipoProcessoController extends Controller
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
         $validated['anual'] = $request->has('anual');
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
+        $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         

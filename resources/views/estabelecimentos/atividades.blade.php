@@ -57,6 +57,49 @@
             </div>
         </div>
 
+        {{-- Card de Competência e Questionários --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                {{-- Competência --}}
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-{{ $estabelecimento->isCompetenciaEstadual() ? 'purple' : 'blue' }}-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        @if($estabelecimento->isCompetenciaEstadual())
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        @else
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">Competência</p>
+                        <p class="text-lg font-bold text-{{ $estabelecimento->isCompetenciaEstadual() ? 'purple' : 'blue' }}-600">
+                            {{ $estabelecimento->isCompetenciaEstadual() ? '🏛️ ESTADUAL' : '🏘️ MUNICIPAL' }}
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Respostas dos Questionários --}}
+                @if($estabelecimento->respostas_questionario && count($estabelecimento->respostas_questionario) > 0)
+                <div class="flex items-center gap-3 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-200">
+                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-semibold text-yellow-900">Questionários:</span>
+                        @foreach($estabelecimento->respostas_questionario as $cnae => $resposta)
+                            <span class="px-2 py-1 rounded-md text-xs font-bold {{ $resposta === 'sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $cnae }}: {{ strtoupper($resposta) }}
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+
         {{-- Lista de Atividades --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between mb-5">

@@ -12,6 +12,7 @@ class TipoProcesso extends Model
         'descricao',
         'anual',
         'usuario_externo_pode_abrir',
+        'usuario_externo_pode_visualizar',
         'ativo',
         'ordem',
         'competencia',
@@ -22,6 +23,7 @@ class TipoProcesso extends Model
     protected $casts = [
         'anual' => 'boolean',
         'usuario_externo_pode_abrir' => 'boolean',
+        'usuario_externo_pode_visualizar' => 'boolean',
         'ativo' => 'boolean',
         'ordem' => 'integer',
         'municipios_descentralizados' => 'array',

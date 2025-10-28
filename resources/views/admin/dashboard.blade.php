@@ -16,6 +16,146 @@
         </p>
     </div>
 
+    {{-- Documentos Pendentes de Assinatura --}}
+    @if($stats['documentos_pendentes_assinatura'] > 0)
+    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-400 rounded-lg shadow-md">
+        <div class="px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">
+                        ✍️ Você tem {{ $stats['documentos_pendentes_assinatura'] }} documento(s) aguardando assinatura
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                        Documentos digitais que precisam da sua assinatura para serem finalizados
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('admin.assinatura.pendentes') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg hover:bg-yellow-600 transition-colors shadow-sm">
+                Ver Documentos
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+        
+        @if($documentos_pendentes_assinatura->count() > 0)
+        <div class="px-4 pb-4">
+            <div class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">
+                @foreach($documentos_pendentes_assinatura as $assinatura)
+                <div class="p-3 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    {{ $assinatura->documentoDigital->tipoDocumento->nome ?? 'Documento' }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    @if($assinatura->documentoDigital->processo)
+                                        Processo: {{ $assinatura->documentoDigital->processo->numero }}
+                                    @else
+                                        ID: #{{ $assinatura->documentoDigital->id }}
+                                    @endif
+                                    • Criado em {{ $assinatura->created_at->format('d/m/Y') }}
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.assinatura.assinar', $assinatura->documentoDigital->id) }}" 
+                           class="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors">
+                            ✍️ Assinar
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- Documentos em Rascunho Pendentes de Finalização --}}
+    @if($stats['documentos_rascunho_pendentes'] > 0)
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-lg shadow-md">
+        <div class="px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">
+                        📝 Você tem {{ $stats['documentos_rascunho_pendentes'] }} documento(s) em rascunho aguardando finalização
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                        Documentos digitais onde você está definido como assinante, mas ainda estão em rascunho
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('admin.documentos.index') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+                Ver Documentos
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+        
+        @if($documentos_rascunho_pendentes->count() > 0)
+        <div class="px-4 pb-4">
+            <div class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">
+                @foreach($documentos_rascunho_pendentes as $assinatura)
+                <div class="p-3 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                <svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{ $assinatura->documentoDigital->tipoDocumento->nome ?? 'Documento' }}
+                                    </p>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                        Rascunho
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    @if($assinatura->documentoDigital->processo)
+                                        Processo: {{ $assinatura->documentoDigital->processo->numero_processo ?? 'S/N' }}
+                                    @else
+                                        ID: #{{ $assinatura->documentoDigital->id }}
+                                    @endif
+                                    • Criado em {{ $assinatura->created_at->format('d/m/Y') }}
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.documentos.edit', $assinatura->documentoDigital->id) }}" 
+                           class="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors">
+                            📝 Editar
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
 
     {{-- Lista de Estabelecimentos Pendentes --}}
     @if($estabelecimentos_pendentes->count() > 0)

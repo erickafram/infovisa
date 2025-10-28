@@ -16,34 +16,75 @@ class PactuacaoController extends Controller
      */
     public function index()
     {
-        // Busca todos os municípios únicos dos estabelecimentos
-        $municipios = Estabelecimento::select('municipio')
-            ->whereNotNull('municipio')
-            ->distinct()
-            ->orderBy('municipio')
-            ->pluck('municipio');
-        
-        // Busca todos os municípios cadastrados no sistema (para dropdown)
+        // Busca todos os municípios cadastrados no sistema (para dropdown de exceções)
         $todosMunicipios = Municipio::orderBy('nome')->get();
         
-        // Busca pactuações municipais agrupadas por município
-        $pactuacoesMunicipais = Pactuacao::where('tipo', 'municipal')
-            ->orderBy('municipio')
-            ->orderBy('cnae_codigo')
-            ->get()
-            ->groupBy('municipio');
+        // Busca pactuações por tabela
+        $tabelaI = Pactuacao::where('tabela', 'I')->orderBy('cnae_codigo')->get();
+        $tabelaII = Pactuacao::where('tabela', 'II')->orderBy('cnae_codigo')->get();
+        $tabelaIII = Pactuacao::where('tabela', 'III')->orderBy('cnae_codigo')->get();
+        $tabelaIV = Pactuacao::where('tabela', 'IV')->orderBy('cnae_codigo')->get();
+        $tabelaV = Pactuacao::where('tabela', 'V')->orderBy('cnae_codigo')->get();
         
-        // Busca pactuações estaduais
+        // Busca pactuações estaduais (todas exceto Tabela I)
         $pactuacoesEstaduais = Pactuacao::where('tipo', 'estadual')
+            ->orderBy('tabela')
             ->orderBy('cnae_codigo')
             ->get();
         
         return view('admin.pactuacoes.index', compact(
-            'municipios',
             'todosMunicipios',
-            'pactuacoesMunicipais',
+            'tabelaI',
+            'tabelaII',
+            'tabelaIII',
+            'tabelaIV',
+            'tabelaV',
             'pactuacoesEstaduais'
         ));
+    }
+
+    /**
+     * Retorna dados de uma pactuação específica
+     */
+    public function show($id)
+    {
+        $pactuacao = Pactuacao::findOrFail($id);
+        return response()->json($pactuacao);
+    }
+
+    /**
+     * Busca questionários para uma lista de CNAEs
+     */
+    public function buscarQuestionarios(Request $request)
+    {
+        $cnaes = $request->input('cnaes', []);
+        
+        if (empty($cnaes)) {
+            return response()->json([]);
+        }
+
+        // Normaliza os CNAEs (remove formatação)
+        $cnaesNormalizados = array_map(function($cnae) {
+            return preg_replace('/[^0-9]/', '', $cnae);
+        }, $cnaes);
+
+        // Busca pactuações que requerem questionário
+        $questionarios = Pactuacao::whereIn('cnae_codigo', $cnaesNormalizados)
+            ->where('requer_questionario', true)
+            ->where('ativo', true)
+            ->get()
+            ->map(function($pactuacao) {
+                return [
+                    'cnae' => $pactuacao->cnae_codigo,
+                    'cnae_formatado' => $pactuacao->cnae_codigo,
+                    'descricao' => $pactuacao->cnae_descricao,
+                    'pergunta' => $pactuacao->pergunta,
+                    'tabela' => $pactuacao->tabela,
+                    'municipios_excecao' => $pactuacao->municipios_excecao ?? [],
+                ];
+            });
+
+        return response()->json($questionarios);
     }
 
     /**

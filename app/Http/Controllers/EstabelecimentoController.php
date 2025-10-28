@@ -155,6 +155,7 @@ class EstabelecimentoController extends Controller
             'motivo_situacao_cadastral' => 'nullable|string',
             'descricao_motivo_situacao_cadastral' => 'nullable|string',
             'atividades_exercidas' => 'nullable|string', // JSON das atividades selecionadas
+            'respostas_questionario' => 'nullable|string', // JSON das respostas dos questionários
         ];
 
         // Validações específicas por tipo de pessoa
@@ -193,6 +194,13 @@ class EstabelecimentoController extends Controller
             $validated['atividades_exercidas'] = $atividadesExercidas;
         } else {
             \Log::warning('Nenhuma atividade recebida no request');
+        }
+
+        // Processa respostas dos questionários
+        if ($request->filled('respostas_questionario')) {
+            $respostasQuestionario = json_decode($request->respostas_questionario, true);
+            \Log::info('Respostas questionário recebidas:', ['respostas' => $respostasQuestionario]);
+            $validated['respostas_questionario'] = $respostasQuestionario;
         }
 
         // Define o usuário responsável e status inicial
@@ -459,6 +467,52 @@ class EstabelecimentoController extends Controller
     }
 
     /**
+     * Altera manualmente a competência do estabelecimento (decisão administrativa/judicial)
+     */
+    public function alterarCompetencia(Request $request, string $id)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        $request->validate([
+            'competencia_manual' => 'required|in:estadual,municipal,automatica',
+            'motivo_alteracao_competencia' => 'required|string|min:10|max:1000',
+        ], [
+            'competencia_manual.required' => 'Selecione a nova competência',
+            'motivo_alteracao_competencia.required' => 'O motivo da alteração é obrigatório',
+            'motivo_alteracao_competencia.min' => 'O motivo deve ter no mínimo 10 caracteres',
+            'motivo_alteracao_competencia.max' => 'O motivo deve ter no máximo 1000 caracteres',
+        ]);
+        
+        // Se escolheu "automatica", remove o override manual
+        if ($request->competencia_manual === 'automatica') {
+            $estabelecimento->update([
+                'competencia_manual' => null,
+                'motivo_alteracao_competencia' => $request->motivo_alteracao_competencia,
+                'alterado_por' => auth('interno')->id(),
+                'alterado_em' => now(),
+            ]);
+            
+            $competenciaFinal = $estabelecimento->isCompetenciaEstadual() ? 'ESTADUAL' : 'MUNICIPAL';
+            
+            return redirect()
+                ->route('admin.estabelecimentos.show', $estabelecimento->id)
+                ->with('success', "Competência voltou a seguir as regras de pactuação automática! O estabelecimento agora é de competência {$competenciaFinal}.");
+        }
+        
+        // Caso contrário, define o override manual
+        $estabelecimento->update([
+            'competencia_manual' => $request->competencia_manual,
+            'motivo_alteracao_competencia' => $request->motivo_alteracao_competencia,
+            'alterado_por' => auth('interno')->id(),
+            'alterado_em' => now(),
+        ]);
+        
+        return redirect()
+            ->route('admin.estabelecimentos.show', $estabelecimento->id)
+            ->with('success', 'Competência alterada com sucesso! O estabelecimento agora é de competência ' . strtoupper($request->competencia_manual) . '.');
+    }
+
+    /**
      * Show the form for editing activities.
      */
     public function editAtividades(string $id)
@@ -520,6 +574,26 @@ class EstabelecimentoController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Erro ao buscar atividades da API: ' . $e->getMessage());
             }
+        }
+        
+        // Se não conseguiu buscar da API, usa as atividades salvas no banco
+        if (empty($atividadesApi) && $estabelecimento->atividades_exercidas) {
+            foreach ($estabelecimento->atividades_exercidas as $atividade) {
+                $atividadesApi[] = [
+                    'codigo' => $atividade['codigo'] ?? '',
+                    'descricao' => $atividade['descricao'] ?? '',
+                    'tipo' => ($atividade['principal'] ?? false) ? 'principal' : 'secundaria'
+                ];
+            }
+        }
+        
+        // Se ainda não tem atividades, adiciona a atividade principal do CNAE fiscal
+        if (empty($atividadesApi) && $estabelecimento->cnae_fiscal) {
+            $atividadesApi[] = [
+                'codigo' => $estabelecimento->cnae_fiscal,
+                'descricao' => $estabelecimento->cnae_fiscal_descricao ?? '',
+                'tipo' => 'principal'
+            ];
         }
         
         return view('estabelecimentos.atividades', compact('estabelecimento', 'atividadesApi'));

@@ -22,6 +22,7 @@ class DocumentoDigital extends Model
         'sigiloso',
         'status',
         'arquivo_pdf',
+        'codigo_autenticidade',
         'finalizado_em',
     ];
 
@@ -31,7 +32,20 @@ class DocumentoDigital extends Model
     ];
 
     /**
-     * Gera o próximo número de documento
+     * Gera código único de autenticidade
+     */
+    public static function gerarCodigoAutenticidade(): string
+    {
+        do {
+            $codigo = md5(uniqid(rand(), true));
+            $existe = self::where('codigo_autenticidade', $codigo)->exists();
+        } while ($existe);
+
+        return $codigo;
+    }
+
+    /**
+     * Gera o próximo número de documento no formato 000001.2025
      */
     public static function gerarNumeroDocumento(): string
     {
@@ -39,16 +53,21 @@ class DocumentoDigital extends Model
         
         // Busca o último número de documento do ano (incluindo soft deleted)
         $ultimo = self::withTrashed()
-            ->where('numero_documento', 'like', "DOC-{$ano}-%")
-            ->orderByRaw("CAST(SUBSTRING(numero_documento FROM 10) AS INTEGER) DESC")
+            ->where('numero_documento', 'like', "%.{$ano}")
+            ->orderByRaw("CAST(SUBSTRING(numero_documento FROM 1 FOR 6) AS INTEGER) DESC")
             ->first();
 
-        $sequencial = $ultimo ? (int) substr($ultimo->numero_documento, -5) + 1 : 1;
+        // Extrai o número sequencial (primeiros 6 dígitos)
+        $sequencial = 1;
+        if ($ultimo) {
+            $partes = explode('.', $ultimo->numero_documento);
+            $sequencial = (int) $partes[0] + 1;
+        }
 
         // Garante que o número seja único tentando até encontrar um disponível
         $tentativas = 0;
         do {
-            $numeroDocumento = sprintf('DOC-%s-%05d', $ano, $sequencial + $tentativas);
+            $numeroDocumento = sprintf('%06d.%s', $sequencial + $tentativas, $ano);
             $existe = self::withTrashed()->where('numero_documento', $numeroDocumento)->exists();
             $tentativas++;
         } while ($existe && $tentativas < 100);

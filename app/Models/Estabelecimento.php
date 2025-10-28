@@ -54,6 +54,11 @@ class Estabelecimento extends Model
         'tipo_pessoa',
         'tipo_setor',
         'atividades_exercidas',
+        'respostas_questionario',
+        'competencia_manual',
+        'motivo_alteracao_competencia',
+        'alterado_por',
+        'alterado_em',
         // Campos adicionais da API
         'ddd_telefone_1',
         'ddd_telefone_2',
@@ -93,8 +98,10 @@ class Estabelecimento extends Model
         'opcao_pelo_simples' => 'boolean',
         'regime_tributario' => 'array',
         'atividades_exercidas' => 'array',
+        'respostas_questionario' => 'array',
         'tipo_setor' => TipoSetor::class,
         'aprovado_em' => 'datetime',
+        'alterado_em' => 'datetime',
     ];
 
     /**
@@ -568,6 +575,12 @@ class Estabelecimento extends Model
      */
     public function isCompetenciaEstadual()
     {
+        // PRIORIDADE 1: Se há competência manual definida, usa ela (override administrativo/judicial)
+        if ($this->competencia_manual) {
+            return $this->competencia_manual === 'estadual';
+        }
+        
+        // PRIORIDADE 2: Verifica pela pactuação (lógica normal)
         // Pega todas as atividades do estabelecimento
         $atividades = $this->getTodasAtividades();
         

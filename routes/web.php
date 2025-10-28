@@ -22,6 +22,12 @@ Route::post('/consultar-processo', [HomeController::class, 'consultarProcesso'])
 // Verificar Documento
 Route::post('/verificar-documento', [HomeController::class, 'verificarDocumento'])->name('verificar.documento');
 
+// Verificar Autenticidade de Documento
+Route::get('/verificar-autenticidade', [\App\Http\Controllers\AutenticidadeController::class, 'index'])->name('verificar.autenticidade.form');
+Route::post('/verificar-autenticidade', [\App\Http\Controllers\AutenticidadeController::class, 'verificar'])->name('verificar.autenticidade.verificar');
+Route::get('/verificar-autenticidade/{codigo}', [\App\Http\Controllers\AutenticidadeController::class, 'verificar'])->name('verificar.autenticidade');
+Route::get('/documento-autenticado/{codigo}/pdf', [\App\Http\Controllers\AutenticidadeController::class, 'visualizarPdf'])->name('documento.autenticado.pdf');
+
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação - Login Unificado
@@ -72,6 +78,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/buscar-por-cpf/{cpf}', [EstabelecimentoController::class, 'buscarPorCpf'])->name('estabelecimentos.buscar-cpf');
     Route::get('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'editAtividades'])->name('estabelecimentos.atividades.edit');
     Route::post('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'updateAtividades'])->name('estabelecimentos.atividades.update');
+    Route::post('/estabelecimentos/{id}/alterar-competencia', [EstabelecimentoController::class, 'alterarCompetencia'])->name('estabelecimentos.alterar-competencia');
     Route::get('/estabelecimentos/{id}/historico', [EstabelecimentoController::class, 'historico'])->name('estabelecimentos.historico');
     Route::post('/estabelecimentos/{id}/aprovar', [EstabelecimentoController::class, 'aprovar'])->name('estabelecimentos.aprovar');
     Route::post('/estabelecimentos/{id}/rejeitar', [EstabelecimentoController::class, 'rejeitar'])->name('estabelecimentos.rejeitar');
@@ -109,9 +116,18 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/documentos/{id}/mover-pasta', [\App\Http\Controllers\DocumentoDigitalController::class, 'moverPasta'])->name('documentos.mover-pasta');
     Route::post('/documentos/{id}/renomear', [\App\Http\Controllers\DocumentoDigitalController::class, 'renomear'])->name('documentos.renomear');
     Route::get('/documentos/modelos/{tipoId}', [\App\Http\Controllers\DocumentoDigitalController::class, 'buscarModelos'])->name('documentos.modelos');
+    
+    // Assinatura Digital
+    Route::get('/assinatura/configurar-senha', [\App\Http\Controllers\AssinaturaDigitalController::class, 'configurarSenha'])->name('assinatura.configurar-senha');
+    Route::post('/assinatura/salvar-senha', [\App\Http\Controllers\AssinaturaDigitalController::class, 'salvarSenha'])->name('assinatura.salvar-senha');
+    Route::get('/assinatura/pendentes', [\App\Http\Controllers\AssinaturaDigitalController::class, 'documentosPendentes'])->name('assinatura.pendentes');
+    Route::get('/assinatura/assinar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'assinar'])->name('assinatura.assinar');
+    Route::post('/assinatura/processar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processar'])->name('assinatura.processar');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');
     Route::post('/documentos/{id}/assinar', [\App\Http\Controllers\DocumentoDigitalController::class, 'assinar'])->name('documentos.assinar');
     Route::post('/documentos/{id}/versoes/{versao}/restaurar', [\App\Http\Controllers\DocumentoDigitalController::class, 'restaurarVersao'])->name('documentos.restaurarVersao');
+    Route::post('/documentos/{id}/gerenciar-assinantes', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerenciarAssinantes'])->name('documentos.gerenciar-assinantes');
+    Route::delete('/documentos/assinaturas/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'removerAssinante'])->name('documentos.remover-assinante');
     
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
@@ -185,6 +201,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Pactuação (Competências Municipais e Estaduais)
         Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'show'])->name('show');
             Route::post('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'store'])->name('store');
             Route::post('/multiple', [\App\Http\Controllers\Admin\PactuacaoController::class, 'storeMultiple'])->name('store-multiple');
             Route::put('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'update'])->name('update');
@@ -193,6 +210,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::post('/{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
             Route::delete('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
             Route::get('/buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
+            Route::post('/buscar-questionarios', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarQuestionarios'])->name('buscar-questionarios');
         });
         
         // Municípios

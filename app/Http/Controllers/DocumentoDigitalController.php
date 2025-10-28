@@ -36,9 +36,16 @@ class DocumentoDigitalController extends Controller
             ->orderBy('nome')
             ->get();
 
-        $usuariosInternos = UsuarioInterno::where('ativo', true)
-            ->orderBy('nome')
-            ->get();
+        // Busca usuários internos do mesmo município do usuário logado
+        $usuarioLogado = auth('interno')->user();
+        $usuariosInternosQuery = UsuarioInterno::where('ativo', true);
+        
+        // Filtra por município (tanto para gestores/técnicos municipais quanto estaduais)
+        if ($usuarioLogado->municipio_id) {
+            $usuariosInternosQuery->where('municipio_id', $usuarioLogado->municipio_id);
+        }
+        
+        $usuariosInternos = $usuariosInternosQuery->orderBy('nome')->get();
 
         $processoId = $request->get('processo_id');
         $processo = null;
@@ -159,7 +166,17 @@ class DocumentoDigitalController extends Controller
         }
 
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
-        $usuariosInternos = UsuarioInterno::ativo()->ordenado()->get();
+        
+        // Busca usuários internos do mesmo município do usuário logado
+        $usuarioLogado = auth('interno')->user();
+        $usuariosInternosQuery = UsuarioInterno::ativo();
+        
+        // Filtra por município (tanto para gestores/técnicos municipais quanto estaduais)
+        if ($usuarioLogado->municipio_id) {
+            $usuariosInternosQuery->where('municipio_id', $usuarioLogado->municipio_id);
+        }
+        
+        $usuariosInternos = $usuariosInternosQuery->ordenado()->get();
         $processo = $documento->processo;
 
         return view('documentos.edit', compact('documento', 'tiposDocumento', 'usuariosInternos', 'processo'));
@@ -414,6 +431,147 @@ class DocumentoDigitalController extends Controller
             
         } catch (\Exception $e) {
             \Log::error('Erro ao gerar PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Gerencia assinantes do documento (adicionar/remover)
+     */
+    public function gerenciarAssinantes(Request $request, $id)
+    {
+        try {
+            $documento = DocumentoDigital::with('assinaturas')->findOrFail($id);
+            $usuarioLogado = auth('interno')->user();
+            $isAdmin = $usuarioLogado->isAdmin();
+
+            // Verifica se alguma assinatura já foi feita
+            $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
+            
+            // Apenas administradores podem alterar após assinaturas feitas
+            if ($temAssinaturaFeita && !$isAdmin) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Não é possível alterar assinantes após uma assinatura ter sido feita. Apenas administradores podem fazer isso.');
+            }
+
+            // Verifica se o documento já foi assinado completamente
+            if ($documento->status === 'assinado') {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Não é possível alterar assinantes de um documento já assinado completamente.');
+            }
+
+            $assinantesNovos = $request->input('assinantes', []);
+            $assinantesAtuais = $documento->assinaturas->pluck('usuario_interno_id')->toArray();
+
+            // Remove assinantes que não estão mais na lista
+            $assinantesRemover = array_diff($assinantesAtuais, $assinantesNovos);
+            if (!empty($assinantesRemover)) {
+                DocumentoAssinatura::where('documento_digital_id', $id)
+                    ->whereIn('usuario_interno_id', $assinantesRemover)
+                    ->delete();
+            }
+
+            // Adiciona novos assinantes
+            $assinantesAdicionar = array_diff($assinantesNovos, $assinantesAtuais);
+            $ordem = $documento->assinaturas()->max('ordem') ?? 0;
+            
+            foreach ($assinantesAdicionar as $usuarioId) {
+                $ordem++;
+                DocumentoAssinatura::create([
+                    'documento_digital_id' => $id,
+                    'usuario_interno_id' => $usuarioId,
+                    'ordem' => $ordem,
+                    'obrigatoria' => true,
+                    'status' => 'pendente',
+                ]);
+            }
+
+            // Reordena as assinaturas
+            $assinaturas = DocumentoAssinatura::where('documento_digital_id', $id)
+                ->orderBy('ordem')
+                ->get();
+            
+            $novaOrdem = 1;
+            foreach ($assinaturas as $assinatura) {
+                $assinatura->ordem = $novaOrdem++;
+                $assinatura->save();
+            }
+
+            return redirect()
+                ->back()
+                ->with('success', 'Assinantes atualizados com sucesso!');
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao gerenciar assinantes: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->with('error', 'Erro ao gerenciar assinantes: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove um assinante específico
+     */
+    public function removerAssinante($id)
+    {
+        try {
+            $assinatura = DocumentoAssinatura::with('documentoDigital.assinaturas')->findOrFail($id);
+            $documento = $assinatura->documentoDigital;
+            $usuarioLogado = auth('interno')->user();
+            $isAdmin = $usuarioLogado->isAdmin();
+
+            // Verifica se alguma assinatura já foi feita
+            $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
+            
+            // Apenas administradores podem remover após assinaturas feitas
+            if ($temAssinaturaFeita && !$isAdmin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível remover assinantes após uma assinatura ter sido feita. Apenas administradores podem fazer isso.'
+                ], 400);
+            }
+
+            // Verifica se o documento já foi assinado completamente
+            if ($documento->status === 'assinado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível remover assinantes de um documento já assinado completamente.'
+                ], 400);
+            }
+
+            // Verifica se a assinatura já foi feita
+            if ($assinatura->status === 'assinado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível remover um assinante que já assinou o documento.'
+                ], 400);
+            }
+
+            $assinatura->delete();
+
+            // Reordena as assinaturas restantes
+            $assinaturas = DocumentoAssinatura::where('documento_digital_id', $documento->id)
+                ->orderBy('ordem')
+                ->get();
+            
+            $novaOrdem = 1;
+            foreach ($assinaturas as $ass) {
+                $ass->ordem = $novaOrdem++;
+                $ass->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assinante removido com sucesso!'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao remover assinante: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao remover assinante: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

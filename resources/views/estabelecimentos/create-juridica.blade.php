@@ -638,6 +638,69 @@
                             <span class="text-sm font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full" x-text="atividadesExercidas.length"></span>
                         </div>
 
+                        {{-- Questionários Dinâmicos --}}
+                        <div x-show="questionarios.length > 0" class="mt-6 space-y-4">
+                            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
+                                <div class="flex items-start">
+                                    <svg class="h-6 w-6 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div class="ml-3">
+                                        <h4 class="text-sm font-bold text-yellow-900">📋 Questionários Obrigatórios</h4>
+                                        <p class="text-xs text-yellow-800 mt-1">
+                                            Algumas atividades selecionadas requerem informações adicionais para determinar a competência.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <template x-for="(quest, index) in questionarios" :key="quest.cnae">
+                                <div class="bg-white border-2 border-purple-300 rounded-xl p-5 shadow-sm">
+                                    <div class="flex items-start gap-3 mb-4">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded-full" x-text="quest.cnae_formatado"></span>
+                                                <span class="text-xs text-gray-600" x-text="quest.descricao"></span>
+                                            </div>
+                                            <p class="text-sm font-semibold text-gray-900 mb-3" x-text="quest.pergunta"></p>
+                                            
+                                            <div class="flex gap-3">
+                                                <button type="button"
+                                                        @click="respostasQuestionario[quest.cnae] = 'sim'"
+                                                        :class="respostasQuestionario[quest.cnae] === 'sim' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50'"
+                                                        class="flex-1 px-4 py-3 border-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                    SIM
+                                                </button>
+                                                <button type="button"
+                                                        @click="respostasQuestionario[quest.cnae] = 'nao'"
+                                                        :class="respostasQuestionario[quest.cnae] === 'nao' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50'"
+                                                        class="flex-1 px-4 py-3 border-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                    NÃO
+                                                </button>
+                                            </div>
+
+                                            <div x-show="!respostasQuestionario[quest.cnae]" class="mt-2 text-xs text-red-600 font-medium">
+                                                ⚠️ Resposta obrigatória
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
                         {{-- Alerta de Competência (apenas para usuários municipais) --}}
                         @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
                         <div x-show="atividadesExercidas.length > 0 || atividadePrincipalMarcada" class="mt-4">
@@ -798,6 +861,7 @@
             <input type="hidden" name="logradouro" x-model="dados.logradouro">
             <input type="hidden" name="codigo_municipio_ibge" x-model="dados.codigo_municipio_ibge">
             <input type="hidden" name="atividades_exercidas" :value="getAtividadesJSON()">
+            <input type="hidden" name="respostas_questionario" :value="JSON.stringify(respostasQuestionario)">
             <input type="hidden" name="atividade_principal_marcada" x-model="atividadePrincipalMarcada">
         </div>
 
@@ -846,8 +910,10 @@ function estabelecimentoForm() {
         tipoMensagem: 'error',
         abaAtiva: 'dados-gerais',
         atividadesExercidas: [],
-        atividadePrincipalMarcada: true,
+        atividadePrincipalMarcada: false,
         competenciaEstadual: false,
+        questionarios: [],
+        respostasQuestionario: {},
         modalErro: {
             visivel: false,
             mensagens: []
@@ -900,8 +966,14 @@ function estabelecimentoForm() {
 
         init() {
             // Watchers para verificar competência quando atividades mudarem
-            this.$watch('atividadesExercidas', () => this.verificarCompetencia());
-            this.$watch('atividadePrincipalMarcada', () => this.verificarCompetencia());
+            this.$watch('atividadesExercidas', () => {
+                this.verificarCompetencia();
+                this.buscarQuestionarios();
+            });
+            this.$watch('atividadePrincipalMarcada', () => {
+                this.verificarCompetencia();
+                this.buscarQuestionarios();
+            });
         },
 
         async verificarCompetencia() {
@@ -1187,7 +1259,19 @@ function estabelecimentoForm() {
                     break;
                     
                 case 'atividades':
-                    // Validação opcional: pode avançar sem marcar atividades
+                    // Validação obrigatória: pelo menos uma atividade deve ser marcada
+                    if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
+                        erros.push('Você deve marcar pelo menos uma atividade que o estabelecimento exerce');
+                    }
+                    
+                    // Validação de questionários: todas as perguntas devem ser respondidas
+                    if (this.questionarios.length > 0) {
+                        this.questionarios.forEach(quest => {
+                            if (!this.respostasQuestionario[quest.cnae]) {
+                                erros.push(`Responda o questionário da atividade: ${quest.cnae_formatado} - ${quest.descricao}`);
+                            }
+                        });
+                    }
                     break;
                     
                 case 'contato':
@@ -1279,6 +1363,55 @@ function estabelecimentoForm() {
             console.log('Atividades montadas:', atividades);
             
             return JSON.stringify(atividades);
+        },
+
+        async buscarQuestionarios() {
+            // Monta lista de CNAEs selecionados
+            const cnaes = [];
+            
+            if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
+                cnaes.push(this.dados.cnae_fiscal);
+            }
+            
+            this.atividadesExercidas.forEach(codigo => {
+                cnaes.push(codigo);
+            });
+            
+            if (cnaes.length === 0) {
+                this.questionarios = [];
+                this.respostasQuestionario = {};
+                return;
+            }
+            
+            try {
+                const response = await fetch('{{ route('admin.configuracoes.pactuacao.buscar-questionarios') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ cnaes })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.questionarios = data;
+                    
+                    // Remove respostas de questionários que não existem mais
+                    const cnaesComQuestionario = data.map(q => q.cnae);
+                    Object.keys(this.respostasQuestionario).forEach(cnae => {
+                        if (!cnaesComQuestionario.includes(cnae)) {
+                            delete this.respostasQuestionario[cnae];
+                        }
+                    });
+                    
+                    console.log('Questionários encontrados:', data);
+                } else {
+                    console.error('Erro ao buscar questionários');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar questionários:', error);
+            }
         },
 
         formatarMoeda(valor) {
