@@ -5,76 +5,31 @@
 
 @section('content')
 <div class="space-y-6">
-    {{-- Estatísticas --}}
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $estatisticas['total'] }}</p>
-                </div>
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                </div>
-            </div>
+    {{-- Estatísticas Compactas --}}
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs font-medium text-gray-500 mb-1">Total</p>
+            <p class="text-xl font-bold text-gray-900">{{ $estatisticas['total'] }}</p>
         </div>
 
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Pendentes</p>
-                    <p class="text-2xl font-bold text-yellow-600">{{ $estatisticas['pendentes'] }}</p>
-                </div>
-                <div class="p-3 bg-yellow-100 rounded-full">
-                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
+        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow">
+            <p class="text-xs font-medium text-gray-500 mb-1">Pendentes</p>
+            <p class="text-xl font-bold text-yellow-600">{{ $estatisticas['pendentes'] }}</p>
         </a>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Aprovados</p>
-                    <p class="text-2xl font-bold text-green-600">{{ $estatisticas['aprovados'] }}</p>
-                </div>
-                <div class="p-3 bg-green-100 rounded-full">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <p class="text-xs font-medium text-gray-500 mb-1">Aprovados</p>
+            <p class="text-xl font-bold text-green-600">{{ $estatisticas['aprovados'] }}</p>
         </div>
 
-        <a href="{{ route('admin.estabelecimentos.rejeitados') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Rejeitados</p>
-                    <p class="text-2xl font-bold text-red-600">{{ $estatisticas['rejeitados'] }}</p>
-                </div>
-                <div class="p-3 bg-red-100 rounded-full">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
+        <a href="{{ route('admin.estabelecimentos.rejeitados') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow">
+            <p class="text-xs font-medium text-gray-500 mb-1">Rejeitados</p>
+            <p class="text-xl font-bold text-red-600">{{ $estatisticas['rejeitados'] }}</p>
         </a>
 
-        <a href="{{ route('admin.estabelecimentos.desativados') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Desativados</p>
-                    <p class="text-2xl font-bold text-orange-600">{{ $estatisticas['desativados'] }}</p>
-                </div>
-                <div class="p-3 bg-orange-100 rounded-full">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                    </svg>
-                </div>
-            </div>
+        <a href="{{ route('admin.estabelecimentos.desativados') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow">
+            <p class="text-xs font-medium text-gray-500 mb-1">Desativados</p>
+            <p class="text-xl font-bold text-orange-600">{{ $estatisticas['desativados'] }}</p>
         </a>
     </div>
 
@@ -96,39 +51,60 @@
         </div>
     </div>
 
-    {{-- Filtros --}}
+    {{-- Filtro por Grupo de Risco --}}
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-        <form method="GET" action="{{ route('admin.estabelecimentos.index') }}" class="flex gap-3 items-end">
-            {{-- Busca --}}
-            <div class="flex-1">
-                <label for="search" class="block text-xs font-medium text-gray-700 mb-1">Buscar estabelecimento</label>
-                <input type="text"
-                       id="search"
-                       name="search"
-                       value="{{ request('search') }}"
-                       placeholder="CNPJ, CPF, Razão Social, Nome Fantasia..."
-                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <div class="flex flex-col sm:flex-row gap-4">
+            {{-- Filtros de Risco --}}
+            <div class="flex-shrink-0">
+                <label class="block text-xs font-medium text-gray-700 mb-2">Filtrar por Grupo de Risco</label>
+                <div class="flex gap-2">
+                    <a href="{{ route('admin.estabelecimentos.index', array_merge(request()->except('risco'), [])) }}"
+                       class="px-3 py-1.5 text-xs font-medium rounded transition-colors {{ !request('risco') ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        Todos
+                    </a>
+                    <a href="{{ route('admin.estabelecimentos.index', array_merge(request()->except('risco'), ['risco' => 'baixo'])) }}"
+                       class="px-3 py-1.5 text-xs font-medium rounded transition-colors {{ request('risco') === 'baixo' ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                       style="{{ request('risco') === 'baixo' ? 'background-color: #34d399;' : '' }}">
+                        Baixo
+                    </a>
+                    <a href="{{ route('admin.estabelecimentos.index', array_merge(request()->except('risco'), ['risco' => 'medio'])) }}"
+                       class="px-3 py-1.5 text-xs font-medium rounded transition-colors {{ request('risco') === 'medio' ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                       style="{{ request('risco') === 'medio' ? 'background-color: #fbbf24;' : '' }}">
+                        Médio
+                    </a>
+                    <a href="{{ route('admin.estabelecimentos.index', array_merge(request()->except('risco'), ['risco' => 'alto'])) }}"
+                       class="px-3 py-1.5 text-xs font-medium rounded transition-colors {{ request('risco') === 'alto' ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                       style="{{ request('risco') === 'alto' ? 'background-color: #ef4444;' : '' }}">
+                        Alto
+                    </a>
+                </div>
             </div>
 
-            <div class="flex gap-2">
-                <button type="submit"
-                        class="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    Buscar
-                </button>
-                @if(request('search'))
-                <a href="{{ route('admin.estabelecimentos.index') }}"
-                   class="inline-flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 text-sm font-semibold transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Limpar
-                </a>
-                @endif
+            {{-- Busca --}}
+            <div class="flex-1">
+                <form method="GET" action="{{ route('admin.estabelecimentos.index') }}" class="flex gap-2 items-end">
+                    <input type="hidden" name="risco" value="{{ request('risco') }}">
+                    <div class="flex-1">
+                        <label for="search" class="block text-xs font-medium text-gray-700 mb-1">Buscar</label>
+                        <input type="text"
+                               id="search"
+                               name="search"
+                               value="{{ request('search') }}"
+                               placeholder="CNPJ, CPF, Razão Social..."
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
+                        Buscar
+                    </button>
+                    @if(request('search') || request('risco'))
+                    <a href="{{ route('admin.estabelecimentos.index') }}"
+                       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors">
+                        Limpar
+                    </a>
+                    @endif
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
     {{-- Lista de Estabelecimentos --}}
@@ -155,6 +131,9 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Nome Fantasia
                             </th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Grupo de Risco
+                            </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Município
                             </th>
@@ -168,7 +147,7 @@
                         <tr class="hover:bg-blue-50 transition-colors cursor-pointer {{ !$estabelecimento->ativo ? 'bg-red-50' : '' }}" 
                             onclick="window.location='{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}'">
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1.5">
                                     <div>
                                         <div class="font-medium text-gray-900">
                                             {{ $estabelecimento->documento_formatado }}
@@ -178,17 +157,17 @@
                                         </div>
                                     </div>
                                     @if(!$estabelecimento->ativo)
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                        Desativado
+                                    <span class="px-1.5 py-0.5 text-xs font-bold rounded bg-red-100 text-red-800">
+                                        INATIVO
                                     </span>
                                     @endif
                                     @if($estabelecimento->isCompetenciaEstadual())
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800" title="Competência Estadual">
-                                        🏛️ Estadual
+                                    <span class="px-1.5 py-0.5 text-xs font-bold rounded" style="background-color: #e9d5ff; color: #7c3aed;" title="Competência Estadual">
+                                        EST.
                                     </span>
                                     @else
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" title="Competência Municipal">
-                                        🏢 Municipal
+                                    <span class="px-1.5 py-0.5 text-xs font-bold rounded" style="background-color: #dbeafe; color: #2563eb;" title="Competência Municipal">
+                                        MUN.
                                     </span>
                                     @endif
                                 </div>
@@ -204,6 +183,13 @@
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span class="inline-block px-2 py-0.5 text-xs font-semibold rounded transition-all duration-200 cursor-help shadow-sm" 
+                                      style="{{ $estabelecimento->grupo_risco_style }}"
+                                      title="{{ $estabelecimento->grupo_risco_tooltip }}">
+                                    {{ $estabelecimento->grupo_risco_label }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ $estabelecimento->cidade }} - {{ $estabelecimento->estado }}

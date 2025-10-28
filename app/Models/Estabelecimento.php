@@ -718,4 +718,131 @@ class Estabelecimento extends Model
         return $query->where('municipio_id', $municipioId);
     }
 
+    /**
+     * Calcula o Grupo de Risco do estabelecimento baseado nas atividades pactuadas
+     * 
+     * Lógica:
+     * - Alto Risco: Estabelecimentos com atividades de classificação_risco "alto" na pactuação
+     * - Médio Risco: Estabelecimentos com atividades de classificação_risco "medio"
+     * - Baixo Risco: Estabelecimentos sem atividades de risco ou classificação "baixo"
+     * 
+     * @return string 'alto', 'medio', 'baixo', ou 'indefinido'
+     */
+    public function getGrupoRisco(): string
+    {
+        $atividades = $this->getTodasAtividades();
+        
+        if (empty($atividades)) {
+            return 'indefinido';
+        }
+        
+        $temAltoRisco = false;
+        $temMedioRisco = false;
+        
+        foreach ($atividades as $cnae) {
+            $pactuacao = Pactuacao::where('cnae_codigo', $cnae)
+                ->where('ativo', true)
+                ->first();
+            
+            if ($pactuacao && $pactuacao->classificacao_risco) {
+                $risco = strtolower($pactuacao->classificacao_risco);
+                
+                if ($risco === 'alto') {
+                    $temAltoRisco = true;
+                    break; // Se tem alto risco, já retorna
+                } elseif ($risco === 'medio' || $risco === 'médio') {
+                    $temMedioRisco = true;
+                }
+            }
+        }
+        
+        if ($temAltoRisco) {
+            return 'alto';
+        } elseif ($temMedioRisco) {
+            return 'medio';
+        }
+        
+        return 'baixo';
+    }
+    
+    /**
+     * Retorna o label curto do grupo de risco (versão clean)
+     */
+    public function getGrupoRiscoLabelAttribute(): string
+    {
+        $risco = $this->getGrupoRisco();
+        
+        return match($risco) {
+            'alto' => 'Alto',
+            'medio' => 'Médio',
+            'baixo' => 'Baixo',
+            'indefinido' => 'N/A',
+            default => 'N/A',
+        };
+    }
+    
+    /**
+     * Retorna o label completo do grupo de risco (para tooltip)
+     */
+    public function getGrupoRiscoTooltipAttribute(): string
+    {
+        $risco = $this->getGrupoRisco();
+        
+        return match($risco) {
+            'alto' => 'Alto Risco - Estabelecimento com atividades de alto risco sanitário',
+            'medio' => 'Médio Risco - Estabelecimento com atividades de risco moderado',
+            'baixo' => 'Baixo Risco - Estabelecimento com atividades de baixo risco',
+            'indefinido' => 'Não Classificado - Sem atividades cadastradas',
+            default => 'Não Classificado',
+        };
+    }
+    
+    /**
+     * Retorna o estilo inline do grupo de risco (cores exatas)
+     */
+    public function getGrupoRiscoStyleAttribute(): string
+    {
+        $risco = $this->getGrupoRisco();
+        
+        return match($risco) {
+            'alto' => 'background-color: #ef4444; color: white;',      // Vermelho
+            'medio' => 'background-color: #fbbf24; color: white;',     // Laranja
+            'baixo' => 'background-color: #34d399; color: white;',     // Verde
+            'indefinido' => 'background-color: #9ca3af; color: white;',
+            default => 'background-color: #9ca3af; color: white;',
+        };
+    }
+    
+    /**
+     * Retorna as classes CSS do grupo de risco (versão compacta com cores vibrantes)
+     */
+    public function getGrupoRiscoCorAttribute(): string
+    {
+        $risco = $this->getGrupoRisco();
+        
+        return match($risco) {
+            'alto' => 'bg-red-500 text-white',
+            'medio' => 'bg-yellow-500 text-white',
+            'baixo' => 'bg-green-500 text-white',
+            'indefinido' => 'bg-gray-400 text-white',
+            default => 'bg-gray-400 text-white',
+        };
+    }
+    
+    /**
+     * Retorna a cor de fundo mais escura para hover
+     */
+    public function getGrupoRiscoCorHoverAttribute(): string
+    {
+        $risco = $this->getGrupoRisco();
+        
+        return match($risco) {
+            'alto' => 'hover:bg-red-600',
+            'medio' => 'hover:bg-yellow-600',
+            'baixo' => 'hover:bg-green-600',
+            'indefinido' => 'hover:bg-gray-500',
+            default => 'hover:bg-gray-500',
+        };
+    }
+
 }

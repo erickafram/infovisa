@@ -556,4 +556,148 @@ class ProcessoController extends Controller
         
         return str_replace(array_keys($variaveis), array_values($variaveis), $conteudo);
     }
+
+    /**
+     * Arquivar processo
+     */
+    public function arquivar(Request $request, $estabelecimentoId, $processoId)
+    {
+        $request->validate([
+            'motivo_arquivamento' => 'required|string|min:10',
+        ], [
+            'motivo_arquivamento.required' => 'O motivo do arquivamento é obrigatório.',
+            'motivo_arquivamento.min' => 'O motivo deve ter no mínimo 10 caracteres.',
+        ]);
+
+        try {
+            $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+                ->findOrFail($processoId);
+
+            $statusAntigo = $processo->status;
+
+            // Atualizar processo
+            $processo->update([
+                'status' => 'arquivado',
+                'motivo_arquivamento' => $request->motivo_arquivamento,
+                'data_arquivamento' => now(),
+                'usuario_arquivamento_id' => Auth::guard('interno')->id(),
+            ]);
+
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO
+            \App\Models\ProcessoEvento::registrarArquivamento(
+                $processo,
+                $request->motivo_arquivamento
+            );
+
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', 'Processo arquivado com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao arquivar processo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Desarquivar processo
+     */
+    public function desarquivar($estabelecimentoId, $processoId)
+    {
+        try {
+            $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+                ->findOrFail($processoId);
+
+            // Atualizar processo
+            $processo->update([
+                'status' => 'aberto',
+            ]);
+
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO
+            \App\Models\ProcessoEvento::create([
+                'processo_id' => $processo->id,
+                'usuario_interno_id' => Auth::guard('interno')->id(),
+                'tipo_evento' => 'processo_desarquivado',
+                'titulo' => 'Processo Desarquivado',
+                'descricao' => 'Processo foi desarquivado e reaberto',
+                'dados_adicionais' => [
+                    'motivo_arquivamento_anterior' => $processo->motivo_arquivamento,
+                    'data_arquivamento_anterior' => $processo->data_arquivamento?->toDateTimeString(),
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', 'Processo desarquivado com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao desarquivar processo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Parar processo
+     */
+    public function parar(Request $request, $estabelecimentoId, $processoId)
+    {
+        $request->validate([
+            'motivo_parada' => 'required|string|min:10',
+        ], [
+            'motivo_parada.required' => 'O motivo da parada é obrigatório.',
+            'motivo_parada.min' => 'O motivo deve ter no mínimo 10 caracteres.',
+        ]);
+
+        try {
+            $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+                ->findOrFail($processoId);
+
+            // Atualizar processo
+            $processo->update([
+                'status' => 'parado',
+                'motivo_parada' => $request->motivo_parada,
+                'data_parada' => now(),
+                'usuario_parada_id' => Auth::guard('interno')->id(),
+            ]);
+
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO
+            \App\Models\ProcessoEvento::registrarParada(
+                $processo,
+                $request->motivo_parada
+            );
+
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', 'Processo parado com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao parar processo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reiniciar processo
+     */
+    public function reiniciar($estabelecimentoId, $processoId)
+    {
+        try {
+            $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+                ->findOrFail($processoId);
+
+            // Atualizar processo
+            $processo->update([
+                'status' => 'aberto',
+            ]);
+
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO
+            \App\Models\ProcessoEvento::registrarReinicio($processo);
+
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', 'Processo reiniciado com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao reiniciar processo: ' . $e->getMessage());
+        }
+    }
 }

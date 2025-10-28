@@ -62,7 +62,12 @@ class TipoProcessoSeeder extends Seeder
         ];
 
         foreach ($tipos as $tipo) {
-            TipoProcesso::create($tipo);
+            TipoProcesso::updateOrCreate(
+                ['codigo' => $tipo['codigo']],
+                $tipo
+            );
         }
+        
+        $this->command->info('Tipos de processos cadastrados com sucesso!');
     }
 }

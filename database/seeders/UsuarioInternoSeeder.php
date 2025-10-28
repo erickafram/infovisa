@@ -16,21 +16,23 @@ class UsuarioInternoSeeder extends Seeder
     public function run(): void
     {
         // Criar usuário administrador padrão
-        UsuarioInterno::create([
-            'nome' => 'Administrador do Sistema',
-            'cpf' => '00000000000',
-            'email' => 'admin@infovisa.gov.br',
-            'telefone' => '63999999999',
-            'matricula' => 'ADM001',
-            'cargo' => 'Administrador',
-            'nivel_acesso' => NivelAcesso::Administrador,
-            'municipio' => null,
-            'password' => Hash::make('Admin@123'),
-            'ativo' => true,
-            'email_verified_at' => now(),
-        ]);
+        UsuarioInterno::updateOrCreate(
+            ['cpf' => '00000000000'],
+            [
+                'nome' => 'Administrador do Sistema',
+                'email' => 'admin@infovisa.gov.br',
+                'telefone' => '63999999999',
+                'matricula' => 'ADM001',
+                'cargo' => 'Administrador',
+                'nivel_acesso' => NivelAcesso::Administrador,
+                'municipio' => null,
+                'password' => Hash::make('Admin@123'),
+                'ativo' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $this->command->info('✅ Usuário administrador criado com sucesso!');
+        $this->command->info('✅ Usuário administrador criado/atualizado com sucesso!');
         $this->command->info('📧 Email: admin@infovisa.gov.br');
         $this->command->info('🔑 Senha: Admin@123');
     }

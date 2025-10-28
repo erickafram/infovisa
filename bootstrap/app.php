@@ -16,6 +16,27 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/consultar-cnpj',
             'api/verificar-cnpj/*',
         ]);
+        
+        // Configurar redirect para usuários não autenticados
+        $middleware->redirectGuestsTo(function ($request) {
+            // Se a rota começa com /admin ou /company, redireciona para login
+            if ($request->is('admin/*') || $request->is('company/*')) {
+                return route('login');
+            }
+            return route('login');
+        });
+        
+        // Configurar redirect após autenticação bem-sucedida
+        $middleware->redirectUsersTo(function () {
+            // Detecta qual guard está autenticado e redireciona adequadamente
+            if (auth('interno')->check()) {
+                return route('admin.dashboard');
+            }
+            if (auth('externo')->check()) {
+                return route('company.dashboard');
+            }
+            return '/';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

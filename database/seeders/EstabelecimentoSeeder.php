@@ -108,9 +108,12 @@ class EstabelecimentoSeeder extends Seeder
         ];
 
         foreach ($estabelecimentos as $estabelecimento) {
-            Estabelecimento::create($estabelecimento);
+            Estabelecimento::updateOrCreate(
+                ['cnpj' => $estabelecimento['cnpj']],
+                $estabelecimento
+            );
         }
 
-        $this->command->info('✅ ' . count($estabelecimentos) . ' estabelecimentos criados com sucesso!');
+        $this->command->info('✅ ' . count($estabelecimentos) . ' estabelecimentos criados/atualizados com sucesso!');
     }
 }

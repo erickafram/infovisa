@@ -15,15 +15,78 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class DocumentoDigitalController extends Controller
 {
     /**
-     * Lista todos os documentos digitais
+     * Lista documentos digitais do usuário logado com filtros
      */
-    public function index()
+    public function index(Request $request)
     {
-        $documentos = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $usuarioLogado = auth('interno')->user();
+        $filtroStatus = $request->get('status', 'todos');
+        
+        // Query base: documentos relacionados ao usuário
+        $query = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo', 'assinaturas.usuarioInterno'])
+            ->where(function($q) use ($usuarioLogado) {
+                // Documentos criados pelo usuário
+                $q->where('usuario_criador_id', $usuarioLogado->id)
+                  // OU documentos onde o usuário é assinante
+                  ->orWhereHas('assinaturas', function($query) use ($usuarioLogado) {
+                      $query->where('usuario_interno_id', $usuarioLogado->id);
+                  });
+            });
+        
+        // Aplicar filtro de status
+        if ($filtroStatus !== 'todos') {
+            switch ($filtroStatus) {
+                case 'rascunho':
+                    $query->where('status', 'rascunho')
+                          ->where('usuario_criador_id', $usuarioLogado->id);
+                    break;
+                    
+                case 'aguardando_minha_assinatura':
+                    $query->where('status', 'aguardando_assinatura')
+                          ->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                              $q->where('usuario_interno_id', $usuarioLogado->id)
+                                ->where('status', 'pendente');
+                          });
+                    break;
+                    
+                case 'assinados_por_mim':
+                    $query->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                        $q->where('usuario_interno_id', $usuarioLogado->id)
+                          ->where('status', 'assinado');
+                    });
+                    break;
+                    
+                case 'aguardando_assinatura':
+                    $query->where('status', 'aguardando_assinatura');
+                    break;
+                    
+                case 'assinado':
+                    $query->where('status', 'assinado');
+                    break;
+            }
+        }
+        
+        $documentos = $query->orderBy('created_at', 'desc')->paginate(20);
+        
+        // Estatísticas para badges
+        $stats = [
+            'rascunhos' => DocumentoDigital::where('usuario_criador_id', $usuarioLogado->id)
+                ->where('status', 'rascunho')
+                ->count(),
+            'aguardando_minha_assinatura' => DocumentoDigital::where('status', 'aguardando_assinatura')
+                ->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                    $q->where('usuario_interno_id', $usuarioLogado->id)
+                      ->where('status', 'pendente');
+                })
+                ->count(),
+            'assinados_por_mim' => DocumentoDigital::whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                $q->where('usuario_interno_id', $usuarioLogado->id)
+                  ->where('status', 'assinado');
+            })
+            ->count(),
+        ];
 
-        return view('documentos.index', compact('documentos'));
+        return view('documentos.index', compact('documentos', 'filtroStatus', 'stats'));
     }
 
     /**
@@ -123,6 +186,14 @@ class DocumentoDigitalController extends Controller
                 $this->gerarESalvarPDF($documento, $request->processo_id);
             }
 
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO
+            if ($request->processo_id) {
+                $processo = \App\Models\Processo::find($request->processo_id);
+                if ($processo) {
+                    \App\Models\ProcessoEvento::registrarDocumentoDigitalCriado($processo, $documento);
+                }
+            }
+
             DB::commit();
 
             // Se veio de um processo, redireciona de volta para o processo
@@ -157,12 +228,27 @@ class DocumentoDigitalController extends Controller
      */
     public function edit($id)
     {
+        // Log para debug de redirecionamento
+        \Log::info('DocumentoDigitalController@edit chamado', [
+            'documento_id' => $id,
+            'usuario_autenticado' => auth('interno')->check(),
+            'usuario_id' => auth('interno')->id(),
+            'url_atual' => request()->url(),
+        ]);
+        
         $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas', 'versoes.usuarioInterno'])
             ->findOrFail($id);
 
         // Apenas rascunhos podem ser editados
         if ($documento->status !== 'rascunho') {
-            return back()->with('error', 'Apenas documentos em rascunho podem ser editados.');
+            \Log::warning('Tentativa de editar documento não-rascunho', [
+                'documento_id' => $id,
+                'status' => $documento->status
+            ]);
+            
+            // Redirect específico ao invés de back() para evitar loops
+            return redirect()->route('admin.documentos.show', $documento->id)
+                ->with('error', 'Apenas documentos em rascunho podem ser editados.');
         }
 
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
@@ -274,6 +360,14 @@ class DocumentoDigitalController extends Controller
     {
         try {
             $documento = DocumentoDigital::findOrFail($id);
+            
+            // ✅ REGISTRAR EVENTO NO HISTÓRICO ANTES DE EXCLUIR
+            if ($documento->processo_id) {
+                $processo = \App\Models\Processo::find($documento->processo_id);
+                if ($processo) {
+                    \App\Models\ProcessoEvento::registrarDocumentoDigitalExcluido($processo, $documento);
+                }
+            }
             
             // Remove assinaturas
             $documento->assinaturas()->delete();
@@ -571,6 +665,208 @@ class DocumentoDigitalController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao remover assinante: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Salva automaticamente o conteúdo do documento (rascunho)
+     */
+    public function salvarAutomaticamente(Request $request, $id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+            
+            // Apenas rascunhos podem ter salvamento automático
+            if ($documento->status !== 'rascunho') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Apenas rascunhos podem ser salvos automaticamente.'
+                ], 403);
+            }
+
+            $usuarioId = Auth::guard('interno')->id();
+            $conteudoNovo = $request->input('conteudo');
+            $conteudoAntigo = $documento->conteudo;
+
+            // Calcula diferença
+            $diff = \App\Models\DocumentoEdicao::calcularDiff($conteudoAntigo, $conteudoNovo);
+
+            // Atualiza documento
+            $documento->update([
+                'conteudo' => $conteudoNovo,
+                'ultimo_editor_id' => $usuarioId,
+                'ultima_edicao_em' => now(),
+                'versao_atual' => $documento->versao_atual + 1,
+            ]);
+
+            // Registra edição
+            \App\Models\DocumentoEdicao::create([
+                'documento_digital_id' => $documento->id,
+                'usuario_interno_id' => $usuarioId,
+                'conteudo' => $conteudoNovo,
+                'diff' => $diff['diff'],
+                'caracteres_adicionados' => $diff['adicionados'],
+                'caracteres_removidos' => $diff['removidos'],
+                'iniciado_em' => now(),
+                'ativo' => true,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Busca editores ativos
+            $editores = $documento->editoresAtivos();
+
+            return response()->json([
+                'success' => true,
+                'versao' => $documento->versao_atual,
+                'ultima_edicao' => $documento->ultima_edicao_em->toIso8601String(),
+                'editores_ativos' => $editores->map(function($edicao) {
+                    return [
+                        'id' => $edicao->usuarioInterno->id,
+                        'nome' => $edicao->usuarioInterno->nome,
+                        'iniciado_em' => $edicao->iniciado_em->diffForHumans(),
+                    ];
+                }),
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao salvar automaticamente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao salvar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna editores atualmente ativos
+     */
+    public function editoresAtivos($id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+            $editores = $documento->editoresAtivos();
+
+            return response()->json([
+                'success' => true,
+                'editores' => $editores->map(function($edicao) {
+                    return [
+                        'id' => $edicao->usuarioInterno->id,
+                        'nome' => $edicao->usuarioInterno->nome,
+                        'iniciado_em' => $edicao->iniciado_em->diffForHumans(),
+                        'caracteres_adicionados' => $edicao->caracteres_adicionados,
+                        'caracteres_removidos' => $edicao->caracteres_removidos,
+                    ];
+                }),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar editores: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna conteúdo atual do documento para sincronização
+     */
+    public function obterConteudo($id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'conteudo' => $documento->conteudo,
+                'versao' => $documento->versao_atual,
+                'ultima_edicao' => $documento->ultima_edicao_em?->toIso8601String(),
+                'ultimo_editor' => $documento->ultimoEditor ? [
+                    'id' => $documento->ultimoEditor->id,
+                    'nome' => $documento->ultimoEditor->nome,
+                ] : null,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao obter conteúdo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Marca início de edição
+     */
+    public function iniciarEdicao(Request $request, $id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+            $usuarioId = Auth::guard('interno')->id();
+
+            // Desativa edições antigas do mesmo usuário
+            \App\Models\DocumentoEdicao::where('documento_digital_id', $documento->id)
+                ->where('usuario_interno_id', $usuarioId)
+                ->where('ativo', true)
+                ->update(['ativo' => false, 'finalizado_em' => now()]);
+
+            // Cria nova edição ativa
+            $edicao = \App\Models\DocumentoEdicao::create([
+                'documento_digital_id' => $documento->id,
+                'usuario_interno_id' => $usuarioId,
+                'conteudo' => $documento->conteudo,
+                'iniciado_em' => now(),
+                'ativo' => true,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Busca outros editores ativos
+            $outrosEditores = $documento->editoresAtivos()
+                ->where('usuario_interno_id', '!=', $usuarioId);
+
+            return response()->json([
+                'success' => true,
+                'edicao_id' => $edicao->id,
+                'outros_editores' => $outrosEditores->map(function($e) {
+                    return [
+                        'nome' => $e->usuarioInterno->nome,
+                        'iniciado_em' => $e->iniciado_em->diffForHumans(),
+                    ];
+                }),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao iniciar edição: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Finaliza edição
+     */
+    public function finalizarEdicao(Request $request, $id)
+    {
+        try {
+            $usuarioId = Auth::guard('interno')->id();
+
+            \App\Models\DocumentoEdicao::where('documento_digital_id', $id)
+                ->where('usuario_interno_id', $usuarioId)
+                ->where('ativo', true)
+                ->update([
+                    'ativo' => false,
+                    'finalizado_em' => now(),
+                ]);
+
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao finalizar edição: ' . $e->getMessage()
             ], 500);
         }
     }

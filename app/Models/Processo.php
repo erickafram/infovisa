@@ -21,11 +21,19 @@ class Processo extends Model
         'numero_processo',
         'status',
         'observacoes',
+        'motivo_arquivamento',
+        'data_arquivamento',
+        'usuario_arquivamento_id',
+        'motivo_parada',
+        'data_parada',
+        'usuario_parada_id',
     ];
 
     protected $casts = [
         'ano' => 'integer',
         'numero_sequencial' => 'integer',
+        'data_arquivamento' => 'datetime',
+        'data_parada' => 'datetime',
     ];
 
     /**
@@ -53,6 +61,7 @@ class Processo extends Model
             'pendente' => 'Pendente',
             'aprovado' => 'Aprovado',
             'indeferido' => 'Indeferido',
+            'parado' => 'Parado',
             'arquivado' => 'Arquivado',
         ];
     }
@@ -140,6 +149,30 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com eventos do processo (histórico)
+     */
+    public function eventos()
+    {
+        return $this->hasMany(ProcessoEvento::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Relacionamento com usuário que arquivou o processo
+     */
+    public function usuarioArquivamento()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'usuario_arquivamento_id');
+    }
+
+    /**
+     * Relacionamento com usuário que parou o processo
+     */
+    public function usuarioParada()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'usuario_parada_id');
+    }
+
+    /**
      * Verifica se um usuário está acompanhando o processo
      */
     public function estaAcompanhadoPor($usuarioId): bool
@@ -182,6 +215,7 @@ class Processo extends Model
             'pendente' => 'orange',
             'aprovado' => 'green',
             'indeferido' => 'red',
+            'parado' => 'red',
             'arquivado' => 'gray',
             default => 'gray',
         };

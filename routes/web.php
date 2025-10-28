@@ -129,6 +129,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/documentos/{id}/gerenciar-assinantes', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerenciarAssinantes'])->name('documentos.gerenciar-assinantes');
     Route::delete('/documentos/assinaturas/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'removerAssinante'])->name('documentos.remover-assinante');
     
+    // API para edição colaborativa
+    Route::post('/documentos/{id}/salvar-auto', [\App\Http\Controllers\DocumentoDigitalController::class, 'salvarAutomaticamente'])->name('documentos.salvar-auto');
+    Route::get('/documentos/{id}/editores-ativos', [\App\Http\Controllers\DocumentoDigitalController::class, 'editoresAtivos'])->name('documentos.editores-ativos');
+    Route::get('/documentos/{id}/obter-conteudo', [\App\Http\Controllers\DocumentoDigitalController::class, 'obterConteudo'])->name('documentos.obter-conteudo');
+    Route::post('/documentos/{id}/iniciar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'iniciarEdicao'])->name('documentos.iniciar-edicao');
+    Route::post('/documentos/{id}/finalizar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'finalizarEdicao'])->name('documentos.finalizar-edicao');
+    
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
     
@@ -139,6 +146,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}', [\App\Http\Controllers\ProcessoController::class, 'show'])->name('estabelecimentos.processos.show');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/status', [\App\Http\Controllers\ProcessoController::class, 'updateStatus'])->name('estabelecimentos.processos.updateStatus');
     Route::post('/estabelecimentos/{id}/processos/{processo}/acompanhar', [\App\Http\Controllers\ProcessoController::class, 'toggleAcompanhamento'])->name('estabelecimentos.processos.toggleAcompanhamento');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/arquivar', [\App\Http\Controllers\ProcessoController::class, 'arquivar'])->name('estabelecimentos.processos.arquivar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/desarquivar', [\App\Http\Controllers\ProcessoController::class, 'desarquivar'])->name('estabelecimentos.processos.desarquivar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/parar', [\App\Http\Controllers\ProcessoController::class, 'parar'])->name('estabelecimentos.processos.parar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/reiniciar', [\App\Http\Controllers\ProcessoController::class, 'reiniciar'])->name('estabelecimentos.processos.reiniciar');
     Route::delete('/estabelecimentos/{id}/processos/{processo}', [\App\Http\Controllers\ProcessoController::class, 'destroy'])->name('estabelecimentos.processos.destroy');
     
     // Upload de arquivos em processos
@@ -230,6 +241,31 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
 
 // Rota temporária para consulta de CNPJ (sem middleware CSRF para AJAX)
 Route::post('/api/consultar-cnpj', [App\Http\Controllers\Api\CnpjController::class, 'consultar'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
+// ROTA DE TESTE - DEBUG DE AUTENTICAÇÃO (REMOVER EM PRODUÇÃO)
+Route::get('/test-auth-debug', function () {
+    return response()->json([
+        'interno' => [
+            'autenticado' => auth('interno')->check(),
+            'usuario_id' => auth('interno')->id(),
+            'usuario_nome' => auth('interno')->user()?->nome,
+            'usuario_email' => auth('interno')->user()?->email,
+        ],
+        'externo' => [
+            'autenticado' => auth('externo')->check(),
+            'usuario_id' => auth('externo')->id(),
+        ],
+        'web' => [
+            'autenticado' => auth('web')->check(),
+        ],
+        'session' => [
+            'has_session' => session()->has('_token'),
+            'session_id' => session()->getId(),
+        ],
+        'guards_disponiveis' => array_keys(config('auth.guards')),
+        'default_guard' => config('auth.defaults.guard'),
+    ]);
+});
 
 /*
 |--------------------------------------------------------------------------

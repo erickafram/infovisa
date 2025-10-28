@@ -3,6 +3,9 @@
 @section('title', 'Editar Rascunho')
 
 @section('content')
+{{-- Script de Edição Colaborativa --}}
+<script src="{{ asset('js/edicao-colaborativa.js') }}"></script>
+
 <div class="min-h-screen bg-gray-50" x-data="documentoEditor()">
     <div class="max-w-8xl mx-auto px-4 py-8">
         {{-- Header com Breadcrumb --}}
@@ -505,6 +508,12 @@ function documentoEditor() {
             this.tipoSelecionado = {{ $documento->tipo_documento_id ?? 'null' }};
             this.conteudo = {!! json_encode($documento->conteudo) !!};
             document.getElementById('editor').innerHTML = this.conteudo;
+            
+            // Inicializa sistema de edição colaborativa
+            this.edicaoColaborativa = new EdicaoColaborativa(
+                {{ $documento->id }},
+                '{{ auth("interno")->user()->nome }}'
+            );
         },
 
         salvarAutomaticamente() {

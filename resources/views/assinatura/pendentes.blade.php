@@ -96,10 +96,12 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="{{ route('admin.assinatura.assinar', $assinatura->documentoDigital->id) }}" 
-                                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                                        ✍️ Assinar
-                                    </a>
+                                    <x-button-assinar 
+                                        href="{{ route('admin.assinatura.assinar', $assinatura->documentoDigital->id) }}"
+                                        variant="primary"
+                                        size="md">
+                                        Assinar
+                                    </x-button-assinar>
                                 </td>
                             </tr>
                         @endforeach

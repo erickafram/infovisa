@@ -39,6 +39,29 @@
         </div>
     @endif
 
+    {{-- Alerta de Processo Parado --}}
+    @if($processo->status === 'parado')
+    <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-3 rounded-lg">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-semibold text-red-800">⚠️ Processo Parado</h3>
+                    <p class="text-xs text-red-700 mt-0.5"><strong>Motivo:</strong> {{ $processo->motivo_parada }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-red-600">
+                <span>📅 Parado em: {{ $processo->data_parada->format('d/m/Y H:i') }}</span>
+                @if($processo->usuarioParada)
+                <span>👤 Por: {{ $processo->usuarioParada->nome }}</span>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if($errors->any())
         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
             <div class="flex items-start">
@@ -207,6 +230,7 @@
                     Menu de Opções
                 </h3>
                 <div class="space-y-2">
+                    @if($processo->status !== 'arquivado')
                     <button @click="modalUpload = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
@@ -219,6 +243,7 @@
                         </svg>
                         Criar Documento Digital
                     </a>
+                    @endif
                     <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -255,23 +280,58 @@
                         </svg>
                         Processo na Íntegra
                     </button>
+                    
+                    @if($processo->status !== 'arquivado')
                     <button @click="modalPastas = true; carregarPastas()" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                         </svg>
                         Pastas Processo
                     </button>
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                    
+                    @if($processo->status === 'parado')
+                    <form action="{{ route('admin.estabelecimentos.processos.reiniciar', [$estabelecimento->id, $processo->id]) }}" method="POST" class="w-full">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Reiniciar Processo
+                        </button>
+                    </form>
+                    @else
+                    <button @click="modalParar = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Parar Processo
                     </button>
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                    @endif
+                    @endif
+                    @if($processo->status === 'arquivado')
+                    <form action="{{ route('admin.estabelecimentos.processos.desarquivar', [$estabelecimento->id, $processo->id]) }}" method="POST" class="w-full">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Desarquivar Processo
+                        </button>
+                    </form>
+                    @else
+                    <button @click="modalArquivar = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
                         </svg>
                         Arquivar Processo
+                    </button>
+                    @endif
+                               <button @click="modalHistorico = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Histórico
                     </button>
                     <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,13 +434,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
                             <p class="text-sm font-medium text-gray-900 mb-1">Nenhum documento anexado</p>
-                            <p class="text-sm text-gray-500 mb-4">Comece fazendo upload de arquivos para este processo</p>
-                            <button @click="modalUpload = true" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                </svg>
-                                Upload de Arquivos
-                            </button>
                         </div>
                     @else
                         <div class="space-y-3">
@@ -1114,6 +1167,305 @@
         </div>
     </template>
 
+    {{-- Modal de Parar Processo --}}
+    <template x-if="modalParar">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalParar" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalParar = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    <form action="{{ route('admin.estabelecimentos.processos.parar', [$estabelecimento->id, $processo->id]) }}" method="POST">
+                        @csrf
+                        
+                        {{-- Header --}}
+                        <div class="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Parar Processo
+                            </h3>
+                            <button type="button" @click="modalParar = false" class="text-white hover:text-gray-200 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Conteúdo --}}
+                        <div class="px-6 py-6">
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-600 mb-4">
+                                    Você está prestes a parar o processo <strong>{{ $processo->numero_processo }}</strong>. 
+                                    Por favor, informe o motivo da parada.
+                                </p>
+                                
+                                <label for="motivo_parada" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Motivo da Parada <span class="text-red-500">*</span>
+                                </label>
+                                <textarea 
+                                    name="motivo_parada" 
+                                    id="motivo_parada" 
+                                    rows="4"
+                                    required
+                                    minlength="10"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                                    placeholder="Descreva o motivo da parada (mínimo 10 caracteres)..."></textarea>
+                                
+                                @error('motivo_parada')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                                <div class="flex">
+                                    <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-yellow-700">
+                                            <strong>Atenção:</strong> O processo será marcado como parado e esta ação ficará registrada no histórico.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Footer --}}
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                            <button type="button" @click="modalParar = false" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                                Parar Processo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Modal de Arquivar Processo --}}
+    <template x-if="modalArquivar">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalArquivar" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalArquivar = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    <form action="{{ route('admin.estabelecimentos.processos.arquivar', [$estabelecimento->id, $processo->id]) }}" method="POST">
+                        @csrf
+                        
+                        {{-- Header --}}
+                        <div class="px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                </svg>
+                                Arquivar Processo
+                            </h3>
+                            <button type="button" @click="modalArquivar = false" class="text-white hover:text-gray-200 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Conteúdo --}}
+                        <div class="px-6 py-6">
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-600 mb-4">
+                                    Você está prestes a arquivar o processo <strong>{{ $processo->numero_processo }}</strong>. 
+                                    Por favor, informe o motivo do arquivamento.
+                                </p>
+                                
+                                <label for="motivo_arquivamento" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Motivo do Arquivamento <span class="text-red-500">*</span>
+                                </label>
+                                <textarea 
+                                    name="motivo_arquivamento" 
+                                    id="motivo_arquivamento" 
+                                    rows="4"
+                                    required
+                                    minlength="10"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                                    placeholder="Descreva o motivo do arquivamento (mínimo 10 caracteres)..."></textarea>
+                                
+                                @error('motivo_arquivamento')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                                <div class="flex">
+                                    <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-yellow-700">
+                                            <strong>Atenção:</strong> O processo será marcado como arquivado e esta ação ficará registrada no histórico.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Footer --}}
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                            <button type="button" @click="modalArquivar = false" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors">
+                                Arquivar Processo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Modal de Histórico do Processo --}}
+    <template x-if="modalHistorico">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalHistorico" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalHistorico = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-3xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    {{-- Header --}}
+                    <div class="px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Histórico do Processo
+                        </h3>
+                        <button @click="modalHistorico = false" class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Conteúdo --}}
+                    <div class="px-6 py-6 max-h-[70vh] overflow-y-auto">
+                        {{-- Buscar eventos do histórico --}}
+                        @php
+                            try {
+                                $eventos = $processo->eventos()->with('usuario')->get();
+                            } catch (\Exception $e) {
+                                // Tabela ainda não existe - migration não foi executada
+                                $eventos = collect();
+                            }
+                        @endphp
+
+                        {{-- Linha do Tempo --}}
+                        <div class="relative">
+                            @forelse($eventos as $evento)
+                            <div class="flex gap-4 pb-8 {{ $loop->last ? '' : 'border-l-2 border-gray-200' }} ml-4">
+                                {{-- Ícone do Evento --}}
+                                <div class="absolute left-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-white
+                                    @if($evento->cor === 'blue') bg-blue-100
+                                    @elseif($evento->cor === 'purple') bg-purple-100
+                                    @elseif($evento->cor === 'green') bg-green-100
+                                    @elseif($evento->cor === 'red') bg-red-100
+                                    @elseif($evento->cor === 'yellow') bg-yellow-100
+                                    @else bg-gray-100
+                                    @endif">
+                                    @if($evento->icone === 'plus')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'blue') text-blue-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'upload')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'purple') text-purple-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'document')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'green') text-green-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'trash')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'red') text-red-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'refresh')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'yellow') text-yellow-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'archive')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'orange') text-orange-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'check')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'green') text-green-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'pause')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'red') text-red-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'play')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'green') text-green-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    @endif
+                                </div>
+
+                                {{-- Conteúdo do Evento --}}
+                                <div class="flex-1 ml-12">
+                                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="text-sm font-semibold text-gray-900">{{ $evento->titulo }}</h4>
+                                                <p class="text-xs text-gray-600 mt-0.5">{{ $evento->descricao }}</p>
+                                                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                                    <span class="flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                        </svg>
+                                                        {{ $evento->usuario->nome ?? 'Sistema' }}
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        {{ $evento->created_at->format('d/m/Y H:i') }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @empty
+                            <div class="text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">Nenhum evento registrado</p>
+                            </div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <button @click="modalHistorico = false" class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Scripts Alpine.js --}}
     <script>
         function processoData() {
@@ -1124,6 +1476,9 @@
                 modalEditarNome: false,
                 modalDocumentoDigital: false,
                 modalPastas: false,
+                modalHistorico: false,
+                modalArquivar: false,
+                modalParar: false,
                 
                 // Dados gerais
                 pdfUrl: '',

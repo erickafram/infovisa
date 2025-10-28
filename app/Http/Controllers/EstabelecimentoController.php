@@ -54,7 +54,8 @@ class EstabelecimentoController extends Controller
 
         $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(10)
+            ->appends($request->except('page'));
         
         // Filtra estabelecimentos por competência baseado no perfil do usuário
         if (auth('interno')->check()) {
@@ -75,6 +76,15 @@ class EstabelecimentoController extends Controller
                 });
                 $estabelecimentos->setCollection($estabelecimentosFiltrados);
             }
+        }
+        
+        // Filtro por Grupo de Risco
+        if ($request->filled('risco')) {
+            $riscoFiltro = $request->risco;
+            $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) use ($riscoFiltro) {
+                return $estabelecimento->getGrupoRisco() === $riscoFiltro;
+            });
+            $estabelecimentos->setCollection($estabelecimentosFiltrados);
         }
 
         // Estatísticas para o dashboard

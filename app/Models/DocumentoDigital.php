@@ -16,6 +16,9 @@ class DocumentoDigital extends Model
         'processo_id',
         'pasta_id',
         'usuario_criador_id',
+        'ultimo_editor_id',
+        'ultima_edicao_em',
+        'versao_atual',
         'numero_documento',
         'nome',
         'conteudo',
@@ -29,6 +32,7 @@ class DocumentoDigital extends Model
     protected $casts = [
         'sigiloso' => 'boolean',
         'finalizado_em' => 'datetime',
+        'ultima_edicao_em' => 'datetime',
     ];
 
     /**
@@ -121,6 +125,30 @@ class DocumentoDigital extends Model
     public function versoes()
     {
         return $this->hasMany(DocumentoDigitalVersao::class);
+    }
+
+    /**
+     * Relacionamento com edições
+     */
+    public function edicoes()
+    {
+        return $this->hasMany(DocumentoEdicao::class);
+    }
+
+    /**
+     * Relacionamento com último editor
+     */
+    public function ultimoEditor()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'ultimo_editor_id');
+    }
+
+    /**
+     * Busca editores atualmente ativos
+     */
+    public function editoresAtivos()
+    {
+        return DocumentoEdicao::editoresAtivos($this->id);
     }
 
     /**

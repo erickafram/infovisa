@@ -134,7 +134,10 @@
                     <h2 class="text-base font-semibold text-gray-900">@yield('page-title', 'Dashboard')</h2>
                 </div>
 
-                <div class="flex items-center">
+                <div class="flex items-center gap-2">
+                    {{-- Notificações --}}
+                    @include('components.notificacoes')
+                    
                     {{-- Menu do usuário --}}
                     <div class="relative" @click.away="userMenuOpen = false">
                         <button @click="userMenuOpen = !userMenuOpen"
