@@ -51,10 +51,11 @@ class ConfiguracaoSistemaController extends Controller
         ]);
         
         // Atualiza configurações da IA
-        if ($request->has('ia_ativa')) {
-            ConfiguracaoSistema::where('chave', 'ia_ativa')
-                ->update(['valor' => $request->ia_ativa ? 'true' : 'false']);
-        }
+        // Checkbox desmarcado não envia valor, então sempre atualiza
+        ConfiguracaoSistema::updateOrCreate(
+            ['chave' => 'ia_ativa'],
+            ['valor' => $request->has('ia_ativa') ? 'true' : 'false']
+        );
         
         if ($request->filled('ia_api_key')) {
             ConfiguracaoSistema::where('chave', 'ia_api_key')
@@ -70,6 +71,12 @@ class ConfiguracaoSistemaController extends Controller
             ConfiguracaoSistema::where('chave', 'ia_model')
                 ->update(['valor' => $request->ia_model]);
         }
+        
+        // Verifica se foi apenas atualização de IA (sem logomarca)
+        $atualizouIA = $request->has('ia_ativa') || 
+                       $request->filled('ia_api_key') || 
+                       $request->filled('ia_api_url') || 
+                       $request->filled('ia_model');
 
         $config = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         
@@ -105,6 +112,13 @@ class ConfiguracaoSistemaController extends Controller
             return redirect()
                 ->route('admin.configuracoes.sistema.index')
                 ->with('success', 'Logomarca estadual atualizada com sucesso!');
+        }
+        
+        // Se atualizou apenas IA, retorna com sucesso
+        if ($atualizouIA) {
+            return redirect()
+                ->route('admin.configuracoes.sistema.index')
+                ->with('success', 'Configurações do Assistente de IA atualizadas com sucesso!');
         }
 
         return redirect()

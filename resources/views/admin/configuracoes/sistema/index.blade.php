@@ -4,7 +4,7 @@
 @section('page-title', 'Configurações Gerais do Sistema')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-6xl mx-auto">
     
     {{-- Cabeçalho --}}
     <div class="mb-6">
