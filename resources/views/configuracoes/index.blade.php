@@ -121,6 +121,43 @@
             </div>
         </a>
 
+        {{-- Documentos POPS/IA --}}
+        <a href="{{ route('admin.configuracoes.documentos-pops.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Documentos POPS/IA</h3>
+                    <p class="text-sm text-gray-600">Gerencie documentos de procedimentos operacionais e integração com Assistente IA</p>
+                </div>
+            </div>
+        </a>
+
+        {{-- Categorias POPs --}}
+        <a href="{{ route('admin.configuracoes.categorias-pops.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-rose-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Categorias POPs</h3>
+                    <p class="text-sm text-gray-600">Organize documentos POPs por categorias temáticas</p>
+                </div>
+            </div>
+        </a>
+
         {{-- Configurações do Sistema --}}
         <a href="{{ route('admin.configuracoes.sistema.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">

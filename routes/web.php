@@ -250,6 +250,30 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::get('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'index'])->name('index');
             Route::put('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'update'])->name('update');
         });
+        
+        // Documentos POPs/IA
+        Route::prefix('documentos-pops')->name('documentos-pops.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'store'])->name('store');
+            Route::get('/{documentoPop}/edit', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'edit'])->name('edit');
+            Route::put('/{documentoPop}', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'update'])->name('update');
+            Route::delete('/{documentoPop}', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'destroy'])->name('destroy');
+            Route::get('/{documentoPop}/download', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'download'])->name('download');
+            Route::get('/{documentoPop}/visualizar', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'visualizar'])->name('visualizar');
+            Route::post('/{documentoPop}/reindexar', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'reindexar'])->name('reindexar');
+        });
+        
+        // Categorias de POPs
+        Route::prefix('categorias-pops')->name('categorias-pops.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'store'])->name('store');
+            Route::get('/{categoriaPop}/edit', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'edit'])->name('edit');
+            Route::put('/{categoriaPop}', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'update'])->name('update');
+            Route::delete('/{categoriaPop}', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'destroy'])->name('destroy');
+            Route::get('/listar', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'listar'])->name('listar');
+        });
     });
     
     // Assistente IA

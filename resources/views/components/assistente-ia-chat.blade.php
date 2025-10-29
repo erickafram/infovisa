@@ -1,6 +1,17 @@
 {{-- Componente de Chat da IA - Fixo no canto direito --}}
 @php
     $iaAtiva = \App\Models\ConfiguracaoSistema::where('chave', 'ia_ativa')->value('valor');
+    
+    // Busca categorias POPs ativas para sugestões
+    $categoriasPops = \App\Models\CategoriaPop::ativas()
+        ->ordenadas()
+        ->limit(4)
+        ->get(['id', 'nome', 'cor']);
+    
+    // Busca nome do usuário logado
+    $usuarioLogado = auth('interno')->user();
+    $nomeUsuario = $usuarioLogado ? $usuarioLogado->nome : 'Usuário';
+    $primeiroNome = explode(' ', $nomeUsuario)[0]; // Pega apenas o primeiro nome
 @endphp
 
 @if($iaAtiva === 'true')
@@ -10,9 +21,15 @@
     animation: none !important;
 }
 
-/* Formatação das respostas da IA */
+/* Formatação das respostas da IA - MELHORADA */
+.formatted-response {
+    font-size: 0.9375rem; /* 15px - maior que antes */
+    line-height: 1.7; /* Mais espaçamento entre linhas */
+    color: #1f2937; /* Cor mais escura para melhor contraste */
+}
+
 .formatted-response p {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem; /* Mais espaço entre parágrafos */
 }
 
 .formatted-response p:last-child {
@@ -20,27 +37,27 @@
 }
 
 .formatted-response strong {
-    font-weight: 600;
-    color: #1f2937;
+    font-weight: 700; /* Mais negrito */
+    color: #111827; /* Ainda mais escuro */
 }
 
 .formatted-response ol {
     list-style-type: decimal;
-    margin-left: 1.25rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-left: 1.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
 .formatted-response ul {
     list-style-type: disc;
-    margin-left: 1.25rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-left: 1.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
 .formatted-response li {
-    margin-bottom: 0.375rem;
-    line-height: 1.5;
+    margin-bottom: 0.5rem; /* Mais espaço entre itens */
+    line-height: 1.7;
 }
 
 .formatted-response li:last-child {
@@ -49,18 +66,20 @@
 
 .formatted-response code {
     background-color: #f3f4f6;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.25rem;
-    font-family: monospace;
-    font-size: 0.9em;
-    color: #4b5563;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #374151;
+    font-weight: 500;
 }
 
 .formatted-response .section-title {
-    font-weight: 600;
-    color: #1f2937;
-    margin-top: 0.75rem;
-    margin-bottom: 0.375rem;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem; /* Títulos um pouco maiores */
 }
 
 .formatted-response .section-title:first-child {
@@ -69,15 +88,28 @@
 
 .formatted-response .highlight {
     background-color: #fef3c7;
-    padding: 0.125rem 0.25rem;
+    padding: 0.25rem 0.375rem;
     border-radius: 0.25rem;
 }
+
+/* Categoria destacada no início da resposta */
+.formatted-response h3,
+.formatted-response h4 {
+    font-weight: 700;
+    color: #7c3aed; /* Roxo para categorias */
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+/* Esconde elementos antes da inicialização do Alpine.js */
+[x-cloak] {
+    display: none !important;
+}
 </style>
-<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6 z-50">
+<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6 z-50" x-cloak>
     {{-- Botão Flutuante --}}
     <button @click="toggleChat()" 
-            x-show="!chatAberto" 
-            :class="{'transition-none': !inicializado}"
+            x-show="!chatAberto"
             class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center gap-3 group">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
@@ -86,16 +118,13 @@
     </button>
 
     {{-- Janela de Chat --}}
-    <div x-show="chatAberto" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-90"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-90"
-         :class="{'transition-none': !inicializado}"
-         class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col"
-         style="width: 380px; height: 500px;">
+    <div x-show="chatAberto"
+         x-transition.duration.300ms
+         :class="[
+             maximizado ? 'fixed inset-4 w-auto h-auto' : 'relative'
+         ]"
+         :style="maximizado ? '' : 'width: 380px; height: 500px;'"
+         class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col transition-all duration-300">
         
         {{-- Cabeçalho --}}
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 flex items-center justify-between">
@@ -106,8 +135,8 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base">Assistente InfoVisa</h3>
-                    <p class="text-[10px] text-white/80">Sempre pronto para ajudar</p>
+                    <h3 class="font-bold text-base">Olá, {{ $primeiroNome }}! 👋</h3>
+                    <p class="text-[10px] text-white/80">Assistente InfoVisa - Sempre pronto para ajudar</p>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -117,6 +146,16 @@
                         class="hover:bg-white/20 rounded-full p-1.5 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+                <button @click="toggleMaximizar()" 
+                        :title="maximizado ? 'Minimizar' : 'Maximizar'"
+                        class="hover:bg-white/20 rounded-full p-1.5 transition-colors">
+                    <svg x-show="!maximizado" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                    <svg x-show="maximizado" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"/>
                     </svg>
                 </button>
                 <button @click="toggleChat()" class="hover:bg-white/20 rounded-full p-1.5 transition-colors">
@@ -130,28 +169,59 @@
         {{-- Área de Mensagens --}}
         <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50" x-ref="messagesContainer">
             {{-- Mensagem de Boas-vindas --}}
-            <div x-show="mensagens.length === 0" class="text-center py-4">
+            <div x-show="mensagens.length === 0" class="py-3">
                 <div class="w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
                     </svg>
                 </div>
-                <h4 class="font-bold text-sm text-gray-900 mb-1">Olá! Como posso ajudar?</h4>
-                <p class="text-xs text-gray-600 mb-3">Pergunte sobre funcionalidades ou estatísticas.</p>
-                <div class="space-y-1.5">
-                    <button @click="enviarSugestao('Como abrir um processo?')" 
-                            class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
-                        💼 Como abrir um processo?
-                    </button>
-                    <button @click="enviarSugestao('Quantos estabelecimentos tenho?')" 
-                            class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
-                        📊 Quantos estabelecimentos tenho?
-                    </button>
-                    <button @click="enviarSugestao('Como criar um documento digital?')" 
-                            class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
-                        📄 Como criar um documento digital?
-                    </button>
+                <h4 class="font-bold text-sm text-gray-900 mb-1 text-center">Olá, {{ $primeiroNome }}! 👋</h4>
+                <p class="text-xs text-gray-600 mb-3 text-center">Como posso ajudar você hoje?</p>
+                
+                {{-- Sugestões sobre o Sistema --}}
+                <div class="mb-4">
+                    <h5 class="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Sobre o Sistema
+                    </h5>
+                    <div class="space-y-1.5">
+                        <button @click="enviarSugestao('Como abrir um processo?')" 
+                                class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
+                            💼 Como abrir um processo?
+                        </button>
+                        <button @click="enviarSugestao('Quantos estabelecimentos tenho?')" 
+                                class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
+                            📊 Quantos estabelecimentos tenho?
+                        </button>
+                        <button @click="enviarSugestao('Como criar um documento digital?')" 
+                                class="w-full text-left px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
+                            📄 Como criar um documento digital?
+                        </button>
+                    </div>
                 </div>
+
+                @if($categoriasPops->isNotEmpty())
+                {{-- Sugestões sobre POPs por Categoria --}}
+                <div>
+                    <h5 class="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Normas e Procedimentos
+                    </h5>
+                    <div class="space-y-1.5">
+                        @foreach($categoriasPops as $categoria)
+                        <button @click="enviarSugestao('Quais são as normas sobre {{ strtolower($categoria->nome) }}?')" 
+                                class="w-full text-left px-3 py-1.5 bg-white hover:bg-purple-50 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $categoria->cor }}"></span>
+                            <span class="truncate">{{ $categoria->nome }}</span>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
 
             {{-- Mensagens --}}
@@ -159,8 +229,8 @@
                 <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div :class="msg.role === 'user' 
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-none px-3 py-2 max-w-[85%]' 
-                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-none px-3 py-2.5 max-w-[85%] shadow-sm border border-gray-200'">
-                        <div class="text-xs leading-relaxed" :class="msg.role === 'assistant' ? 'formatted-response' : ''" x-html="formatarMensagem(msg.content, msg.role)"></div>
+                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-none px-4 py-3 max-w-[90%] shadow-sm border border-gray-200'">
+                        <div :class="msg.role === 'user' ? 'text-xs leading-relaxed' : 'formatted-response'" x-html="formatarMensagem(msg.content, msg.role)"></div>
                         <p class="text-[10px] mt-1.5 opacity-60" x-text="msg.time"></p>
                     </div>
                 </div>
@@ -200,30 +270,29 @@
 
 <script>
 function assistenteIA() {
+    // Carrega estados ANTES da inicialização para evitar animação
+    const estadoChat = localStorage.getItem('ia_chat_aberto');
+    const estadoMaximizado = localStorage.getItem('ia_chat_maximizado');
+    const historico = localStorage.getItem('ia_chat_history');
+    
+    let mensagensIniciais = [];
+    if (historico) {
+        try {
+            mensagensIniciais = JSON.parse(historico);
+        } catch (e) {
+            console.error('Erro ao carregar histórico:', e);
+        }
+    }
+    
     return {
-        chatAberto: false,
-        mensagens: [],
+        chatAberto: estadoChat === 'true',
+        maximizado: estadoMaximizado === 'true',
+        mensagens: mensagensIniciais,
         mensagemAtual: '',
         carregando: false,
         inicializado: false,
         
         init() {
-            // Carrega estado do chat (aberto/fechado)
-            const estadoChat = localStorage.getItem('ia_chat_aberto');
-            if (estadoChat === 'true') {
-                this.chatAberto = true;
-            }
-            
-            // Carrega histórico do localStorage
-            const historico = localStorage.getItem('ia_chat_history');
-            if (historico) {
-                try {
-                    this.mensagens = JSON.parse(historico);
-                } catch (e) {
-                    console.error('Erro ao carregar histórico:', e);
-                }
-            }
-            
             // Marca como inicializado e rola para o final se chat estiver aberto
             this.$nextTick(() => {
                 this.inicializado = true;
@@ -231,7 +300,7 @@ function assistenteIA() {
                     // Aguarda um pouco mais para garantir que o DOM está pronto
                     setTimeout(() => {
                         this.scrollToBottomInstant();
-                    }, 100);
+                    }, 50);
                 }
             });
         },
@@ -245,6 +314,16 @@ function assistenteIA() {
                     this.scrollToBottom();
                 });
             }
+        },
+        
+        toggleMaximizar() {
+            this.maximizado = !this.maximizado;
+            // Salva estado no localStorage
+            localStorage.setItem('ia_chat_maximizado', this.maximizado ? 'true' : 'false');
+            // Rola para o final após maximizar/minimizar
+            this.$nextTick(() => {
+                this.scrollToBottom();
+            });
         },
         
         enviarSugestao(texto) {

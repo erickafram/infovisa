@@ -9,6 +9,8 @@ use App\Models\ConfiguracaoSistema;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\DocumentoDigital;
+use App\Models\DocumentoPop;
+use App\Models\CategoriaPop;
 
 class AssistenteIAController extends Controller
 {
@@ -295,6 +297,18 @@ class AssistenteIAController extends Controller
                 $dados['documentos_aguardando'] = (clone $query)->where('status', 'aguardando_assinaturas')->count();
                 $dados['documentos_rascunho'] = (clone $query)->where('status', 'rascunho')->count();
             }
+            
+            // Busca documentos POPs relevantes para a pergunta
+            $documentosPops = $this->buscarDocumentosPopsRelevantes($message);
+            if (!empty($documentosPops)) {
+                // Verifica se retornou com categoria filtrada
+                if (isset($documentosPops['documentos'])) {
+                    $dados['documentos_pops'] = $documentosPops['documentos'];
+                    $dados['categoria_filtrada'] = $documentosPops['categoria_filtrada'];
+                } else {
+                    $dados['documentos_pops'] = $documentosPops;
+                }
+            }
         } catch (\Exception $e) {
             \Log::error('Erro ao obter contexto de dados para IA', [
                 'usuario_id' => $usuario->id,
@@ -305,6 +319,173 @@ class AssistenteIAController extends Controller
         }
 
         return $dados;
+    }
+    
+    /**
+     * Busca documentos POPs relevantes baseado na pergunta
+     */
+    private function buscarDocumentosPopsRelevantes($message)
+    {
+        try {
+            // Busca documentos marcados para IA que estão indexados
+            $query = DocumentoPop::where('disponivel_ia', true)
+                ->whereNotNull('conteudo_extraido')
+                ->whereNotNull('indexado_em')
+                ->with('categorias');
+            
+            // Palavras-chave para busca
+            $palavrasChave = $this->extrairPalavrasChave($message);
+            
+            // Detecta se a pergunta menciona uma categoria específica
+            $categoriaFiltro = $this->detectarCategoria($message);
+            
+            if ($categoriaFiltro) {
+                // Filtra apenas documentos da categoria mencionada
+                $query->whereHas('categorias', function($q) use ($categoriaFiltro) {
+                    $q->where('categorias_pops.id', $categoriaFiltro->id);
+                });
+            }
+            
+            $documentos = $query->get();
+            
+            if ($documentos->isEmpty()) {
+                return [];
+            }
+            
+            $documentosRelevantes = [];
+            
+            foreach ($documentos as $doc) {
+                $relevancia = 0;
+                $conteudoLower = strtolower($doc->conteudo_extraido);
+                $tituloLower = strtolower($doc->titulo);
+                
+                // Verifica relevância baseado em palavras-chave
+                foreach ($palavrasChave as $palavra) {
+                    if (strlen($palavra) < 3) continue; // Ignora palavras muito curtas
+                    
+                    // Título tem peso maior
+                    if (strpos($tituloLower, $palavra) !== false) {
+                        $relevancia += 10;
+                    }
+                    
+                    // Conteúdo
+                    $ocorrencias = substr_count($conteudoLower, $palavra);
+                    $relevancia += $ocorrencias;
+                }
+                
+                // Se tem relevância, adiciona
+                if ($relevancia > 0) {
+                    $documentosRelevantes[] = [
+                        'titulo' => $doc->titulo,
+                        'relevancia' => $relevancia,
+                        'conteudo' => $this->extrairTrechoRelevante($doc->conteudo_extraido, $palavrasChave),
+                        'categorias' => $doc->categorias->pluck('nome')->toArray(),
+                    ];
+                }
+            }
+            
+            // Ordena por relevância e pega os 3 mais relevantes
+            usort($documentosRelevantes, function($a, $b) {
+                return $b['relevancia'] - $a['relevancia'];
+            });
+            
+            $resultado = array_slice($documentosRelevantes, 0, 3);
+            
+            // Se foi filtrado por categoria, adiciona informação
+            if ($categoriaFiltro) {
+                return [
+                    'documentos' => $resultado,
+                    'categoria_filtrada' => $categoriaFiltro->nome,
+                ];
+            }
+            
+            return $resultado;
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar documentos POPs relevantes', [
+                'erro' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+    
+    /**
+     * Extrai palavras-chave da mensagem
+     */
+    private function extrairPalavrasChave($message)
+    {
+        // Remove palavras comuns (stop words)
+        $stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'para', 'com', 'em', 'no', 'na', 'por', 'como', 'qual', 'quais', 'que', 'e', 'ou', 'é', 'são'];
+        
+        $palavras = preg_split('/\s+/', strtolower($message));
+        $palavras = array_filter($palavras, function($palavra) use ($stopWords) {
+            return !in_array($palavra, $stopWords) && strlen($palavra) >= 3;
+        });
+        
+        return array_values($palavras);
+    }
+    
+    /**
+     * Extrai trecho relevante do conteúdo
+     */
+    private function extrairTrechoRelevante($conteudo, $palavrasChave)
+    {
+        $conteudoLower = strtolower($conteudo);
+        
+        // Procura a primeira palavra-chave no conteúdo
+        foreach ($palavrasChave as $palavra) {
+            $pos = strpos($conteudoLower, $palavra);
+            if ($pos !== false) {
+                // Extrai 300 caracteres ao redor da palavra
+                $inicio = max(0, $pos - 150);
+                $trecho = substr($conteudo, $inicio, 300);
+                
+                // Limpa o início e fim
+                if ($inicio > 0) {
+                    $trecho = '...' . $trecho;
+                }
+                if (strlen($conteudo) > $inicio + 300) {
+                    $trecho .= '...';
+                }
+                
+                return $trecho;
+            }
+        }
+        
+        // Se não encontrou, retorna início do documento
+        return substr($conteudo, 0, 300) . '...';
+    }
+    
+    /**
+     * Detecta se a pergunta menciona uma categoria específica
+     */
+    private function detectarCategoria($message)
+    {
+        try {
+            $messageLower = strtolower($message);
+            
+            // Busca todas as categorias ativas
+            $categorias = CategoriaPop::ativas()->get();
+            
+            foreach ($categorias as $categoria) {
+                $nomeCategoria = strtolower($categoria->nome);
+                $slugCategoria = strtolower($categoria->slug);
+                
+                // Verifica se o nome ou slug da categoria aparece na mensagem
+                if (strpos($messageLower, $nomeCategoria) !== false || 
+                    strpos($messageLower, $slugCategoria) !== false) {
+                    return $categoria;
+                }
+            }
+            
+            return null;
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao detectar categoria', [
+                'erro' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -344,13 +525,49 @@ CONTEXTO DO USUÁRIO:
 - Perfil: {$perfilUsuario}
 " . ($municipioNome ? "- Município: {$municipioNome}\n" : "") . "
 
-REGRAS CRÍTICAS:
-1. Use APENAS os dados fornecidos abaixo - eles já estão filtrados pela competência do usuário
-2. NUNCA invente funcionalidades, menus ou caminhos que não foram mencionados
-3. Seja EXTREMAMENTE preciso nas instruções - siga EXATAMENTE os passos descritos
-4. Se não souber algo, diga claramente que não sabe
-5. Use os números exatos fornecidos nos dados
-6. Responda considerando o perfil e permissões do usuário
+REGRAS CRÍTICAS DE COMPORTAMENTO:
+
+**DIFERENCIE O TIPO DE PERGUNTA:**
+
+1. **PERGUNTAS SOBRE DOCUMENTOS POPs (Procedimentos Operacionais Padrão):**
+   - Se a pergunta é sobre NORMAS, PROCEDIMENTOS, REGULAMENTAÇÕES, REQUISITOS TÉCNICOS
+   - Exemplos: \"normas de gases medicinais\", \"como armazenar\", \"requisitos para\", \"o que diz a RDC\"
+   - RESPONDA APENAS COM BASE NOS DOCUMENTOS POPs fornecidos abaixo
+   - NÃO mencione funcionalidades do sistema
+   - NÃO diga \"acesse o menu\", \"clique em\", \"vá em estabelecimentos\"
+   - Cite os documentos POPs usados na resposta
+   - Seja técnico e objetivo
+
+2. **PERGUNTAS SOBRE FUNCIONALIDADES DO SISTEMA:**
+   - Se a pergunta é sobre COMO USAR O SISTEMA, ONDE ENCONTRAR ALGO, COMO CRIAR/EDITAR
+   - Exemplos: \"como criar processo\", \"onde vejo estabelecimentos\", \"como gerar documento\"
+   - RESPONDA com instruções passo a passo do sistema
+   - Use as funcionalidades descritas abaixo
+   - NÃO mencione documentos POPs
+   - Seja prático e didático
+
+3. **PERGUNTAS SOBRE DADOS DO SISTEMA:**
+   - Se a pergunta é sobre QUANTIDADES, ESTATÍSTICAS, LISTAGENS
+   - Exemplos: \"quantos estabelecimentos\", \"quantos processos\", \"qual o status\"
+   - RESPONDA com os números exatos fornecidos nos dados
+   - Pode sugerir onde ver mais detalhes no sistema
+
+**REGRAS GERAIS:**
+- Use APENAS os dados fornecidos abaixo - eles já estão filtrados pela competência do usuário
+- NUNCA invente funcionalidades, menus ou caminhos que não foram mencionados
+- NUNCA invente informações de POPs que não estão nos documentos fornecidos
+- Seja EXTREMAMENTE preciso nas instruções - siga EXATAMENTE os passos descritos
+- Se não souber algo, diga claramente que não sabe
+- Use os números exatos fornecidos nos dados
+- Responda considerando o perfil e permissões do usuário
+
+**REGRA CRÍTICA - NÃO MISTURE POPs COM FUNCIONALIDADES:**
+- Se a pergunta é sobre NORMAS/POPs: responda APENAS com o conteúdo dos documentos POPs
+- NÃO invente tipos de processo (ex: \"Notificação de Mau Uso de Gases Medicinais\" NÃO EXISTE)
+- NÃO crie passos de sistema para cumprir normas dos POPs
+- Se o POP diz \"deve notificar\", responda APENAS o que o POP diz, SEM inventar como fazer no sistema
+- O sistema tem tipos de processo GENÉRICOS, não específicos para cada norma
+- NUNCA combine \"De acordo com RDC...\" + \"Acesse o menu...\" na mesma resposta
 
 FUNCIONALIDADES REAIS DO SISTEMA:
 
@@ -365,6 +582,17 @@ Acesso: Menu lateral > Ícone de prédio (segundo ícone)
 Acesso: Menu lateral > Ícone de pasta (terceiro ícone)
 - Lista todos os processos (filtrados por competência)
 - Mostra: número, estabelecimento, tipo, status, data
+
+**TIPOS DE PROCESSO DISPONÍVEIS NO SISTEMA (LISTA COMPLETA):**
+1. Licenciamento - Processo de licenciamento sanitário anual
+2. Análise de Rotulagem - Análise e aprovação de rótulos
+3. Projeto Arquitetônico - Análise de projeto para adequação sanitária
+4. Administrativo - Processos administrativos diversos
+5. Descentralização - Processos de descentralização de ações
+
+IMPORTANTE: Estes são os ÚNICOS tipos de processo que existem no sistema.
+NÃO EXISTE tipo de processo específico para cada norma (ex: \"Notificação de Mau Uso de Gases Medicinais\" NÃO EXISTE).
+Se precisar registrar algo relacionado a normas, use o tipo \"Administrativo\" de forma genérica.
 
 **COMO ABRIR UM PROCESSO (PASSO A PASSO EXATO):**
 1. Vá em Estabelecimentos (menu lateral, ícone de prédio)
@@ -412,7 +640,13 @@ Acesso: Menu lateral > Ícone de engrenagem
         if (!empty($contextoDados)) {
             $prompt .= "\n\n==== DADOS ATUAIS DO SISTEMA ====\n";
             $prompt .= "IMPORTANTE: Estes números já estão filtrados pela competência e município do usuário.\n\n";
+            
             foreach ($contextoDados as $key => $value) {
+                // Documentos POPs são tratados separadamente
+                if ($key === 'documentos_pops') {
+                    continue;
+                }
+                
                 $label = str_replace('_', ' ', ucfirst($key));
                 $prompt .= "- {$label}: {$value}\n";
             }
@@ -422,6 +656,75 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "\n(Dados filtrados: apenas competência ESTADUAL de todos os municípios)\n";
             } elseif ($usuario->isMunicipal() && !empty($municipioNome)) {
                 $prompt .= "\n(Dados filtrados: apenas competência MUNICIPAL de {$municipioNome})\n";
+            }
+            
+            // Lista categorias POPs disponíveis
+            $categoriasDisponiveis = \App\Models\CategoriaPop::ativas()
+                ->whereHas('documentos', function($q) {
+                    $q->where('disponivel_ia', true)
+                      ->whereNotNull('conteudo_extraido');
+                })
+                ->pluck('nome')
+                ->toArray();
+            
+            if (!empty($categoriasDisponiveis)) {
+                $prompt .= "\n\n==== CATEGORIAS POPs DISPONÍVEIS ====\n";
+                $prompt .= "Categorias com documentos cadastrados: " . implode(', ', $categoriasDisponiveis) . "\n";
+                $prompt .= "Se o usuário perguntar sobre outra categoria, informe que ainda não há documentos sobre esse tema.\n";
+            }
+            
+            // Adiciona documentos POPs relevantes
+            if (isset($contextoDados['documentos_pops']) && !empty($contextoDados['documentos_pops'])) {
+                $prompt .= "\n\n==== DOCUMENTOS POPs RELEVANTES ====\n";
+                
+                // Verifica se foi filtrado por categoria
+                if (isset($contextoDados['categoria_filtrada'])) {
+                    $prompt .= "IMPORTANTE: A pergunta menciona a categoria '{$contextoDados['categoria_filtrada']}'. ";
+                    $prompt .= "Os documentos abaixo foram filtrados APENAS desta categoria específica.\n\n";
+                } else {
+                    $prompt .= "Os seguintes documentos de procedimentos operacionais padrão podem ajudar a responder a pergunta:\n\n";
+                }
+                
+                foreach ($contextoDados['documentos_pops'] as $doc) {
+                    $prompt .= "**{$doc['titulo']}**\n";
+                    if (isset($doc['categorias']) && !empty($doc['categorias'])) {
+                        $prompt .= "Categorias: " . implode(', ', $doc['categorias']) . "\n";
+                    }
+                    $prompt .= "Trecho relevante: {$doc['conteudo']}\n\n";
+                }
+                
+                $prompt .= "\n**INSTRUÇÕES PARA USO DOS POPs:**\n";
+                $prompt .= "- Se a pergunta é sobre NORMAS/PROCEDIMENTOS/REQUISITOS TÉCNICOS: Use APENAS estas informações dos POPs\n";
+                $prompt .= "- NÃO misture com instruções do sistema (\"acesse o menu\", \"clique em\", etc)\n";
+                $prompt .= "- Cite os documentos POPs usados: \"De acordo com [nome do documento]...\"\n";
+                $prompt .= "- Seja técnico e objetivo, focando no conteúdo dos POPs\n";
+                $prompt .= "- CRÍTICO: Se o POP menciona uma obrigação (ex: 'deve notificar'), responda APENAS o que o POP diz\n";
+                $prompt .= "- NÃO invente como fazer essa obrigação no sistema\n";
+                $prompt .= "- NÃO crie tipos de processo específicos para normas\n";
+                $prompt .= "- Se o usuário perguntar COMO fazer algo relacionado a norma, diga que o sistema tem processos genéricos\n";
+                
+                // Se tem categoria filtrada, instrui a IA a mencionar
+                if (isset($contextoDados['categoria_filtrada'])) {
+                    $prompt .= "- IMPORTANTE: Inicie sua resposta mencionando a categoria: \"**Sobre {$contextoDados['categoria_filtrada']}:**\" seguido da resposta\n";
+                } else {
+                    $prompt .= "- Se identificar a categoria do assunto, inicie com: \"**Sobre [categoria]:**\" seguido da resposta\n";
+                }
+                
+                $prompt .= "- NUNCA use frases genéricas como \"Essa pergunta é sobre documentos POPs!\"\n";
+                $prompt .= "- Se a pergunta é sobre funcionalidades do sistema, IGNORE os POPs e use as instruções de funcionalidades\n";
+            } else {
+                // Se não há documentos POPs relevantes, instrui a IA a informar
+                $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs RELEVANTES PARA ESTA PERGUNTA:**\n";
+                $prompt .= "- A pergunta parece ser sobre NORMAS/PROCEDIMENTOS, mas NÃO foram encontrados documentos POPs relevantes\n";
+                $prompt .= "- NUNCA invente informações, RDCs, resoluções ou normas que não estão nos documentos POPs fornecidos acima\n";
+                $prompt .= "- RESPONDA de forma honesta:\n";
+                $prompt .= "  \"Desculpe, ainda não tenho documentos POPs cadastrados sobre [tema solicitado].\"\n";
+                
+                if (!empty($categoriasDisponiveis)) {
+                    $prompt .= "  \"No momento, tenho informações sobre: " . implode(', ', $categoriasDisponiveis) . ".\"\n";
+                }
+                
+                $prompt .= "- Se o usuário perguntar sobre funcionalidades do sistema, responda normalmente\n";
             }
         }
 
