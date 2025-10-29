@@ -256,36 +256,30 @@ class EdicaoColaborativa {
         const paragrafosLocal = this.dividirEmParagrafos(textoLocal);
         const paragrafosServidor = this.dividirEmParagrafos(textoServidor);
         
-        // Identifica parágrafos únicos de cada versão
-        const paragrafosUnicosLocal = paragrafosLocal.filter(p => 
-            p.trim() && !paragrafosBase.includes(p) && !paragrafosServidor.includes(p)
-        );
+        // Normaliza parágrafos para comparação (remove espaços extras)
+        const normalizarParagrafo = (p) => p.trim().replace(/\s+/g, ' ');
         
-        const paragrafosUnicosServidor = paragrafosServidor.filter(p => 
-            p.trim() && !paragrafosBase.includes(p) && !paragrafosLocal.includes(p)
-        );
+        // Cria Set de parágrafos normalizados para detecção de duplicatas
+        const paragrafosNormalizadosSet = new Set();
+        const paragrafosFinais = [];
         
-        // Parágrafos comuns (que estão em ambos)
-        const paragrafosComuns = paragrafosServidor.filter(p => 
-            paragrafosLocal.includes(p) || paragrafosBase.includes(p)
-        );
+        // Função para adicionar parágrafo sem duplicar
+        const adicionarSeUnico = (paragrafo) => {
+            const normalizado = normalizarParagrafo(paragrafo);
+            if (normalizado && !paragrafosNormalizadosSet.has(normalizado)) {
+                paragrafosNormalizadosSet.add(normalizado);
+                paragrafosFinais.push(paragrafo.trim());
+            }
+        };
         
-        // MONTA O RESULTADO FINAL:
-        // 1. Parágrafos comuns (base)
-        // 2. Parágrafos únicos do servidor
-        // 3. Parágrafos únicos do local (NUNCA PERDE!)
+        // 1. Adiciona parágrafos do servidor (prioridade para conteúdo já salvo)
+        paragrafosServidor.forEach(p => adicionarSeUnico(p));
         
-        const paragrafosFinais = [
-            ...paragrafosComuns,
-            ...paragrafosUnicosServidor,
-            ...paragrafosUnicosLocal
-        ].filter(p => p.trim());
+        // 2. Adiciona parágrafos únicos do local (que não estão no servidor)
+        paragrafosLocal.forEach(p => adicionarSeUnico(p));
         
-        // Remove duplicatas mantendo ordem
-        const paragrafosUnicos = [...new Set(paragrafosFinais)];
-        
-        // Converte de volta para HTML
-        return paragrafosUnicos.map(p => `<p>${p}</p>`).join('');
+        // Converte de volta para HTML, preservando formatação
+        return paragrafosFinais.map(p => `<p>${p}</p>`).join('');
     }
 
     dividirEmParagrafos(texto) {

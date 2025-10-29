@@ -15,6 +15,7 @@ class Municipio extends Model
         'codigo_ibge',
         'uf',
         'slug',
+        'logomarca',
         'ativo'
     ];
 
@@ -36,6 +37,14 @@ class Municipio extends Model
     public function pactuacoes()
     {
         return $this->hasMany(Pactuacao::class);
+    }
+
+    /**
+     * Relacionamento com usuários internos vinculados ao município
+     */
+    public function usuariosInternos()
+    {
+        return $this->hasMany(UsuarioInterno::class, 'municipio_id');
     }
 
     /**

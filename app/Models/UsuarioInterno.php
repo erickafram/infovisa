@@ -229,5 +229,35 @@ class UsuarioInterno extends Authenticatable
     {
         return $query->where('nivel_acesso', NivelAcesso::Administrador->value);
     }
+
+    /**
+     * Obtém a logomarca para documentos digitais
+     * - Se for usuário municipal: retorna logomarca do município
+     * - Se for usuário estadual: retorna logomarca estadual (configuração do sistema)
+     * - Se não houver logomarca: retorna null
+     */
+    public function getLogomarcaDocumento()
+    {
+        // Se for usuário municipal e tiver município vinculado
+        if ($this->isMunicipal() && $this->municipio_id) {
+            $municipio = $this->municipioRelacionado;
+            return $municipio?->logomarca;
+        }
+        
+        // Se for usuário estadual ou não tiver município
+        if ($this->isEstadual() || !$this->municipio_id) {
+            return \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        }
+        
+        return null;
+    }
+
+    /**
+     * Verifica se o usuário tem logomarca configurada
+     */
+    public function temLogomarca(): bool
+    {
+        return !empty($this->getLogomarcaDocumento());
+    }
 }
 

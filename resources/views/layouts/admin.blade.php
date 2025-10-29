@@ -209,5 +209,8 @@
     {{-- Scripts adicionais --}}
     @stack('scripts')
 
+    {{-- Assistente de IA --}}
+    @include('components.assistente-ia-chat')
+
 </body>
 </html>

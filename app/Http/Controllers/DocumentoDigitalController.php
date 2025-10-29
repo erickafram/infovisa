@@ -114,10 +114,50 @@ class DocumentoDigitalController extends Controller
         $processo = null;
 
         if ($processoId) {
-            $processo = \App\Models\Processo::with('estabelecimento')->find($processoId);
+            $processo = \App\Models\Processo::with('estabelecimento.municipioRelacionado')->find($processoId);
         }
 
-        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo'));
+        // Determina qual logomarca usar
+        $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
+
+        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca'));
+    }
+
+    /**
+     * Determina qual logomarca usar no documento baseado na competência e município
+     * 
+     * REGRAS:
+     * 1. Se estabelecimento é de COMPETÊNCIA ESTADUAL -> sempre usa logomarca estadual
+     * 2. Se estabelecimento é MUNICIPAL e município tem logomarca -> usa logomarca do município
+     * 3. Se estabelecimento é MUNICIPAL mas município NÃO tem logomarca -> usa logomarca estadual (fallback)
+     * 4. Se não houver processo -> usa logomarca do usuário logado
+     */
+    private function determinarLogomarca($processo, $usuarioLogado)
+    {
+        // Se não houver processo, usa logomarca do usuário
+        if (!$processo || !$processo->estabelecimento) {
+            return $usuarioLogado->getLogomarcaDocumento();
+        }
+
+        $estabelecimento = $processo->estabelecimento;
+        
+        // 1. Se estabelecimento é de COMPETÊNCIA ESTADUAL -> sempre usa logomarca estadual
+        if ($estabelecimento->isCompetenciaEstadual()) {
+            return \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        }
+        
+        // 2. Se estabelecimento é MUNICIPAL e tem município vinculado
+        if ($estabelecimento->municipio_id) {
+            $municipio = $estabelecimento->municipioRelacionado;
+            
+            // Se município tem logomarca cadastrada, usa ela
+            if ($municipio && $municipio->logomarca) {
+                return $municipio->logomarca;
+            }
+        }
+        
+        // 3. Fallback: município sem logomarca ou sem município vinculado -> usa logomarca estadual
+        return \App\Models\ConfiguracaoSistema::logomarcaEstadual();
     }
 
     /**
@@ -669,205 +709,4 @@ class DocumentoDigitalController extends Controller
         }
     }
 
-    /**
-     * Salva automaticamente o conteúdo do documento (rascunho)
-     */
-    public function salvarAutomaticamente(Request $request, $id)
-    {
-        try {
-            $documento = DocumentoDigital::findOrFail($id);
-            
-            // Apenas rascunhos podem ter salvamento automático
-            if ($documento->status !== 'rascunho') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Apenas rascunhos podem ser salvos automaticamente.'
-                ], 403);
-            }
-
-            $usuarioId = Auth::guard('interno')->id();
-            $conteudoNovo = $request->input('conteudo');
-            $conteudoAntigo = $documento->conteudo;
-
-            // Calcula diferença
-            $diff = \App\Models\DocumentoEdicao::calcularDiff($conteudoAntigo, $conteudoNovo);
-
-            // Atualiza documento
-            $documento->update([
-                'conteudo' => $conteudoNovo,
-                'ultimo_editor_id' => $usuarioId,
-                'ultima_edicao_em' => now(),
-                'versao_atual' => $documento->versao_atual + 1,
-            ]);
-
-            // Registra edição
-            \App\Models\DocumentoEdicao::create([
-                'documento_digital_id' => $documento->id,
-                'usuario_interno_id' => $usuarioId,
-                'conteudo' => $conteudoNovo,
-                'diff' => $diff['diff'],
-                'caracteres_adicionados' => $diff['adicionados'],
-                'caracteres_removidos' => $diff['removidos'],
-                'iniciado_em' => now(),
-                'ativo' => true,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
-            // Busca editores ativos
-            $editores = $documento->editoresAtivos();
-
-            return response()->json([
-                'success' => true,
-                'versao' => $documento->versao_atual,
-                'ultima_edicao' => $documento->ultima_edicao_em->toIso8601String(),
-                'editores_ativos' => $editores->map(function($edicao) {
-                    return [
-                        'id' => $edicao->usuarioInterno->id,
-                        'nome' => $edicao->usuarioInterno->nome,
-                        'iniciado_em' => $edicao->iniciado_em->diffForHumans(),
-                    ];
-                }),
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Erro ao salvar automaticamente: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao salvar: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Retorna editores atualmente ativos
-     */
-    public function editoresAtivos($id)
-    {
-        try {
-            $documento = DocumentoDigital::findOrFail($id);
-            $editores = $documento->editoresAtivos();
-
-            return response()->json([
-                'success' => true,
-                'editores' => $editores->map(function($edicao) {
-                    return [
-                        'id' => $edicao->usuarioInterno->id,
-                        'nome' => $edicao->usuarioInterno->nome,
-                        'iniciado_em' => $edicao->iniciado_em->diffForHumans(),
-                        'caracteres_adicionados' => $edicao->caracteres_adicionados,
-                        'caracteres_removidos' => $edicao->caracteres_removidos,
-                    ];
-                }),
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar editores: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Retorna conteúdo atual do documento para sincronização
-     */
-    public function obterConteudo($id)
-    {
-        try {
-            $documento = DocumentoDigital::findOrFail($id);
-
-            return response()->json([
-                'success' => true,
-                'conteudo' => $documento->conteudo,
-                'versao' => $documento->versao_atual,
-                'ultima_edicao' => $documento->ultima_edicao_em?->toIso8601String(),
-                'ultimo_editor' => $documento->ultimoEditor ? [
-                    'id' => $documento->ultimoEditor->id,
-                    'nome' => $documento->ultimoEditor->nome,
-                ] : null,
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao obter conteúdo: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Marca início de edição
-     */
-    public function iniciarEdicao(Request $request, $id)
-    {
-        try {
-            $documento = DocumentoDigital::findOrFail($id);
-            $usuarioId = Auth::guard('interno')->id();
-
-            // Desativa edições antigas do mesmo usuário
-            \App\Models\DocumentoEdicao::where('documento_digital_id', $documento->id)
-                ->where('usuario_interno_id', $usuarioId)
-                ->where('ativo', true)
-                ->update(['ativo' => false, 'finalizado_em' => now()]);
-
-            // Cria nova edição ativa
-            $edicao = \App\Models\DocumentoEdicao::create([
-                'documento_digital_id' => $documento->id,
-                'usuario_interno_id' => $usuarioId,
-                'conteudo' => $documento->conteudo,
-                'iniciado_em' => now(),
-                'ativo' => true,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
-            // Busca outros editores ativos
-            $outrosEditores = $documento->editoresAtivos()
-                ->where('usuario_interno_id', '!=', $usuarioId);
-
-            return response()->json([
-                'success' => true,
-                'edicao_id' => $edicao->id,
-                'outros_editores' => $outrosEditores->map(function($e) {
-                    return [
-                        'nome' => $e->usuarioInterno->nome,
-                        'iniciado_em' => $e->iniciado_em->diffForHumans(),
-                    ];
-                }),
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao iniciar edição: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Finaliza edição
-     */
-    public function finalizarEdicao(Request $request, $id)
-    {
-        try {
-            $usuarioId = Auth::guard('interno')->id();
-
-            \App\Models\DocumentoEdicao::where('documento_digital_id', $id)
-                ->where('usuario_interno_id', $usuarioId)
-                ->where('ativo', true)
-                ->update([
-                    'ativo' => false,
-                    'finalizado_em' => now(),
-                ]);
-
-            return response()->json(['success' => true]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao finalizar edição: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }

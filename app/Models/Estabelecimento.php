@@ -121,6 +121,14 @@ class Estabelecimento extends Model
     }
 
     /**
+     * Alias para relacionamento com município (consistência com outros models)
+     */
+    public function municipioRelacionado()
+    {
+        return $this->municipio();
+    }
+
+    /**
      * Relacionamento com responsáveis
      */
     public function responsaveis()

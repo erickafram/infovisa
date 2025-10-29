@@ -129,13 +129,6 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/documentos/{id}/gerenciar-assinantes', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerenciarAssinantes'])->name('documentos.gerenciar-assinantes');
     Route::delete('/documentos/assinaturas/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'removerAssinante'])->name('documentos.remover-assinante');
     
-    // API para edição colaborativa
-    Route::post('/documentos/{id}/salvar-auto', [\App\Http\Controllers\DocumentoDigitalController::class, 'salvarAutomaticamente'])->name('documentos.salvar-auto');
-    Route::get('/documentos/{id}/editores-ativos', [\App\Http\Controllers\DocumentoDigitalController::class, 'editoresAtivos'])->name('documentos.editores-ativos');
-    Route::get('/documentos/{id}/obter-conteudo', [\App\Http\Controllers\DocumentoDigitalController::class, 'obterConteudo'])->name('documentos.obter-conteudo');
-    Route::post('/documentos/{id}/iniciar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'iniciarEdicao'])->name('documentos.iniciar-edicao');
-    Route::post('/documentos/{id}/finalizar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'finalizarEdicao'])->name('documentos.finalizar-edicao');
-    
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
     
@@ -144,6 +137,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/create', [\App\Http\Controllers\ProcessoController::class, 'create'])->name('estabelecimentos.processos.create');
     Route::post('/estabelecimentos/{id}/processos', [\App\Http\Controllers\ProcessoController::class, 'store'])->name('estabelecimentos.processos.store');
     Route::get('/estabelecimentos/{id}/processos/{processo}', [\App\Http\Controllers\ProcessoController::class, 'show'])->name('estabelecimentos.processos.show');
+    Route::get('/estabelecimentos/{id}/processos/{processo}/integra', [\App\Http\Controllers\ProcessoController::class, 'integra'])->name('estabelecimentos.processos.integra');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/status', [\App\Http\Controllers\ProcessoController::class, 'updateStatus'])->name('estabelecimentos.processos.updateStatus');
     Route::post('/estabelecimentos/{id}/processos/{processo}/acompanhar', [\App\Http\Controllers\ProcessoController::class, 'toggleAcompanhamento'])->name('estabelecimentos.processos.toggleAcompanhamento');
     Route::post('/estabelecimentos/{id}/processos/{processo}/arquivar', [\App\Http\Controllers\ProcessoController::class, 'arquivar'])->name('estabelecimentos.processos.arquivar');
@@ -236,7 +230,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::delete('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'destroy'])->name('destroy');
             Route::get('/buscar', [\App\Http\Controllers\Admin\MunicipioController::class, 'buscar'])->name('buscar');
         });
+        
+        // Configurações do Sistema
+        Route::prefix('sistema')->name('sistema.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'index'])->name('index');
+            Route::put('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'update'])->name('update');
+        });
     });
+    
+    // Assistente IA
+    Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
 });
 
 // Rota temporária para consulta de CNPJ (sem middleware CSRF para AJAX)

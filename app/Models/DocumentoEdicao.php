@@ -93,6 +93,7 @@ class DocumentoEdicao extends Model
 
     /**
      * Busca editores ativos de um documento
+     * Retorna apenas o registro mais recente de cada usuário único
      */
     public static function editoresAtivos($documentoId)
     {
@@ -101,7 +102,9 @@ class DocumentoEdicao extends Model
             ->where('ativo', true)
             ->where('iniciado_em', '>=', now()->subMinutes(5)) // Considera ativo se editou nos últimos 5 min
             ->orderBy('iniciado_em', 'desc')
-            ->get();
+            ->get()
+            ->unique('usuario_interno_id') // Remove duplicatas, mantém apenas o mais recente de cada usuário
+            ->values(); // Reindexar a coleção
     }
 
     /**

@@ -19,6 +19,18 @@
             padding: 15px;
         }
         
+        .logo-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .logo-container img {
+            max-height: 60px;
+            max-width: 200px;
+            height: auto;
+            width: auto;
+        }
+        
         .header {
             text-align: center;
             margin-bottom: 15px;
@@ -175,6 +187,28 @@
         <img src="data:image/png;base64,{{ $qrCodeBase64 }}" alt="QR Code">
         <p>Verificar<br>Autenticidade</p>
     </div>
+
+    {{-- Logomarca --}}
+    @if(isset($logomarca) && $logomarca)
+        <div class="logo-container">
+            @php
+                // Converte a logomarca para base64 para incluir no PDF
+                // Remove 'storage/' do início se existir, pois public_path já aponta para 'public/'
+                $logoPathRelativo = str_replace('storage/', '', $logomarca);
+                $logoPath = public_path('storage/' . $logoPathRelativo);
+                
+                if (file_exists($logoPath)) {
+                    $logoData = base64_encode(file_get_contents($logoPath));
+                    $logoExtension = pathinfo($logoPath, PATHINFO_EXTENSION);
+                    $logoMimeType = $logoExtension === 'svg' ? 'svg+xml' : $logoExtension;
+                    echo '<img src="data:image/' . $logoMimeType . ';base64,' . $logoData . '" alt="Logomarca">';
+                } else {
+                    // Debug: mostra o caminho que tentou acessar
+                    echo '<!-- Logomarca não encontrada: ' . $logoPath . ' -->';
+                }
+            @endphp
+        </div>
+    @endif
 
     {{-- Cabeçalho --}}
     <div class="header">

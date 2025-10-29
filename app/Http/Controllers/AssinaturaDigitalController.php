@@ -214,6 +214,7 @@ class AssinaturaDigitalController extends Controller
             'tipoDocumento',
             'processo.tipoProcesso',
             'processo.estabelecimento.responsaveis',
+            'processo.estabelecimento.municipio',
             'assinaturas' => function($query) {
                 $query->where('status', 'assinado')->orderBy('ordem');
             },
@@ -239,6 +240,66 @@ class AssinaturaDigitalController extends Controller
             'processo_tipo' => $documento->processo->tipo ?? 'null',
         ]);
 
+        // Determina qual logomarca usar
+        $logomarca = null;
+        if ($documento->processo && $documento->processo->estabelecimento) {
+            $estabelecimento = $documento->processo->estabelecimento;
+            
+            // Busca o relacionamento municipio (não o campo string 'municipio')
+            // O eager loading carrega para 'municipio' mas pode conflitar com o campo string
+            $municipioObj = null;
+            if ($estabelecimento->municipio_id) {
+                // Tenta usar o relacionamento carregado
+                if ($estabelecimento->relationLoaded('municipio') && is_object($estabelecimento->getRelation('municipio'))) {
+                    $municipioObj = $estabelecimento->getRelation('municipio');
+                } else {
+                    // Se não foi carregado, busca manualmente
+                    $municipioObj = \App\Models\Municipio::find($estabelecimento->municipio_id);
+                }
+            }
+            
+            \Log::info('=== DETERMINANDO LOGOMARCA PARA PDF ===', [
+                'estabelecimento_id' => $estabelecimento->id,
+                'estabelecimento_nome' => $estabelecimento->nome_fantasia,
+                'municipio_id' => $estabelecimento->municipio_id,
+                'municipio_nome' => $municipioObj ? $municipioObj->nome : 'N/A',
+                'municipio_logomarca' => $municipioObj ? $municipioObj->logomarca : 'N/A',
+                'is_competencia_estadual' => $estabelecimento->isCompetenciaEstadual(),
+            ]);
+            
+            // Se estabelecimento é de competência ESTADUAL -> usa logomarca estadual
+            if ($estabelecimento->isCompetenciaEstadual()) {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                \Log::info('✅ Usando logomarca ESTADUAL', ['caminho' => $logomarca]);
+            } 
+            // Se estabelecimento é MUNICIPAL e tem município com logomarca
+            elseif ($estabelecimento->municipio_id && $municipioObj) {
+                // Usa o relacionamento já carregado via eager loading
+                if (!empty($municipioObj->logomarca)) {
+                    $logomarca = $municipioObj->logomarca;
+                    \Log::info('✅ Usando logomarca MUNICIPAL', [
+                        'municipio' => $municipioObj->nome,
+                        'caminho' => $logomarca,
+                    ]);
+                } else {
+                    // Fallback: município sem logomarca -> usa estadual
+                    $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                    \Log::info('⚠️ Município sem logomarca, usando ESTADUAL (fallback)', [
+                        'municipio' => $municipioObj->nome,
+                        'caminho' => $logomarca,
+                    ]);
+                }
+            } else {
+                // Fallback: sem município -> usa estadual
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                \Log::info('⚠️ Sem município vinculado, usando ESTADUAL (fallback)', ['caminho' => $logomarca]);
+            }
+        } else {
+            // Sem processo/estabelecimento -> usa logomarca estadual como padrão
+            $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            \Log::info('⚠️ Sem processo/estabelecimento, usando ESTADUAL (padrão)', ['caminho' => $logomarca]);
+        }
+
         // Prepara dados para o PDF
         $data = [
             'documento' => $documento,
@@ -248,6 +309,7 @@ class AssinaturaDigitalController extends Controller
             'urlAutenticidade' => $urlAutenticidade,
             'codigoAutenticidade' => $documento->codigo_autenticidade,
             'qrCodeBase64' => $qrCodeBase64,
+            'logomarca' => $logomarca,
         ];
 
         // Gera o PDF

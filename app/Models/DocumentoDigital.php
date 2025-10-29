@@ -128,27 +128,11 @@ class DocumentoDigital extends Model
     }
 
     /**
-     * Relacionamento com edições
-     */
-    public function edicoes()
-    {
-        return $this->hasMany(DocumentoEdicao::class);
-    }
-
-    /**
      * Relacionamento com último editor
      */
     public function ultimoEditor()
     {
         return $this->belongsTo(UsuarioInterno::class, 'ultimo_editor_id');
-    }
-
-    /**
-     * Busca editores atualmente ativos
-     */
-    public function editoresAtivos()
-    {
-        return DocumentoEdicao::editoresAtivos($this->id);
     }
 
     /**

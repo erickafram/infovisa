@@ -7,7 +7,7 @@
 <div class="max-w-8xl mx-auto">
     
     {{-- Estatísticas --}}
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between">
                 <div>
@@ -78,6 +78,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Com Usuários</p>
+                    <p class="text-2xl font-bold text-indigo-600">{{ $stats['com_usuarios'] }}</p>
+                </div>
+                <div class="p-3 bg-indigo-100 rounded-lg">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Filtros e Ações --}}
@@ -134,6 +148,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Município</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código IBGE</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UF</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuários</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estabelecimentos</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pactuações</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -163,6 +178,11 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
                                     {{ $municipio->uf }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-medium">
+                                    {{ $municipio->usuarios_internos_count ?? 0 }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

@@ -21,7 +21,19 @@ class ProcessoController extends Controller
      */
     public function indexGeral(Request $request)
     {
+        $usuario = auth('interno')->user();
         $query = Processo::with(['estabelecimento', 'usuario', 'tipoProcesso']);
+
+        // ✅ FILTRO AUTOMÁTICO POR MUNICÍPIO/COMPETÊNCIA
+        if (!$usuario->isAdmin()) {
+            if ($usuario->isMunicipal() && $usuario->municipio_id) {
+                // Gestor/Técnico Municipal: vê apenas processos do próprio município
+                // A verificação de competência será feita depois, pois depende do método isCompetenciaEstadual()
+                $query->whereHas('estabelecimento', function ($q) use ($usuario) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                });
+            }
+        }
 
         // Filtro por número do processo
         if ($request->filled('numero_processo')) {
@@ -71,6 +83,34 @@ class ProcessoController extends Controller
         }
 
         $processos = $query->paginate(20)->withQueryString();
+
+        // ✅ FILTRO ADICIONAL POR COMPETÊNCIA (após paginação)
+        if (!$usuario->isAdmin()) {
+            $processos->getCollection()->transform(function ($processo) use ($usuario) {
+                // Carrega o relacionamento se não estiver carregado
+                if (!$processo->relationLoaded('estabelecimento')) {
+                    $processo->load('estabelecimento');
+                }
+                return $processo;
+            });
+            
+            // Filtra por competência
+            if ($usuario->isEstadual()) {
+                // Usuário estadual: só vê processos de competência estadual
+                $processos->setCollection(
+                    $processos->getCollection()->filter(function ($processo) {
+                        return $processo->estabelecimento && $processo->estabelecimento->isCompetenciaEstadual();
+                    })
+                );
+            } elseif ($usuario->isMunicipal()) {
+                // Usuário municipal: só vê processos de competência municipal
+                $processos->setCollection(
+                    $processos->getCollection()->filter(function ($processo) {
+                        return $processo->estabelecimento && !$processo->estabelecimento->isCompetenciaEstadual();
+                    })
+                );
+            }
+        }
 
         // Dados para filtros
         $tiposProcesso = TipoProcesso::ativos()
@@ -186,6 +226,8 @@ class ProcessoController extends Controller
     public function show($estabelecimentoId, $processoId)
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $processo = Processo::with(['usuario', 'estabelecimento', 'documentos.usuario', 'usuariosAcompanhando'])
             ->where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
@@ -206,10 +248,149 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Gera PDF do processo na íntegra (todos os documentos compilados)
+     */
+    public function integra($estabelecimentoId, $processoId)
+    {
+        $estabelecimento = Estabelecimento::with('municipio')->findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        $processo = Processo::with([
+            'usuario', 
+            'estabelecimento.municipio', 
+            'tipoProcesso',
+            'documentos' => function($query) {
+                $query->orderBy('created_at', 'asc');
+            }
+        ])
+        ->where('estabelecimento_id', $estabelecimentoId)
+        ->findOrFail($processoId);
+        
+        // Busca documentos digitais do processo (apenas assinados)
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas'])
+            ->where('processo_id', $processoId)
+            ->where('status', 'assinado')
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        // Determina qual logomarca usar (mesma lógica dos PDFs)
+        $logomarca = null;
+        if ($estabelecimento->isCompetenciaEstadual()) {
+            $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        } elseif ($estabelecimento->municipio_id && $estabelecimento->municipio) {
+            if (!empty($estabelecimento->municipio->logomarca)) {
+                $logomarca = $estabelecimento->municipio->logomarca;
+            } else {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            }
+        } else {
+            $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        }
+        
+        // Prepara dados para o PDF
+        $data = [
+            'estabelecimento' => $estabelecimento,
+            'processo' => $processo,
+            'documentosDigitais' => $documentosDigitais,
+            'logomarca' => $logomarca,
+        ];
+        
+        // Gera o PDF inicial (capa + dados)
+        $pdf = Pdf::loadView('estabelecimentos.processos.integra-pdf', $data)
+            ->setPaper('a4', 'portrait')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 15)
+            ->setOption('margin-right', 15);
+        
+        // Nome do arquivo (remove caracteres inválidos)
+        $numeroProcessoLimpo = str_replace(['/', '\\'], '_', $processo->numero_processo ?? 'sem_numero');
+        $nomeArquivo = 'processo_integra_' . $numeroProcessoLimpo . '.pdf';
+        
+        // Salva o PDF inicial temporariamente
+        $pdfInicial = $pdf->output();
+        $tempInicial = storage_path('app/temp_integra_inicial.pdf');
+        file_put_contents($tempInicial, $pdfInicial);
+        
+        // Mescla com os PDFs dos documentos digitais
+        try {
+            $fpdi = new \setasign\Fpdi\Fpdi();
+            
+            // Adiciona páginas do PDF inicial
+            $pageCount = $fpdi->setSourceFile($tempInicial);
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $template = $fpdi->importPage($i);
+                $size = $fpdi->getTemplateSize($template);
+                $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $fpdi->useTemplate($template);
+            }
+            
+            // Adiciona PDFs dos documentos digitais
+            foreach ($documentosDigitais as $doc) {
+                if ($doc->arquivo_pdf && Storage::disk('public')->exists($doc->arquivo_pdf)) {
+                    $pdfPath = storage_path('app/public/' . $doc->arquivo_pdf);
+                    
+                    try {
+                        $docPageCount = $fpdi->setSourceFile($pdfPath);
+                        for ($i = 1; $i <= $docPageCount; $i++) {
+                            $template = $fpdi->importPage($i);
+                            $size = $fpdi->getTemplateSize($template);
+                            $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                            $fpdi->useTemplate($template);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Erro ao adicionar PDF do documento: ' . $doc->numero_documento, [
+                            'erro' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+            
+            // Adiciona PDFs dos arquivos anexados
+            foreach ($processo->documentos as $documento) {
+                $extensao = strtolower(pathinfo($documento->nome_arquivo, PATHINFO_EXTENSION));
+                if ($extensao === 'pdf' && !empty($documento->caminho_arquivo) && Storage::disk('public')->exists($documento->caminho_arquivo)) {
+                    $pdfPath = storage_path('app/public/' . $documento->caminho_arquivo);
+                    
+                    try {
+                        $docPageCount = $fpdi->setSourceFile($pdfPath);
+                        for ($i = 1; $i <= $docPageCount; $i++) {
+                            $template = $fpdi->importPage($i);
+                            $size = $fpdi->getTemplateSize($template);
+                            $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                            $fpdi->useTemplate($template);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Erro ao adicionar PDF anexado: ' . $documento->nome_arquivo, [
+                            'erro' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+            
+            // Remove arquivo temporário
+            @unlink($tempInicial);
+            
+            // Retorna o PDF mesclado
+            return response($fpdi->Output('S', $nomeArquivo))
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="' . $nomeArquivo . '"');
+                
+        } catch (\Exception $e) {
+            // Se falhar a mesclagem, retorna apenas o PDF inicial
+            \Log::error('Erro ao mesclar PDFs: ' . $e->getMessage());
+            @unlink($tempInicial);
+            return $pdf->download($nomeArquivo);
+        }
+    }
+
+    /**
      * Adiciona/Remove acompanhamento do processo
      */
     public function toggleAcompanhamento($estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -240,6 +421,9 @@ class ProcessoController extends Controller
      */
     public function updateStatus(Request $request, $estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -259,6 +443,9 @@ class ProcessoController extends Controller
      */
     public function destroy($estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -275,6 +462,9 @@ class ProcessoController extends Controller
      */
     public function uploadArquivo(Request $request, $estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -345,6 +535,9 @@ class ProcessoController extends Controller
      */
     public function visualizarArquivo($estabelecimentoId, $processoId, $documentoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         // Tenta buscar como documento digital primeiro
         $docDigital = \App\Models\DocumentoDigital::where('processo_id', $processoId)
             ->where('id', $documentoId)
@@ -385,6 +578,9 @@ class ProcessoController extends Controller
      */
     public function downloadArquivo($estabelecimentoId, $processoId, $documentoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
@@ -562,6 +758,9 @@ class ProcessoController extends Controller
      */
     public function arquivar(Request $request, $estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $request->validate([
             'motivo_arquivamento' => 'required|string|min:10',
         ], [
@@ -603,6 +802,9 @@ class ProcessoController extends Controller
      */
     public function desarquivar($estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         try {
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
@@ -641,6 +843,9 @@ class ProcessoController extends Controller
      */
     public function parar(Request $request, $estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         $request->validate([
             'motivo_parada' => 'required|string|min:10',
         ], [
@@ -680,6 +885,9 @@ class ProcessoController extends Controller
      */
     public function reiniciar($estabelecimentoId, $processoId)
     {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
         try {
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
@@ -699,5 +907,39 @@ class ProcessoController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao reiniciar processo: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Valida se o usuário tem permissão para acessar o processo
+     */
+    private function validarPermissaoAcesso($estabelecimento)
+    {
+        $usuario = auth('interno')->user();
+        
+        // Administrador tem acesso total
+        if ($usuario->isAdmin()) {
+            return true;
+        }
+        
+        // Usuário estadual só pode acessar processos de competência estadual
+        if ($usuario->isEstadual()) {
+            if (!$estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Você não tem permissão para acessar processos de competência municipal.');
+            }
+            return true;
+        }
+        
+        // Usuário municipal só pode acessar processos do próprio município e de competência municipal
+        if ($usuario->isMunicipal()) {
+            if (!$usuario->municipio_id || $estabelecimento->municipio_id != $usuario->municipio_id) {
+                abort(403, 'Você não tem permissão para acessar processos de outros municípios.');
+            }
+            if ($estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Você não tem permissão para acessar processos de competência estadual.');
+            }
+            return true;
+        }
+        
+        return true;
     }
 }

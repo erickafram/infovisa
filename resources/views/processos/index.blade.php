@@ -9,6 +9,24 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Todos os Processos</h1>
             <p class="text-sm text-gray-600 mt-1">Gerencie e filtre todos os processos do sistema</p>
+            
+            @if(!auth('interno')->user()->isAdmin())
+                @if(auth('interno')->user()->isEstadual())
+                    <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        Exibindo apenas processos de competência estadual
+                    </div>
+                @elseif(auth('interno')->user()->isMunicipal() && auth('interno')->user()->municipio_id)
+                    <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        Exibindo apenas processos do município: {{ auth('interno')->user()->municipioRelacionado->nome ?? auth('interno')->user()->municipio }}
+                    </div>
+                @endif
+            @endif
         </div>
     </div>
 
