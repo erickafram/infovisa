@@ -9,6 +9,69 @@
     transition: none !important;
     animation: none !important;
 }
+
+/* Formatação das respostas da IA */
+.formatted-response p {
+    margin-bottom: 0.5rem;
+}
+
+.formatted-response p:last-child {
+    margin-bottom: 0;
+}
+
+.formatted-response strong {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.formatted-response ol {
+    list-style-type: decimal;
+    margin-left: 1.25rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.formatted-response ul {
+    list-style-type: disc;
+    margin-left: 1.25rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.formatted-response li {
+    margin-bottom: 0.375rem;
+    line-height: 1.5;
+}
+
+.formatted-response li:last-child {
+    margin-bottom: 0;
+}
+
+.formatted-response code {
+    background-color: #f3f4f6;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #4b5563;
+}
+
+.formatted-response .section-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-top: 0.75rem;
+    margin-bottom: 0.375rem;
+}
+
+.formatted-response .section-title:first-child {
+    margin-top: 0;
+}
+
+.formatted-response .highlight {
+    background-color: #fef3c7;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+}
 </style>
 <div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6 z-50">
     {{-- Botão Flutuante --}}
@@ -96,9 +159,9 @@
                 <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div :class="msg.role === 'user' 
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-none px-3 py-2 max-w-[85%]' 
-                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-none px-3 py-2 max-w-[85%] shadow-sm border border-gray-200'">
-                        <p class="text-xs leading-relaxed whitespace-pre-wrap" x-html="msg.content"></p>
-                        <p class="text-[10px] mt-1 opacity-60" x-text="msg.time"></p>
+                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-none px-3 py-2.5 max-w-[85%] shadow-sm border border-gray-200'">
+                        <div class="text-xs leading-relaxed" :class="msg.role === 'assistant' ? 'formatted-response' : ''" x-html="formatarMensagem(msg.content, msg.role)"></div>
+                        <p class="text-[10px] mt-1.5 opacity-60" x-text="msg.time"></p>
                     </div>
                 </div>
             </template>
@@ -286,6 +349,67 @@ function assistenteIA() {
                 this.mensagens = [];
                 localStorage.removeItem('ia_chat_history');
             }
+        },
+        
+        formatarMensagem(content, role) {
+            if (role === 'user') {
+                // Mensagens do usuário não precisam formatação especial
+                return this.escapeHtml(content);
+            }
+            
+            // Formata mensagens da IA
+            let formatted = content;
+            
+            // Escapa HTML primeiro
+            formatted = this.escapeHtml(formatted);
+            
+            // Converte **texto** em <strong>texto</strong>
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // Converte listas numeradas (1. item)
+            formatted = formatted.replace(/^(\d+)\.\s+(.+)$/gm, '<li>$2</li>');
+            
+            // Envolve listas numeradas em <ol>
+            formatted = formatted.replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+                return '<ol>' + match + '</ol>';
+            });
+            
+            // Converte listas com marcadores (- item ou • item)
+            formatted = formatted.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+            
+            // Envolve listas com marcadores em <ul> (que não estão em <ol>)
+            formatted = formatted.replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+                if (!match.includes('<ol>')) {
+                    return '<ul>' + match + '</ul>';
+                }
+                return match;
+            });
+            
+            // Converte `código` em <code>código</code>
+            formatted = formatted.replace(/`(.+?)`/g, '<code>$1</code>');
+            
+            // Converte quebras de linha em parágrafos
+            const paragraphs = formatted.split('\n\n');
+            formatted = paragraphs.map(p => {
+                p = p.trim();
+                if (p && !p.startsWith('<ol>') && !p.startsWith('<ul>')) {
+                    return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+                }
+                return p;
+            }).join('');
+            
+            return formatted;
+        },
+        
+        escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
         }
     }
 }
