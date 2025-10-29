@@ -206,6 +206,15 @@
     </div>
     </div>
 
+    {{-- PDF.js Library (carregado globalmente para visualizador de PDFs) --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configurar worker do PDF.js
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+
     {{-- Scripts adicionais --}}
     @stack('scripts')
 

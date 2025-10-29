@@ -635,7 +635,7 @@
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }} }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
                                      class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-red-500 hover:bg-gray-100 transition-colors">
-                                    <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}'; modalVisualizador = true" 
+                                    <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}')" 
                                          class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                                         {{-- Ícone do arquivo --}}
                                         <div class="flex-shrink-0">
@@ -896,6 +896,51 @@
                                 class="w-full h-full border-0"
                                 style="min-height: 500px;">
                         </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Modal de Visualização de PDF com Anotações --}}
+    <template x-teleport="body">
+        <div x-show="modalVisualizadorAnotacoes" 
+             x-cloak
+             @keydown.escape.window="modalVisualizadorAnotacoes = false"
+             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
+            
+            {{-- Overlay --}}
+            <div @click="modalVisualizadorAnotacoes = false"
+                 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.75);"></div>
+            
+            {{-- Modal Content --}}
+            <div style="position: absolute; top: 1%; left: 1%; right: 1%; bottom: 1%; max-width: 1400px; margin: 0 auto;">
+                <div class="bg-white rounded-xl shadow-2xl h-full flex flex-col" @click.stop>
+                    {{-- Header --}}
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Visualizar e Anotar PDF
+                        </h3>
+                        <button @click="modalVisualizadorAnotacoes = false"
+                                class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- PDF Viewer com Anotações --}}
+                    <div class="flex-1 overflow-auto p-4">
+                        <div x-show="documentoIdAnotacoes && pdfUrlAnotacoes">
+                            <div x-data="pdfViewerAnotacoes(documentoIdAnotacoes, pdfUrlAnotacoes, [])" 
+                                 x-init="init()"
+                                 class="pdf-viewer-container bg-white rounded-lg shadow-lg border border-gray-200">
+                                @include('components.pdf-viewer-anotacoes')
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1474,6 +1519,7 @@
                 // Modais
                 modalUpload: false,
                 modalVisualizador: false,
+                modalVisualizadorAnotacoes: false,
                 modalEditarNome: false,
                 modalDocumentoDigital: false,
                 modalPastas: false,
@@ -1483,6 +1529,8 @@
                 
                 // Dados gerais
                 pdfUrl: '',
+                pdfUrlAnotacoes: '',
+                documentoIdAnotacoes: null,
                 documentoEditando: null,
                 nomeEditando: '',
                 selecionarMultiplos: false, // Para seleção múltipla de documentos
@@ -1737,6 +1785,13 @@
                         console.error('Erro:', error);
                         alert('Erro ao excluir documento');
                     });
+                },
+
+                // Abre o visualizador de PDF com ferramentas de anotação
+                abrirVisualizadorAnotacoes(documentoId, pdfUrl) {
+                    this.documentoIdAnotacoes = documentoId;
+                    this.pdfUrlAnotacoes = pdfUrl;
+                    this.modalVisualizadorAnotacoes = true;
                 }
             }
         }

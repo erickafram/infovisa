@@ -153,6 +153,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::patch('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/nome', [\App\Http\Controllers\ProcessoController::class, 'updateNomeArquivo'])->name('estabelecimentos.processos.updateNome');
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}', [\App\Http\Controllers\ProcessoController::class, 'deleteArquivo'])->name('estabelecimentos.processos.deleteArquivo');
     
+    // Anotações em PDFs
+    Route::post('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'salvarAnotacoes'])->name('processos.documentos.anotacoes.salvar');
+    Route::get('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'carregarAnotacoes'])->name('processos.documentos.anotacoes.carregar');
+    
     // Gerar documento digital
     Route::post('/estabelecimentos/{id}/processos/{processo}/gerar-documento', [\App\Http\Controllers\ProcessoController::class, 'gerarDocumento'])->name('estabelecimentos.processos.gerarDocumento');
     

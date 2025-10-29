@@ -942,4 +942,86 @@ class ProcessoController extends Controller
         
         return true;
     }
+
+    /**
+     * Salva anotações feitas em um PDF
+     */
+    public function salvarAnotacoes(Request $request, $documentoId)
+    {
+        $documento = ProcessoDocumento::findOrFail($documentoId);
+        $processo = $documento->processo;
+        $estabelecimento = $processo->estabelecimento;
+        
+        // Valida permissão de acesso
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $validated = $request->validate([
+            'anotacoes' => 'required|array',
+            'anotacoes.*.tipo' => 'required|string|in:highlight,text,drawing,area,comment',
+            'anotacoes.*.pagina' => 'required|integer|min:1',
+            'anotacoes.*.dados' => 'required|array',
+            'anotacoes.*.comentario' => 'nullable|string',
+        ]);
+
+        try {
+            // Remove anotações antigas deste documento do usuário atual
+            \App\Models\ProcessoPdfAnotacao::where('processo_documento_id', $documentoId)
+                ->where('usuario_interno_id', auth('interno')->id())
+                ->delete();
+
+            // Salva novas anotações
+            foreach ($validated['anotacoes'] as $anotacao) {
+                \App\Models\ProcessoPdfAnotacao::create([
+                    'processo_documento_id' => $documentoId,
+                    'usuario_interno_id' => auth('interno')->id(),
+                    'pagina' => $anotacao['pagina'],
+                    'tipo' => $anotacao['tipo'],
+                    'dados' => $anotacao['dados'],
+                    'comentario' => $anotacao['comentario'] ?? null,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Anotações salvas com sucesso!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao salvar anotações: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Carrega anotações de um PDF
+     */
+    public function carregarAnotacoes($documentoId)
+    {
+        $documento = ProcessoDocumento::findOrFail($documentoId);
+        $processo = $documento->processo;
+        $estabelecimento = $processo->estabelecimento;
+        
+        // Valida permissão de acesso
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        // Carrega anotações do documento (de todos os usuários)
+        $anotacoes = \App\Models\ProcessoPdfAnotacao::with('usuario')
+            ->where('processo_documento_id', $documentoId)
+            ->get()
+            ->map(function ($anotacao) {
+                return [
+                    'id' => $anotacao->id,
+                    'tipo' => $anotacao->tipo,
+                    'pagina' => $anotacao->pagina,
+                    'dados' => $anotacao->dados,
+                    'comentario' => $anotacao->comentario,
+                    'usuario' => $anotacao->usuario->nome ?? 'Desconhecido',
+                    'criado_em' => $anotacao->created_at->format('d/m/Y H:i'),
+                ];
+            });
+
+        return response()->json($anotacoes);
+    }
 }
