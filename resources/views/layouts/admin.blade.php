@@ -215,6 +215,9 @@
         }
     </script>
 
+    {{-- Função global para o visualizador de PDF com anotações --}}
+    <script src="{{ asset('js/pdf-viewer-anotacoes.js') }}"></script>
+
     {{-- Scripts adicionais --}}
     @stack('scripts')
 

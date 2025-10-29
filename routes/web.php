@@ -154,8 +154,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}', [\App\Http\Controllers\ProcessoController::class, 'deleteArquivo'])->name('estabelecimentos.processos.deleteArquivo');
     
     // Anotações em PDFs
-    Route::post('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'salvarAnotacoes'])->name('processos.documentos.anotacoes.salvar');
     Route::get('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'carregarAnotacoes'])->name('processos.documentos.anotacoes.carregar');
+    Route::post('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'salvarAnotacoes'])->name('processos.documentos.anotacoes.salvar');
+    
+    // Designação de Responsável
+    Route::get('/estabelecimentos/{id}/processos/{processo}/usuarios-designacao', [\App\Http\Controllers\ProcessoController::class, 'buscarUsuariosParaDesignacao'])->name('estabelecimentos.processos.usuarios.designacao');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/designar', [\App\Http\Controllers\ProcessoController::class, 'designarResponsavel'])->name('estabelecimentos.processos.designar');
+    Route::patch('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}', [\App\Http\Controllers\ProcessoController::class, 'atualizarDesignacao'])->name('estabelecimentos.processos.designacoes.atualizar');
     
     // Gerar documento digital
     Route::post('/estabelecimentos/{id}/processos/{processo}/gerar-documento', [\App\Http\Controllers\ProcessoController::class, 'gerarDocumento'])->name('estabelecimentos.processos.gerarDocumento');
@@ -205,6 +210,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Modelos de Documentos
         Route::resource('modelos-documento', \App\Http\Controllers\ModeloDocumentoController::class)->parameters([
             'modelos-documento' => 'modeloDocumento'
+        ]);
+        
+        // Tipos de Ações
+        Route::resource('tipo-acoes', \App\Http\Controllers\Admin\TipoAcaoController::class)->parameters([
+            'tipo-acoes' => 'tipoAcao'
         ]);
         
         // Pactuação (Competências Municipais e Estaduais)

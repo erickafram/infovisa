@@ -8,6 +8,7 @@ use App\Models\UsuarioInterno;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\DocumentoAssinatura;
+use App\Models\ProcessoDesignacao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -89,6 +90,18 @@ class DashboardController extends Controller
             })
             ->count();
 
+        // Buscar processos designados para o usuário (pendentes e em andamento)
+        $processos_designados = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
+            ->whereIn('status', ['pendente', 'em_andamento'])
+            ->with(['processo.estabelecimento', 'usuarioDesignador'])
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        $stats['processos_designados_pendentes'] = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
+            ->whereIn('status', ['pendente', 'em_andamento'])
+            ->count();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
@@ -96,7 +109,8 @@ class DashboardController extends Controller
             'estabelecimentos_pendentes',
             'processos_acompanhados',
             'documentos_pendentes_assinatura',
-            'documentos_rascunho_pendentes'
+            'documentos_rascunho_pendentes',
+            'processos_designados'
         ));
     }
 }

@@ -66,6 +66,24 @@
             </div>
         </a>
 
+        {{-- Tipos de Ações --}}
+        <a href="{{ route('admin.configuracoes.tipo-acoes.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Tipos de Ações</h3>
+                    <p class="text-sm text-gray-600">Configure ações realizadas pela vigilância sanitária</p>
+                </div>
+            </div>
+        </a>
+
         {{-- Pactuação --}}
         <a href="{{ route('admin.configuracoes.pactuacao.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">

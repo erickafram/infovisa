@@ -69,6 +69,109 @@
     </div>
     @endif
 
+    {{-- Processos Designados para Você --}}
+    @if($stats['processos_designados_pendentes'] > 0)
+    <div class="bg-white border-l-4 border-purple-400 rounded-lg shadow-sm">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900">
+                    Processos Designados para Você
+                    <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">{{ $stats['processos_designados_pendentes'] }}</span>
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">Processos que foram atribuídos para você resolver</p>
+            </div>
+        </div>
+        
+        @if($processos_designados->count() > 0)
+        <div class="divide-y divide-gray-100">
+            @foreach($processos_designados as $designacao)
+            <div class="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <a href="{{ route('admin.estabelecimentos.processos.show', [$designacao->processo->estabelecimento_id, $designacao->processo->id]) }}" 
+                               class="text-sm font-semibold text-purple-600 hover:text-purple-800 transition-colors">
+                                Processo #{{ $designacao->processo->numero_processo }}
+                            </a>
+                            <span class="px-1.5 py-0.5 text-xs font-medium rounded 
+                                {{ $designacao->status === 'pendente' ? 'bg-purple-100 text-purple-800' : '' }}
+                                {{ $designacao->status === 'em_andamento' ? 'bg-blue-100 text-blue-800' : '' }}">
+                                {{ $designacao->status === 'pendente' ? 'Pendente' : 'Em Andamento' }}
+                            </span>
+                            @if($designacao->data_limite)
+                                @if($designacao->isAtrasada())
+                                    <span class="px-1.5 py-0.5 text-xs font-bold rounded bg-red-100 text-red-800">
+                                        ⚠️ Atrasado
+                                    </span>
+                                @elseif($designacao->isProximoDoPrazo())
+                                    <span class="px-1.5 py-0.5 text-xs font-bold rounded bg-orange-100 text-orange-800">
+                                        ⏰ Urgente
+                                    </span>
+                                @endif
+                            @endif
+                        </div>
+                        <p class="text-xs text-gray-600 mb-1">
+                            {{ $designacao->processo->estabelecimento->nome_fantasia }}
+                        </p>
+                        <p class="text-sm text-gray-700 mb-2">
+                            <strong>Tarefa:</strong> {{ Str::limit($designacao->descricao_tarefa, 150) }}
+                        </p>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Designado por: {{ $designacao->usuarioDesignador->nome }}
+                            </span>
+                            @if($designacao->data_limite)
+                                <span class="flex items-center gap-1 {{ $designacao->isAtrasada() ? 'text-red-600 font-semibold' : ($designacao->isProximoDoPrazo() ? 'text-orange-600 font-semibold' : '') }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    Prazo: {{ $designacao->data_limite->format('d/m/Y') }}
+                                </span>
+                            @endif
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ $designacao->created_at->diffForHumans() }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        @if($designacao->status === 'pendente')
+                            <form action="{{ route('admin.estabelecimentos.processos.designacoes.atualizar', [$designacao->processo->estabelecimento_id, $designacao->processo->id, $designacao->id]) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="em_andamento">
+                                <button type="submit" class="w-full px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors whitespace-nowrap">
+                                    Iniciar
+                                </button>
+                            </form>
+                        @elseif($designacao->status === 'em_andamento')
+                            <form action="{{ route('admin.estabelecimentos.processos.designacoes.atualizar', [$designacao->processo->estabelecimento_id, $designacao->processo->id, $designacao->id]) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="concluida">
+                                <button type="submit" class="w-full px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors whitespace-nowrap">
+                                    Concluir
+                                </button>
+                            </form>
+                        @endif
+                        <a href="{{ route('admin.estabelecimentos.processos.show', [$designacao->processo->estabelecimento_id, $designacao->processo->id]) }}" 
+                           class="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 rounded hover:bg-purple-100 transition-colors text-center whitespace-nowrap">
+                            Ver Processo
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @endif
+    </div>
+    @endif
+
     {{-- Documentos em Rascunho Pendentes de Finalização --}}
     @if($stats['documentos_rascunho_pendentes'] > 0)
     <div class="bg-white border-l-4 border-blue-400 rounded-lg shadow-sm">

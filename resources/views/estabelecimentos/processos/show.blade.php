@@ -256,12 +256,6 @@
                         </svg>
                         Alertas
                     </button>
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        Designar Responsável
-                    </button>
                 </div>
             </div>
 
@@ -372,6 +366,73 @@
                     </svg>
                 </button>
             </div>
+
+            {{-- Responsáveis Designados --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-gray-900 uppercase flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Responsáveis
+                        @if($designacoes->where('status', 'pendente')->count() > 0)
+                            <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
+                                {{ $designacoes->where('status', 'pendente')->count() }}
+                            </span>
+                        @endif
+                    </h3>
+                    <button @click="modalDesignar = true; carregarUsuarios()" 
+                            class="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors">
+                        + Designar
+                    </button>
+                </div>
+
+                @if($designacoes->isEmpty())
+                    <p class="text-xs text-gray-500 text-center py-3">Nenhum responsável designado</p>
+                @else
+                    <div class="space-y-3">
+                        @foreach($designacoes as $designacao)
+                            <div class="border border-gray-200 rounded-lg p-3 {{ $designacao->status === 'pendente' ? 'bg-purple-50' : ($designacao->status === 'em_andamento' ? 'bg-blue-50' : 'bg-gray-50') }}">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-semibold text-gray-900 truncate">
+                                            {{ $designacao->usuarioDesignado->nome }}
+                                        </p>
+                                        <p class="text-xs text-gray-600 mt-0.5">
+                                            {{ Str::limit($designacao->descricao_tarefa, 60) }}
+                                        </p>
+                                    </div>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded whitespace-nowrap
+                                        {{ $designacao->status === 'pendente' ? 'bg-purple-100 text-purple-800' : '' }}
+                                        {{ $designacao->status === 'em_andamento' ? 'bg-blue-100 text-blue-800' : '' }}
+                                        {{ $designacao->status === 'concluida' ? 'bg-green-100 text-green-800' : '' }}
+                                        {{ $designacao->status === 'cancelada' ? 'bg-gray-100 text-gray-800' : '' }}">
+                                        {{ match($designacao->status) {
+                                            'pendente' => 'Pendente',
+                                            'em_andamento' => 'Em Andamento',
+                                            'concluida' => 'Concluída',
+                                            'cancelada' => 'Cancelada',
+                                            default => $designacao->status
+                                        } }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    @if($designacao->data_limite)
+                                        <span class="flex items-center gap-1 {{ $designacao->isAtrasada() ? 'text-red-600 font-semibold' : '' }}">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            {{ $designacao->data_limite->format('d/m/Y') }}
+                                        </span>
+                                    @endif
+                                    <span>•</span>
+                                    <span>{{ $designacao->created_at->diffForHumans() }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- Coluna Direita: Lista de Documentos/Arquivos --}}
@@ -429,7 +490,7 @@
 
                 {{-- Lista de Documentos --}}
                 <div class="p-6">
-                    @if($documentosDigitais->isEmpty() && $processo->documentos->where('tipo_documento', '!=', 'documento_digital')->isEmpty())
+                    @if($todosDocumentos->isEmpty())
                         <div class="text-center py-12">
                             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -438,8 +499,12 @@
                         </div>
                     @else
                         <div class="space-y-3">
-                            {{-- Documentos Digitais (Rascunhos e Finalizados) --}}
-                            @foreach($documentosDigitais as $docDigital)
+                            {{-- Lista Unificada de Documentos (Digitais e Arquivos Externos) --}}
+                            @foreach($todosDocumentos as $item)
+                                @if($item['tipo'] === 'digital')
+                                    @php
+                                        $docDigital = $item['documento'];
+                                    @endphp
                                 <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }} }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
                                      class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-green-500 hover:bg-gray-100 transition-colors">
@@ -628,10 +693,10 @@
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
-                            
-                            {{-- Arquivos Externos (excluindo PDFs de documentos digitais que já são mostrados acima) --}}
-                            @foreach($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $documento)
+                                @elseif($item['tipo'] === 'arquivo')
+                                    @php
+                                        $documento = $item['documento'];
+                                    @endphp
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }} }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
                                      class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 rounded-lg border-l-2 border-red-500 hover:bg-gray-100 transition-colors">
@@ -780,6 +845,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
                             @endforeach
                         </div>
                     @endif
@@ -865,6 +931,140 @@
         </div>
     </template>
 
+    {{-- Modal de Designar Responsável --}}
+    <template x-teleport="body">
+        <div x-show="modalDesignar" 
+             x-cloak
+             @keydown.escape.window="modalDesignar = false"
+             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
+            
+            {{-- Overlay --}}
+            <div @click="modalDesignar = false"
+                 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5);"></div>
+            
+            {{-- Modal Content --}}
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 600px; padding: 0 1rem;">
+                <div class="bg-white rounded-xl shadow-2xl p-6" @click.stop>
+                    {{-- Close Button --}}
+                    <button @click="modalDesignar = false"
+                            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+
+                    {{-- Header --}}
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Designar Responsável
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-1">Atribua este processo a um usuário interno do município</p>
+                    </div>
+
+                    {{-- Form --}}
+                    <form method="POST" action="{{ route('admin.estabelecimentos.processos.designar', [$estabelecimento->id, $processo->id]) }}">
+                        @csrf
+                        
+                        {{-- Selecionar Usuários (Múltiplos) --}}
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Usuários Responsáveis <span class="text-red-500">*</span>
+                            </label>
+                            <div class="border border-gray-300 rounded-lg p-3 max-h-60 overflow-y-auto bg-gray-50">
+                                <template x-if="usuarios.length === 0">
+                                    <p class="text-sm text-gray-500 text-center py-2">Carregando usuários...</p>
+                                </template>
+                                <template x-if="usuarios.length > 0">
+                                    <div class="space-y-2">
+                                        <template x-for="usuario in usuarios" :key="usuario.id">
+                                            <label class="flex items-start gap-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                                                <input type="checkbox" 
+                                                       name="usuarios_designados[]" 
+                                                       :value="usuario.id"
+                                                       x-model="usuariosDesignados"
+                                                       class="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900" x-text="usuario.nome"></p>
+                                                    <p class="text-xs text-gray-500" x-text="usuario.cargo || usuario.nivel_acesso"></p>
+                                                </div>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Selecione um ou mais usuários do mesmo município
+                            </p>
+                            <p class="mt-1 text-xs font-medium text-blue-600" x-show="usuariosDesignados.length > 0">
+                                <span x-text="usuariosDesignados.length"></span> usuário(s) selecionado(s)
+                            </p>
+                        </div>
+
+                        {{-- Descrição da Tarefa --}}
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Descrição da Tarefa <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="descricao_tarefa" 
+                                      x-model="descricaoTarefa"
+                                      rows="4"
+                                      required
+                                      maxlength="1000"
+                                      placeholder="Descreva o que precisa ser feito neste processo..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"></textarea>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Máximo de 1000 caracteres
+                            </p>
+                        </div>
+
+                        {{-- Data Limite (Opcional) --}}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Data Limite (Opcional)
+                            </label>
+                            <input type="date" 
+                                   name="data_limite"
+                                   x-model="dataLimite"
+                                   :min="new Date().toISOString().split('T')[0]"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <p class="mt-1 text-xs text-gray-500">
+                                Deixe em branco se não houver prazo específico
+                            </p>
+                        </div>
+
+                        {{-- Info --}}
+                        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-xs text-blue-700">
+                                    O usuário designado receberá uma notificação na dashboard e poderá visualizar a tarefa atribuída.
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Buttons --}}
+                        <div class="flex items-center gap-3">
+                            <button type="button"
+                                    @click="modalDesignar = false"
+                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                Designar Responsável
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Modal de Visualização de PDF --}}
     <template x-teleport="body">
         <div x-show="modalVisualizador" 
@@ -909,13 +1109,8 @@
              @keydown.escape.window="modalVisualizadorAnotacoes = false"
              style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
             
-            {{-- Overlay --}}
-            <div @click="modalVisualizadorAnotacoes = false"
-                 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.75);"></div>
-            
-            {{-- Modal Content --}}
-            <div style="position: absolute; top: 1%; left: 1%; right: 1%; bottom: 1%; max-width: 1400px; margin: 0 auto;">
-                <div class="bg-white rounded-xl shadow-2xl h-full flex flex-col" @click.stop>
+            {{-- Modal Content - Tela Toda --}}
+            <div class="bg-white h-full flex flex-col" @click.stop>
                     {{-- Header --}}
                     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                         <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -934,13 +1129,13 @@
 
                     {{-- PDF Viewer com Anotações --}}
                     <div class="flex-1 overflow-auto p-4">
-                        <div x-show="documentoIdAnotacoes && pdfUrlAnotacoes">
+                        <template x-if="documentoIdAnotacoes && pdfUrlAnotacoes">
                             <div x-data="pdfViewerAnotacoes(documentoIdAnotacoes, pdfUrlAnotacoes, [])" 
                                  x-init="init()"
                                  class="pdf-viewer-container bg-white rounded-lg shadow-lg border border-gray-200">
                                 @include('components.pdf-viewer-anotacoes')
                             </div>
-                        </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -1526,6 +1721,7 @@
                 modalHistorico: false,
                 modalArquivar: false,
                 modalParar: false,
+                modalDesignar: false,
                 
                 // Dados gerais
                 pdfUrl: '',
@@ -1542,6 +1738,12 @@
                 nomePasta: '',
                 descricaoPasta: '',
                 corPasta: '#3B82F6',
+                
+                // Designação
+                usuarios: [],
+                usuariosDesignados: [],
+                descricaoTarefa: '',
+                dataLimite: '',
                 
                 // Documentos (para contagem) - incluindo documentos digitais e arquivos
                 documentos: [
@@ -1792,6 +1994,19 @@
                     this.documentoIdAnotacoes = documentoId;
                     this.pdfUrlAnotacoes = pdfUrl;
                     this.modalVisualizadorAnotacoes = true;
+                },
+
+                // Carrega usuários do município para designação
+                carregarUsuarios() {
+                    fetch(`{{ route('admin.estabelecimentos.processos.usuarios.designacao', [$estabelecimento->id, $processo->id]) }}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.usuarios = data;
+                        })
+                        .catch(error => {
+                            console.error('Erro ao carregar usuários:', error);
+                            alert('Erro ao carregar usuários');
+                        });
                 }
             }
         }

@@ -7,7 +7,9 @@ use App\Models\Estabelecimento;
 use App\Models\TipoProcesso;
 use App\Models\ProcessoDocumento;
 use App\Models\ProcessoAcompanhamento;
+use App\Models\ProcessoDesignacao;
 use App\Models\ModeloDocumento;
+use App\Models\UsuarioInterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -228,7 +230,15 @@ class ProcessoController extends Controller
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
         
-        $processo = Processo::with(['usuario', 'estabelecimento', 'documentos.usuario', 'usuariosAcompanhando'])
+        $processo = Processo::with([
+                'usuario', 
+                'estabelecimento', 
+                'documentos' => function($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'documentos.usuario', 
+                'usuariosAcompanhando'
+            ])
             ->where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
@@ -244,7 +254,37 @@ class ProcessoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais'));
+        // Mescla documentos digitais e arquivos externos em uma única coleção ordenada por data
+        $todosDocumentos = collect();
+        
+        // Adiciona documentos digitais com flag de tipo
+        foreach ($documentosDigitais as $docDigital) {
+            $todosDocumentos->push([
+                'tipo' => 'digital',
+                'documento' => $docDigital,
+                'created_at' => $docDigital->created_at,
+            ]);
+        }
+        
+        // Adiciona arquivos externos (exceto documentos digitais)
+        foreach ($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $arquivo) {
+            $todosDocumentos->push([
+                'tipo' => 'arquivo',
+                'documento' => $arquivo,
+                'created_at' => $arquivo->created_at,
+            ]);
+        }
+        
+        // Ordena todos os documentos por data (mais recente primeiro)
+        $todosDocumentos = $todosDocumentos->sortByDesc('created_at')->values();
+        
+        // Busca designações do processo
+        $designacoes = ProcessoDesignacao::where('processo_id', $processoId)
+            ->with(['usuarioDesignado', 'usuarioDesignador'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes'));
     }
 
     /**
@@ -551,7 +591,10 @@ class ProcessoController extends Controller
                 abort(404, 'PDF não encontrado');
             }
             
-            return response()->file($caminhoCompleto);
+            return response()->file($caminhoCompleto, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="documento.pdf"'
+            ]);
         }
         
         // Senão, busca como arquivo externo
@@ -569,8 +612,11 @@ class ProcessoController extends Controller
             abort(404, 'Arquivo não encontrado');
         }
         
-        // Retorna o arquivo para visualização inline
-        return response()->file($caminhoCompleto);
+        // Retorna o arquivo para visualização inline com headers corretos
+        return response()->file($caminhoCompleto, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . basename($caminhoCompleto) . '"'
+        ]);
     }
 
     /**
@@ -944,6 +990,34 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Carrega anotações de um PDF
+     */
+    public function carregarAnotacoes($documentoId)
+    {
+        $documento = ProcessoDocumento::findOrFail($documentoId);
+        $processo = $documento->processo;
+        $estabelecimento = $processo->estabelecimento;
+        
+        // Valida permissão de acesso
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        // Busca anotações do usuário atual para este documento
+        $anotacoes = \App\Models\ProcessoDocumentoAnotacao::where('processo_documento_id', $documentoId)
+            ->where('usuario_id', auth('interno')->id())
+            ->get()
+            ->map(function($anotacao) {
+                return [
+                    'tipo' => $anotacao->tipo,
+                    'pagina' => $anotacao->pagina,
+                    'dados' => $anotacao->dados,
+                    'comentario' => $anotacao->comentario,
+                ];
+            });
+
+        return response()->json($anotacoes);
+    }
+
+    /**
      * Salva anotações feitas em um PDF
      */
     public function salvarAnotacoes(Request $request, $documentoId)
@@ -955,25 +1029,36 @@ class ProcessoController extends Controller
         // Valida permissão de acesso
         $this->validarPermissaoAcesso($estabelecimento);
         
-        $validated = $request->validate([
-            'anotacoes' => 'required|array',
-            'anotacoes.*.tipo' => 'required|string|in:highlight,text,drawing,area,comment',
-            'anotacoes.*.pagina' => 'required|integer|min:1',
-            'anotacoes.*.dados' => 'required|array',
-            'anotacoes.*.comentario' => 'nullable|string',
-        ]);
+        // Permitir array vazio para limpar anotações
+        $anotacoes = $request->input('anotacoes', []);
+        if (!is_array($anotacoes)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Formato inválido de anotações.'
+            ], 422);
+        }
+
+        // Se houver itens, validar o schema de cada anotação
+        if (!empty($anotacoes)) {
+            $request->validate([
+                'anotacoes.*.tipo' => 'required|string|in:highlight,text,drawing,area,comment',
+                'anotacoes.*.pagina' => 'required|integer|min:1',
+                'anotacoes.*.dados' => 'required|array',
+                'anotacoes.*.comentario' => 'nullable|string',
+            ]);
+        }
 
         try {
             // Remove anotações antigas deste documento do usuário atual
-            \App\Models\ProcessoPdfAnotacao::where('processo_documento_id', $documentoId)
-                ->where('usuario_interno_id', auth('interno')->id())
+            \App\Models\ProcessoDocumentoAnotacao::where('processo_documento_id', $documentoId)
+                ->where('usuario_id', auth('interno')->id())
                 ->delete();
 
-            // Salva novas anotações
-            foreach ($validated['anotacoes'] as $anotacao) {
-                \App\Models\ProcessoPdfAnotacao::create([
+            // Salva novas anotações (se houver)
+            foreach ($anotacoes as $anotacao) {
+                \App\Models\ProcessoDocumentoAnotacao::create([
                     'processo_documento_id' => $documentoId,
-                    'usuario_interno_id' => auth('interno')->id(),
+                    'usuario_id' => auth('interno')->id(),
                     'pagina' => $anotacao['pagina'],
                     'tipo' => $anotacao['tipo'],
                     'dados' => $anotacao['dados'],
@@ -983,7 +1068,7 @@ class ProcessoController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Anotações salvas com sucesso!'
+                'message' => empty($anotacoes) ? 'Anotações limpas com sucesso!' : 'Anotações salvas com sucesso!'
             ]);
 
         } catch (\Exception $e) {
@@ -995,33 +1080,108 @@ class ProcessoController extends Controller
     }
 
     /**
-     * Carrega anotações de um PDF
+     * Busca usuários internos do mesmo município do processo para designação
      */
-    public function carregarAnotacoes($documentoId)
+    public function buscarUsuariosParaDesignacao($estabelecimentoId, $processoId)
     {
-        $documento = ProcessoDocumento::findOrFail($documentoId);
-        $processo = $documento->processo;
-        $estabelecimento = $processo->estabelecimento;
-        
-        // Valida permissão de acesso
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        // Busca usuários internos ativos do mesmo município
+        $usuarios = UsuarioInterno::where('ativo', true)
+            ->where('municipio_id', $estabelecimento->municipio_id)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'cargo', 'nivel_acesso']);
+        
+        return response()->json($usuarios);
+    }
 
-        // Carrega anotações do documento (de todos os usuários)
-        $anotacoes = \App\Models\ProcessoPdfAnotacao::with('usuario')
-            ->where('processo_documento_id', $documentoId)
-            ->get()
-            ->map(function ($anotacao) {
-                return [
-                    'id' => $anotacao->id,
-                    'tipo' => $anotacao->tipo,
-                    'pagina' => $anotacao->pagina,
-                    'dados' => $anotacao->dados,
-                    'comentario' => $anotacao->comentario,
-                    'usuario' => $anotacao->usuario->nome ?? 'Desconhecido',
-                    'criado_em' => $anotacao->created_at->format('d/m/Y H:i'),
-                ];
-            });
+    /**
+     * Designa responsáveis para o processo (pode ser múltiplos)
+     */
+    public function designarResponsavel(Request $request, $estabelecimentoId, $processoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $validated = $request->validate([
+            'usuarios_designados' => 'required|array|min:1',
+            'usuarios_designados.*' => 'required|exists:usuarios_internos,id',
+            'descricao_tarefa' => 'required|string|max:1000',
+            'data_limite' => 'nullable|date|after_or_equal:today',
+        ]);
+        
+        $designados = 0;
+        $erros = [];
+        
+        // Cria uma designação para cada usuário selecionado
+        foreach ($validated['usuarios_designados'] as $usuarioId) {
+            $usuarioDesignado = UsuarioInterno::find($usuarioId);
+            
+            // Verifica se o usuário é do mesmo município
+            if ($usuarioDesignado && $usuarioDesignado->municipio_id == $estabelecimento->municipio_id) {
+                ProcessoDesignacao::create([
+                    'processo_id' => $processo->id,
+                    'usuario_designado_id' => $usuarioId,
+                    'usuario_designador_id' => auth('interno')->id(),
+                    'descricao_tarefa' => $validated['descricao_tarefa'],
+                    'data_limite' => $validated['data_limite'] ?? null,
+                    'status' => 'pendente',
+                ]);
+                $designados++;
+            } else {
+                $erros[] = $usuarioDesignado ? $usuarioDesignado->nome : "Usuário ID {$usuarioId}";
+            }
+        }
+        
+        if ($designados > 0) {
+            $mensagem = $designados === 1 
+                ? 'Responsável designado com sucesso!' 
+                : "{$designados} responsáveis designados com sucesso!";
+            
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', $mensagem);
+        }
+        
+        return back()->withErrors([
+            'usuarios_designados' => 'Nenhum usuário válido foi designado. Verifique se pertencem ao mesmo município.'
+        ]);
+    }
 
-        return response()->json($anotacoes);
+    /**
+     * Atualiza o status de uma designação
+     */
+    public function atualizarDesignacao(Request $request, $estabelecimentoId, $processoId, $designacaoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $designacao = ProcessoDesignacao::where('processo_id', $processoId)
+            ->findOrFail($designacaoId);
+        
+        $validated = $request->validate([
+            'status' => 'required|in:pendente,em_andamento,concluida,cancelada',
+            'observacoes_conclusao' => 'nullable|string|max:1000',
+        ]);
+        
+        $designacao->status = $validated['status'];
+        $designacao->observacoes_conclusao = $validated['observacoes_conclusao'] ?? null;
+        
+        if ($validated['status'] === 'concluida') {
+            $designacao->concluida_em = now();
+        }
+        
+        $designacao->save();
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Status da designação atualizado!');
     }
 }

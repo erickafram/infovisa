@@ -173,6 +173,22 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com designações do processo
+     */
+    public function designacoes()
+    {
+        return $this->hasMany(ProcessoDesignacao::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Relacionamento com designações pendentes
+     */
+    public function designacoesPendentes()
+    {
+        return $this->hasMany(ProcessoDesignacao::class)->where('status', 'pendente')->orderBy('created_at', 'desc');
+    }
+
+    /**
      * Verifica se um usuário está acompanhando o processo
      */
     public function estaAcompanhadoPor($usuarioId): bool

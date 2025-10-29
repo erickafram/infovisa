@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProcessoDocumento extends Model
 {
@@ -39,6 +40,11 @@ class ProcessoDocumento extends Model
     public function pasta(): BelongsTo
     {
         return $this->belongsTo(ProcessoPasta::class, 'pasta_id');
+    }
+
+    public function anotacoes(): HasMany
+    {
+        return $this->hasMany(ProcessoDocumentoAnotacao::class, 'processo_documento_id');
     }
 
     public function getTamanhoFormatadoAttribute(): string
