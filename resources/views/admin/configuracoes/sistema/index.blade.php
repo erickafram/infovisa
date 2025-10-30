@@ -233,6 +233,27 @@
                         <p class="text-xs text-gray-500 mt-1">Nome do modelo de linguagem a ser utilizado</p>
                     </div>
 
+                    {{-- Busca na Internet --}}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-900 mb-1">
+                                Busca Complementar na Internet
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1">Busca em sites oficiais (ANVISA, Diário Oficial) quando não houver documentos POPs relevantes</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="ia_busca_web" 
+                                   value="1"
+                                   {{ $iaBuscaWeb && $iaBuscaWeb->valor === 'true' ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900">
+                                {{ $iaBuscaWeb && $iaBuscaWeb->valor === 'true' ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </label>
+                    </div>
+
                     {{-- Informações --}}
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div class="flex items-start gap-3">

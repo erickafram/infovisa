@@ -21,13 +21,15 @@ class ConfiguracaoSistemaController extends Controller
         $iaApiKey = ConfiguracaoSistema::where('chave', 'ia_api_key')->first();
         $iaApiUrl = ConfiguracaoSistema::where('chave', 'ia_api_url')->first();
         $iaModel = ConfiguracaoSistema::where('chave', 'ia_model')->first();
+        $iaBuscaWeb = ConfiguracaoSistema::where('chave', 'ia_busca_web')->first();
         
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
             'iaAtiva',
             'iaApiKey',
             'iaApiUrl',
-            'iaModel'
+            'iaModel',
+            'iaBuscaWeb'
         ));
     }
 
@@ -72,11 +74,16 @@ class ConfiguracaoSistemaController extends Controller
                 ->update(['valor' => $request->ia_model]);
         }
         
+        // Busca na web
+        ConfiguracaoSistema::where('chave', 'ia_busca_web')
+            ->update(['valor' => $request->has('ia_busca_web') ? 'true' : 'false']);
+        
         // Verifica se foi apenas atualização de IA (sem logomarca)
         $atualizouIA = $request->has('ia_ativa') || 
                        $request->filled('ia_api_key') || 
                        $request->filled('ia_api_url') || 
-                       $request->filled('ia_model');
+                       $request->filled('ia_model') ||
+                       $request->has('ia_busca_web');
 
         $config = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         

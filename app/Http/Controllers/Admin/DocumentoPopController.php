@@ -111,7 +111,7 @@ class DocumentoPopController extends Controller
                 }
                 
                 return redirect()
-                    ->route('admin.documentos-pops.index')
+                    ->route('admin.configuracoes.documentos-pops.index')
                     ->with('success', $mensagem);
             } else {
                 return back()
@@ -203,7 +203,7 @@ class DocumentoPopController extends Controller
             }
 
             return redirect()
-                ->route('admin.documentos-pops.index')
+                ->route('admin.configuracoes.documentos-pops.index')
                 ->with('success', 'Documento POP atualizado com sucesso!');
 
         } catch (\Exception $e) {
@@ -231,7 +231,7 @@ class DocumentoPopController extends Controller
             $documentoPop->delete();
 
             return redirect()
-                ->route('admin.documentos-pops.index')
+                ->route('admin.configuracoes.documentos-pops.index')
                 ->with('success', 'Documento POP excluído com sucesso!');
 
         } catch (\Exception $e) {

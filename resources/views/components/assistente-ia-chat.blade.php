@@ -254,7 +254,8 @@
                 <input type="text" 
                        x-model="mensagemAtual"
                        :disabled="carregando"
-                       placeholder="Digite sua pergunta..."
+                       placeholder="Digite sua pergunta... (máx. 2000 caracteres)"
+                       maxlength="2000"
                        class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
                 <button type="submit" 
                         :disabled="!mensagemAtual.trim() || carregando"
@@ -384,9 +385,20 @@ function assistenteIA() {
                 }
             } catch (error) {
                 console.error('Erro ao enviar mensagem:', error);
+                
+                // Tenta extrair mensagem de erro mais específica
+                let errorMessage = 'Desculpe, não consegui processar sua mensagem. Verifique sua conexão e tente novamente.';
+                
+                if (error.response) {
+                    // Erro de validação (422) ou outro erro HTTP
+                    if (error.response.status === 422) {
+                        errorMessage = 'Sua pergunta é muito longa. Por favor, reduza o tamanho da mensagem (máximo 2000 caracteres).';
+                    }
+                }
+                
                 this.mensagens.push({
                     role: 'assistant',
-                    content: 'Desculpe, não consegui processar sua mensagem. Verifique sua conexão e tente novamente.',
+                    content: errorMessage,
                     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                 });
             } finally {

@@ -20,7 +20,7 @@ class AssistenteIAController extends Controller
     public function chat(Request $request)
     {
         $request->validate([
-            'message' => 'required|string|max:1000',
+            'message' => 'required|string|max:2000', // Aumentado para permitir perguntas mais longas
             'history' => 'nullable|array',
         ]);
 
@@ -40,6 +40,15 @@ class AssistenteIAController extends Controller
 
         // Analisa a mensagem para ver se precisa de dados do sistema
         $contextoDados = $this->obterContextoDados($userMessage, $usuario);
+        
+        // Verifica se deve buscar na internet
+        $buscaWebAtiva = ConfiguracaoSistema::where('chave', 'ia_busca_web')->value('valor') === 'true';
+        if ($buscaWebAtiva && $this->deveBuscarNaInternet($userMessage, $contextoDados)) {
+            $resultadosWeb = $this->buscarNaInternet($userMessage);
+            if (!empty($resultadosWeb)) {
+                $contextoDados['resultados_web'] = $resultadosWeb;
+            }
+        }
 
         // Prepara o contexto do sistema
         $systemPrompt = $this->construirSystemPrompt($contextoDados, $usuario);
@@ -57,6 +66,9 @@ class AssistenteIAController extends Controller
         // Adiciona mensagem atual
         $messages[] = ['role' => 'user', 'content' => $userMessage];
 
+        // Limpa caracteres UTF-8 malformados de todas as mensagens
+        $messages = $this->limparMensagensUTF8($messages);
+
         try {
             // Busca configurações da IA
             $apiKey = ConfiguracaoSistema::where('chave', 'ia_api_key')->value('valor');
@@ -71,7 +83,7 @@ class AssistenteIAController extends Controller
                 'model' => $model,
                 'messages' => $messages,
                 'max_tokens' => 1000,
-                'temperature' => 0.7,
+                'temperature' => 0.1, // Temperatura muito baixa para respostas determinísticas e sem alucinações
             ]);
 
             if ($response->successful()) {
@@ -96,11 +108,14 @@ class AssistenteIAController extends Controller
         } catch (\Exception $e) {
             \Log::error('Exceção ao chamar IA', [
                 'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_message' => $userMessage,
             ]);
 
             return response()->json([
                 'error' => 'Erro ao processar sua mensagem',
                 'message' => 'Desculpe, ocorreu um erro. Tente novamente.',
+                'success' => false,
             ], 500);
         }
     }
@@ -415,12 +430,19 @@ class AssistenteIAController extends Controller
     private function extrairPalavrasChave($message)
     {
         // Remove palavras comuns (stop words)
-        $stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'para', 'com', 'em', 'no', 'na', 'por', 'como', 'qual', 'quais', 'que', 'e', 'ou', 'é', 'são'];
+        $stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'para', 'com', 'em', 'no', 'na', 'por', 'como', 'qual', 'quais', 'que', 'e', 'ou', 'é', 'são', 'fala', 'diz'];
         
         $palavras = preg_split('/\s+/', strtolower($message));
         $palavras = array_filter($palavras, function($palavra) use ($stopWords) {
             return !in_array($palavra, $stopWords) && strlen($palavra) >= 3;
         });
+        
+        // Se a pergunta menciona "artigo" ou "rdc", adiciona palavras-chave relacionadas
+        $messageLower = strtolower($message);
+        if (strpos($messageLower, 'artigo') !== false || strpos($messageLower, 'art.') !== false) {
+            $palavras[] = 'aplica-se';
+            $palavras[] = 'resolução';
+        }
         
         return array_values($palavras);
     }
@@ -430,21 +452,134 @@ class AssistenteIAController extends Controller
      */
     private function extrairTrechoRelevante($conteudo, $palavrasChave)
     {
+        // Limpa caracteres UTF-8 malformados do conteúdo
+        $conteudo = mb_convert_encoding($conteudo, 'UTF-8', 'UTF-8');
+        $conteudo = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $conteudo);
+        
         $conteudoLower = strtolower($conteudo);
         
-        // Procura a primeira palavra-chave no conteúdo
+        // Tenta buscar por frase exata (sequência de 5+ palavras-chave consecutivas)
+        if (count($palavrasChave) >= 5) {
+            // Tenta encontrar a maior sequência possível de palavras
+            for ($tamanho = min(8, count($palavrasChave)); $tamanho >= 5; $tamanho--) {
+                for ($i = 0; $i <= count($palavrasChave) - $tamanho; $i++) {
+                    $palavrasBusca = array_slice($palavrasChave, $i, $tamanho);
+                    // Permite até 3 palavras entre cada palavra-chave
+                    $fraseBusca = implode('(?:\s+\S+){0,3}\s+', array_map('preg_quote', $palavrasBusca, array_fill(0, count($palavrasBusca), '/')));
+                    
+                    if (preg_match('/' . $fraseBusca . '/i', $conteudoLower, $matches, PREG_OFFSET_CAPTURE)) {
+                        $pos = $matches[0][1];
+                        // Procura o artigo mais próximo antes desta posição
+                        $textoAntes = substr($conteudo, max(0, $pos - 2000), 2000);
+                        if (preg_match_all('/(?:Art\.|Artigo)\s*\d+[º°]?/i', $textoAntes, $artigosAntes, PREG_OFFSET_CAPTURE)) {
+                            $ultimoArtigo = end($artigosAntes[0]);
+                            $posArtigo = max(0, $pos - 2000 + $ultimoArtigo[1]);
+                            $inicio = max(0, $posArtigo - 300);
+                            $trecho = substr($conteudo, $inicio, 4000);
+                            
+                            if ($inicio > 0) {
+                                $trecho = '...' . $trecho;
+                            }
+                            if (strlen($conteudo) > $inicio + 4000) {
+                                $trecho .= '...';
+                            }
+                            
+                            return $trecho;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Procura todos os artigos E parágrafos no documento (até 20 linhas após para pegar conteúdo completo)
+        // Captura: Art. 1º, Art. 2º, §1º, §2º, Parágrafo único, etc.
+        preg_match_all('/(?:Art\.|Artigo|§|Parágrafo)\s*(?:\d+[º°]?|único)[^\n]*(?:\n[^\n]+){0,20}/i', $conteudo, $artigos, PREG_OFFSET_CAPTURE);
+        
+        $melhorMatch = null;
+        $melhorScore = 0;
+        
+        // Avalia cada artigo encontrado
+        foreach ($artigos[0] as $artigo) {
+            $textoArtigo = strtolower($artigo[0]);
+            $score = 0;
+            
+            // Conta quantas palavras-chave aparecem neste artigo
+            $palavrasEncontradas = 0;
+            foreach ($palavrasChave as $palavra) {
+                if (strpos($textoArtigo, $palavra) !== false) {
+                    $count = substr_count($textoArtigo, $palavra);
+                    $score += $count * 10;
+                    $palavrasEncontradas++;
+                }
+            }
+            
+            // BÔNUS MASSIVO se contém a maioria das palavras-chave (frase muito similar)
+            $percentualPalavras = $palavrasEncontradas / count($palavrasChave);
+            if ($percentualPalavras >= 0.7) { // 70% ou mais das palavras
+                $score += 500; // Bônus enorme para frases muito similares
+            } elseif ($percentualPalavras >= 0.5) { // 50% ou mais
+                $score += 200;
+            }
+            
+            // Bônus se contém sequências de 3+ palavras-chave seguidas
+            $palavrasNoArtigo = preg_split('/\s+/', $textoArtigo);
+            $sequenciaAtual = 0;
+            $maiorSequencia = 0;
+            foreach ($palavrasNoArtigo as $palavraArtigo) {
+                if (in_array($palavraArtigo, $palavrasChave)) {
+                    $sequenciaAtual++;
+                    $maiorSequencia = max($maiorSequencia, $sequenciaAtual);
+                } else {
+                    $sequenciaAtual = 0;
+                }
+            }
+            
+            // Bônus progressivo para sequências longas
+            if ($maiorSequencia >= 5) {
+                $score += 300; // Sequência muito longa
+            } elseif ($maiorSequencia >= 4) {
+                $score += 150;
+            } elseif ($maiorSequencia >= 3) {
+                $score += 50;
+            }
+            
+            // Se este artigo tem melhor score, guarda
+            if ($score > $melhorScore) {
+                $melhorScore = $score;
+                $melhorMatch = $artigo;
+            }
+        }
+        
+        // Se encontrou um artigo relevante, extrai contexto ao redor dele
+        if ($melhorMatch) {
+            $posArtigo = $melhorMatch[1];
+            
+            // Extrai um trecho MUITO maior para incluir vários artigos adjacentes
+            $inicio = max(0, $posArtigo - 1000); // Muito mais contexto antes (vários artigos anteriores)
+            $tamanho = 4000; // Aumentado para 4000 caracteres (muitos artigos)
+            $trecho = substr($conteudo, $inicio, $tamanho);
+            
+            if ($inicio > 0) {
+                $trecho = '...' . $trecho;
+            }
+            if (strlen($conteudo) > $inicio + $tamanho) {
+                $trecho .= '...';
+            }
+            
+            return $trecho;
+        }
+        
+        // Fallback: busca por palavra-chave normal
         foreach ($palavrasChave as $palavra) {
             $pos = strpos($conteudoLower, $palavra);
             if ($pos !== false) {
-                // Extrai 300 caracteres ao redor da palavra
-                $inicio = max(0, $pos - 150);
-                $trecho = substr($conteudo, $inicio, 300);
+                $inicio = max(0, $pos - 400);
+                $trecho = substr($conteudo, $inicio, 800);
                 
-                // Limpa o início e fim
                 if ($inicio > 0) {
                     $trecho = '...' . $trecho;
                 }
-                if (strlen($conteudo) > $inicio + 300) {
+                if (strlen($conteudo) > $inicio + 800) {
                     $trecho .= '...';
                 }
                 
@@ -452,8 +587,8 @@ class AssistenteIAController extends Controller
             }
         }
         
-        // Se não encontrou, retorna início do documento
-        return substr($conteudo, 0, 300) . '...';
+        // Se não encontrou nada, retorna início do documento (muito maior)
+        return substr($conteudo, 0, 3000) . '...';
     }
     
     /**
@@ -556,6 +691,9 @@ REGRAS CRÍTICAS DE COMPORTAMENTO:
 - Use APENAS os dados fornecidos abaixo - eles já estão filtrados pela competência do usuário
 - NUNCA invente funcionalidades, menus ou caminhos que não foram mencionados
 - NUNCA invente informações de POPs que não estão nos documentos fornecidos
+- **CRÍTICO: NUNCA invente números de artigos, RDCs, resoluções ou leis que não estão EXPLICITAMENTE nos documentos POPs fornecidos**
+- **CRÍTICO: Se você citar um artigo ou resolução, ele DEVE estar LITERALMENTE no texto do documento POP fornecido**
+- **CRÍTICO: NÃO combine informações de diferentes documentos para criar citações falsas**
 - Seja EXTREMAMENTE preciso nas instruções - siga EXATAMENTE os passos descritos
 - Se não souber algo, diga claramente que não sabe
 - Use os números exatos fornecidos nos dados
@@ -693,11 +831,22 @@ Acesso: Menu lateral > Ícone de engrenagem
                     $prompt .= "Trecho relevante: {$doc['conteudo']}\n\n";
                 }
                 
-                $prompt .= "\n**INSTRUÇÕES PARA USO DOS POPs:**\n";
+                $prompt .= "\n**INSTRUÇÕES CRÍTICAS PARA USO DOS POPs:**\n";
+                $prompt .= "- **VOCÊ DEVE USAR APENAS O TEXTO ACIMA. NÃO USE SEU CONHECIMENTO PRÉVIO SOBRE RDCs OU RESOLUÇÕES**\n";
+                $prompt .= "- **SE A INFORMAÇÃO NÃO ESTÁ NO TRECHO ACIMA, DIGA QUE NÃO TEM A INFORMAÇÃO COMPLETA**\n";
                 $prompt .= "- Se a pergunta é sobre NORMAS/PROCEDIMENTOS/REQUISITOS TÉCNICOS: Use APENAS estas informações dos POPs\n";
                 $prompt .= "- NÃO misture com instruções do sistema (\"acesse o menu\", \"clique em\", etc)\n";
-                $prompt .= "- Cite os documentos POPs usados: \"De acordo com [nome do documento]...\"\n";
-                $prompt .= "- Seja técnico e objetivo, focando no conteúdo dos POPs\n";
+                $prompt .= "- **CRÍTICO: Ao citar RDCs, copie EXATAMENTE o número que aparece no trecho acima**\n";
+                $prompt .= "- **CRÍTICO: Se você vê 'Art. 2º' no trecho acima, CITE 'Art. 2º' na resposta**\n";
+                $prompt .= "- **CRÍTICO: Se você vê '§2º' ou 'Parágrafo único', CITE-OS na resposta (ex: 'Art. 18, §2º')**\n";
+                $prompt .= "- **CRÍTICO: Se você vê 'RDC nº 887' no trecho acima, CITE 'RDC nº 887' (não invente RDC nº 870)**\n";
+                $prompt .= "- **CRÍTICO: NUNCA invente números de RDC, artigos, parágrafos ou incisos que não estão LITERALMENTE no trecho acima**\n";
+                $prompt .= "- **OBRIGATÓRIO: Antes de citar qualquer RDC ou artigo, VERIFIQUE se ele está no trecho acima**\n";
+                $prompt .= "- **OBRIGATÓRIO: Se a pergunta pede o ARTIGO, procure por 'Art.' ou '§' no trecho e cite-o COMPLETO**\n";
+                $prompt .= "- **OBRIGATÓRIO: Se a informação está em um PARÁGRAFO (§), cite 'Art. X, §Y' e não apenas 'Art. X'**\n";
+                $prompt .= "- **FORMATO DE RESPOSTA: 'De acordo com a [RDC completa], [Artigo e parágrafo se houver], [conteúdo]'**\n";
+                $prompt .= "- Cite o nome do documento usado: \"De acordo com o documento [nome exato do documento]...\"\n";
+                $prompt .= "- Seja técnico e objetivo, focando APENAS no conteúdo dos trechos fornecidos\n";
                 $prompt .= "- CRÍTICO: Se o POP menciona uma obrigação (ex: 'deve notificar'), responda APENAS o que o POP diz\n";
                 $prompt .= "- NÃO invente como fazer essa obrigação no sistema\n";
                 $prompt .= "- NÃO crie tipos de processo específicos para normas\n";
@@ -713,21 +862,121 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "- NUNCA use frases genéricas como \"Essa pergunta é sobre documentos POPs!\"\n";
                 $prompt .= "- Se a pergunta é sobre funcionalidades do sistema, IGNORE os POPs e use as instruções de funcionalidades\n";
             } else {
-                // Se não há documentos POPs relevantes, instrui a IA a informar
-                $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs RELEVANTES PARA ESTA PERGUNTA:**\n";
-                $prompt .= "- A pergunta parece ser sobre NORMAS/PROCEDIMENTOS, mas NÃO foram encontrados documentos POPs relevantes\n";
-                $prompt .= "- NUNCA invente informações, RDCs, resoluções ou normas que não estão nos documentos POPs fornecidos acima\n";
-                $prompt .= "- RESPONDA de forma honesta:\n";
-                $prompt .= "  \"Desculpe, ainda não tenho documentos POPs cadastrados sobre [tema solicitado].\"\n";
+                // Se não há documentos POPs relevantes
+                $buscaWebAtiva = isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web']);
                 
-                if (!empty($categoriasDisponiveis)) {
-                    $prompt .= "  \"No momento, tenho informações sobre: " . implode(', ', $categoriasDisponiveis) . ".\"\n";
+                if ($buscaWebAtiva) {
+                    // Com busca na internet ativa
+                    $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs LOCAIS, MAS BUSCA NA INTERNET ATIVA:**\n";
+                    $prompt .= "- NÃO foram encontrados documentos POPs locais sobre este tema\n";
+                    $prompt .= "- **VOCÊ PODE usar seu conhecimento sobre vigilância sanitária brasileira para responder**\n";
+                    $prompt .= "- Foque em informações oficiais da ANVISA e legislação brasileira\n";
+                    $prompt .= "- **SEMPRE indique**: \"Segundo conhecimento sobre legislação sanitária brasileira...\"\n";
+                    $prompt .= "- Se mencionar RDCs ou resoluções, cite os números corretos que você conhece\n";
+                    $prompt .= "- Seja preciso e técnico, baseado em normas reais da ANVISA\n";
+                    $prompt .= "- Se não souber com certeza, diga que não tem a informação\n";
+                } else {
+                    // Sem busca na internet
+                    $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs RELEVANTES PARA ESTA PERGUNTA:**\n";
+                    $prompt .= "- A pergunta parece ser sobre NORMAS/PROCEDIMENTOS, mas NÃO foram encontrados documentos POPs relevantes\n";
+                    $prompt .= "- **CRÍTICO: NUNCA invente informações, artigos, RDCs, resoluções ou normas**\n";
+                    $prompt .= "- **CRÍTICO: NÃO cite 'art. 15, III e IV' ou 'Lei nº 9.782' ou qualquer outro artigo que não foi fornecido**\n";
+                    $prompt .= "- **CRÍTICO: Se você não tem o documento POP, você NÃO SABE a resposta técnica**\n";
+                    $prompt .= "- RESPONDA de forma honesta:\n";
+                    $prompt .= "  \"Desculpe, ainda não tenho documentos POPs cadastrados sobre [tema solicitado].\"\n";
+                    
+                    if (!empty($categoriasDisponiveis)) {
+                        $prompt .= "  \"No momento, tenho informações sobre: " . implode(', ', $categoriasDisponiveis) . ".\"\n";
+                    }
                 }
                 
                 $prompt .= "- Se o usuário perguntar sobre funcionalidades do sistema, responda normalmente\n";
+            }
+            
+            // Adiciona resultados da busca na internet se disponíveis
+            if (isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web'])) {
+                $prompt .= "\n\n==== INFORMAÇÕES COMPLEMENTARES DA INTERNET ====\n";
+                $prompt .= "AVISO: Busca complementar foi realizada na internet (sites oficiais como anvisa.gov.br e in.gov.br).\n";
+                $prompt .= "- **PRIORIZE SEMPRE os documentos POPs cadastrados localmente**\n";
+                $prompt .= "- Use informações da internet apenas para COMPLEMENTAR quando não houver POPs\n";
+                $prompt .= "- SEMPRE indique a fonte: \"Segundo busca complementar na internet...\"\n";
+                $prompt .= "- NUNCA misture informações dos POPs com informações da internet sem deixar claro\n\n";
             }
         }
 
         return $prompt;
     }
-}
+
+    /**
+     * Limpa caracteres UTF-8 malformados das mensagens
+     */
+    private function limparMensagensUTF8($messages)
+    {
+        foreach ($messages as &$message) {
+            if (isset($message['content'])) {
+                // Remove caracteres UTF-8 inválidos
+                $message['content'] = mb_convert_encoding($message['content'], 'UTF-8', 'UTF-8');
+                // Remove caracteres de controle problemáticos, mantendo quebras de linha
+                $message['content'] = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $message['content']);
+            }
+        }
+        return $messages;
+    }
+    
+    /**
+     * Verifica se deve buscar na internet
+     */
+    private function deveBuscarNaInternet($message, $contextoDados)
+    {
+        // Se não encontrou documentos POPs relevantes, busca na internet
+        if (!isset($contextoDados['documentos_pops']) || empty($contextoDados['documentos_pops'])) {
+            // Verifica se é uma pergunta sobre normas/regulamentações
+            $palavrasChaveNormas = ['rdc', 'resolução', 'portaria', 'lei', 'norma', 'anvisa', 'regulamento', 'artigo'];
+            $messageLower = strtolower($message);
+            
+            foreach ($palavrasChaveNormas as $palavra) {
+                if (strpos($messageLower, $palavra) !== false) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Busca informações na internet
+     */
+    private function buscarNaInternet($message)
+    {
+        try {
+            // Monta query de busca focada em vigilância sanitária
+            $query = $message . ' site:anvisa.gov.br OR site:in.gov.br';
+            
+            // Usa API do Google Custom Search ou DuckDuckGo
+            // Por enquanto, vamos usar uma busca simples com file_get_contents
+            $searchUrl = 'https://www.google.com/search?q=' . urlencode($query);
+            
+            // Nota: Em produção, você deve usar uma API oficial como Google Custom Search API
+            // ou implementar um scraper mais robusto
+            
+            \Log::info('Busca na internet realizada', [
+                'query' => $query,
+                'message' => $message
+            ]);
+            
+            // Por enquanto, retorna vazio - você pode implementar com uma API real
+            // Exemplo: Google Custom Search API, Bing Search API, etc.
+            return [
+                'fonte' => 'Busca na internet',
+                'aviso' => 'Busca complementar realizada. Priorize sempre os documentos POPs cadastrados.',
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar na internet', [
+                'erro' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+} 

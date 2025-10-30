@@ -85,6 +85,7 @@
                                 required
                                 class="w-full">
                             @foreach($tecnicos as $tecnico)
+                        
                             <option value="{{ $tecnico->id }}" {{ in_array($tecnico->id, old('tecnicos_ids', [])) ? 'selected' : '' }}>
                                 {{ $tecnico->nome }}
                             </option>
