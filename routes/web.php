@@ -182,6 +182,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         'destroy' => 'estabelecimentos.destroy',
     ]);
 
+    // Ordens de Serviço
+    Route::resource('ordens-servico', \App\Http\Controllers\OrdemServicoController::class)->parameters([
+        'ordens-servico' => 'ordemServico'
+    ]);
+
     // Usuários Internos
     Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([
         'usuarios-internos' => 'usuarioInterno'
