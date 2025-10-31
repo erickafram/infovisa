@@ -75,6 +75,7 @@ class OrdemServicoController extends Controller
         
         $validated = $request->validate([
             'estabelecimento_id' => 'required|exists:estabelecimentos,id',
+            'processo_id' => 'required|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'tecnicos_ids' => 'required|array|min:1',
@@ -82,7 +83,6 @@ class OrdemServicoController extends Controller
             'observacoes' => 'nullable|string',
             'data_inicio' => 'nullable|date',
             'data_fim' => 'nullable|date|after_or_equal:data_inicio',
-            'prioridade' => 'required|in:baixa,media,alta,urgente',
         ]);
         
         // Determina competência e município
@@ -128,7 +128,7 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para visualizar esta ordem de serviço.');
         }
         
-        $ordemServico->load(['estabelecimento', 'municipio']);
+        $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
         
         return view('ordens-servico.show', compact('ordemServico'));
     }
@@ -186,7 +186,6 @@ class OrdemServicoController extends Controller
             'observacoes' => 'nullable|string',
             'data_inicio' => 'nullable|date',
             'data_fim' => 'nullable|date|after_or_equal:data_inicio',
-            'prioridade' => 'required|in:baixa,media,alta,urgente',
         ]);
         
         // Valida se o estabelecimento pertence ao município do usuário (se municipal)
@@ -296,5 +295,46 @@ class OrdemServicoController extends Controller
     private function podeExcluirOS($usuario, $ordemServico)
     {
         return $this->podeVisualizarOS($usuario, $ordemServico);
+    }
+
+    /**
+     * API: Retorna processos de um estabelecimento
+     */
+    public function getProcessosPorEstabelecimento($estabelecimentoId)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Valida se o estabelecimento existe
+        $estabelecimento = Estabelecimento::find($estabelecimentoId);
+        
+        if (!$estabelecimento) {
+            return response()->json(['error' => 'Estabelecimento não encontrado'], 404);
+        }
+        
+        // Verifica permissão de acesso ao estabelecimento
+        if ($usuario->isMunicipal() && $estabelecimento->municipio_id != $usuario->municipio_id) {
+            return response()->json(['error' => 'Sem permissão para acessar este estabelecimento'], 403);
+        }
+        
+        // Busca processos do estabelecimento (exceto arquivados)
+        $processos = \App\Models\Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->where('status', '!=', 'arquivado')
+            ->orderBy('numero_processo', 'desc')
+            ->get(['id', 'numero_processo', 'tipo', 'status'])
+            ->map(function($processo) {
+                return [
+                    'id' => $processo->id,
+                    'numero_processo' => $processo->numero_processo,
+                    'tipo' => $processo->tipo,
+                    'tipo_label' => \App\Models\Processo::tipos()[$processo->tipo] ?? $processo->tipo,
+                    'status' => $processo->status,
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'processos' => $processos,
+            'total' => $processos->count()
+        ]);
     }
 }

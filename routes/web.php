@@ -186,6 +186,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::resource('ordens-servico', \App\Http\Controllers\OrdemServicoController::class)->parameters([
         'ordens-servico' => 'ordemServico'
     ]);
+    
+    // API para buscar processos do estabelecimento
+    Route::get('ordens-servico/api/processos-estabelecimento/{estabelecimentoId}', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'getProcessosPorEstabelecimento']
+    )->name('ordens-servico.api.processos-estabelecimento');
 
     // Usuários Internos
     Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([

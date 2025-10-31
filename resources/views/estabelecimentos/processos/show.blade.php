@@ -244,7 +244,8 @@
                         Criar Documento Digital
                     </a>
                     @endif
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                    <button @click="modalOrdemServico = true" 
+                            class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
@@ -1722,6 +1723,7 @@
                 modalArquivar: false,
                 modalParar: false,
                 modalDesignar: false,
+                modalOrdemServico: false,
                 
                 // Dados gerais
                 pdfUrl: '',
@@ -2011,5 +2013,202 @@
             }
         }
     </script>
+
+    {{-- Modal Criar Ordem de Serviço --}}
+    <div x-show="modalOrdemServico" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         aria-labelledby="modal-title" 
+         role="dialog" 
+         aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Overlay --}}
+            <div x-show="modalOrdemServico" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+                 @click="modalOrdemServico = false"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            {{-- Modal Panel --}}
+            <div x-show="modalOrdemServico"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                
+                <form action="{{ route('admin.ordens-servico.store') }}" method="POST">
+                    @csrf
+                    
+                    {{-- Campos ocultos --}}
+                    <input type="hidden" name="estabelecimento_id" value="{{ $estabelecimento->id }}">
+                    <input type="hidden" name="processo_id" value="{{ $processo->id }}">
+                    <input type="hidden" name="municipio_id" value="{{ $processo->estabelecimento->municipio_id }}">
+                    
+                    {{-- Header --}}
+                    <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                Nova Ordem de Serviço
+                            </h3>
+                            <button type="button" 
+                                    @click="modalOrdemServico = false" 
+                                    class="text-white hover:text-gray-200 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Body --}}
+                    <div class="px-6 py-4 space-y-4">
+                        {{-- Informações do Processo (Read-only) --}}
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Vinculado ao Processo
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <span class="text-gray-600">Estabelecimento:</span>
+                                    <p class="font-medium text-gray-900">{{ $estabelecimento->nome_fantasia }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Processo:</span>
+                                    <p class="font-medium text-gray-900">{{ $processo->numero_processo }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Período de Execução --}}
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Data Início
+                                </label>
+                                <input type="date" 
+                                       name="data_inicio" 
+                                       value="{{ date('Y-m-d') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Data Fim
+                                </label>
+                                <input type="date" 
+                                       name="data_fim" 
+                                       value="{{ date('Y-m-d') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                            </div>
+                        </div>
+
+                        {{-- Tipos de Ação --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipos de Ação <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                                @php
+                                    $usuario = auth('interno')->user();
+                                    $competenciaFiltro = $usuario->isEstadual() ? ['estadual', 'ambos'] : ['municipal', 'ambos'];
+                                    
+                                    $tiposAcao = \App\Models\TipoAcao::ativo()
+                                        ->whereIn('competencia', $competenciaFiltro)
+                                        ->orderBy('descricao')
+                                        ->get();
+                                @endphp
+                                
+                                @forelse($tiposAcao as $tipo)
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" 
+                                           name="tipos_acao_ids[]" 
+                                           value="{{ $tipo->id }}"
+                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-gray-700">{{ $tipo->descricao }}</span>
+                                </label>
+                                @empty
+                                <p class="text-xs text-gray-500 col-span-2 text-center py-2">Nenhum tipo de ação disponível</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Técnicos --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Técnicos Responsáveis <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                                @php
+                                    $tecnicos = \App\Models\UsuarioInterno::where('ativo', true);
+                                    
+                                    if ($usuario->isEstadual()) {
+                                        $tecnicos->where('nivel_acesso', 'estadual');
+                                    } elseif ($usuario->isMunicipal()) {
+                                        $tecnicos->where('nivel_acesso', 'municipal')
+                                                 ->where('municipio_id', $usuario->municipio_id);
+                                    }
+                                    
+                                    $tecnicos = $tecnicos->orderBy('nome')->get();
+                                @endphp
+                                
+                                @forelse($tecnicos as $tecnico)
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" 
+                                           name="tecnicos_ids[]" 
+                                           value="{{ $tecnico->id }}"
+                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="text-gray-700">{{ $tecnico->nome }}</span>
+                                </label>
+                                @empty
+                                <p class="text-xs text-gray-500 col-span-2 text-center py-2">Nenhum técnico disponível</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Observações --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Observações
+                            </label>
+                            <textarea name="observacoes" 
+                                      rows="3"
+                                      placeholder="Observações sobre a ordem de serviço..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+                        <button type="button" 
+                                @click="modalOrdemServico = false"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Criar Ordem de Serviço
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

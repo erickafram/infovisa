@@ -51,9 +51,6 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Prioridade
-                        </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Ações
                         </th>
@@ -61,9 +58,9 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($ordensServico as $os)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{{ route('admin.ordens-servico.show', $os) }}'">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $os->numero }}</div>
+                            <div class="text-sm font-medium text-blue-600 hover:text-blue-800">{{ $os->numero }}</div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900">{{ $os->estabelecimento->nome_fantasia }}</div>
@@ -93,11 +90,16 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             {!! $os->status_badge !!}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {!! $os->prioridade_badge !!}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
                             <div class="flex items-center justify-end gap-2">
+                                <a href="{{ route('admin.ordens-servico.show', $os) }}" 
+                                   class="text-green-600 hover:text-green-900"
+                                   title="Visualizar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </a>
                                 <a href="{{ route('admin.ordens-servico.edit', $os) }}" 
                                    class="text-blue-600 hover:text-blue-900"
                                    title="Editar">

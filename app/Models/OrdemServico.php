@@ -14,6 +14,7 @@ class OrdemServico extends Model
     protected $fillable = [
         'numero',
         'estabelecimento_id',
+        'processo_id',
         'tipos_acao_ids',
         'tecnicos_ids',
         'municipio_id',
@@ -23,7 +24,6 @@ class OrdemServico extends Model
         'data_fim',
         'data_conclusao',
         'status',
-        'prioridade',
         'competencia',
     ];
 
@@ -42,6 +42,14 @@ class OrdemServico extends Model
     public function estabelecimento()
     {
         return $this->belongsTo(Estabelecimento::class);
+    }
+
+    /**
+     * Relacionamento com Processo
+     */
+    public function processo()
+    {
+        return $this->belongsTo(Processo::class);
     }
 
     /**
@@ -168,36 +176,6 @@ class OrdemServico extends Model
         return "<span class='px-2 py-1 text-xs font-medium rounded {$color}'>{$this->status_label}</span>";
     }
 
-    /**
-     * Retorna label formatado da prioridade
-     */
-    public function getPrioridadeLabelAttribute()
-    {
-        return match($this->prioridade) {
-            'baixa' => 'Baixa',
-            'media' => 'Média',
-            'alta' => 'Alta',
-            'urgente' => 'Urgente',
-            default => $this->prioridade
-        };
-    }
-
-    /**
-     * Retorna badge HTML para prioridade
-     */
-    public function getPrioridadeBadgeAttribute()
-    {
-        $colors = [
-            'baixa' => 'bg-gray-100 text-gray-800',
-            'media' => 'bg-blue-100 text-blue-800',
-            'alta' => 'bg-orange-100 text-orange-800',
-            'urgente' => 'bg-red-100 text-red-800',
-        ];
-
-        $color = $colors[$this->prioridade] ?? 'bg-gray-100 text-gray-800';
-        
-        return "<span class='px-2 py-1 text-xs font-medium rounded {$color}'>{$this->prioridade_label}</span>";
-    }
 
     /**
      * Retorna label formatado da competência

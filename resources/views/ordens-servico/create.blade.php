@@ -25,22 +25,25 @@
         <form method="POST" action="{{ route('admin.ordens-servico.store') }}" class="space-y-6">
             @csrf
 
-            {{-- Dados Principais --}}
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                    Dados Principais
+            {{-- Estabelecimento e Processo --}}
+            <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Estabelecimento e Processo
                 </h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     {{-- Estabelecimento --}}
-                    <div class="md:col-span-2">
-                        <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                        <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-2">
                             Estabelecimento <span class="text-red-500">*</span>
                         </label>
                         <select name="estabelecimento_id" 
                                 id="estabelecimento_id" 
                                 required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('estabelecimento_id') border-red-500 @enderror">
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white @error('estabelecimento_id') border-red-500 @enderror">
                             <option value="">Selecione um estabelecimento</option>
                             @foreach($estabelecimentos as $estabelecimento)
                             <option value="{{ $estabelecimento->id }}" {{ old('estabelecimento_id') == $estabelecimento->id ? 'selected' : '' }}>
@@ -53,109 +56,170 @@
                         @enderror
                     </div>
 
-                    {{-- Tipos de Ação (Múltiplos) --}}
-                    <div class="md:col-span-2">
-                        <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-1">
-                            Tipos de Ação <span class="text-red-500">*</span>
-                        </label>
-                        <select name="tipos_acao_ids[]" 
-                                id="tipos_acao_ids" 
-                                multiple
-                                required
-                                class="w-full">
-                            @foreach($tiposAcao as $tipoAcao)
-                            <option value="{{ $tipoAcao->id }}" {{ in_array($tipoAcao->id, old('tipos_acao_ids', [])) ? 'selected' : '' }}>
-                                {{ $tipoAcao->descricao }}
-                            </option>
-                            @endforeach
-                        </select>
-                        @error('tipos_acao_ids')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Técnicos (Múltiplos) --}}
-                    <div class="md:col-span-2">
-                        <label for="tecnicos_ids" class="block text-sm font-medium text-gray-700 mb-1">
-                            Técnicos Responsáveis <span class="text-red-500">*</span>
-                        </label>
-                        <select name="tecnicos_ids[]" 
-                                id="tecnicos_ids" 
-                                multiple
-                                required
-                                class="w-full">
-                            @foreach($tecnicos as $tecnico)
-                        
-                            <option value="{{ $tecnico->id }}" {{ in_array($tecnico->id, old('tecnicos_ids', [])) ? 'selected' : '' }}>
-                                {{ $tecnico->nome }}
-                            </option>
-                            @endforeach
-                        </select>
-                        @error('tecnicos_ids')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Data de Início --}}
+                    {{-- Processo --}}
                     <div>
-                        <label for="data_inicio" class="block text-sm font-medium text-gray-700 mb-1">
-                            Data de Início
+                        <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Processo Vinculado <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" 
-                               id="data_inicio" 
-                               name="data_inicio" 
-                               value="{{ old('data_inicio') }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
-                        @error('data_inicio')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Data Fim --}}
-                    <div>
-                        <label for="data_fim" class="block text-sm font-medium text-gray-700 mb-1">
-                            Data Fim
-                        </label>
-                        <input type="date" 
-                               id="data_fim" 
-                               name="data_fim" 
-                               value="{{ old('data_fim') }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
-                        @error('data_fim')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        <p class="mt-1 text-xs text-gray-500">Pode ser no mesmo dia que a data de início</p>
-                    </div>
-
-                    {{-- Prioridade --}}
-                    <div>
-                        <label for="prioridade" class="block text-sm font-medium text-gray-700 mb-1">
-                            Prioridade <span class="text-red-500">*</span>
-                        </label>
-                        <select id="prioridade" 
-                                name="prioridade" 
+                        <select name="processo_id" 
+                                id="processo_id" 
                                 required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('prioridade') border-red-500 @enderror">
-                            <option value="baixa" {{ old('prioridade') == 'baixa' ? 'selected' : '' }}>Baixa</option>
-                            <option value="media" {{ old('prioridade', 'media') == 'media' ? 'selected' : '' }}>Média</option>
-                            <option value="alta" {{ old('prioridade') == 'alta' ? 'selected' : '' }}>Alta</option>
-                            <option value="urgente" {{ old('prioridade') == 'urgente' ? 'selected' : '' }}>Urgente</option>
+                                disabled
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 @error('processo_id') border-red-500 @enderror">
+                            <option value="">Selecione primeiro um estabelecimento</option>
                         </select>
-                        @error('prioridade')
+                        @error('processo_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        <div class="mt-2">
+                            <span id="processo-info" class="hidden text-xs text-blue-600 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span id="processo-count"></span>
+                            </span>
+                            <span id="processo-sem-processo" class="hidden text-xs text-amber-600 flex items-center gap-1 bg-amber-50 p-2 rounded">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Este estabelecimento não possui processos ativos. Crie um processo antes de criar a ordem de serviço.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Tipos de Ação --}}
+            <div class="bg-purple-50 rounded-lg p-6 border border-purple-100">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Tipos de Ação
+                </h2>
+                
+                <div>
+                    <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-2">
+                        Selecione as ações que serão executadas <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipos_acao_ids[]" 
+                            id="tipos_acao_ids" 
+                            multiple
+                            required
+                            class="w-full">
+                        @foreach($tiposAcao as $tipoAcao)
+                        <option value="{{ $tipoAcao->id }}" {{ in_array($tipoAcao->id, old('tipos_acao_ids', [])) ? 'selected' : '' }}>
+                            {{ $tipoAcao->descricao }}
+                        </option>
+                        @endforeach
+                    </select>
+                    @error('tipos_acao_ids')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-2 text-xs text-gray-600">
+                        💡 Clique para selecionar múltiplas ações. Use a busca para encontrar rapidamente.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Técnicos Responsáveis --}}
+            <div class="bg-green-50 rounded-lg p-6 border border-green-100">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Técnicos Responsáveis
+                </h2>
+                
+                <div>
+                    <label for="tecnicos_ids" class="block text-sm font-medium text-gray-700 mb-2">
+                        Selecione os técnicos que executarão a ordem de serviço <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tecnicos_ids[]" 
+                            id="tecnicos_ids" 
+                            multiple
+                            required
+                            class="w-full">
+                        @foreach($tecnicos as $tecnico)
+                        <option value="{{ $tecnico->id }}" {{ in_array($tecnico->id, old('tecnicos_ids', [])) ? 'selected' : '' }}>
+                            {{ $tecnico->nome }}
+                        </option>
+                        @endforeach
+                    </select>
+                    @error('tecnicos_ids')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-2 text-xs text-gray-600">
+                        💡 Clique para selecionar múltiplos técnicos. Use a busca para encontrar rapidamente.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Período e Observações --}}
+            <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Informações Complementares
+                </h2>
+                
+                <div class="space-y-4">
+
+                    {{-- Período de Execução --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            Período de Execução (Opcional)
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{-- Data de Início --}}
+                            <div>
+                                <label for="data_inicio" class="block text-xs font-medium text-gray-600 mb-1">
+                                    Data de Início
+                                </label>
+                                <input type="date" 
+                                       id="data_inicio" 
+                                       name="data_inicio" 
+                                       value="{{ old('data_inicio') }}"
+                                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
+                                @error('data_inicio')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- Data Fim --}}
+                            <div>
+                                <label for="data_fim" class="block text-xs font-medium text-gray-600 mb-1">
+                                    Data de Término
+                                </label>
+                                <input type="date" 
+                                       id="data_fim" 
+                                       name="data_fim" 
+                                       value="{{ old('data_fim') }}"
+                                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
+                                @error('data_fim')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            As datas podem ser preenchidas durante a execução da ordem de serviço.
+                        </p>
                     </div>
 
                     {{-- Observações --}}
-                    <div class="md:col-span-2">
-                        <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                        <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-2">
                             Observações
                         </label>
                         <textarea id="observacoes" 
                                   name="observacoes" 
-                                  rows="3"
-                                  placeholder="Observações adicionais..."
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('observacoes') border-red-500 @enderror">{{ old('observacoes') }}</textarea>
+                                  rows="4"
+                                  placeholder="Descreva informações adicionais sobre esta ordem de serviço..."
+                                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('observacoes') border-red-500 @enderror">{{ old('observacoes') }}</textarea>
                         @error('observacoes')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -181,6 +245,86 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<style>
+    /* Customização do Choices.js */
+    .choices__inner {
+        min-height: 44px !important;
+        padding: 6px 12px !important;
+        border-radius: 0.5rem !important;
+        border: 1px solid #d1d5db !important;
+        background-color: white !important;
+    }
+    
+    .choices__inner:focus,
+    .choices.is-focused .choices__inner {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    .choices__list--dropdown {
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        margin-top: 4px !important;
+        z-index: 100 !important;
+        max-height: 300px !important;
+    }
+    
+    .choices__list--dropdown .choices__item--selectable {
+        padding: 10px 12px !important;
+    }
+    
+    .choices__list--dropdown .choices__item--selectable.is-highlighted {
+        background-color: #eff6ff !important;
+        color: #1e40af !important;
+    }
+    
+    .choices__item--choice {
+        font-size: 0.875rem !important;
+    }
+    
+    .choices__list--multiple .choices__item {
+        background-color: #3b82f6 !important;
+        border: 1px solid #2563eb !important;
+        border-radius: 0.375rem !important;
+        padding: 4px 8px !important;
+        margin: 2px !important;
+        font-size: 0.875rem !important;
+    }
+    
+    .choices__button {
+        border-left: 1px solid #2563eb !important;
+        padding: 0 8px !important;
+        opacity: 0.8 !important;
+    }
+    
+    .choices__button:hover {
+        opacity: 1 !important;
+    }
+    
+    .choices__input {
+        background-color: transparent !important;
+        font-size: 0.875rem !important;
+        padding: 4px 0 !important;
+    }
+    
+    .choices__placeholder {
+        opacity: 0.5 !important;
+    }
+    
+    /* Evita que o dropdown fique por baixo de outros elementos */
+    .choices[data-type*="select-multiple"].is-open .choices__inner {
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+    }
+    
+    /* Melhora o espaçamento quando há itens selecionados */
+    .choices__list--multiple {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+    }
+</style>
 @endpush
 
 @push('scripts')
@@ -191,29 +335,146 @@
         const tiposAcaoSelect = new Choices('#tipos_acao_ids', {
             removeItemButton: true,
             searchEnabled: true,
-            searchPlaceholderValue: 'Pesquisar tipos de ação...',
+            searchPlaceholderValue: 'Digite para pesquisar...',
             noResultsText: 'Nenhum tipo de ação encontrado',
             noChoicesText: 'Nenhum tipo de ação disponível',
-            itemSelectText: 'Clique para selecionar',
+            itemSelectText: '',
             placeholder: true,
-            placeholderValue: 'Selecione os tipos de ação',
+            placeholderValue: 'Clique para selecionar as ações',
             maxItemCount: -1,
-            shouldSort: false
+            shouldSort: false,
+            position: 'bottom', // Dropdown sempre abre para baixo
+            searchResultLimit: 10,
+            renderChoiceLimit: 10,
+            addItemText: (value) => {
+                return `Pressione Enter para adicionar <b>"${value}"</b>`;
+            },
+            classNames: {
+                containerOuter: 'choices',
+                containerInner: 'choices__inner',
+                input: 'choices__input',
+                inputCloned: 'choices__input--cloned',
+                list: 'choices__list',
+                listItems: 'choices__list--multiple',
+                listSingle: 'choices__list--single',
+                listDropdown: 'choices__list--dropdown',
+                item: 'choices__item',
+                itemSelectable: 'choices__item--selectable',
+                itemDisabled: 'choices__item--disabled',
+                itemChoice: 'choices__item--choice',
+                placeholder: 'choices__placeholder',
+                group: 'choices__group',
+                groupHeading: 'choices__heading',
+                button: 'choices__button',
+                activeState: 'is-active',
+                focusState: 'is-focused',
+                openState: 'is-open',
+                disabledState: 'is-disabled',
+                highlightedState: 'is-highlighted',
+                selectedState: 'is-selected',
+                flippedState: 'is-flipped',
+                loadingState: 'is-loading',
+                noResults: 'has-no-results',
+                noChoices: 'has-no-choices'
+            }
         });
 
         // Inicializa Choices.js para Técnicos
         const tecnicosSelect = new Choices('#tecnicos_ids', {
             removeItemButton: true,
             searchEnabled: true,
-            searchPlaceholderValue: 'Pesquisar técnicos...',
+            searchPlaceholderValue: 'Digite para pesquisar...',
             noResultsText: 'Nenhum técnico encontrado',
             noChoicesText: 'Nenhum técnico disponível',
-            itemSelectText: 'Clique para selecionar',
+            itemSelectText: '',
             placeholder: true,
-            placeholderValue: 'Selecione os técnicos responsáveis',
+            placeholderValue: 'Clique para selecionar os técnicos',
             maxItemCount: -1,
-            shouldSort: false
+            shouldSort: false,
+            position: 'bottom', // Dropdown sempre abre para baixo
+            searchResultLimit: 10,
+            renderChoiceLimit: 10,
+            addItemText: (value) => {
+                return `Pressione Enter para adicionar <b>"${value}"</b>`;
+            }
         });
+
+        // Buscar processos ao selecionar estabelecimento
+        const estabelecimentoSelect = document.getElementById('estabelecimento_id');
+        const processoSelect = document.getElementById('processo_id');
+        const processoInfo = document.getElementById('processo-info');
+        const processoCount = document.getElementById('processo-count');
+        const processoSemProcesso = document.getElementById('processo-sem-processo');
+        const submitButton = document.querySelector('button[type="submit"]');
+
+        estabelecimentoSelect.addEventListener('change', function() {
+            const estabelecimentoId = this.value;
+            
+            // Limpa o select de processos
+            processoSelect.innerHTML = '<option value="">Carregando processos...</option>';
+            processoSelect.disabled = true;
+            processoSelect.classList.add('bg-gray-100');
+            processoInfo.classList.add('hidden');
+            processoSemProcesso.classList.add('hidden');
+            
+            if (!estabelecimentoId) {
+                processoSelect.innerHTML = '<option value="">Selecione primeiro um estabelecimento</option>';
+                return;
+            }
+
+            // Busca processos via API
+            fetch(`/admin/ordens-servico/api/processos-estabelecimento/${estabelecimentoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.processos.length > 0) {
+                        // Tem processos disponíveis
+                        processoSelect.innerHTML = '<option value="">Selecione um processo</option>';
+                        
+                        data.processos.forEach(processo => {
+                            const option = document.createElement('option');
+                            option.value = processo.id;
+                            option.textContent = `${processo.numero_processo} - ${processo.tipo_label}`;
+                            processoSelect.appendChild(option);
+                        });
+                        
+                        processoSelect.disabled = false;
+                        processoSelect.classList.remove('bg-gray-100');
+                        
+                        // Mostra informação de quantidade
+                        processoCount.textContent = `${data.total} processo(s) disponível(is)`;
+                        processoInfo.classList.remove('hidden');
+                        
+                        // Habilita botão de submit
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        
+                    } else {
+                        // Não tem processos
+                        processoSelect.innerHTML = '<option value="">Nenhum processo disponível</option>';
+                        processoSelect.disabled = true;
+                        processoSemProcesso.classList.remove('hidden');
+                        
+                        // Desabilita botão de submit
+                        submitButton.disabled = true;
+                        submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar processos:', error);
+                    processoSelect.innerHTML = '<option value="">Erro ao carregar processos</option>';
+                    processoSelect.disabled = true;
+                    
+                    // Desabilita botão de submit
+                    submitButton.disabled = true;
+                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                });
+        });
+
+        // Desabilita submit inicialmente se não tiver estabelecimento selecionado
+        if (!estabelecimentoSelect.value) {
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
     });
 </script>
 @endpush
