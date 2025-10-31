@@ -18,12 +18,39 @@ php artisan migrate
 php artisan db:seed
 
 
--- SE O PROJETO JÁ ESTIVER MIGRADO
+-- ⚠️ PASSO A PASSO APÓS GIT PULL (SIGA SEMPRE ESTA ORDEM!)
+-- ============================================================
+
+-- 1. PUXAR ATUALIZAÇÕES DO GITHUB
 git pull origin main
+
+-- 2. ATUALIZAR DEPENDÊNCIAS (se houver novos pacotes)
 composer install
 npm install
+
+-- 3. VERIFICAR STATUS DAS MIGRATIONS
+php artisan migrate:status
+
+-- 4. SE HOUVER ERRO DE "DUPLICATE TABLE" OU "TABELA JÁ EXISTE":
+--    Execute o script de correção:
+php fix-migrations-2025.php
+
+-- 5. RODAR MIGRATIONS (novas tabelas/colunas)
 php artisan migrate
+
+-- 6. RODAR SEEDERS (novos dados)
 php artisan db:seed
+
+-- 7. LIMPAR CACHE (SEMPRE!)
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
+-- 8. COMPILAR ASSETS (se houver mudanças no frontend)
+npm run build
+
+-- ✅ PRONTO! Sistema atualizado!
 
 
 -- SUBIR PARA GIT

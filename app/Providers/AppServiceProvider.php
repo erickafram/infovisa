@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Storage;
+use App\Models\OrdemServico;
+use App\Observers\OrdemServicoObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
         if (!Storage::disk('local')->exists('processos')) {
             Storage::disk('local')->makeDirectory('processos');
         }
+        
+        // Registra Observer de OrdemServico
+        OrdemServico::observe(OrdemServicoObserver::class);
     }
 }

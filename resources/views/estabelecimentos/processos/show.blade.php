@@ -2181,36 +2181,121 @@
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
+    /* Container do Select2 */
     .select2-container--default .select2-selection--multiple {
         border: 1px solid #d1d5db;
         border-radius: 0.5rem;
         min-height: 42px;
         padding: 4px;
+        background-color: #ffffff;
+        transition: all 0.2s ease;
     }
+    
+    /* Estado de foco - borda roxa com sombra suave */
     .select2-container--default.select2-container--focus .select2-selection--multiple {
         border-color: #9333ea;
         box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+        background-color: #ffffff;
+        outline: none;
     }
+    
+    /* Tags selecionadas - roxo com texto branco */
     .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #9333ea;
-        border: none;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 0.375rem;
+        background-color: #9333ea !important;
+        border: none !important;
+        color: #ffffff !important;
+        padding: 6px 10px !important;
+        border-radius: 0.375rem !important;
+        font-weight: 500 !important;
+        text-decoration: none !important; /* Remove qualquer linha cortando */
+        line-height: 1.5 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin: 2px !important;
     }
+    
+    /* Garante que o texto dentro do chip não tenha decoração */
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+        text-decoration: none !important;
+        color: #ffffff !important;
+        font-size: 0.875rem !important;
+    }
+    
+    /* Botão de remover tag */
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        color: white;
-        margin-right: 5px;
+        color: #ffffff !important;
+        background-color: transparent !important;
+        border: none !important;
+        font-size: 1.25rem !important;
+        font-weight: bold !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-right: 4px !important;
+        text-decoration: none !important; /* Remove qualquer linha */
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 16px !important;
+        height: 16px !important;
+        border-radius: 50% !important;
     }
+    
     .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #fca5a5;
+        color: #fca5a5 !important;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        text-decoration: none !important;
+        transform: scale(1.1);
     }
+    
+    /* Dropdown */
     .select2-dropdown {
         border: 1px solid #d1d5db;
         border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
+    
+    /* Opções no dropdown - estado normal */
+    .select2-container--default .select2-results__option {
+        padding: 8px 12px;
+        transition: all 0.15s ease;
+    }
+    
+    /* Opções destacadas (hover/foco) - CORREÇÃO DE ACESSIBILIDADE */
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: #9333ea;
+        background-color: #f3e8ff !important; /* Roxo muito claro */
+        color: #581c87 !important; /* Roxo escuro para alto contraste */
+        font-weight: 500;
+    }
+    
+    /* Opções já selecionadas */
+    .select2-container--default .select2-results__option[aria-selected="true"] {
+        background-color: #ede9fe;
+        color: #6b21a8;
+    }
+    
+    /* Campo de busca dentro do select */
+    .select2-container--default .select2-search--inline .select2-search__field {
+        color: #1f2937;
+        font-size: 0.875rem;
+    }
+    
+    .select2-container--default .select2-search--inline .select2-search__field::placeholder {
+        color: #9ca3af;
+    }
+    
+    /* Placeholder quando vazio */
+    .select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+        color: #9ca3af;
+    }
+    
+    /* Mensagem "Nenhum resultado" */
+    .select2-container--default .select2-results__option--no-results {
+        color: #6b7280;
+        font-style: italic;
     }
 </style>
 @endpush

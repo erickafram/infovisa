@@ -201,6 +201,22 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('ordens-servico/api/search-tecnicos', 
         [\App\Http\Controllers\OrdemServicoController::class, 'searchTecnicos']
     )->name('ordens-servico.api.search-tecnicos');
+    
+    // Finalizar OS
+    Route::post('ordens-servico/{ordemServico}/finalizar', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'finalizar']
+    )->name('ordens-servico.finalizar');
+    
+    // Reiniciar OS
+    Route::post('ordens-servico/{ordemServico}/reiniciar', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'reiniciar']
+    )->name('ordens-servico.reiniciar');
+
+    // Notificações
+    Route::get('notificacoes', [\App\Http\Controllers\NotificacaoController::class, 'index'])->name('notificacoes.index');
+    Route::get('notificacoes/nao-lidas', [\App\Http\Controllers\NotificacaoController::class, 'naoLidas'])->name('notificacoes.nao-lidas');
+    Route::post('notificacoes/{id}/marcar-lida', [\App\Http\Controllers\NotificacaoController::class, 'marcarComoLida'])->name('notificacoes.marcar-lida');
+    Route::post('notificacoes/marcar-todas-lidas', [\App\Http\Controllers\NotificacaoController::class, 'marcarTodasComoLidas'])->name('notificacoes.marcar-todas-lidas');
 
     // Usuários Internos
     Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([

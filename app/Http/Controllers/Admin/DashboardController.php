@@ -9,6 +9,7 @@ use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\DocumentoAssinatura;
 use App\Models\ProcessoDesignacao;
+use App\Models\OrdemServico;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -102,6 +103,28 @@ class DashboardController extends Controller
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->count();
 
+        // Buscar Ordens de Serviço em andamento do usuário
+        // Dashboard mostra APENAS OSs onde o usuário é técnico atribuído
+        $usuario = Auth::guard('interno')->user();
+        
+        // Busca OSs onde o usuário está na lista de técnicos
+        $todasOS = OrdemServico::with(['estabelecimento', 'municipio'])
+            ->whereIn('status', ['aberta', 'em_andamento'])
+            ->get();
+        
+        $ordens_servico_andamento = $todasOS
+            ->filter(function($os) use ($usuario) {
+                return $os->tecnicos_ids && in_array($usuario->id, $os->tecnicos_ids);
+            })
+            ->sortBy('data_fim')
+            ->take(10);
+
+        $stats['ordens_servico_andamento'] = $todasOS
+            ->filter(function($os) use ($usuario) {
+                return $os->tecnicos_ids && in_array($usuario->id, $os->tecnicos_ids);
+            })
+            ->count();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
@@ -110,7 +133,8 @@ class DashboardController extends Controller
             'processos_acompanhados',
             'documentos_pendentes_assinatura',
             'documentos_rascunho_pendentes',
-            'processos_designados'
+            'processos_designados',
+            'ordens_servico_andamento'
         ));
     }
 }

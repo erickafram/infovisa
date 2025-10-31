@@ -23,16 +23,20 @@ class OrdemServicoController extends Controller
         $query = OrdemServico::with(['estabelecimento', 'municipio'])
             ->orderBy('created_at', 'desc');
         
-        // Filtro por competência
-        if ($usuario->isEstadual()) {
-            // Gestor estadual vê apenas OSs estaduais
+        // Filtro por competência baseado no nível de acesso
+        if ($usuario->isAdmin()) {
+            // Administrador vê tudo (sem filtro)
+        } elseif ($usuario->isEstadual()) {
+            // Gestor/Técnico Estadual vê apenas OSs estaduais
             $query->where('competencia', 'estadual');
         } elseif ($usuario->isMunicipal()) {
-            // Gestor municipal vê apenas OSs municipais do seu município
+            // Gestor/Técnico Municipal vê apenas OSs municipais do seu município
             $query->where('competencia', 'municipal')
                   ->where('municipio_id', $usuario->municipio_id);
+        } else {
+            // Outros usuários não veem nada (segurança)
+            $query->whereRaw('1 = 0');
         }
-        // Administrador vê tudo (sem filtro)
         
         $ordensServico = $query->paginate(20);
         
@@ -140,6 +144,12 @@ class OrdemServicoController extends Controller
     {
         $usuario = Auth::guard('interno')->user();
         
+        // Bloqueia edição se OS estiver finalizada
+        if ($ordemServico->status === 'finalizada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Não é possível editar uma Ordem de Serviço finalizada. Use a opção "Reiniciar OS" se necessário.');
+        }
+        
         // Verifica permissão
         if (!$this->podeEditarOS($usuario, $ordemServico)) {
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
@@ -171,6 +181,12 @@ class OrdemServicoController extends Controller
     public function update(Request $request, OrdemServico $ordemServico)
     {
         $usuario = Auth::guard('interno')->user();
+        
+        // Bloqueia edição se OS estiver finalizada
+        if ($ordemServico->status === 'finalizada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Não é possível editar uma Ordem de Serviço finalizada.');
+        }
         
         // Verifica permissão
         if (!$this->podeEditarOS($usuario, $ordemServico)) {
@@ -277,14 +293,22 @@ class OrdemServicoController extends Controller
      */
     private function podeVisualizarOS($usuario, $ordemServico)
     {
+        // Admin sempre pode
         if ($usuario->isAdmin()) {
             return true;
         }
         
+        // Se é técnico atribuído, sempre pode visualizar (independente da competência)
+        if ($ordemServico->tecnicos_ids && in_array($usuario->id, $ordemServico->tecnicos_ids)) {
+            return true;
+        }
+        
+        // Gestor estadual pode ver OSs estaduais
         if ($usuario->isEstadual() && $ordemServico->competencia === 'estadual') {
             return true;
         }
         
+        // Gestor municipal pode ver OSs municipais do seu município
         if ($usuario->isMunicipal() && $ordemServico->competencia === 'municipal' && $ordemServico->municipio_id == $usuario->municipio_id) {
             return true;
         }
@@ -441,5 +465,129 @@ class OrdemServicoController extends Controller
             'results' => $results,
             'pagination' => ['more' => false]
         ]);
+    }
+
+    /**
+     * Finalizar ordem de serviço
+     */
+    public function finalizar(Request $request, OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Verifica se o usuário é técnico atribuído à OS
+        $isTecnico = $ordemServico->tecnicos_ids && in_array($usuario->id, $ordemServico->tecnicos_ids);
+        
+        if (!$isTecnico) {
+            return response()->json([
+                'message' => 'Você não tem permissão para finalizar esta ordem de serviço.'
+            ], 403);
+        }
+        
+        // Valida os dados
+        $request->validate([
+            'atividades_realizadas' => 'required|in:sim,parcial,nao',
+            'observacoes_finalizacao' => 'required|string|min:20',
+        ], [
+            'atividades_realizadas.required' => 'Informe se as atividades foram realizadas.',
+            'observacoes_finalizacao.required' => 'As observações são obrigatórias.',
+            'observacoes_finalizacao.min' => 'As observações devem ter no mínimo 20 caracteres.',
+        ]);
+        
+        // Atualiza a OS
+        $ordemServico->update([
+            'status' => 'finalizada',
+            'data_conclusao' => now(),
+            'atividades_realizadas' => $request->atividades_realizadas,
+            'observacoes_finalizacao' => $request->observacoes_finalizacao,
+            'finalizada_por' => $usuario->id,
+            'finalizada_em' => now(),
+        ]);
+        
+        // Cria notificação para gestores
+        $this->criarNotificacaoFinalizacao($ordemServico, $usuario);
+        
+        return response()->json([
+            'message' => 'Ordem de serviço finalizada com sucesso!',
+            'ordem_servico' => $ordemServico
+        ]);
+    }
+
+    /**
+     * Criar notificação de finalização para gestores
+     */
+    private function criarNotificacaoFinalizacao(OrdemServico $ordemServico, $tecnico)
+    {
+        // Busca gestores que devem receber notificação
+        $gestores = UsuarioInterno::where('ativo', true)
+            ->where(function($query) use ($ordemServico) {
+                if ($ordemServico->competencia === 'estadual') {
+                    $query->where('nivel_acesso', 'estadual')
+                          ->orWhere('nivel_acesso', 'administrador');
+                } elseif ($ordemServico->competencia === 'municipal') {
+                    $query->where(function($q) use ($ordemServico) {
+                        $q->where('nivel_acesso', 'municipal')
+                          ->where('municipio_id', $ordemServico->municipio_id);
+                    })->orWhere('nivel_acesso', 'administrador');
+                }
+            })
+            ->get();
+        
+        foreach ($gestores as $gestor) {
+            \App\Models\Notificacao::create([
+                'usuario_interno_id' => $gestor->id,
+                'tipo' => 'ordem_servico_finalizada',
+                'titulo' => 'OS #' . $ordemServico->numero . ' Finalizada',
+                'mensagem' => 'O técnico ' . $tecnico->nome . ' finalizou a OS #' . $ordemServico->numero . ' do estabelecimento ' . $ordemServico->estabelecimento->nome_fantasia,
+                'link' => route('admin.ordens-servico.show', $ordemServico),
+                'ordem_servico_id' => $ordemServico->id,
+                'prioridade' => 'normal',
+            ]);
+        }
+    }
+
+    /**
+     * Reiniciar ordem de serviço finalizada
+     */
+    public function reiniciar(OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Apenas gestores podem reiniciar
+        if (!$usuario->isAdmin() && !$usuario->isEstadual() && !$usuario->isMunicipal()) {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Você não tem permissão para reiniciar esta ordem de serviço.');
+        }
+        
+        // Verifica se está finalizada
+        if ($ordemServico->status !== 'finalizada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Apenas ordens de serviço finalizadas podem ser reiniciadas.');
+        }
+        
+        // Reinicia a OS
+        $ordemServico->update([
+            'status' => 'em_andamento',
+            'atividades_realizadas' => null,
+            'observacoes_finalizacao' => null,
+            'finalizada_por' => null,
+            'finalizada_em' => null,
+            'data_conclusao' => null,
+        ]);
+        
+        // Cria notificação para os técnicos
+        foreach ($ordemServico->tecnicos_ids ?? [] as $tecnicoId) {
+            \App\Models\Notificacao::create([
+                'usuario_interno_id' => $tecnicoId,
+                'tipo' => 'ordem_servico_reiniciada',
+                'titulo' => 'OS #' . $ordemServico->numero . ' Reiniciada',
+                'mensagem' => 'A OS #' . $ordemServico->numero . ' foi reiniciada por ' . $usuario->nome . ' e voltou ao status "Em Andamento".',
+                'link' => route('admin.ordens-servico.show', $ordemServico),
+                'ordem_servico_id' => $ordemServico->id,
+                'prioridade' => 'alta',
+            ]);
+        }
+        
+        return redirect()->route('admin.ordens-servico.show', $ordemServico)
+            ->with('success', 'Ordem de Serviço reiniciada com sucesso! Status alterado para "Em Andamento".');
     }
 }

@@ -16,6 +16,80 @@
         </p>
     </div>
 
+    {{-- Ordens de Serviço em Andamento --}}
+    @if($stats['ordens_servico_andamento'] > 0)
+    <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-sm">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Minhas Ordens de Serviço
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">{{ $stats['ordens_servico_andamento'] }}</span>
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">OSs atribuídas a você para executar</p>
+            </div>
+            <a href="{{ route('admin.ordens-servico.index') }}" 
+               class="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                Ver todas →
+            </a>
+        </div>
+        
+        @if($ordens_servico_andamento->count() > 0)
+        <div class="divide-y divide-gray-100">
+            @foreach($ordens_servico_andamento as $os)
+            <a href="{{ route('admin.ordens-servico.show', $os) }}" 
+               class="block px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <p class="text-sm font-semibold text-blue-600">
+                                OS #{{ $os->numero }}
+                            </p>
+                            {!! $os->status_badge !!}
+                            {!! $os->competencia_badge !!}
+                        </div>
+                        <p class="text-sm text-gray-900 font-medium truncate">
+                            {{ $os->estabelecimento->nome_fantasia }}
+                        </p>
+                        <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            @if($os->municipio)
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                </svg>
+                                {{ $os->municipio->nome }}/{{ $os->municipio->uf }}
+                            </span>
+                            @endif
+                            @if($os->data_fim)
+                            <span class="flex items-center gap-1 {{ $os->data_fim->isPast() ? 'text-red-600 font-semibold' : '' }}">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Prazo: {{ $os->data_fim->format('d/m/Y') }}
+                                @if($os->data_fim->isPast())
+                                    <span class="text-red-600 font-bold">⚠️ VENCIDO</span>
+                                @elseif($os->data_fim->diffInDays(now()) <= 3)
+                                    <span class="text-orange-600 font-semibold">({{ $os->data_fim->diffInDays(now()) }} dias)</span>
+                                @endif
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg">
+                            Ver detalhes →
+                        </span>
+                    </div>
+                </div>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </div>
+    @endif
+
     {{-- Documentos Pendentes de Assinatura --}}
     @if($stats['documentos_pendentes_assinatura'] > 0)
     <div class="bg-white border-l-4 border-yellow-400 rounded-lg shadow-sm">

@@ -4,6 +4,27 @@
     // Buscar estatísticas de alertas
     $alertas = [];
     
+    // 0. Notificações de Ordens de Serviço (do banco de dados)
+    $notificacoesOS = \App\Models\Notificacao::doUsuario($usuario->id)
+        ->naoLidas()
+        ->recentes()
+        ->limit(5)
+        ->get();
+    
+    foreach ($notificacoesOS as $notif) {
+        $alertas[] = [
+            'tipo' => 'notificacao_os',
+            'titulo' => $notif->titulo,
+            'mensagem' => $notif->mensagem,
+            'quantidade' => 1,
+            'cor' => $notif->cor,
+            'icone' => 'clipboard-check',
+            'link' => $notif->link,
+            'id' => $notif->id,
+            'prioridade' => $notif->prioridade,
+        ];
+    }
+    
     // 1. Documentos aguardando assinatura
     $docsAssinatura = \App\Models\DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
         ->where('status', 'pendente')
@@ -131,7 +152,10 @@
             @forelse($alertas as $alerta)
             <a href="{{ $alerta['link'] }}" 
                class="block px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
-               @click="notificacoesOpen = false">
+               @click="notificacoesOpen = false"
+               @if(isset($alerta['id']))
+               onclick="marcarNotificacaoLida({{ $alerta['id'] }})"
+               @endif>
                 <div class="flex items-start gap-3">
                     {{-- Ícone --}}
                     <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
@@ -139,9 +163,15 @@
                         @elseif($alerta['cor'] === 'blue') bg-blue-100
                         @elseif($alerta['cor'] === 'orange') bg-orange-100
                         @elseif($alerta['cor'] === 'green') bg-green-100
+                        @elseif($alerta['cor'] === 'red') bg-red-100
+                        @elseif($alerta['cor'] === 'purple') bg-purple-100
                         @else bg-gray-100
                         @endif">
-                        @if($alerta['icone'] === 'edit')
+                        @if($alerta['icone'] === 'clipboard-check')
+                        <svg class="w-4 h-4 @if($alerta['cor'] === 'purple') text-purple-600 @elseif($alerta['cor'] === 'blue') text-blue-600 @elseif($alerta['cor'] === 'red') text-red-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        @elseif($alerta['icone'] === 'edit')
                         <svg class="w-4 h-4 @if($alerta['cor'] === 'yellow') text-yellow-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
@@ -205,3 +235,16 @@
         @endif
     </div>
 </div>
+
+<script>
+// Função para marcar notificação como lida
+function marcarNotificacaoLida(notificacaoId) {
+    fetch(`/admin/notificacoes/${notificacaoId}/marcar-lida`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+        }
+    }).catch(err => console.error('Erro ao marcar notificação:', err));
+}
+</script>
