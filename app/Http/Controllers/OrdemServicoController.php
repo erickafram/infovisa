@@ -228,17 +228,28 @@ class OrdemServicoController extends Controller
     {
         $query = Estabelecimento::orderBy('nome_fantasia');
         
-        if ($usuario->isEstadual()) {
-            // Gestor estadual vê apenas estabelecimentos estaduais
-            $query->where('competencia_manual', 'estadual');
-        } elseif ($usuario->isMunicipal()) {
-            // Gestor municipal vê apenas estabelecimentos municipais do seu município
-            $query->where('competencia_manual', 'municipal')
-                  ->where('municipio_id', $usuario->municipio_id);
+        if ($usuario->isMunicipal()) {
+            // Gestor municipal vê apenas estabelecimentos do seu município
+            $query->where('municipio_id', $usuario->municipio_id);
         }
-        // Administrador vê todos
+        // Administrador e Estadual veem todos inicialmente
         
-        return $query->get();
+        $estabelecimentos = $query->get();
+        
+        // Filtra por competência usando o método do modelo
+        if ($usuario->isEstadual()) {
+            // Gestor estadual vê apenas estabelecimentos de competência estadual
+            $estabelecimentos = $estabelecimentos->filter(function($estabelecimento) {
+                return $estabelecimento->isCompetenciaEstadual();
+            });
+        } elseif ($usuario->isMunicipal()) {
+            // Gestor municipal vê apenas estabelecimentos de competência municipal
+            $estabelecimentos = $estabelecimentos->filter(function($estabelecimento) {
+                return !$estabelecimento->isCompetenciaEstadual();
+            });
+        }
+        
+        return $estabelecimentos;
     }
 
     /**
