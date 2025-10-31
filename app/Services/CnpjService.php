@@ -76,28 +76,53 @@ class CnpjService
     private function consultarMinhaReceita(string $cnpj): ?array
     {
         try {
+            $url = self::MINHA_RECEITA_URL . '/' . $cnpj;
+            
+            Log::info('Consultando Minha Receita', [
+                'url' => $url,
+                'cnpj' => $cnpj
+            ]);
+            
             $response = Http::timeout(self::TIMEOUT)
+                ->withOptions([
+                    'verify' => false, // Desabilita verificação SSL temporariamente
+                ])
                 ->withHeaders([
                     'Accept' => 'application/json',
                     'User-Agent' => 'InfoVISA/3.0'
                 ])
-                ->get(self::MINHA_RECEITA_URL . '/' . $cnpj);
+                ->get($url);
+
+            Log::info('Resposta Minha Receita', [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body_size' => strlen($response->body())
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
                 // A API retorna o CNPJ sem formatação
                 if (isset($data['cnpj'])) {
+                    Log::info('Dados encontrados na Minha Receita', [
+                        'cnpj' => $data['cnpj'],
+                        'razao_social' => $data['razao_social'] ?? 'N/A'
+                    ]);
                     return $this->formatarMinhaReceita($data);
                 }
             }
 
+            Log::warning('Minha Receita não retornou dados válidos', [
+                'status' => $response->status()
+            ]);
+
             return null;
 
         } catch (Exception $e) {
-            Log::warning('Erro ao consultar Minha Receita', [
+            Log::error('Erro ao consultar Minha Receita', [
                 'cnpj' => $cnpj,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }

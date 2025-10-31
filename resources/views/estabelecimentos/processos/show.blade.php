@@ -2121,29 +2121,13 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Tipos de Ação <span class="text-red-500">*</span>
                             </label>
-                            <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                                @php
-                                    $usuario = auth('interno')->user();
-                                    $competenciaFiltro = $usuario->isEstadual() ? ['estadual', 'ambos'] : ['municipal', 'ambos'];
-                                    
-                                    $tiposAcao = \App\Models\TipoAcao::ativo()
-                                        ->whereIn('competencia', $competenciaFiltro)
-                                        ->orderBy('descricao')
-                                        ->get();
-                                @endphp
-                                
-                                @forelse($tiposAcao as $tipo)
-                                <label class="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" 
-                                           name="tipos_acao_ids[]" 
-                                           value="{{ $tipo->id }}"
-                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                    <span class="text-gray-700">{{ $tipo->descricao }}</span>
-                                </label>
-                                @empty
-                                <p class="text-xs text-gray-500 col-span-2 text-center py-2">Nenhum tipo de ação disponível</p>
-                                @endforelse
-                            </div>
+                            <select name="tipos_acao_ids[]" 
+                                    id="tipos-acao-select"
+                                    class="w-full" 
+                                    multiple="multiple" 
+                                    required>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Digite para pesquisar tipos de ação</p>
                         </div>
 
                         {{-- Técnicos --}}
@@ -2151,32 +2135,13 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Técnicos Responsáveis <span class="text-red-500">*</span>
                             </label>
-                            <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                                @php
-                                    $tecnicos = \App\Models\UsuarioInterno::where('ativo', true);
-                                    
-                                    if ($usuario->isEstadual()) {
-                                        $tecnicos->where('nivel_acesso', 'estadual');
-                                    } elseif ($usuario->isMunicipal()) {
-                                        $tecnicos->where('nivel_acesso', 'municipal')
-                                                 ->where('municipio_id', $usuario->municipio_id);
-                                    }
-                                    
-                                    $tecnicos = $tecnicos->orderBy('nome')->get();
-                                @endphp
-                                
-                                @forelse($tecnicos as $tecnico)
-                                <label class="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" 
-                                           name="tecnicos_ids[]" 
-                                           value="{{ $tecnico->id }}"
-                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                    <span class="text-gray-700">{{ $tecnico->nome }}</span>
-                                </label>
-                                @empty
-                                <p class="text-xs text-gray-500 col-span-2 text-center py-2">Nenhum técnico disponível</p>
-                                @endforelse
-                            </div>
+                            <select name="tecnicos_ids[]" 
+                                    id="tecnicos-select"
+                                    class="w-full" 
+                                    multiple="multiple" 
+                                    required>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Digite para pesquisar técnicos</p>
                         </div>
 
                         {{-- Observações --}}
@@ -2211,4 +2176,189 @@
         </div>
     </div>
 </div>
+
+{{-- Select2 CSS --}}
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        min-height: 42px;
+        padding: 4px;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #9333ea;
+        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #9333ea;
+        border: none;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 0.375rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: white;
+        margin-right: 5px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #fca5a5;
+    }
+    .select2-dropdown {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #9333ea;
+    }
+</style>
+@endpush
+
+{{-- Select2 JS --}}
+@push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa Select2 para Tipos de Ação
+    $('#tipos-acao-select').select2({
+        ajax: {
+            url: '{{ route("admin.ordens-servico.api.search-tipos-acao") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.results.map(function(item) {
+                        return {
+                            id: item.id,
+                            text: item.text,
+                            codigo: item.codigo
+                        };
+                    }),
+                    pagination: data.pagination
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Digite para pesquisar tipos de ação...',
+        minimumInputLength: 0,
+        allowClear: true,
+        width: '100%',
+        language: {
+            inputTooShort: function() {
+                return 'Digite para pesquisar...';
+            },
+            searching: function() {
+                return 'Buscando...';
+            },
+            noResults: function() {
+                return 'Nenhum resultado encontrado';
+            },
+            loadingMore: function() {
+                return 'Carregando mais resultados...';
+            }
+        },
+        templateResult: function(item) {
+            if (item.loading) return item.text;
+            
+            var $result = $('<div class="py-2">' +
+                '<div class="font-medium text-gray-900">' + item.text + '</div>' +
+                (item.codigo ? '<div class="text-xs text-gray-500">Código: ' + item.codigo + '</div>' : '') +
+                '</div>');
+            return $result;
+        },
+        templateSelection: function(item) {
+            return item.text;
+        }
+    });
+
+    // Inicializa Select2 para Técnicos
+    $('#tecnicos-select').select2({
+        ajax: {
+            url: '{{ route("admin.ordens-servico.api.search-tecnicos") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.results.map(function(item) {
+                        return {
+                            id: item.id,
+                            text: item.text,
+                            email: item.email,
+                            nivel: item.nivel
+                        };
+                    }),
+                    pagination: data.pagination
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Digite para pesquisar técnicos...',
+        minimumInputLength: 0,
+        allowClear: true,
+        width: '100%',
+        language: {
+            inputTooShort: function() {
+                return 'Digite para pesquisar...';
+            },
+            searching: function() {
+                return 'Buscando...';
+            },
+            noResults: function() {
+                return 'Nenhum resultado encontrado';
+            },
+            loadingMore: function() {
+                return 'Carregando mais resultados...';
+            }
+        },
+        templateResult: function(item) {
+            if (item.loading) return item.text;
+            
+            var $result = $('<div class="py-2">' +
+                '<div class="font-medium text-gray-900">' + item.text + '</div>' +
+                (item.email ? '<div class="text-xs text-gray-500">' + item.email + '</div>' : '') +
+                '</div>');
+            return $result;
+        },
+        templateSelection: function(item) {
+            return item.text;
+        }
+    });
+
+    // Carrega dados iniciais quando o modal é aberto
+    const modalOrdemServico = document.querySelector('[x-show="modalOrdemServico"]');
+    if (modalOrdemServico) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'style') {
+                    const isVisible = !modalOrdemServico.style.display || modalOrdemServico.style.display !== 'none';
+                    if (isVisible) {
+                        // Trigger para carregar dados iniciais
+                        $('#tipos-acao-select').select2('open');
+                        $('#tipos-acao-select').select2('close');
+                        $('#tecnicos-select').select2('open');
+                        $('#tecnicos-select').select2('close');
+                    }
+                }
+            });
+        });
+        observer.observe(modalOrdemServico, { attributes: true });
+    }
+});
+</script>
+@endpush
+
 @endsection

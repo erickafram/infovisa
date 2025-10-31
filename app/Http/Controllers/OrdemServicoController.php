@@ -348,4 +348,98 @@ class OrdemServicoController extends Controller
             'total' => $processos->count()
         ]);
     }
+
+    /**
+     * API: Busca tipos de ação com autocomplete
+     */
+    public function searchTiposAcao(Request $request)
+    {
+        $usuario = Auth::guard('interno')->user();
+        $search = $request->get('q', '');
+        
+        // Define competências permitidas
+        $competenciaFiltro = ['ambos'];
+        if ($usuario->isEstadual()) {
+            $competenciaFiltro[] = 'estadual';
+        } elseif ($usuario->isMunicipal()) {
+            $competenciaFiltro[] = 'municipal';
+        } else {
+            // Admin vê todos
+            $competenciaFiltro = ['estadual', 'municipal', 'ambos'];
+        }
+        
+        // Busca tipos de ação
+        $tiposAcao = TipoAcao::ativo()
+            ->whereIn('competencia', $competenciaFiltro)
+            ->when($search, function($query) use ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('descricao', 'ILIKE', "%{$search}%")
+                      ->orWhere('codigo_procedimento', 'ILIKE', "%{$search}%");
+                });
+            })
+            ->orderBy('descricao')
+            ->limit(50)
+            ->get(['id', 'descricao', 'codigo_procedimento']);
+        
+        // Formata para Select2
+        $results = $tiposAcao->map(function($tipo) {
+            return [
+                'id' => $tipo->id,
+                'text' => $tipo->descricao,
+                'codigo' => $tipo->codigo_procedimento
+            ];
+        });
+        
+        return response()->json([
+            'results' => $results,
+            'pagination' => ['more' => false]
+        ]);
+    }
+
+    /**
+     * API: Busca técnicos com autocomplete
+     */
+    public function searchTecnicos(Request $request)
+    {
+        $usuario = Auth::guard('interno')->user();
+        $search = $request->get('q', '');
+        
+        // Busca técnicos conforme competência
+        $query = UsuarioInterno::where('ativo', true);
+        
+        if ($usuario->isEstadual()) {
+            $query->where('nivel_acesso', 'estadual');
+        } elseif ($usuario->isMunicipal()) {
+            $query->where('nivel_acesso', 'municipal')
+                  ->where('municipio_id', $usuario->municipio_id);
+        }
+        // Admin vê todos
+        
+        // Aplica filtro de busca
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nome', 'ILIKE', "%{$search}%")
+                  ->orWhere('email', 'ILIKE', "%{$search}%");
+            });
+        }
+        
+        $tecnicos = $query->orderBy('nome')
+            ->limit(50)
+            ->get(['id', 'nome', 'email', 'nivel_acesso']);
+        
+        // Formata para Select2
+        $results = $tecnicos->map(function($tecnico) {
+            return [
+                'id' => $tecnico->id,
+                'text' => $tecnico->nome,
+                'email' => $tecnico->email,
+                'nivel' => $tecnico->nivel_acesso
+            ];
+        });
+        
+        return response()->json([
+            'results' => $results,
+            'pagination' => ['more' => false]
+        ]);
+    }
 }

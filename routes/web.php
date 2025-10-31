@@ -191,6 +191,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('ordens-servico/api/processos-estabelecimento/{estabelecimentoId}', 
         [\App\Http\Controllers\OrdemServicoController::class, 'getProcessosPorEstabelecimento']
     )->name('ordens-servico.api.processos-estabelecimento');
+    
+    // API para autocomplete de tipos de ação
+    Route::get('ordens-servico/api/search-tipos-acao', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'searchTiposAcao']
+    )->name('ordens-servico.api.search-tipos-acao');
+    
+    // API para autocomplete de técnicos
+    Route::get('ordens-servico/api/search-tecnicos', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'searchTecnicos']
+    )->name('ordens-servico.api.search-tecnicos');
 
     // Usuários Internos
     Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([

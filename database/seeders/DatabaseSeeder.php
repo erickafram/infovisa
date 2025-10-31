@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             MunicipioSeeder::class,
             TipoDocumentoSeeder::class,
             TipoProcessoSeeder::class,
+            TipoAcoesTableSeeder::class,
             
             // 2. Pactuação (regras de competência)
             PactuacaoSeeder::class,
