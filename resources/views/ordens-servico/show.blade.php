@@ -3,95 +3,205 @@
 @section('title', 'Detalhes da Ordem de Serviço')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50">
-    {{-- Header Compacto --}}
-    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-md">
-        <div class="container-fluid px-4 py-4">
+<div class="min-h-screen bg-gray-50">
+    {{-- Header Clean --}}
+    <div class="bg-white border-b border-gray-200">
+        <div class="container-fluid px-6 py-5">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-4">
                     <a href="{{ route('admin.ordens-servico.index') }}" 
-                       class="text-white/80 hover:text-white transition-colors"
+                       class="text-gray-400 hover:text-gray-600 transition-colors"
                        title="Voltar">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                     </a>
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <h1 class="text-xl font-bold text-white">OS #{{ $ordemServico->numero }}</h1>
-                    </div>
-                    <div class="flex items-center gap-2 ml-4">
-                        {!! $ordemServico->status_badge !!}
-                        {!! $ordemServico->competencia_badge !!}
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Ordem de Serviço #{{ $ordemServico->numero }}</h1>
+                        <p class="text-sm text-gray-500 mt-0.5">Detalhes e informações completas</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    @php
-                        $isTecnicoAtribuido = $ordemServico->tecnicos_ids && in_array(auth()->id(), $ordemServico->tecnicos_ids);
-                        $isGestor = auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual() || auth('interno')->user()->isMunicipal();
-                    @endphp
-                    
-                    @if($ordemServico->status === 'finalizada')
-                        {{-- Botão Reiniciar OS (apenas para gestores) --}}
-                        @if($isGestor)
-                        <form method="POST" action="{{ route('admin.ordens-servico.reiniciar', $ordemServico) }}" 
-                              onsubmit="return confirm('Tem certeza que deseja reiniciar esta OS? Ela voltará ao status \'Em Andamento\'.')">
-                            @csrf
-                            <button type="submit" 
-                                    class="inline-flex items-center gap-1.5 bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-orange-700 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Reiniciar OS
-                            </button>
-                        </form>
-                        @endif
-                    @else
-                        {{-- Botão Finalizar OS (apenas para técnicos atribuídos) --}}
-                        @if($isTecnicoAtribuido)
-                        <button type="button" 
-                                onclick="abrirModalFinalizarOS()"
-                                class="inline-flex items-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Finalizar OS
-                        </button>
-                        @endif
-                        
-                        {{-- Botão Editar (apenas se não estiver finalizada) --}}
-                        <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
-                           class="inline-flex items-center gap-1.5 bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-50 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                            Editar
-                        </a>
-                    @endif
+                <div class="flex items-center gap-3">
+                    {!! $ordemServico->status_badge !!}
+                    {!! $ordemServico->competencia_badge !!}
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container-fluid px-4 py-6">
+        {{-- Layout de 2 Colunas: Menu Lateral (25%) + Conteúdo (75%) --}}
+        <div class="flex flex-col lg:flex-row gap-6">
+            
+            {{-- ========================================
+                COLUNA ESQUERDA: Menu de Ações (25%)
+            ======================================== --}}
+            <aside class="lg:w-1/4 space-y-5">
+                {{-- Card de Menu de Opções --}}
+                <div class="bg-white rounded-lg border border-gray-200 sticky top-6">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <h2 class="text-sm font-semibold text-gray-700">Ações</h2>
+                    </div>
+                    <div class="p-3 space-y-2">
+                        @php
+                            $isTecnicoAtribuido = $ordemServico->tecnicos_ids && in_array(auth()->id(), $ordemServico->tecnicos_ids);
+                            $isGestor = auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual() || auth('interno')->user()->isMunicipal();
+                        @endphp
+                        
+                        @if($ordemServico->status === 'finalizada')
+                            {{-- Botão Reiniciar OS (apenas para gestores) --}}
+                            @if($isGestor)
+                            <form method="POST" action="{{ route('admin.ordens-servico.reiniciar', $ordemServico) }}" 
+                                  onsubmit="return confirm('Tem certeza que deseja reiniciar esta OS? Ela voltará ao status \'Em Andamento\'.')">
+                                @csrf
+                                <button type="submit" 
+                                        class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-orange-700 bg-orange-50 rounded-md hover:bg-orange-100 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Reiniciar OS
+                                </button>
+                            </form>
+                            @endif
+                        @else
+                            {{-- Botão Finalizar OS (apenas para técnicos atribuídos) --}}
+                            @if($isTecnicoAtribuido)
+                            <button type="button" 
+                                    onclick="abrirModalFinalizarOS()"
+                                    class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Finalizar OS
+                            </button>
+                            @endif
+                            
+                            {{-- Botão Editar --}}
+                            <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
+                               class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Editar OS
+                            </a>
+                        @endif
+                        
+                        {{-- Botão Voltar --}}
+                        <a href="{{ route('admin.ordens-servico.index') }}" 
+                           class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Voltar à Lista
+                        </a>
+                    </div>
+                </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {{-- Coluna Principal --}}
-        <div class="lg:col-span-2 space-y-4">
+                {{-- Card de Informações Rápidas --}}
+                <div class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <h2 class="text-sm font-semibold text-gray-700">Informações</h2>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                            <label class="text-xs font-medium text-indigo-700">Número da OS</label>
+                            <p class="text-lg font-bold text-gray-900 mt-0.5">#{{ $ordemServico->numero }}</p>
+                        </div>
+                        @if($ordemServico->processo)
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600">Processo</label>
+                            <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $ordemServico->processo->numero_processo }}</p>
+                            <p class="text-xs text-gray-500">{{ \App\Models\Processo::tipos()[$ordemServico->processo->tipo] ?? $ordemServico->processo->tipo }}</p>
+                        </div>
+                        @endif
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600 mb-2 block">Status</label>
+                            <div>{!! $ordemServico->status_badge !!}</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600 mb-2 block">Competência</label>
+                            <div>{!! $ordemServico->competencia_badge !!}</div>
+                        </div>
+                        @if($ordemServico->municipio)
+                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                            <label class="text-xs font-medium text-blue-700">Município</label>
+                            <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $ordemServico->municipio->nome }}/{{ $ordemServico->municipio->uf }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Card de Datas --}}
+                <div class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <h2 class="text-sm font-semibold text-gray-700">Datas</h2>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600">Abertura</label>
+                            <p class="text-xs font-semibold text-gray-900">
+                                {{ $ordemServico->data_abertura ? $ordemServico->data_abertura->format('d/m/Y') : '-' }}
+                            </p>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600">Início</label>
+                            <p class="text-xs font-semibold text-gray-900">
+                                {{ $ordemServico->data_inicio ? $ordemServico->data_inicio->format('d/m/Y') : '-' }}
+                            </p>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600">Término</label>
+                            <p class="text-xs font-semibold text-gray-900">
+                                {{ $ordemServico->data_fim ? $ordemServico->data_fim->format('d/m/Y') : '-' }}
+                            </p>
+                        </div>
+                        @if($ordemServico->data_conclusao)
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
+                            <label class="text-xs font-medium text-gray-600">Conclusão</label>
+                            <p class="text-xs font-semibold text-gray-900">
+                                {{ $ordemServico->data_conclusao->format('d/m/Y') }}
+                            </p>
+                        </div>
+                        @endif
+                        
+                        {{-- Duração --}}
+                        @if($ordemServico->data_inicio && $ordemServico->data_fim)
+                        <div class="mt-2 p-3 bg-purple-600 rounded-lg">
+                            <label class="text-xs font-medium text-white">Duração</label>
+                            <p class="text-lg font-bold text-white">
+                                {{ $ordemServico->data_inicio->diffInDays($ordemServico->data_fim) + 1 }} dias
+                            </p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Timestamps --}}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Criado:</span>
+                            <span class="font-semibold text-gray-900">{{ $ordemServico->created_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Atualizado:</span>
+                            <span class="font-semibold text-gray-900">{{ $ordemServico->updated_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {{-- ========================================
+                COLUNA DIREITA: Conteúdo Principal (75%)
+            ======================================== --}}
+            <main class="lg:w-3/4 space-y-6">
             {{-- Informações do Estabelecimento --}}
             @if($ordemServico->estabelecimento)
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        Estabelecimento
-                    </h2>
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="text-base font-semibold text-gray-900">Estabelecimento</h2>
                 </div>
-                <div class="px-4 py-4 space-y-3">
+                <div class="px-5 py-5 space-y-4">
                     <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <label class="text-xs font-medium text-gray-600">Razão Social</label>
                         <p class="text-sm text-gray-900 mt-1">{{ $ordemServico->estabelecimento->razao_social }}</p>
@@ -196,21 +306,16 @@
             @endif
 
             {{-- Ações Executadas --}}
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                        </svg>
-                        Ações Executadas
-                        @if($ordemServico->tiposAcao()->count() > 0)
-                        <span class="ml-auto px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded-full">
-                            {{ $ordemServico->tiposAcao()->count() }}
-                        </span>
-                        @endif
-                    </h2>
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-gray-900">Ações Executadas</h2>
+                    @if($ordemServico->tiposAcao()->count() > 0)
+                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                        {{ $ordemServico->tiposAcao()->count() }}
+                    </span>
+                    @endif
                 </div>
-                <div class="px-4 py-4">
+                <div class="px-5 py-5">
                     @if($ordemServico->tiposAcao()->count() > 0)
                         <div class="flex flex-wrap gap-2">
                             @foreach($ordemServico->tiposAcao() as $tipoAcao)
@@ -229,21 +334,16 @@
             </div>
 
             {{-- Técnicos Responsáveis --}}
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        Técnicos Responsáveis
-                        @if($ordemServico->tecnicos()->count() > 0)
-                        <span class="ml-auto px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded-full">
-                            {{ $ordemServico->tecnicos()->count() }}
-                        </span>
-                        @endif
-                    </h2>
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-gray-900">Técnicos Responsáveis</h2>
+                    @if($ordemServico->tecnicos()->count() > 0)
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                        {{ $ordemServico->tecnicos()->count() }}
+                    </span>
+                    @endif
                 </div>
-                <div class="px-4 py-4">
+                <div class="px-5 py-5">
                     @if($ordemServico->tecnicos()->count() > 0)
                         <div class="flex flex-wrap gap-2">
                             @foreach($ordemServico->tecnicos() as $tecnico)
@@ -265,126 +365,16 @@
 
             {{-- Observações --}}
             @if($ordemServico->observacoes)
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-amber-50 border-b border-amber-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                        </svg>
-                        Observações
-                    </h2>
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="text-base font-semibold text-gray-900">Observações</h2>
                 </div>
-                <div class="px-4 py-4">
-                    <p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{{ $ordemServico->observacoes }}</p>
+                <div class="px-5 py-5">
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ $ordemServico->observacoes }}</p>
                 </div>
             </div>
             @endif
-        </div>
-
-        {{-- Coluna Lateral --}}
-        <div class="space-y-4">
-            {{-- Informações Gerais --}}
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-indigo-50 border-b border-indigo-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Informações Gerais
-                    </h2>
-                </div>
-                <div class="px-4 py-3 space-y-2">
-                    <div class="bg-indigo-50 rounded-lg p-2 border border-indigo-200">
-                        <label class="text-xs font-medium text-indigo-700">Número da OS</label>
-                        <p class="text-base font-bold text-gray-900 mt-0.5">#{{ $ordemServico->numero }}</p>
-                    </div>
-                    @if($ordemServico->processo)
-                    <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600">Processo</label>
-                        <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $ordemServico->processo->numero_processo }}</p>
-                        <p class="text-xs text-gray-500">{{ \App\Models\Processo::tipos()[$ordemServico->processo->tipo] ?? $ordemServico->processo->tipo }}</p>
-                    </div>
-                    @endif
-                    <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600 mb-1 block">Status</label>
-                        <div>{!! $ordemServico->status_badge !!}</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600 mb-1 block">Competência</label>
-                        <div>{!! $ordemServico->competencia_badge !!}</div>
-                    </div>
-                    @if($ordemServico->municipio)
-                    <div class="bg-blue-50 rounded-lg p-2 border border-blue-200">
-                        <label class="text-xs font-medium text-blue-700">Município</label>
-                        <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $ordemServico->municipio->nome }}/{{ $ordemServico->municipio->uf }}</p>
-                    </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Período --}}
-            <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
-                <div class="px-4 py-3 bg-blue-50 border-b border-blue-100">
-                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        Datas
-                    </h2>
-                </div>
-                <div class="px-4 py-3 space-y-2">
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600">Abertura</label>
-                        <p class="text-xs font-semibold text-gray-900">
-                            {{ $ordemServico->data_abertura ? $ordemServico->data_abertura->format('d/m/Y') : '-' }}
-                        </p>
-                    </div>
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600">Início</label>
-                        <p class="text-xs font-semibold text-gray-900">
-                            {{ $ordemServico->data_inicio ? $ordemServico->data_inicio->format('d/m/Y') : '-' }}
-                        </p>
-                    </div>
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600">Término</label>
-                        <p class="text-xs font-semibold text-gray-900">
-                            {{ $ordemServico->data_fim ? $ordemServico->data_fim->format('d/m/Y') : '-' }}
-                        </p>
-                    </div>
-                    @if($ordemServico->data_conclusao)
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                        <label class="text-xs font-medium text-gray-600">Conclusão</label>
-                        <p class="text-xs font-semibold text-gray-900">
-                            {{ $ordemServico->data_conclusao->format('d/m/Y') }}
-                        </p>
-                    </div>
-                    @endif
-                    
-                    {{-- Duração --}}
-                    @if($ordemServico->data_inicio && $ordemServico->data_fim)
-                    <div class="mt-2 p-2 bg-purple-600 rounded-lg">
-                        <label class="text-xs font-medium text-white">Duração</label>
-                        <p class="text-lg font-bold text-white">
-                            {{ $ordemServico->data_inicio->diffInDays($ordemServico->data_fim) + 1 }} dias
-                        </p>
-                    </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Timestamps --}}
-            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div class="space-y-1.5 text-xs">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Criado:</span>
-                        <span class="font-semibold text-gray-900">{{ $ordemServico->created_at->format('d/m/Y H:i') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Atualizado:</span>
-                        <span class="font-semibold text-gray-900">{{ $ordemServico->updated_at->format('d/m/Y H:i') }}</span>
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 </div>
