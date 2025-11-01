@@ -34,17 +34,28 @@
                     Estabelecimento e Processo
                 </h2>
                 
+                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-amber-800">
+                            <p class="font-medium">Ordem de Serviço sem Estabelecimento</p>
+                            <p class="mt-1">Você pode criar uma OS sem vincular a um estabelecimento. Isso é útil quando ainda não se sabe qual será o estabelecimento alvo. O estabelecimento poderá ser vinculado posteriormente ao editar ou finalizar a OS.</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-1 gap-4">
                     {{-- Estabelecimento --}}
                     <div>
                         <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Estabelecimento <span class="text-red-500">*</span>
+                            Estabelecimento <span class="text-gray-500">(Opcional)</span>
                         </label>
                         <select name="estabelecimento_id" 
                                 id="estabelecimento_id" 
-                                required
                                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white @error('estabelecimento_id') border-red-500 @enderror">
-                            <option value="">Selecione um estabelecimento</option>
+                            <option value="">Sem estabelecimento (vincular depois)</option>
                             @foreach($estabelecimentos as $estabelecimento)
                             <option value="{{ $estabelecimento->id }}" {{ old('estabelecimento_id') == $estabelecimento->id ? 'selected' : '' }}>
                                 {{ $estabelecimento->nome_fantasia }} - {{ $estabelecimento->razao_social }}
@@ -57,13 +68,12 @@
                     </div>
 
                     {{-- Processo --}}
-                    <div>
+                    <div id="processo-container">
                         <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Processo Vinculado <span class="text-red-500">*</span>
+                            Processo Vinculado <span class="text-gray-500">(Opcional - apenas se houver estabelecimento)</span>
                         </label>
                         <select name="processo_id" 
                                 id="processo_id" 
-                                required
                                 disabled
                                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 @error('processo_id') border-red-500 @enderror">
                             <option value="">Selecione primeiro um estabelecimento</option>
@@ -418,7 +428,10 @@
             processoSemProcesso.classList.add('hidden');
             
             if (!estabelecimentoId) {
-                processoSelect.innerHTML = '<option value="">Selecione primeiro um estabelecimento</option>';
+                processoSelect.innerHTML = '<option value="">Nenhum estabelecimento selecionado</option>';
+                // Habilita botão de submit mesmo sem estabelecimento
+                submitButton.disabled = false;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 return;
             }
 
@@ -454,9 +467,9 @@
                         processoSelect.disabled = true;
                         processoSemProcesso.classList.remove('hidden');
                         
-                        // Desabilita botão de submit
-                        submitButton.disabled = true;
-                        submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                        // Habilita botão de submit mesmo sem processo (pode criar OS sem processo)
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                     }
                 })
                 .catch(error => {
@@ -464,17 +477,11 @@
                     processoSelect.innerHTML = '<option value="">Erro ao carregar processos</option>';
                     processoSelect.disabled = true;
                     
-                    // Desabilita botão de submit
-                    submitButton.disabled = true;
-                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    // Habilita botão de submit mesmo com erro (pode criar OS sem processo)
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 });
         });
-
-        // Desabilita submit inicialmente se não tiver estabelecimento selecionado
-        if (!estabelecimentoSelect.value) {
-            submitButton.disabled = true;
-            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-        }
     });
 </script>
 @endpush

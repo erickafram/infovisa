@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-3xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <form id="form-municipio" action="{{ route('admin.configuracoes.municipios.update', $municipio->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.configuracoes.municipios.update', $municipio->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -71,9 +71,8 @@
                                 <div class="flex-1">
                                     <p class="text-sm text-gray-700 font-medium mb-2">Logomarca atual</p>
                                     <p class="text-xs text-gray-500 mb-3">Esta logomarca será exibida nos documentos digitais gerados por usuários deste município.</p>
-                                    <label class="flex items-center" id="label-remover-logomarca">
+                                    <label class="flex items-center">
                                         <input type="checkbox" 
-                                               id="remover-logomarca-checkbox"
                                                name="remover_logomarca" 
                                                value="1"
                                                class="rounded border-gray-300 text-red-600 focus:ring-red-500">
@@ -85,7 +84,7 @@
                     @endif
                     
                     <div class="flex items-center gap-3">
-                        <div class="flex-1 cursor-pointer" onclick="document.getElementById('logomarca-input').click()">
+                        <label class="flex-1 cursor-pointer">
                             <div class="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors">
                                 <div class="text-center">
                                     <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,16 +94,14 @@
                                         <span class="font-medium text-blue-600">Clique para selecionar</span> ou arraste a imagem
                                     </p>
                                     <p class="mt-1 text-xs text-gray-500">PNG, JPG, JPEG ou SVG (máx. 2MB)</p>
-                                    <p id="filename-display" class="mt-2 text-xs text-green-600 font-medium hidden"></p>
                                 </div>
                             </div>
-                        </div>
-                        <input type="file" 
-                               id="logomarca-input"
-                               name="logomarca" 
-                               accept="image/jpeg,image/png,image/jpg,image/svg+xml"
-                               class="hidden"
-                               onchange="previewLogo(event)">
+                            <input type="file" 
+                                   name="logomarca" 
+                                   accept="image/jpeg,image/png,image/jpg,image/svg+xml"
+                                   class="hidden"
+                                   onchange="previewLogo(event)">
+                        </label>
                     </div>
                     
                     <div id="preview-container" class="hidden mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -131,26 +128,7 @@
             <script>
             function previewLogo(event) {
                 const file = event.target.files[0];
-                console.log('Arquivo selecionado:', file);
                 if (file) {
-                    // Desmarca e DESABILITA o checkbox de remover logomarca
-                    const removerCheckbox = document.getElementById('remover-logomarca-checkbox');
-                    const labelRemover = document.getElementById('label-remover-logomarca');
-                    if (removerCheckbox) {
-                        removerCheckbox.checked = false;
-                        removerCheckbox.disabled = true;
-                        if (labelRemover) {
-                            labelRemover.style.opacity = '0.5';
-                            labelRemover.style.pointerEvents = 'none';
-                        }
-                    }
-                    
-                    // Mostra o nome do arquivo
-                    const filenameDisplay = document.getElementById('filename-display');
-                    filenameDisplay.textContent = '✓ Arquivo selecionado: ' + file.name;
-                    filenameDisplay.classList.remove('hidden');
-                    
-                    // Mostra prévia
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         document.getElementById('preview-image').src = e.target.result;
@@ -159,41 +137,6 @@
                     reader.readAsDataURL(file);
                 }
             }
-
-            // Debug: Verificar se o arquivo está anexado antes de enviar
-            document.addEventListener('DOMContentLoaded', function() {
-                const form = document.getElementById('form-municipio');
-                console.log('Form município encontrado:', form);
-                
-                if (form) {
-                    form.addEventListener('submit', function(e) {
-                        const fileInput = document.getElementById('logomarca-input');
-                        console.log('=== ENVIANDO FORMULÁRIO DE MUNICÍPIO ===');
-                        console.log('Input file:', fileInput);
-                        console.log('Arquivos anexados:', fileInput.files);
-                        console.log('Quantidade de arquivos:', fileInput.files.length);
-                        
-                        if (fileInput.files.length > 0) {
-                            console.log('✅ Nome do arquivo:', fileInput.files[0].name);
-                            console.log('✅ Tamanho:', fileInput.files[0].size, 'bytes');
-                            console.log('✅ Tipo:', fileInput.files[0].type);
-                        } else {
-                            console.warn('⚠️ NENHUM ARQUIVO ANEXADO!');
-                        }
-                        
-                        // Verificar FormData que será enviado
-                        const formData = new FormData(form);
-                        console.log('📦 FormData entries:');
-                        for (let pair of formData.entries()) {
-                            if (pair[1] instanceof File) {
-                                console.log('  ' + pair[0] + ': [FILE]', pair[1].name, pair[1].size + ' bytes');
-                            } else {
-                                console.log('  ' + pair[0] + ':', pair[1]);
-                            }
-                        }
-                    });
-                }
-            });
             </script>
 
             <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">

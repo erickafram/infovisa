@@ -60,11 +60,18 @@ class OrdemServicoObserver
                 }
             }
             
+            // Monta mensagem com ou sem estabelecimento
+            $estabelecimentoInfo = $ordemServico->estabelecimento 
+                ? ' do estabelecimento ' . $ordemServico->estabelecimento->nome_fantasia 
+                : ' (sem estabelecimento vinculado)';
+            
+            $mensagem = 'Você foi atribuído à OS #' . $ordemServico->numero . $estabelecimentoInfo . '. Prazo: ' . ($ordemServico->data_fim ? $ordemServico->data_fim->format('d/m/Y') : 'Não definido');
+            
             Notificacao::create([
                 'usuario_interno_id' => $tecnicoId,
                 'tipo' => 'ordem_servico_atribuida',
                 'titulo' => 'Nova OS Atribuída: #' . $ordemServico->numero,
-                'mensagem' => 'Você foi atribuído à OS #' . $ordemServico->numero . ' do estabelecimento ' . $ordemServico->estabelecimento->nome_fantasia . '. Prazo: ' . ($ordemServico->data_fim ? $ordemServico->data_fim->format('d/m/Y') : 'Não definido'),
+                'mensagem' => $mensagem,
                 'link' => route('admin.ordens-servico.show', $ordemServico),
                 'ordem_servico_id' => $ordemServico->id,
                 'prioridade' => $prioridade,

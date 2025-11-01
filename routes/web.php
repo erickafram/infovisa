@@ -182,12 +182,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         'destroy' => 'estabelecimentos.destroy',
     ]);
 
-    // Ordens de Serviço
+    // Ordens de Serviço - Rotas especiais ANTES do resource
+    // API para buscar processos do estabelecimento
+    Route::get('ordens-servico/estabelecimento/{estabelecimentoId}/processos', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'getProcessosEstabelecimento']
+    )->name('ordens-servico.estabelecimento.processos');
+    
     Route::resource('ordens-servico', \App\Http\Controllers\OrdemServicoController::class)->parameters([
         'ordens-servico' => 'ordemServico'
     ]);
     
-    // API para buscar processos do estabelecimento
+    // API para buscar processos do estabelecimento (rota antiga - manter compatibilidade)
     Route::get('ordens-servico/api/processos-estabelecimento/{estabelecimentoId}', 
         [\App\Http\Controllers\OrdemServicoController::class, 'getProcessosPorEstabelecimento']
     )->name('ordens-servico.api.processos-estabelecimento');

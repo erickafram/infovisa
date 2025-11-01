@@ -78,8 +78,8 @@ class OrdemServicoController extends Controller
         $usuario = Auth::guard('interno')->user();
         
         $validated = $request->validate([
-            'estabelecimento_id' => 'required|exists:estabelecimentos,id',
-            'processo_id' => 'required|exists:processos,id',
+            'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'processo_id' => 'nullable|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'tecnicos_ids' => 'required|array|min:1',
@@ -90,23 +90,39 @@ class OrdemServicoController extends Controller
         ]);
         
         // Determina competência e município
-        $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
-        
-        if ($usuario->isEstadual()) {
-            $validated['competencia'] = 'estadual';
-            $validated['municipio_id'] = null;
-        } elseif ($usuario->isMunicipal()) {
-            $validated['competencia'] = 'municipal';
-            $validated['municipio_id'] = $usuario->municipio_id;
+        if (!empty($validated['estabelecimento_id'])) {
+            // Tem estabelecimento vinculado
+            $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
             
-            // Valida se o estabelecimento pertence ao município do usuário
-            if ($estabelecimento->municipio_id != $usuario->municipio_id) {
-                return back()->withErrors(['estabelecimento_id' => 'Você não tem permissão para criar OS para este estabelecimento.'])->withInput();
+            if ($usuario->isEstadual()) {
+                $validated['competencia'] = 'estadual';
+                $validated['municipio_id'] = null;
+            } elseif ($usuario->isMunicipal()) {
+                $validated['competencia'] = 'municipal';
+                $validated['municipio_id'] = $usuario->municipio_id;
+                
+                // Valida se o estabelecimento pertence ao município do usuário
+                if ($estabelecimento->municipio_id != $usuario->municipio_id) {
+                    return back()->withErrors(['estabelecimento_id' => 'Você não tem permissão para criar OS para este estabelecimento.'])->withInput();
+                }
+            } elseif ($usuario->isAdmin()) {
+                // Admin pode escolher competência baseado no estabelecimento
+                $validated['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
+                $validated['municipio_id'] = $estabelecimento->municipio_id;
             }
-        } elseif ($usuario->isAdmin()) {
-            // Admin pode escolher competência baseado no estabelecimento
-            $validated['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
-            $validated['municipio_id'] = $estabelecimento->municipio_id;
+        } else {
+            // Sem estabelecimento - define competência baseada no usuário
+            if ($usuario->isEstadual()) {
+                $validated['competencia'] = 'estadual';
+                $validated['municipio_id'] = null;
+            } elseif ($usuario->isMunicipal()) {
+                $validated['competencia'] = 'municipal';
+                $validated['municipio_id'] = $usuario->municipio_id;
+            } elseif ($usuario->isAdmin()) {
+                // Admin sem estabelecimento - define como estadual por padrão
+                $validated['competencia'] = 'estadual';
+                $validated['municipio_id'] = null;
+            }
         }
         
         // Gera número da OS e define data de abertura automática
@@ -194,7 +210,8 @@ class OrdemServicoController extends Controller
         }
         
         $validated = $request->validate([
-            'estabelecimento_id' => 'required|exists:estabelecimentos,id',
+            'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'processo_id' => 'nullable|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'tecnicos_ids' => 'required|array|min:1',
@@ -205,10 +222,39 @@ class OrdemServicoController extends Controller
         ]);
         
         // Valida se o estabelecimento pertence ao município do usuário (se municipal)
-        if ($usuario->isMunicipal()) {
+        if (!empty($validated['estabelecimento_id']) && $usuario->isMunicipal()) {
             $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
             if ($estabelecimento->municipio_id != $usuario->municipio_id) {
                 return back()->withErrors(['estabelecimento_id' => 'Você não tem permissão para atribuir OS para este estabelecimento.'])->withInput();
+            }
+        }
+        
+        // Se estabelecimento foi alterado, busca processo ativo para vincular
+        if (!empty($validated['estabelecimento_id']) && $validated['estabelecimento_id'] != $ordemServico->estabelecimento_id) {
+            $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
+            
+            // Busca processo ativo do estabelecimento
+            $processo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            if ($processo) {
+                $validated['processo_id'] = $processo->id;
+            } else {
+                $validated['processo_id'] = null;
+            }
+            
+            // Atualiza competência e município baseado no estabelecimento
+            if ($usuario->isEstadual()) {
+                $validated['competencia'] = 'estadual';
+                $validated['municipio_id'] = null;
+            } elseif ($usuario->isMunicipal()) {
+                $validated['competencia'] = 'municipal';
+                $validated['municipio_id'] = $usuario->municipio_id;
+            } elseif ($usuario->isAdmin()) {
+                $validated['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
+                $validated['municipio_id'] = $estabelecimento->municipio_id;
             }
         }
         
@@ -484,24 +530,53 @@ class OrdemServicoController extends Controller
         }
         
         // Valida os dados
-        $request->validate([
+        $validated = $request->validate([
             'atividades_realizadas' => 'required|in:sim,parcial,nao',
             'observacoes_finalizacao' => 'required|string|min:20',
+            'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
         ], [
             'atividades_realizadas.required' => 'Informe se as atividades foram realizadas.',
             'observacoes_finalizacao.required' => 'As observações são obrigatórias.',
             'observacoes_finalizacao.min' => 'As observações devem ter no mínimo 20 caracteres.',
         ]);
         
-        // Atualiza a OS
-        $ordemServico->update([
+        // Se estabelecimento foi informado, vincula e busca processo
+        $dadosAtualizacao = [
             'status' => 'finalizada',
             'data_conclusao' => now(),
-            'atividades_realizadas' => $request->atividades_realizadas,
-            'observacoes_finalizacao' => $request->observacoes_finalizacao,
+            'atividades_realizadas' => $validated['atividades_realizadas'],
+            'observacoes_finalizacao' => $validated['observacoes_finalizacao'],
             'finalizada_por' => $usuario->id,
             'finalizada_em' => now(),
-        ]);
+        ];
+        
+        if (!empty($validated['estabelecimento_id'])) {
+            $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
+            
+            // Busca processo ativo do estabelecimento
+            $processo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $dadosAtualizacao['estabelecimento_id'] = $estabelecimento->id;
+            $dadosAtualizacao['processo_id'] = $processo ? $processo->id : null;
+            
+            // Atualiza competência e município baseado no estabelecimento
+            if ($usuario->isEstadual()) {
+                $dadosAtualizacao['competencia'] = 'estadual';
+                $dadosAtualizacao['municipio_id'] = null;
+            } elseif ($usuario->isMunicipal()) {
+                $dadosAtualizacao['competencia'] = 'municipal';
+                $dadosAtualizacao['municipio_id'] = $usuario->municipio_id;
+            } elseif ($usuario->isAdmin()) {
+                $dadosAtualizacao['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
+                $dadosAtualizacao['municipio_id'] = $estabelecimento->municipio_id;
+            }
+        }
+        
+        // Atualiza a OS
+        $ordemServico->update($dadosAtualizacao);
         
         // Cria notificação para gestores
         $this->criarNotificacaoFinalizacao($ordemServico, $usuario);
@@ -533,11 +608,16 @@ class OrdemServicoController extends Controller
             ->get();
         
         foreach ($gestores as $gestor) {
+            // Monta mensagem com ou sem estabelecimento
+            $estabelecimentoInfo = $ordemServico->estabelecimento 
+                ? ' do estabelecimento ' . $ordemServico->estabelecimento->nome_fantasia 
+                : ' (sem estabelecimento vinculado)';
+            
             \App\Models\Notificacao::create([
                 'usuario_interno_id' => $gestor->id,
                 'tipo' => 'ordem_servico_finalizada',
                 'titulo' => 'OS #' . $ordemServico->numero . ' Finalizada',
-                'mensagem' => 'O técnico ' . $tecnico->nome . ' finalizou a OS #' . $ordemServico->numero . ' do estabelecimento ' . $ordemServico->estabelecimento->nome_fantasia,
+                'mensagem' => 'O técnico ' . $tecnico->nome . ' finalizou a OS #' . $ordemServico->numero . $estabelecimentoInfo,
                 'link' => route('admin.ordens-servico.show', $ordemServico),
                 'ordem_servico_id' => $ordemServico->id,
                 'prioridade' => 'normal',
@@ -589,5 +669,46 @@ class OrdemServicoController extends Controller
         
         return redirect()->route('admin.ordens-servico.show', $ordemServico)
             ->with('success', 'Ordem de Serviço reiniciada com sucesso! Status alterado para "Em Andamento".');
+    }
+
+    /**
+     * Buscar processos ativos de um estabelecimento
+     */
+    public function getProcessosEstabelecimento($estabelecimentoId)
+    {
+        try {
+            $statusLabels = [
+                'aberto' => 'Aberto',
+                'em_analise' => 'Em Análise',
+                'pendente' => 'Pendente',
+                'deferido' => 'Deferido',
+                'indeferido' => 'Indeferido',
+                'arquivado' => 'Arquivado',
+            ];
+
+            $processos = \App\Models\Processo::where('estabelecimento_id', $estabelecimentoId)
+                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($processo) use ($statusLabels) {
+                    return [
+                        'id' => $processo->id,
+                        'numero' => $processo->numero_processo ?? "Processo #{$processo->id}",
+                        'status' => $processo->status,
+                        'status_label' => $statusLabels[$processo->status] ?? ucfirst($processo->status),
+                        'data_abertura' => $processo->created_at ? $processo->created_at->format('d/m/Y') : '-',
+                    ];
+                });
+
+            return response()->json([
+                'processos' => $processos
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar processos do estabelecimento: ' . $e->getMessage());
+            return response()->json([
+                'processos' => [],
+                'error' => 'Erro ao buscar processos'
+            ], 500);
+        }
     }
 }

@@ -32,17 +32,30 @@
                     Dados Principais
                 </h2>
                 
+                @if(!$ordemServico->estabelecimento_id)
+                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-amber-800">
+                            <p class="font-medium">Esta OS não possui estabelecimento vinculado</p>
+                            <p class="mt-1">Você pode vincular um estabelecimento agora. Ao vincular, se o estabelecimento tiver um processo ativo, a OS será automaticamente vinculada a ele.</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {{-- Estabelecimento --}}
                     <div class="md:col-span-2">
                         <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-1">
-                            Estabelecimento <span class="text-red-500">*</span>
+                            Estabelecimento <span class="text-gray-500">(Opcional)</span>
                         </label>
                         <select name="estabelecimento_id" 
                                 id="estabelecimento_id" 
-                                required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('estabelecimento_id') border-red-500 @enderror">
-                            <option value="">Selecione um estabelecimento</option>
+                            <option value="">Sem estabelecimento</option>
                             @foreach($estabelecimentos as $estabelecimento)
                             <option value="{{ $estabelecimento->id }}" {{ old('estabelecimento_id', $ordemServico->estabelecimento_id) == $estabelecimento->id ? 'selected' : '' }}>
                                 {{ $estabelecimento->nome_fantasia }} - {{ $estabelecimento->razao_social }}
@@ -52,6 +65,38 @@
                         @error('estabelecimento_id')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        @if($ordemServico->estabelecimento_id)
+                        <p class="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Ao alterar o estabelecimento, os processos disponíveis serão atualizados.
+                        </p>
+                        @endif
+                    </div>
+
+                    {{-- Processo (aparece quando estabelecimento é selecionado) --}}
+                    <div class="md:col-span-2" id="processo-container" style="display: none;">
+                        <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            Processo Vinculado <span class="text-gray-500">(Opcional)</span>
+                        </label>
+                        <div id="processo-loading" class="hidden">
+                            <div class="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <svg class="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-sm text-blue-700">Buscando processos...</span>
+                            </div>
+                        </div>
+                        <select name="processo_id" 
+                                id="processo_id" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Sem processo vinculado</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">
+                            💡 Apenas processos ativos (aberto, em análise, pendente) são exibidos
+                        </p>
                     </div>
 
                     {{-- Tipos de Ação (Múltiplos) --}}
@@ -214,6 +259,73 @@
             maxItemCount: -1,
             shouldSort: false
         });
+
+        // Buscar processos ao selecionar estabelecimento
+        const estabelecimentoSelect = document.getElementById('estabelecimento_id');
+        const processoContainer = document.getElementById('processo-container');
+        const processoSelect = document.getElementById('processo_id');
+        const processoLoading = document.getElementById('processo-loading');
+        const processoAtualId = {{ $ordemServico->processo_id ?? 'null' }};
+
+        // Mostra container se já tem estabelecimento selecionado
+        if (estabelecimentoSelect.value) {
+            processoContainer.style.display = 'block';
+            buscarProcessos(estabelecimentoSelect.value, processoAtualId);
+        }
+
+        estabelecimentoSelect.addEventListener('change', function() {
+            const estabelecimentoId = this.value;
+            
+            if (!estabelecimentoId) {
+                processoContainer.style.display = 'none';
+                processoSelect.innerHTML = '<option value="">Sem processo vinculado</option>';
+                return;
+            }
+
+            processoContainer.style.display = 'block';
+            buscarProcessos(estabelecimentoId, processoAtualId);
+        });
+
+        async function buscarProcessos(estabelecimentoId, processoSelecionado = null) {
+            // Mostra loading
+            processoLoading.classList.remove('hidden');
+            processoSelect.disabled = true;
+
+            try {
+                const response = await fetch(`/admin/ordens-servico/estabelecimento/${estabelecimentoId}/processos`);
+                const data = await response.json();
+
+                // Limpa select
+                processoSelect.innerHTML = '<option value="">Sem processo vinculado</option>';
+
+                if (data.processos && data.processos.length > 0) {
+                    data.processos.forEach(processo => {
+                        const option = document.createElement('option');
+                        option.value = processo.id;
+                        option.textContent = `#${processo.numero} - ${processo.status_label} (${processo.data_abertura})`;
+                        
+                        if (processoSelecionado && processo.id == processoSelecionado) {
+                            option.selected = true;
+                        }
+                        
+                        processoSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Nenhum processo ativo encontrado';
+                    option.disabled = true;
+                    processoSelect.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar processos:', error);
+                alert('Erro ao buscar processos do estabelecimento');
+            } finally {
+                // Esconde loading
+                processoLoading.classList.add('hidden');
+                processoSelect.disabled = false;
+            }
+        }
     });
 </script>
 @endpush

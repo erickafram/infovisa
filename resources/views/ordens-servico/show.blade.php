@@ -81,6 +81,7 @@
         {{-- Coluna Principal --}}
         <div class="lg:col-span-2 space-y-4">
             {{-- Informações do Estabelecimento --}}
+            @if($ordemServico->estabelecimento)
             <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
                 <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
@@ -168,6 +169,31 @@
                     </div>
                 </div>
             </div>
+            @else
+            {{-- Aviso quando não há estabelecimento --}}
+            <div class="bg-amber-50 rounded-lg shadow border border-amber-200 p-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-semibold text-amber-900 mb-1">Ordem de Serviço sem Estabelecimento</h3>
+                        <p class="text-sm text-amber-800 mb-3">
+                            Esta OS foi criada sem um estabelecimento vinculado. Você pode vincular um estabelecimento ao editar ou finalizar a ordem de serviço.
+                        </p>
+                        @if($ordemServico->status !== 'finalizada')
+                        <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Editar e Vincular Estabelecimento
+                        </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
 
             {{-- Ações Executadas --}}
             <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden border border-gray-200">
@@ -390,6 +416,7 @@
     let marker;
     let currentLat, currentLng;
 
+    @if($ordemServico->estabelecimento)
     // Endereço do estabelecimento
     const endereco = {
         logradouro: "{{ $ordemServico->estabelecimento->logradouro }}",
@@ -595,6 +622,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         initMap();
     });
+    @else
+    // Sem estabelecimento - não inicializa mapa
+    console.log('OS sem estabelecimento - mapa não disponível');
+    @endif
 
     // Função para abrir modal de finalizar OS
     function abrirModalFinalizarOS() {
@@ -677,6 +708,52 @@
                     <strong>Atenção:</strong> Ao finalizar esta OS, você está confirmando que todas as atividades listadas foram executadas conforme planejado.
                 </p>
             </div>
+
+            @if(!$ordemServico->estabelecimento_id)
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p class="text-sm text-amber-800 mb-3">
+                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <strong>Esta OS não possui estabelecimento vinculado.</strong> Você pode vincular um estabelecimento agora ao finalizar, mas isso é opcional.
+                </p>
+                
+                <div>
+                    <label for="estabelecimento_id_finalizar" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Vincular Estabelecimento (Opcional)
+                    </label>
+                    <select name="estabelecimento_id" 
+                            id="estabelecimento_id_finalizar"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="">Não vincular estabelecimento</option>
+                        @php
+                            $usuario = Auth::guard('interno')->user();
+                            $estabelecimentosDisponiveis = \App\Models\Estabelecimento::query();
+                            
+                            if ($usuario->isMunicipal()) {
+                                $estabelecimentosDisponiveis->where('municipio_id', $usuario->municipio_id);
+                            } elseif ($usuario->isEstadual()) {
+                                // Estadual vê estabelecimentos de competência estadual
+                                $estabelecimentosDisponiveis->where(function($q) {
+                                    $q->where('competencia_manual', 'estadual')
+                                      ->orWhereNull('competencia_manual');
+                                });
+                            }
+                            
+                            $estabelecimentosDisponiveis = $estabelecimentosDisponiveis->orderBy('nome_fantasia')->get();
+                        @endphp
+                        @foreach($estabelecimentosDisponiveis as $estab)
+                        <option value="{{ $estab->id }}">
+                            {{ $estab->nome_fantasia }} - {{ $estab->razao_social }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-600">
+                        💡 Se o estabelecimento tiver um processo ativo, a OS será automaticamente vinculada a ele.
+                    </p>
+                </div>
+            </div>
+            @endif
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
