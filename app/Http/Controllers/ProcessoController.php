@@ -275,6 +275,20 @@ class ProcessoController extends Controller
             ]);
         }
         
+        // Adiciona Ordens de Serviço vinculadas ao processo
+        $ordensServico = \App\Models\OrdemServico::where('processo_id', $processoId)
+            ->with(['estabelecimento', 'municipio'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        foreach ($ordensServico as $os) {
+            $todosDocumentos->push([
+                'tipo' => 'ordem_servico',
+                'documento' => $os,
+                'created_at' => $os->created_at,
+            ]);
+        }
+        
         // Ordena todos os documentos por data (mais recente primeiro)
         $todosDocumentos = $todosDocumentos->sortByDesc('created_at')->values();
         

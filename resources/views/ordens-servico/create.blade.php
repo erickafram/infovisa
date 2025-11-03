@@ -5,46 +5,24 @@
 @section('content')
 <div class="container-fluid px-4 py-6">
     {{-- Header --}}
-    <div class="mb-6">
-        <div class="flex items-center gap-3 mb-2">
-            <a href="{{ route('admin.ordens-servico.index') }}" 
-               class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Nova Ordem de Serviço</h1>
-                <p class="text-sm text-gray-600 mt-1">Cadastre uma nova ordem de serviço no sistema</p>
-            </div>
-        </div>
+    <div class="mb-6 flex items-center gap-3">
+        <a href="{{ route('admin.ordens-servico.index') }}" 
+           class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="text-xl font-semibold text-gray-900">Nova Ordem de Serviço</h1>
     </div>
 
     {{-- Formulário --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <form method="POST" action="{{ route('admin.ordens-servico.store') }}" class="space-y-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <form method="POST" action="{{ route('admin.ordens-servico.store') }}" class="divide-y divide-gray-200">
             @csrf
 
             {{-- Estabelecimento e Processo --}}
-            <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                    Estabelecimento e Processo
-                </h2>
-                
-                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div class="text-sm text-amber-800">
-                            <p class="font-medium">Ordem de Serviço sem Estabelecimento</p>
-                            <p class="mt-1">Você pode criar uma OS sem vincular a um estabelecimento. Isso é útil quando ainda não se sabe qual será o estabelecimento alvo. O estabelecimento poderá ser vinculado posteriormente ao editar ou finalizar a OS.</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="p-6">
+                <h2 class="text-sm font-semibold text-gray-900 mb-4">Estabelecimento e Processo</h2>
                 
                 <div class="grid grid-cols-1 gap-4">
                     {{-- Estabelecimento --}}
@@ -100,13 +78,8 @@
             </div>
 
             {{-- Tipos de Ação --}}
-            <div class="bg-purple-50 rounded-lg p-6 border border-purple-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                    </svg>
-                    Tipos de Ação
-                </h2>
+            <div class="p-6">
+                <h2 class="text-sm font-semibold text-gray-900 mb-4">Tipos de Ação</h2>
                 
                 <div>
                     <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-2">
@@ -133,13 +106,8 @@
             </div>
 
             {{-- Técnicos Responsáveis --}}
-            <div class="bg-green-50 rounded-lg p-6 border border-green-100">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Técnicos Responsáveis
-                </h2>
+            <div class="p-6">
+                <h2 class="text-sm font-semibold text-gray-900 mb-4">Técnicos Responsáveis</h2>
                 
                 <div>
                     <label for="tecnicos_ids" class="block text-sm font-medium text-gray-700 mb-2">
@@ -166,13 +134,8 @@
             </div>
 
             {{-- Período e Observações --}}
-            <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Informações Complementares
-                </h2>
+            <div class="p-6">
+                <h2 class="text-sm font-semibold text-gray-900 mb-4">Período e Observações</h2>
                 
                 <div class="space-y-4">
 
@@ -238,7 +201,7 @@
             </div>
 
             {{-- Botões --}}
-            <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+            <div class="flex items-center justify-end gap-3 p-6 bg-gray-50">
                 <a href="{{ route('admin.ordens-servico.index') }}" 
                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
                     Cancelar

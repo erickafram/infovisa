@@ -94,6 +94,18 @@ class OrdemServicoController extends Controller
             // Tem estabelecimento vinculado
             $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
             
+            // Se não foi especificado processo_id, tenta vincular ao processo ativo do estabelecimento
+            if (empty($validated['processo_id'])) {
+                $processoAtivo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                    ->whereIn('status', ['aberto', 'em_andamento'])
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                
+                if ($processoAtivo) {
+                    $validated['processo_id'] = $processoAtivo->id;
+                }
+            }
+            
             if ($usuario->isEstadual()) {
                 $validated['competencia'] = 'estadual';
                 $validated['municipio_id'] = null;

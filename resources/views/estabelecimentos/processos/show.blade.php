@@ -694,6 +694,61 @@
                                         </div>
                                     </div>
                                 </div>
+                                @elseif($item['tipo'] === 'ordem_servico')
+                                    @php
+                                        $os = $item['documento'];
+                                    @endphp
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-600 hover:bg-blue-100 transition-colors">
+                                    <a href="{{ route('admin.ordens-servico.show', $os) }}" 
+                                       class="flex items-center gap-3 flex-1 min-w-0">
+                                        {{-- Ícone da OS --}}
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        
+                                        {{-- Informações da OS --}}
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                                Ordem de Serviço #{{ $os->numero }}
+                                                {!! $os->status_badge !!}
+                                            </p>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-600">
+                                                <span class="flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                    {{ $os->created_at->format('d/m/Y H:i') }}
+                                                </span>
+                                                @if($os->estabelecimento)
+                                                <span>•</span>
+                                                <span class="truncate">{{ $os->estabelecimento->nome_fantasia }}</span>
+                                                @endif
+                                                @if($os->municipio)
+                                                <span>•</span>
+                                                <span>{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
+                                                @endif
+                                                <span>•</span>
+                                                {!! $os->competencia_badge !!}
+                                            </div>
+                                        </div>
+                                    </a>
+                                    
+                                    {{-- Botão Ver OS --}}
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('admin.ordens-servico.show', $os) }}" 
+                                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            Ver OS
+                                        </a>
+                                    </div>
+                                </div>
                                 @elseif($item['tipo'] === 'arquivo')
                                     @php
                                         $documento = $item['documento'];
