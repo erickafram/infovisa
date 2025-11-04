@@ -27,6 +27,7 @@ class UsuarioInterno extends Authenticatable
         'telefone',
         'matricula',
         'cargo',
+        'setor',
         'nivel_acesso',
         'municipio',
         'municipio_id',

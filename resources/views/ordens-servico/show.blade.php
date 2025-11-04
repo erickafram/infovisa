@@ -125,7 +125,10 @@
                         @if($ordemServico->processo)
                         <div>
                             <label class="text-xs font-medium text-gray-500">Processo</label>
-                            <p class="text-sm font-semibold text-gray-900">{{ $ordemServico->processo->numero_processo }}</p>
+                            <a href="{{ route('admin.estabelecimentos.processos.show', [$ordemServico->processo->estabelecimento_id, $ordemServico->processo->id]) }}" 
+                               class="block text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                                {{ $ordemServico->processo->numero_processo }}
+                            </a>
                         </div>
                         <div class="border-t border-gray-100 pt-2"></div>
                         @endif
@@ -186,11 +189,17 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-xs text-gray-500">Razão Social</label>
-                            <p class="text-sm font-medium text-gray-900">{{ $ordemServico->estabelecimento->razao_social }}</p>
+                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                               class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                                {{ $ordemServico->estabelecimento->razao_social }}
+                            </a>
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Nome Fantasia</label>
-                            <p class="text-sm font-medium text-gray-900">{{ $ordemServico->estabelecimento->nome_fantasia }}</p>
+                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                               class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                                {{ $ordemServico->estabelecimento->nome_fantasia }}
+                            </a>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
@@ -198,13 +207,14 @@
                             <label class="text-xs text-gray-500">
                                 {{ $ordemServico->estabelecimento->tipo_pessoa === 'fisica' ? 'CPF' : 'CNPJ' }}
                             </label>
-                            <p class="text-sm font-medium text-gray-900 font-mono">
+                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                               class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors font-mono">
                                 @if($ordemServico->estabelecimento->tipo_pessoa === 'fisica')
                                     {{ $ordemServico->estabelecimento->cpf_formatado ?? '-' }}
                                 @else
                                     {{ $ordemServico->estabelecimento->cnpj_formatado ?? '-' }}
                                 @endif
-                            </p>
+                            </a>
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">CEP</label>

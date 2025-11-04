@@ -3,7 +3,7 @@
 @section('title', 'Relatórios e Análises')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div class="container-fluid px-4 py-6">
     {{-- Cabeçalho --}}
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">Relatórios</h1>

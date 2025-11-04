@@ -273,6 +273,12 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             'tipo-acoes' => 'tipoAcao'
         ]);
         
+        // Tipos de Setor
+        Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([
+            'tipo-setores' => 'tipoSetor'
+        ]);
+        Route::post('tipo-setores/{tipoSetor}/toggle-status', [\App\Http\Controllers\Admin\TipoSetorController::class, 'toggleStatus'])->name('tipo-setores.toggle-status');
+        
         // Pactuação (Competências Municipais e Estaduais)
         Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');

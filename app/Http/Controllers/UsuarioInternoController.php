@@ -63,7 +63,8 @@ class UsuarioInternoController extends Controller
     public function create()
     {
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
-        return view('admin.usuarios-internos.create', compact('municipios'));
+        $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        return view('admin.usuarios-internos.create', compact('municipios', 'tipoSetores'));
     }
 
     /**

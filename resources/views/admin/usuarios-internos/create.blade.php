@@ -126,7 +126,7 @@
                     </div>
 
                     {{-- Cargo --}}
-                    <div>
+                    <div class="md:col-span-2">
                         <label for="cargo" class="block text-sm font-medium text-gray-700 mb-1">
                             Cargo
                         </label>
@@ -161,6 +161,22 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                         <p class="mt-1 text-xs text-gray-500" id="nivel-descricao"></p>
+                    </div>
+
+                    {{-- Setor --}}
+                    <div>
+                        <label for="setor" class="block text-sm font-medium text-gray-700 mb-1">
+                            Setor
+                        </label>
+                        <select id="setor" 
+                                name="setor" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('setor') border-red-500 @enderror">
+                            <option value="">Selecione o nível de acesso primeiro</option>
+                        </select>
+                        @error('setor')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500" id="setor-ajuda">Selecione um nível de acesso para ver os setores disponíveis</p>
                     </div>
 
                     {{-- Município (apenas para Gestor/Técnico Municipal) --}}
@@ -367,6 +383,7 @@
             if (nivelDescricao) {
                 nivelDescricao.textContent = descricoes[this.value] || '';
             }
+            atualizarSetores(this.value);
             toggleCampoMunicipio(this.value);
         });
 
@@ -379,6 +396,54 @@
         }
     } else {
         console.error('Select de nível não encontrado');
+    }
+
+    // Dados dos setores vindos do banco de dados
+    const tipoSetoresData = @json($tipoSetores);
+
+    // Controla exibição e opções do campo setor
+    function atualizarSetores(nivelAcesso) {
+        const setorSelect = document.getElementById('setor');
+        const setorAjuda = document.getElementById('setor-ajuda');
+        
+        if (!setorSelect) return;
+        
+        // Limpa as opções atuais
+        setorSelect.innerHTML = '<option value="">Selecione um setor</option>';
+        
+        // Filtra setores disponíveis para o nível de acesso selecionado
+        const setoresDisponiveis = tipoSetoresData.filter(setor => {
+            // Se niveis_acesso é null ou vazio, disponível para todos
+            if (!setor.niveis_acesso || setor.niveis_acesso.length === 0) {
+                return true;
+            }
+            // Verifica se o nível está na lista
+            return setor.niveis_acesso.includes(nivelAcesso);
+        });
+        
+        if (setoresDisponiveis.length > 0) {
+            setoresDisponiveis.forEach(setor => {
+                const option = document.createElement('option');
+                option.value = setor.codigo;
+                option.textContent = setor.nome;
+                setorSelect.appendChild(option);
+            });
+            
+            setorSelect.disabled = false;
+            if (setorAjuda) {
+                setorAjuda.textContent = `${setoresDisponiveis.length} setor(es) disponível(is) para este nível`;
+                setorAjuda.classList.remove('text-gray-500');
+                setorAjuda.classList.add('text-blue-600');
+            }
+        } else {
+            setorSelect.innerHTML = '<option value="">Nenhum setor disponível</option>';
+            setorSelect.disabled = true;
+            if (setorAjuda) {
+                setorAjuda.textContent = 'Nenhum setor cadastrado para este nível de acesso';
+                setorAjuda.classList.remove('text-blue-600');
+                setorAjuda.classList.add('text-gray-500');
+            }
+        }
     }
 
     // Controla exibição do campo município

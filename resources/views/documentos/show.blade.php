@@ -59,8 +59,13 @@
                                 </svg>
                                 Processo Vinculado
                             </h3>
-                            <p class="text-sm text-gray-900 font-medium">{{ $documento->processo->numero_processo }}</p>
-                            <p class="text-xs text-gray-600">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social }}</p>
+                            <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}" 
+                               class="block text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors">
+                                {{ $documento->processo->numero_processo }}
+                            </a>
+                            <p class="text-xs text-gray-600 mt-0.5">
+                                <span class="font-medium">Estabelecimento:</span> {{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social }}
+                            </p>
                         </div>
                     @endif
 

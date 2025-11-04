@@ -84,6 +84,24 @@
             </div>
         </a>
 
+        {{-- Tipos de Setor --}}
+        <a href="{{ route('admin.configuracoes.tipo-setores.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Tipos de Setor</h3>
+                    <p class="text-sm text-gray-600">Configure setores e vincule a níveis de acesso</p>
+                </div>
+            </div>
+        </a>
+
         {{-- Pactuação --}}
         <a href="{{ route('admin.configuracoes.pactuacao.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
