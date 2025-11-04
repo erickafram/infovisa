@@ -2047,10 +2047,66 @@
                 },
 
                 // Abre o visualizador de PDF com ferramentas de anotação
-                abrirVisualizadorAnotacoes(documentoId, pdfUrl) {
+                async abrirVisualizadorAnotacoes(documentoId, pdfUrl) {
                     this.documentoIdAnotacoes = documentoId;
                     this.pdfUrlAnotacoes = pdfUrl;
                     this.modalVisualizadorAnotacoes = true;
+                    
+                    // Carrega automaticamente o documento na IA
+                    await this.carregarDocumentoNaIA();
+                },
+
+                // Carrega documento na IA para perguntas
+                async carregarDocumentoNaIA() {
+                    if (!this.documentoIdAnotacoes) {
+                        alert('Nenhum documento selecionado');
+                        return;
+                    }
+
+                    // Mostra loading
+                    const loadingMsg = 'Carregando documento na IA...';
+                    console.log(loadingMsg);
+
+                    try {
+                        // Chama endpoint para extrair texto do PDF
+                        const response = await fetch(`{{ route('admin.assistente-ia.extrair-pdf') }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                documento_id: this.documentoIdAnotacoes,
+                                estabelecimento_id: {{ $estabelecimento->id }},
+                                processo_id: {{ $processo->id }}
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Dispara evento customizado para o componente do chat
+                            window.dispatchEvent(new CustomEvent('documento-carregado', {
+                                detail: {
+                                    documento_id: this.documentoIdAnotacoes,
+                                    nome_documento: data.nome_documento,
+                                    conteudo: data.conteudo,
+                                    total_caracteres: data.total_caracteres
+                                }
+                            }));
+
+                            // NÃO fecha o modal - mantém aberto para visualização
+                            // this.modalVisualizadorAnotacoes = false;
+
+                            // Não mostra alert - IA já mostra mensagem no chat
+                            // alert('✅ Documento carregado! Agora você pode fazer perguntas sobre ele no chat da IA.');
+                        } else {
+                            alert('❌ ' + (data.message || 'Erro ao carregar documento'));
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar documento:', error);
+                        alert('❌ Erro ao carregar documento na IA');
+                    }
                 },
 
                 // Carrega usuários do município para designação

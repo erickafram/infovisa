@@ -106,7 +106,7 @@
     display: none !important;
 }
 </style>
-<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6 z-50" x-cloak>
+<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000;" x-cloak>
     {{-- Botão Flutuante --}}
     <button @click="toggleChat()" 
             x-show="!chatAberto"
@@ -128,13 +128,13 @@
         
         {{-- Cabeçalho --}}
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                     </svg>
                 </div>
-                <div>
+                <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-base">Olá, {{ $primeiroNome }}! 👋</h3>
                     <p class="text-[10px] text-white/80">Assistente InfoVisa - Sempre pronto para ajudar</p>
                 </div>
@@ -304,6 +304,8 @@ function assistenteIA() {
                     }, 50);
                 }
             });
+
+            // REMOVIDO: Lógica de documento movida para assistente-documento-chat.blade.php
         },
         
         toggleChat() {
@@ -356,16 +358,19 @@ function assistenteIA() {
                     content: msg.content
                 }));
                 
+                // Prepara payload
+                const payload = {
+                    message: mensagem,
+                    history: history.slice(0, -1) // Remove a última (que é a atual)
+                };
+
                 const response = await fetch('{{ route('admin.ia.chat') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({
-                        message: mensagem,
-                        history: history.slice(0, -1) // Remove a última (que é a atual)
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const data = await response.json();
@@ -373,13 +378,13 @@ function assistenteIA() {
                 if (data.success) {
                     this.mensagens.push({
                         role: 'assistant',
-                        content: data.message,
+                        content: data.response, // CORRIGIDO: era 'message', agora é 'response'
                         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     });
                 } else {
                     this.mensagens.push({
                         role: 'assistant',
-                        content: data.message || 'Desculpe, ocorreu um erro. Tente novamente.',
+                        content: data.response || 'Desculpe, ocorreu um erro. Tente novamente.',
                         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     });
                 }

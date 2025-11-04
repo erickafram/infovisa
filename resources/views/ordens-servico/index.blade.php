@@ -19,6 +19,76 @@
         </a>
     </div>
 
+    {{-- Filtros --}}
+    <form method="GET" action="{{ route('admin.ordens-servico.index') }}" class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+        <div class="px-6 py-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {{-- Estabelecimento --}}
+                <div>
+                    <label for="estabelecimento" class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Estabelecimento</label>
+                    <div class="relative">
+                        <input type="text"
+                               id="estabelecimento"
+                               name="estabelecimento"
+                               value="{{ $filters['estabelecimento'] ?? '' }}"
+                               placeholder="Buscar por CNPJ/CPF, fantasia ou razão social"
+                               class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M5 11a6 6 0 1112 0 6 6 0 01-12 0z"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Data Início --}}
+                <div>
+                    <label for="data_inicio" class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Data de Início</label>
+                    <input type="date"
+                           id="data_inicio"
+                           name="data_inicio"
+                           value="{{ $filters['data_inicio'] ?? '' }}"
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+
+                {{-- Data Fim --}}
+                <div>
+                    <label for="data_fim" class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Data de Término</label>
+                    <input type="date"
+                           id="data_fim"
+                           name="data_fim"
+                           value="{{ $filters['data_fim'] ?? '' }}"
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+
+                {{-- Status --}}
+                <div>
+                    <label for="status" class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Status</label>
+                    <select id="status"
+                            name="status"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <option value="">Todos</option>
+                        @foreach($statusOptions as $value => $label)
+                            <option value="{{ $value }}" {{ ($filters['status'] ?? '') === $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl border-t border-gray-200">
+            <a href="{{ route('admin.ordens-servico.index') }}"
+               class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+                Limpar
+            </a>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                Aplicar filtros
+            </button>
+        </div>
+    </form>
+
     {{-- Mensagens de sucesso --}}
     @if(session('success'))
     <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">

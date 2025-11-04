@@ -17,38 +17,108 @@
 
     {{-- Formulário --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <form method="POST" action="{{ route('admin.ordens-servico.store') }}" class="divide-y divide-gray-200">
+        <form method="POST" action="{{ route('admin.ordens-servico.store') }}" enctype="multipart/form-data" class="divide-y divide-gray-200">
             @csrf
 
             {{-- Estabelecimento e Processo --}}
             <div class="p-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Estabelecimento e Processo</h2>
+                <h2 class="text-base font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Estabelecimento e Processo
+                </h2>
                 
-                <div class="grid grid-cols-1 gap-4">
+                <div class="space-y-6">
+                    {{-- Tipo de Vinculação --}}
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <label class="block text-sm font-semibold text-gray-900 mb-3">
+                            Vinculação de Estabelecimento
+                        </label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <label class="flex items-center cursor-pointer bg-white px-4 py-3 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
+                                <input type="radio" 
+                                       name="tipo_vinculacao" 
+                                       value="com_estabelecimento" 
+                                       id="com_estabelecimento"
+                                       {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'com_estabelecimento' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-3 text-sm font-medium text-gray-900">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Com estabelecimento
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer bg-white px-4 py-3 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
+                                <input type="radio" 
+                                       name="tipo_vinculacao" 
+                                       value="sem_estabelecimento" 
+                                       id="sem_estabelecimento"
+                                       {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'sem_estabelecimento' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-3 text-sm font-medium text-gray-900">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Sem estabelecimento
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p class="text-xs text-blue-800 flex items-start gap-2">
+                                <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Você pode vincular o estabelecimento posteriormente ao editar ou finalizar a Ordem de Serviço.</span>
+                            </p>
+                        </div>
+                    </div>
+
                     {{-- Estabelecimento --}}
-                    <div>
-                        <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Estabelecimento <span class="text-gray-500">(Opcional)</span>
+                    <div id="estabelecimento-container" style="display: none;">
+                        <label for="estabelecimento_id" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Buscar Estabelecimento <span class="text-red-500">*</span>
                         </label>
                         <select name="estabelecimento_id" 
                                 id="estabelecimento_id" 
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white @error('estabelecimento_id') border-red-500 @enderror">
-                            <option value="">Sem estabelecimento (vincular depois)</option>
-                            @foreach($estabelecimentos as $estabelecimento)
-                            <option value="{{ $estabelecimento->id }}" {{ old('estabelecimento_id') == $estabelecimento->id ? 'selected' : '' }}>
-                                {{ $estabelecimento->nome_fantasia }} - {{ $estabelecimento->razao_social }}
-                            </option>
-                            @endforeach
+                                class="w-full @error('estabelecimento_id') border-red-500 @enderror">
+                            <option value="">Digite para buscar...</option>
+                            @if(old('estabelecimento_id'))
+                                @php
+                                    $estabelecimentoSelecionado = $estabelecimentos->firstWhere('id', old('estabelecimento_id'));
+                                @endphp
+                                @if($estabelecimentoSelecionado)
+                                <option value="{{ $estabelecimentoSelecionado->id }}" selected>
+                                    {{ $estabelecimentoSelecionado->cnpj }} - {{ $estabelecimentoSelecionado->nome_fantasia }} - {{ $estabelecimentoSelecionado->razao_social }}
+                                </option>
+                                @endif
+                            @endif
                         </select>
                         @error('estabelecimento_id')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ $message }}
+                            </p>
                         @enderror
+                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Digite pelo menos 2 caracteres para buscar por <strong>CNPJ</strong>, <strong>Nome Fantasia</strong> ou <strong>Razão Social</strong>
+                        </p>
                     </div>
 
                     {{-- Processo --}}
                     <div id="processo-container">
-                        <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Processo Vinculado <span class="text-gray-500">(Opcional - apenas se houver estabelecimento)</span>
+                        <label for="processo_id" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Processo Vinculado <span class="text-gray-500 font-normal">(Opcional)</span>
                         </label>
                         <select name="processo_id" 
                                 id="processo_id" 
@@ -57,22 +127,112 @@
                             <option value="">Selecione primeiro um estabelecimento</option>
                         </select>
                         @error('processo_id')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        <div class="mt-2">
-                            <span id="processo-info" class="hidden text-xs text-blue-600 flex items-center gap-1">
+                            <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ $message }}
+                            </p>
+                        @enderror
+                        <div class="mt-2 space-y-2">
+                            <div id="processo-info" class="hidden bg-green-50 border border-green-200 rounded-lg p-3">
+                                <span class="text-xs text-green-800 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span id="processo-count" class="font-medium"></span>
+                                </span>
+                            </div>
+                            <div id="processo-sem-processo" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <span class="text-xs text-amber-800 flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <span>Este estabelecimento não possui processos ativos. Você pode criar um processo antes de criar a ordem de serviço.</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Upload de Documento --}}
+            <div class="p-6">
+                <h2 class="text-base font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Documento Anexo
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-sm text-blue-800 flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span><strong>Documento opcional:</strong> Anexe arquivos complementares (ofícios, denúncias, etc.) caso deseje registrar a origem da solicitação.</span>
+                        </p>
+                    </div>
+
+                    {{-- Campo de upload --}}
+                    <div>
+                        <label for="documento_anexo" class="block text-sm font-semibold text-gray-900 mb-2">
+                            Anexar Documento (PDF) <span class="text-gray-500 font-normal">(Opcional)</span>
+                        </label>
+                        <div class="flex items-center justify-center w-full">
+                            <label for="documento_anexo" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    <p class="mb-2 text-sm text-gray-600">
+                                        <span class="font-semibold">Clique para fazer upload</span> ou arraste o arquivo
+                                    </p>
+                                    <p class="text-xs text-gray-500">Apenas arquivos PDF (Máx. 10MB)</p>
+                                </div>
+                                <input id="documento_anexo" 
+                                       name="documento_anexo" 
+                                       type="file" 
+                                       accept=".pdf,application/pdf"
+                                       class="hidden" />
+                            </label>
+                        </div>
+                        
+                        {{-- Nome do arquivo selecionado --}}
+                        <div id="arquivo-selecionado" class="hidden mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span id="processo-count"></span>
-                            </span>
-                            <span id="processo-sem-processo" class="hidden text-xs text-amber-600 flex items-center gap-1 bg-amber-50 p-2 rounded">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                Este estabelecimento não possui processos ativos. Crie um processo antes de criar a ordem de serviço.
-                            </span>
+                                <span class="text-sm text-green-800">
+                                    <strong>Arquivo selecionado:</strong> <span id="nome-arquivo"></span>
+                                </span>
+                                <button type="button" 
+                                        onclick="removerArquivo()"
+                                        class="ml-auto text-green-600 hover:text-green-800">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+
+                        @error('documento_anexo')
+                            <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ $message }}
+                            </p>
+                        @enderror
+
+                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Exemplos: denúncia, solicitação do MPE, ofício, notificação, etc.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -142,18 +302,20 @@
                     {{-- Período de Execução --}}
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-3">
-                            Período de Execução (Opcional)
+                            Período de Execução
                         </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {{-- Data de Início --}}
                             <div>
                                 <label for="data_inicio" class="block text-xs font-medium text-gray-600 mb-1">
-                                    Data de Início
+                                    Data de Início <span class="text-red-500">*</span>
                                 </label>
                                 <input type="date" 
                                        id="data_inicio" 
                                        name="data_inicio" 
                                        value="{{ old('data_inicio') }}"
+                                       required
+                                       min="{{ now()->format('Y-m-d') }}"
                                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
                                 @error('data_inicio')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -163,12 +325,14 @@
                             {{-- Data Fim --}}
                             <div>
                                 <label for="data_fim" class="block text-xs font-medium text-gray-600 mb-1">
-                                    Data de Término
+                                    Data de Término <span class="text-red-500">*</span>
                                 </label>
                                 <input type="date" 
                                        id="data_fim" 
                                        name="data_fim" 
                                        value="{{ old('data_fim') }}"
+                                       required
+                                       min="{{ old('data_inicio', now()->format('Y-m-d')) }}"
                                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
                                 @error('data_fim')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -179,7 +343,7 @@
                             <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            As datas podem ser preenchidas durante a execução da ordem de serviço.
+                            Informe o período previsto para a execução. A data inicial deve ser hoje ou posterior e o término não pode ser anterior ao início.
                         </p>
                     </div>
 
@@ -218,6 +382,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 <style>
     /* Customização do Choices.js */
     .choices__inner {
@@ -297,13 +462,194 @@
         flex-wrap: wrap !important;
         gap: 4px !important;
     }
+    
+    /* Customização do Select2 */
+    .select2-container--default .select2-selection--single {
+        height: 44px !important;
+        padding: 6px 12px !important;
+        border-radius: 0.5rem !important;
+        border: 1px solid #d1d5db !important;
+        background-color: white !important;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 30px !important;
+        color: #374151 !important;
+        padding-left: 0 !important;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 42px !important;
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    .select2-dropdown {
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+    
+    .select2-results__option {
+        padding: 10px 12px !important;
+        font-size: 0.875rem !important;
+    }
+    
+    .select2-results__option--highlighted {
+        background-color: #eff6ff !important;
+        color: #1e40af !important;
+    }
+    
+    .select2-results__option--selected {
+        background-color: #3b82f6 !important;
+        color: white !important;
+    }
+    
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.375rem !important;
+        padding: 8px 12px !important;
+    }
+    
+    .select2-search--dropdown .select2-search__field:focus {
+        border-color: #3b82f6 !important;
+        outline: none !important;
+    }
+    
+    /* Estilo para radio button selecionado */
+    input[type="radio"]:checked + span {
+        color: #1e40af !important;
+    }
+    
+    input[type="radio"]:checked ~ * label {
+        border-color: #3b82f6 !important;
+        background-color: #eff6ff !important;
+    }
+    
+    label:has(input[type="radio"]:checked) {
+        border-color: #3b82f6 !important;
+        background-color: #eff6ff !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Controle de exibição do campo de estabelecimento e documento
+        const comEstabelecimentoRadio = document.getElementById('com_estabelecimento');
+        const semEstabelecimentoRadio = document.getElementById('sem_estabelecimento');
+        const estabelecimentoContainer = document.getElementById('estabelecimento-container');
+        const estabelecimentoSelect = document.getElementById('estabelecimento_id');
+        const documentoInput = document.getElementById('documento_anexo');
+
+        function toggleEstabelecimentoField() {
+            if (comEstabelecimentoRadio.checked) {
+                // Com estabelecimento
+                estabelecimentoContainer.style.display = 'block';
+                estabelecimentoSelect.required = true;
+                
+            } else {
+                // Sem estabelecimento
+                estabelecimentoContainer.style.display = 'none';
+                estabelecimentoSelect.required = false;
+                // Limpa seleção ao ocultar
+                $(estabelecimentoSelect).val(null).trigger('change');
+            }
+        }
+
+        comEstabelecimentoRadio.addEventListener('change', toggleEstabelecimentoField);
+        semEstabelecimentoRadio.addEventListener('change', toggleEstabelecimentoField);
+
+        // Inicializa o estado correto ao carregar a página
+        toggleEstabelecimentoField();
+
+        // Controle de exibição do arquivo selecionado
+        documentoInput.addEventListener('change', function(e) {
+            const arquivo = e.target.files[0];
+            const arquivoSelecionado = document.getElementById('arquivo-selecionado');
+            const nomeArquivo = document.getElementById('nome-arquivo');
+            
+            if (arquivo) {
+                // Valida tamanho (10MB)
+                if (arquivo.size > 10 * 1024 * 1024) {
+                    alert('O arquivo deve ter no máximo 10MB');
+                    e.target.value = '';
+                    arquivoSelecionado.classList.add('hidden');
+                    return;
+                }
+                
+                // Valida tipo
+                if (arquivo.type !== 'application/pdf') {
+                    alert('Apenas arquivos PDF são permitidos');
+                    e.target.value = '';
+                    arquivoSelecionado.classList.add('hidden');
+                    return;
+                }
+                
+                nomeArquivo.textContent = arquivo.name;
+                arquivoSelecionado.classList.remove('hidden');
+            } else {
+                arquivoSelecionado.classList.add('hidden');
+            }
+        });
+        
+        // Função global para remover arquivo
+        window.removerArquivo = function() {
+            documentoInput.value = '';
+            document.getElementById('arquivo-selecionado').classList.add('hidden');
+        };
+
+        // Inicializa Select2 para busca de estabelecimentos
+        $('#estabelecimento_id').select2({
+            ajax: {
+                url: '/admin/ordens-servico/api/buscar-estabelecimentos',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term, // termo de busca
+                        page: params.page || 1
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.pagination.more
+                        }
+                    };
+                },
+                cache: true
+            },
+            placeholder: 'Busque por CNPJ, Nome Fantasia ou Razão Social...',
+            minimumInputLength: 2,
+            language: {
+                inputTooShort: function () {
+                    return 'Digite pelo menos 2 caracteres para buscar';
+                },
+                searching: function () {
+                    return 'Buscando...';
+                },
+                noResults: function () {
+                    return 'Nenhum estabelecimento encontrado';
+                },
+                errorLoading: function () {
+                    return 'Erro ao carregar resultados';
+                }
+            },
+            width: '100%',
+            theme: 'default'
+        });
+
         // Inicializa Choices.js para Tipos de Ação
         const tiposAcaoSelect = new Choices('#tipos_acao_ids', {
             removeItemButton: true,
@@ -373,15 +719,14 @@
         });
 
         // Buscar processos ao selecionar estabelecimento
-        const estabelecimentoSelect = document.getElementById('estabelecimento_id');
         const processoSelect = document.getElementById('processo_id');
         const processoInfo = document.getElementById('processo-info');
         const processoCount = document.getElementById('processo-count');
         const processoSemProcesso = document.getElementById('processo-sem-processo');
         const submitButton = document.querySelector('button[type="submit"]');
 
-        estabelecimentoSelect.addEventListener('change', function() {
-            const estabelecimentoId = this.value;
+        $('#estabelecimento_id').on('change', function() {
+            const estabelecimentoId = $(this).val();
             
             // Limpa o select de processos
             processoSelect.innerHTML = '<option value="">Carregando processos...</option>';

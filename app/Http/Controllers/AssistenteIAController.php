@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\ConfiguracaoSistema;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
+use App\Models\OrdemServico;
 use App\Models\DocumentoDigital;
 use App\Models\DocumentoPop;
 use App\Models\CategoriaPop;
@@ -19,9 +20,19 @@ class AssistenteIAController extends Controller
      */
     public function chat(Request $request)
     {
+        // Log para debug
+        \Log::info('Chat request recebido', [
+            'has_documento_contexto' => $request->has('documento_contexto'),
+            'documento_keys' => $request->has('documento_contexto') ? array_keys($request->documento_contexto) : null,
+        ]);
+
         $request->validate([
-            'message' => 'required|string|max:2000', // Aumentado para permitir perguntas mais longas
+            'message' => 'required|string|max:2000',
             'history' => 'nullable|array',
+            'documento_contexto' => 'nullable|array',
+            'documento_contexto.nome' => 'required_with:documento_contexto|string|max:500',
+            'documento_contexto.conteudo' => 'required_with:documento_contexto|string|max:50000', // 50KB de texto
+            'tipo_consulta' => 'nullable|string|in:relatorios,geral',
         ]);
 
         // Verifica se IA está ativa
@@ -34,12 +45,37 @@ class AssistenteIAController extends Controller
 
         $userMessage = $request->input('message');
         $history = $request->input('history', []);
+        $documentoContexto = $request->input('documento_contexto');
+        $tipoConsulta = $request->input('tipo_consulta', 'geral');
         
         // Obtém usuário logado
         $usuario = auth('interno')->user();
 
-        // Analisa a mensagem para ver se precisa de dados do sistema
-        $contextoDados = $this->obterContextoDados($userMessage, $usuario);
+        try {
+            // Analisa a mensagem para ver se precisa de dados do sistema
+            // Se for consulta de relatórios, busca TODOS os dados
+            $contextoDados = $this->obterContextoDados($userMessage, $usuario, $tipoConsulta === 'relatorios');
+            
+            // Adiciona contexto do documento se fornecido
+            if ($documentoContexto) {
+                \Log::info('Adicionando documento ao contexto', [
+                    'nome' => $documentoContexto['nome'] ?? 'N/A',
+                    'tamanho_conteudo' => strlen($documentoContexto['conteudo'] ?? ''),
+                ]);
+                $contextoDados['documento_pdf'] = $documentoContexto;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erro ao preparar contexto', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Erro ao preparar contexto',
+                'response' => 'Desculpe, ocorreu um erro ao processar o documento. Detalhes: ' . $e->getMessage(),
+                'success' => false,
+            ], 200);
+        }
         
         // Verifica se deve buscar na internet
         $buscaWebAtiva = ConfiguracaoSistema::where('chave', 'ia_busca_web')->value('valor') === 'true';
@@ -51,7 +87,24 @@ class AssistenteIAController extends Controller
         }
 
         // Prepara o contexto do sistema
-        $systemPrompt = $this->construirSystemPrompt($contextoDados, $usuario);
+        try {
+            // Se tem documento PDF, usa prompt simplificado para economizar tokens
+            $temDocumento = isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf']);
+            $systemPrompt = $this->construirSystemPrompt($contextoDados, $usuario, $temDocumento);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao construir system prompt', [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Erro ao construir prompt',
+                'response' => 'Desculpe, ocorreu um erro ao preparar a mensagem. Erro na linha ' . $e->getLine() . ': ' . $e->getMessage(),
+                'success' => false,
+            ], 200);
+        }
 
         // Prepara mensagens para a API
         $messages = [
@@ -75,15 +128,30 @@ class AssistenteIAController extends Controller
             $apiUrl = ConfiguracaoSistema::where('chave', 'ia_api_url')->value('valor');
             $model = ConfiguracaoSistema::where('chave', 'ia_model')->value('valor');
 
+            // Valida se configurações existem
+            if (empty($apiKey) || empty($apiUrl) || empty($model)) {
+                \Log::error('Configurações da IA não encontradas', [
+                    'apiKey' => !empty($apiKey) ? 'OK' : 'MISSING',
+                    'apiUrl' => $apiUrl ?? 'MISSING',
+                    'model' => $model ?? 'MISSING',
+                ]);
+
+                return response()->json([
+                    'error' => 'Configurações da IA não encontradas',
+                    'response' => 'Desculpe, o assistente de IA não está configurado corretamente. Entre em contato com o administrador.',
+                    'success' => false,
+                ], 500);
+            }
+
             // Chama API da IA
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->post($apiUrl, [
+            ])->timeout(60)->post($apiUrl, [ // Aumenta timeout para 60s
                 'model' => $model,
                 'messages' => $messages,
-                'max_tokens' => 1000,
-                'temperature' => 0.1, // Temperatura muito baixa para respostas determinísticas e sem alucinações
+                'max_tokens' => 1000, // Reduz para 1000 tokens (resposta mais curta)
+                'temperature' => 0.3, // Aumenta um pouco para respostas mais naturais
             ]);
 
             if ($response->successful()) {
@@ -91,19 +159,27 @@ class AssistenteIAController extends Controller
                 $assistantMessage = $data['choices'][0]['message']['content'] ?? 'Desculpe, não consegui processar sua pergunta.';
 
                 return response()->json([
-                    'message' => $assistantMessage,
+                    'response' => $assistantMessage, // CORRIGIDO: era 'message', agora é 'response'
                     'success' => true,
                 ]);
             } else {
                 \Log::error('Erro na API da IA', [
                     'status' => $response->status(),
                     'body' => $response->body(),
+                    'api_url' => $apiUrl,
+                    'model' => $model,
+                    'message_count' => count($messages),
                 ]);
+
+                // Tenta extrair mensagem de erro mais específica
+                $errorBody = $response->json();
+                $errorMessage = $errorBody['error']['message'] ?? 'Erro desconhecido';
 
                 return response()->json([
                     'error' => 'Erro ao comunicar com a IA',
-                    'message' => 'Desculpe, estou com dificuldades no momento. Tente novamente mais tarde.',
-                ], 500);
+                    'response' => "Desculpe, a IA está com dificuldades. Erro: {$errorMessage}",
+                    'success' => false,
+                ], 200); // CORRIGIDO: retorna 200 com success=false
             }
         } catch (\Exception $e) {
             \Log::error('Exceção ao chamar IA', [
@@ -114,26 +190,41 @@ class AssistenteIAController extends Controller
 
             return response()->json([
                 'error' => 'Erro ao processar sua mensagem',
-                'message' => 'Desculpe, ocorreu um erro. Tente novamente.',
+                'response' => 'Desculpe, ocorreu um erro. Tente novamente.',
                 'success' => false,
-            ], 500);
+            ], 200); // CORRIGIDO: retorna 200 com success=false
         }
     }
 
     /**
      * Obtém dados do sistema baseado na pergunta do usuário
      */
-    private function obterContextoDados($message, $usuario)
+    private function obterContextoDados($message, $usuario, $buscarTodosDados = false)
     {
         $message = strtolower($message);
         $dados = [];
 
         try {
-            // Detecta perguntas sobre estabelecimentos
-            if (preg_match('/(quantos|quantidade|total|tenho).*estabelecimento/i', $message)) {
-                $query = Estabelecimento::query();
+            // Se for consulta de relatórios, busca TODOS os dados sempre
+            $buscarEstabelecimentos = $buscarTodosDados || preg_match('/(quantos|quantidade|total|tenho).*estabelecimento/i', $message);
+            $buscarProcessos = $buscarTodosDados || preg_match('/(quantos|quantidade|total|tenho).*processo/i', $message);
+            $buscarOrdens = $buscarTodosDados || preg_match('/(quantos|quantidade|total|tenho).*(ordem|os|ordens)/i', $message);
+            $buscarDocumentos = $buscarTodosDados || preg_match('/(quantos|quantidade|total|tenho).*documento/i', $message);
             
-            // Filtra por competência
+            // Detecta perguntas sobre estabelecimentos
+            if ($buscarEstabelecimentos) {
+                $query = Estabelecimento::query();
+                
+                // Detecta filtro por município na pergunta
+                if (preg_match('/(de|em|do município de|da cidade de)\s+([a-záàâãéèêíïóôõöúçñ\s]+)/ui', $message, $matches)) {
+                    $nomeMunicipio = trim($matches[2]);
+                    $query->whereHas('municipio', function($q) use ($nomeMunicipio) {
+                        $q->whereRaw('LOWER(nome) LIKE ?', ['%' . strtolower($nomeMunicipio) . '%']);
+                    });
+                    $dados['municipio_filtrado'] = $nomeMunicipio;
+                }
+            
+            // Filtra por competência (Admin vê tudo)
             if ($usuario->isEstadual()) {
                 // Estadual: apenas estabelecimentos de competência estadual
                 $query->whereRaw('
@@ -186,13 +277,84 @@ class AssistenteIAController extends Controller
                 $dados['estabelecimentos_total'] = $query->count();
                 $dados['estabelecimentos_ativos'] = (clone $query)->where('status', 'ativo')->count();
                 $dados['estabelecimentos_inativos'] = (clone $query)->where('status', 'inativo')->count();
+                
+                // Detecta perguntas sobre estabelecimentos COM processos específicos
+                if (preg_match('/estabelecimento.*(?:com|tem|possui|que tem).*processo/i', $message)) {
+                    // Detecta tipo de processo
+                    $tipoProcesso = null;
+                    if (preg_match('/licenciamento/i', $message)) {
+                        $tipoProcesso = 'licenciamento';
+                    } elseif (preg_match('/rotulagem/i', $message)) {
+                        $tipoProcesso = 'analise_rotulagem';
+                    } elseif (preg_match('/projeto|arquitet[oô]nico/i', $message)) {
+                        $tipoProcesso = 'projeto_arquitetonico';
+                    } elseif (preg_match('/administrativo/i', $message)) {
+                        $tipoProcesso = 'administrativo';
+                    } elseif (preg_match('/descentraliza[çc][ãa]o/i', $message)) {
+                        $tipoProcesso = 'descentralizacao';
+                    }
+                    
+                    // Detecta ano
+                    $ano = null;
+                    if (preg_match('/\b(20\d{2})\b/', $message, $matches)) {
+                        $ano = $matches[1];
+                    }
+                    
+                    // Conta estabelecimentos ÚNICOS que têm processos
+                    $queryEstabComProcessos = clone $query;
+                    $queryEstabComProcessos->whereHas('processos', function($q) use ($tipoProcesso, $ano) {
+                        if ($tipoProcesso) {
+                            $q->where('tipo_processo_id', function($subq) use ($tipoProcesso) {
+                                $subq->select('id')
+                                     ->from('tipos_processo')
+                                     ->where('slug', $tipoProcesso)
+                                     ->limit(1);
+                            });
+                        }
+                        if ($ano) {
+                            $q->where('ano', $ano);
+                        }
+                    });
+                    
+                    $totalEstabComProcessos = $queryEstabComProcessos->count();
+                    
+                    // Se a pergunta pede "quais" estabelecimentos, lista os nomes
+                    if (preg_match('/\b(quais|liste|listar|mostrar|nomes?)\b/i', $message)) {
+                        $estabelecimentosLista = $queryEstabComProcessos
+                            ->select('id', 'nome_fantasia', 'razao_social', 'cnpj')
+                            ->limit(50)
+                            ->get()
+                            ->map(function($estab) {
+                                return "- {$estab->nome_fantasia} (CNPJ: {$estab->cnpj})";
+                            })
+                            ->toArray();
+                        
+                        if ($tipoProcesso && $ano) {
+                            $dados["lista_estabelecimentos_com_processo_{$tipoProcesso}_{$ano}"] = implode("\n", $estabelecimentosLista);
+                        } elseif ($tipoProcesso) {
+                            $dados["lista_estabelecimentos_com_processo_{$tipoProcesso}"] = implode("\n", $estabelecimentosLista);
+                        } else {
+                            $dados['lista_estabelecimentos_com_processos'] = implode("\n", $estabelecimentosLista);
+                        }
+                    }
+                    
+                    if ($tipoProcesso && $ano) {
+                        $dados["estabelecimentos_com_processo_{$tipoProcesso}_{$ano}"] = $totalEstabComProcessos;
+                    } elseif ($tipoProcesso) {
+                        $dados["estabelecimentos_com_processo_{$tipoProcesso}"] = $totalEstabComProcessos;
+                    } elseif ($ano) {
+                        $dados["estabelecimentos_com_processo_{$ano}"] = $totalEstabComProcessos;
+                    } else {
+                        $dados['estabelecimentos_com_processos'] = $totalEstabComProcessos;
+                    }
+                }
             }
 
             // Detecta perguntas sobre processos
-            if (preg_match('/(quantos|quantidade|total|tenho).*processo/i', $message)) {
+            if ($buscarProcessos) {
                 $query = Processo::query();
                 
-                // Filtra por competência
+                // Filtra por competência (Admin vê tudo)
                 if ($usuario->isEstadual()) {
                     $query->whereHas('estabelecimento', function ($q) {
                         $q->whereRaw('
@@ -249,10 +411,83 @@ class AssistenteIAController extends Controller
                 $dados['processos_em_analise'] = (clone $query)->where('status', 'em_analise')->count();
                 $dados['processos_concluidos'] = (clone $query)->where('status', 'concluido')->count();
                 $dados['processos_arquivados'] = (clone $query)->where('status', 'arquivado')->count();
+                
+                // Detecta tipo de processo e status
+                $tipoProcesso = null;
+                $statusProcesso = null;
+                $ano = null;
+                
+                if (preg_match('/licenciamento/i', $message)) {
+                    $tipoProcesso = 'licenciamento';
+                }
+                if (preg_match('/\b(aberto|abertas?)\b/i', $message)) {
+                    $statusProcesso = 'aberto';
+                } elseif (preg_match('/\b(em análise|analise)\b/i', $message)) {
+                    $statusProcesso = 'em_analise';
+                } elseif (preg_match('/\b(concluído|concluidas?)\b/i', $message)) {
+                    $statusProcesso = 'concluido';
+                } elseif (preg_match('/\b(arquivado|arquivadas?)\b/i', $message)) {
+                    $statusProcesso = 'arquivado';
+                }
+                
+                // Filtra por ano se mencionado
+                if (preg_match('/\b(20\d{2})\b/', $message, $matches)) {
+                    $ano = $matches[1];
+                    $queryAno = clone $query;
+                    $queryAno->whereYear('created_at', $ano);
+                    
+                    if ($tipoProcesso) {
+                        $queryAno->where('tipo_processo_id', function($subq) use ($tipoProcesso) {
+                            $subq->select('id')
+                                 ->from('tipos_processo')
+                                 ->where('slug', $tipoProcesso)
+                                 ->limit(1);
+                        });
+                    }
+                    if ($statusProcesso) {
+                        $queryAno->where('status', $statusProcesso);
+                    }
+                    
+                    $dados['processos_ano_' . $ano] = $queryAno->count();
+                    
+                    if ($tipoProcesso && $statusProcesso) {
+                        $dados["processos_{$tipoProcesso}_{$statusProcesso}_{$ano}"] = $queryAno->count();
+                    } elseif ($tipoProcesso) {
+                        $dados["processos_{$tipoProcesso}_{$ano}"] = $queryAno->count();
+                    } elseif ($statusProcesso) {
+                        $dados["processos_{$statusProcesso}_{$ano}"] = $queryAno->count();
+                    }
+                }
             }
 
+            // Detecta perguntas sobre ordens de serviço
+            if ($buscarOrdens) {
+                $query = OrdemServico::query();
+                
+                // Ordens de serviço não têm filtro de competência direto
+                // Mas podem ser filtradas por município se o usuário for municipal
+                if ($usuario->isMunicipal() && $usuario->municipio_id) {
+                    $query->whereHas('estabelecimento', function ($q) use ($usuario) {
+                        $q->where('municipio_id', $usuario->municipio_id);
+                    });
+                }
+                
+                $dados['ordens_servico_total'] = $query->count();
+                $dados['ordens_servico_em_andamento'] = (clone $query)->where('status', 'em_andamento')->count();
+                $dados['ordens_servico_concluidas'] = (clone $query)->where('status', 'concluida')->count();
+                $dados['ordens_servico_canceladas'] = (clone $query)->where('status', 'cancelada')->count();
+                
+                // Filtra por ano se mencionado
+                if (preg_match('/\b(20\d{2})\b/', $message, $matches)) {
+                    $ano = $matches[1];
+                    $queryAno = clone $query;
+                    $queryAno->whereYear('created_at', $ano);
+                    $dados['ordens_servico_ano_' . $ano] = $queryAno->count();
+                }
+            }
+            
             // Detecta perguntas sobre documentos
-            if (preg_match('/(quantos|quantidade|total|tenho).*documento/i', $message)) {
+            if ($buscarDocumentos) {
                 $query = DocumentoDigital::query();
                 
                 // Filtra por competência através do processo
@@ -624,10 +859,36 @@ class AssistenteIAController extends Controller
     }
 
     /**
+     * Constrói prompt simplificado quando há documento PDF (economiza tokens)
+     */
+    private function construirPromptSimplificadoDocumento($contextoDados)
+    {
+        $docPdf = $contextoDados['documento_pdf'];
+        $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
+        $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+        
+        $prompt = "Você é um assistente especializado em análise de documentos.\n\n";
+        $prompt .= "🚨 DOCUMENTO CARREGADO PELO USUÁRIO:\n\n";
+        $prompt .= "**Nome:** {$nomeDoc}\n\n";
+        $prompt .= "**CONTEÚDO:**\n{$conteudoDoc}\n\n";
+        $prompt .= "**INSTRUÇÕES:**\n";
+        $prompt .= "- Responda APENAS com base no conteúdo acima\n";
+        $prompt .= "- Seja objetivo e direto\n";
+        $prompt .= "- Cite trechos específicos quando relevante\n";
+        $prompt .= "- Se a informação não estiver no documento, diga claramente\n";
+        
+        return $prompt;
+    }
+
+    /**
      * Constrói o prompt do sistema com contexto
      */
-    private function construirSystemPrompt($contextoDados, $usuario)
+    private function construirSystemPrompt($contextoDados, $usuario, $temDocumento = false)
     {
+        // Se tem documento PDF, usa prompt MUITO simplificado
+        if ($temDocumento) {
+            return $this->construirPromptSimplificadoDocumento($contextoDados);
+        }
         // Informações do usuário
         $perfilUsuario = '';
         $municipioNome = '';
@@ -698,6 +959,11 @@ REGRAS CRÍTICAS DE COMPORTAMENTO:
 - Se não souber algo, diga claramente que não sabe
 - Use os números exatos fornecidos nos dados
 - Responda considerando o perfil e permissões do usuário
+
+**🚨 REGRA CRÍTICA - DOCUMENTO PDF CARREGADO TEM PRIORIDADE ABSOLUTA:**
+- Se houver um documento PDF carregado pelo usuário (indicado com 🚨), responda APENAS sobre ele
+- IGNORE completamente os documentos POPs quando houver PDF carregado
+- NÃO mencione categorias (Gases Medicinais, etc) se o usuário carregou um PDF específico
 
 **REGRA CRÍTICA - NÃO MISTURE POPs COM FUNCIONALIDADES:**
 - Se a pergunta é sobre NORMAS/POPs: responda APENAS com o conteúdo dos documentos POPs
@@ -780,20 +1046,52 @@ Acesso: Menu lateral > Ícone de engrenagem
             $prompt .= "IMPORTANTE: Estes números já estão filtrados pela competência e município do usuário.\n\n";
             
             foreach ($contextoDados as $key => $value) {
-                // Documentos POPs são tratados separadamente
-                if ($key === 'documentos_pops') {
+                // Documentos POPs e outros arrays são tratados separadamente
+                if (in_array($key, ['documentos_pops', 'categoria_filtrada', 'resultados_web', 'documento_pdf'])) {
                     continue;
                 }
                 
                 $label = str_replace('_', ' ', ucfirst($key));
+                // Converte arrays para string se necessário
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                }
                 $prompt .= "- {$label}: {$value}\n";
             }
             
             // Adiciona contexto sobre o filtro
-            if ($usuario->isEstadual()) {
+            if (isset($contextoDados['municipio_filtrado'])) {
+                $prompt .= "\n**IMPORTANTE:** Dados filtrados para o município de {$contextoDados['municipio_filtrado']}\n";
+            } elseif ($usuario->isEstadual()) {
                 $prompt .= "\n(Dados filtrados: apenas competência ESTADUAL de todos os municípios)\n";
             } elseif ($usuario->isMunicipal() && !empty($municipioNome)) {
                 $prompt .= "\n(Dados filtrados: apenas competência MUNICIPAL de {$municipioNome})\n";
+            }
+            
+            // ===== PRIORIDADE MÁXIMA: DOCUMENTO PDF CARREGADO =====
+            // Adiciona contexto do documento PDF se disponível (ANTES de tudo)
+            if (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
+                $docPdf = $contextoDados['documento_pdf'];
+                $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
+                $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+                
+                $prompt .= "\n\n╔════════════════════════════════════════════════════════════╗\n";
+                $prompt .= "║  🚨 ATENÇÃO: DOCUMENTO PDF CARREGADO PELO USUÁRIO 🚨     ║\n";
+                $prompt .= "╚════════════════════════════════════════════════════════════╝\n\n";
+                $prompt .= "**Nome do documento:** {$nomeDoc}\n\n";
+                $prompt .= "**CONTEÚDO DO DOCUMENTO:**\n";
+                $prompt .= $conteudoDoc . "\n\n";
+                $prompt .= "**⚠️ INSTRUÇÕES CRÍTICAS - PRIORIDADE ABSOLUTA:**\n";
+                $prompt .= "- ❗ O usuário ABRIU ESTE DOCUMENTO e quer fazer perguntas SOBRE ELE\n";
+                $prompt .= "- ❗ Use APENAS o conteúdo acima para responder\n";
+                $prompt .= "- ❗ IGNORE completamente os documentos POPs abaixo\n";
+                $prompt .= "- ❗ IGNORE qualquer categoria mencionada (Gases Medicinais, etc)\n";
+                $prompt .= "- ❗ NÃO responda sobre POPs, responda APENAS sobre este documento específico\n";
+                $prompt .= "- ❗ Se a pergunta não puder ser respondida com base NESTE documento, diga claramente\n";
+                $prompt .= "- ❗ Cite trechos específicos DESTE documento quando relevante\n";
+                $prompt .= "- ❗ Se o documento mencionar artigos, RDCs ou normas, cite-os exatamente como aparecem NESTE documento\n";
+                $prompt .= "- ❗ Este documento tem PRIORIDADE ABSOLUTA sobre qualquer outro contexto\n\n";
+                $prompt .= "═══════════════════════════════════════════════════════════\n\n";
             }
             
             // Lista categorias POPs disponíveis
@@ -977,6 +1275,110 @@ Acesso: Menu lateral > Ícone de engrenagem
                 'erro' => $e->getMessage(),
             ]);
             return [];
+        }
+    }
+
+    /**
+     * Extrai texto de um PDF para uso pela IA
+     */
+    public function extrairPdf(Request $request)
+    {
+        $request->validate([
+            'documento_id' => 'required|integer',
+            'estabelecimento_id' => 'required|integer',
+            'processo_id' => 'required|integer',
+        ]);
+
+        try {
+            $documentoId = $request->input('documento_id');
+            $processoId = $request->input('processo_id');
+
+            // Tenta buscar como documento digital primeiro
+            $docDigital = DocumentoDigital::where('processo_id', $processoId)
+                ->where('id', $documentoId)
+                ->first();
+
+            $caminhoArquivo = null;
+            $nomeDocumento = null;
+
+            if ($docDigital && $docDigital->arquivo_pdf) {
+                // É um documento digital
+                $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $docDigital->arquivo_pdf);
+                $nomeDocumento = $docDigital->nome_documento ?? 'Documento Digital';
+            } else {
+                // Busca como arquivo externo
+                $documento = \App\Models\ProcessoDocumento::where('processo_id', $processoId)
+                    ->findOrFail($documentoId);
+
+                if ($documento->tipo_documento === 'documento_digital') {
+                    $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+                } else {
+                    $caminhoArquivo = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+                }
+                $nomeDocumento = $documento->nome_original ?? 'Documento';
+            }
+
+            if (!file_exists($caminhoArquivo)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Arquivo PDF não encontrado'
+                ], 404);
+            }
+
+            // Extrai texto do PDF usando Smalot\PdfParser
+            $parser = new \Smalot\PdfParser\Parser();
+            $pdf = $parser->parseFile($caminhoArquivo);
+            
+            // Extrai texto de TODAS as páginas
+            $pages = $pdf->getPages();
+            $textoCompleto = '';
+            $totalPaginas = count($pages);
+            
+            foreach ($pages as $pageNum => $page) {
+                $textoPagina = $page->getText();
+                if (!empty($textoPagina)) {
+                    $textoCompleto .= "=== PÁGINA " . ($pageNum + 1) . " de {$totalPaginas} ===\n";
+                    $textoCompleto .= $textoPagina . "\n\n";
+                }
+            }
+
+            // Se não conseguiu extrair por páginas, tenta método geral
+            if (empty($textoCompleto)) {
+                $textoCompleto = $pdf->getText();
+            }
+
+            // Limpa o texto
+            $texto = trim($textoCompleto);
+            $texto = preg_replace('/\s+/', ' ', $texto); // Remove espaços múltiplos
+            
+            // Limita a aproximadamente 20.000 caracteres (~5.000 tokens)
+            // Isso deixa espaço para o prompt do sistema + histórico + resposta
+            $texto = mb_substr($texto, 0, 20000);
+
+            if (empty($texto)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não foi possível extrair texto do PDF. O documento pode estar protegido ou ser uma imagem.'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'conteudo' => $texto,
+                'nome_documento' => $nomeDocumento,
+                'total_caracteres' => mb_strlen($texto)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao extrair PDF', [
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao processar PDF: ' . $e->getMessage()
+            ], 500);
         }
     }
 } 

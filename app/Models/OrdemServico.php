@@ -16,9 +16,12 @@ class OrdemServico extends Model
         'estabelecimento_id',
         'processo_id',
         'tipos_acao_ids',
+        'acoes_executadas_ids',
         'tecnicos_ids',
         'municipio_id',
         'observacoes',
+        'documento_anexo_path',
+        'documento_anexo_nome',
         'data_abertura',
         'data_inicio',
         'data_fim',
@@ -29,6 +32,9 @@ class OrdemServico extends Model
         'observacoes_finalizacao',
         'finalizada_por',
         'finalizada_em',
+        'motivo_cancelamento',
+        'cancelada_em',
+        'cancelada_por',
     ];
 
     protected $casts = [
@@ -37,7 +43,9 @@ class OrdemServico extends Model
         'data_fim' => 'date',
         'data_conclusao' => 'date',
         'finalizada_em' => 'datetime',
+        'cancelada_em' => 'datetime',
         'tipos_acao_ids' => 'array',
+        'acoes_executadas_ids' => 'array',
         'tecnicos_ids' => 'array',
     ];
 
@@ -66,6 +74,17 @@ class OrdemServico extends Model
             return collect([]);
         }
         return TipoAcao::whereIn('id', $this->tipos_acao_ids)->get();
+    }
+
+    /**
+     * Relacionamento com Ações Executadas (múltiplos)
+     */
+    public function acoesExecutadas()
+    {
+        if (!$this->acoes_executadas_ids) {
+            return collect([]);
+        }
+        return TipoAcao::whereIn('id', $this->acoes_executadas_ids)->get();
     }
 
     /**
@@ -120,19 +139,27 @@ class OrdemServico extends Model
     }
 
     /**
-     * Scope para ordens abertas
-     */
-    public function scopeAbertas($query)
-    {
-        return $query->where('status', 'aberta');
-    }
-
-    /**
      * Scope para ordens em andamento
      */
     public function scopeEmAndamento($query)
     {
         return $query->where('status', 'em_andamento');
+    }
+
+    /**
+     * Scope para ordens finalizadas
+     */
+    public function scopeFinalizadas($query)
+    {
+        return $query->where('status', 'finalizada');
+    }
+
+    /**
+     * Scope para ordens canceladas
+     */
+    public function scopeCanceladas($query)
+    {
+        return $query->where('status', 'cancelada');
     }
 
     /**
@@ -164,9 +191,7 @@ class OrdemServico extends Model
     public function getStatusLabelAttribute()
     {
         return match($this->status) {
-            'aberta' => 'Aberta',
             'em_andamento' => 'Em Andamento',
-            'concluida' => 'Concluída',
             'finalizada' => 'Finalizada',
             'cancelada' => 'Cancelada',
             default => $this->status
@@ -179,10 +204,8 @@ class OrdemServico extends Model
     public function getStatusBadgeAttribute()
     {
         $colors = [
-            'aberta' => 'bg-blue-100 text-blue-800',
-            'em_andamento' => 'bg-yellow-100 text-yellow-800',
-            'concluida' => 'bg-green-100 text-green-800',
-            'finalizada' => 'bg-purple-100 text-purple-800',
+            'em_andamento' => 'bg-blue-100 text-blue-800',
+            'finalizada' => 'bg-green-100 text-green-800',
             'cancelada' => 'bg-red-100 text-red-800',
         ];
 

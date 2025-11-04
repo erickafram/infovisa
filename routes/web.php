@@ -183,6 +183,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     ]);
 
     // Ordens de Serviço - Rotas especiais ANTES do resource
+    // API para buscar estabelecimentos com autocomplete
+    Route::get('ordens-servico/api/buscar-estabelecimentos', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'buscarEstabelecimentos']
+    )->name('ordens-servico.api.buscar-estabelecimentos');
+    
     // API para buscar processos do estabelecimento
     Route::get('ordens-servico/estabelecimento/{estabelecimentoId}/processos', 
         [\App\Http\Controllers\OrdemServicoController::class, 'getProcessosEstabelecimento']
@@ -216,6 +221,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('ordens-servico/{ordemServico}/reiniciar', 
         [\App\Http\Controllers\OrdemServicoController::class, 'reiniciar']
     )->name('ordens-servico.reiniciar');
+    
+    // Cancelar OS
+    Route::post('ordens-servico/{ordemServico}/cancelar', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'cancelar']
+    )->name('ordens-servico.cancelar');
+    
+    // Reativar OS Cancelada
+    Route::post('ordens-servico/{ordemServico}/reativar', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'reativar']
+    )->name('ordens-servico.reativar');
 
     // Notificações
     Route::get('notificacoes', [\App\Http\Controllers\NotificacaoController::class, 'index'])->name('notificacoes.index');
@@ -319,6 +334,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     
     // Assistente IA
     Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
+    Route::post('/ia/extrair-pdf', [\App\Http\Controllers\AssistenteIAController::class, 'extrairPdf'])->name('assistente-ia.extrair-pdf');
+    
+    // Relatórios
+    Route::get('/relatorios', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('relatorios.index');
 });
 
 // Rota temporária para consulta de CNPJ (sem middleware CSRF para AJAX)

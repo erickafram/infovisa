@@ -47,24 +47,35 @@
                 @endif
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {{-- Estabelecimento --}}
+                    {{-- Estabelecimento com Busca --}}
                     <div class="md:col-span-2">
-                        <label for="estabelecimento_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label for="estabelecimento_id" class="block text-sm font-semibold text-gray-900 mb-2">
                             Estabelecimento <span class="text-gray-500">(Opcional)</span>
                         </label>
                         <select name="estabelecimento_id" 
                                 id="estabelecimento_id" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('estabelecimento_id') border-red-500 @enderror">
+                                class="w-full">
                             <option value="">Sem estabelecimento</option>
-                            @foreach($estabelecimentos as $estabelecimento)
-                            <option value="{{ $estabelecimento->id }}" {{ old('estabelecimento_id', $ordemServico->estabelecimento_id) == $estabelecimento->id ? 'selected' : '' }}>
-                                {{ $estabelecimento->nome_fantasia }} - {{ $estabelecimento->razao_social }}
+                            @if($ordemServico->estabelecimento_id && $ordemServico->estabelecimento)
+                            <option value="{{ $ordemServico->estabelecimento->id }}" selected>
+                                {{ $ordemServico->estabelecimento->cnpj ?? $ordemServico->estabelecimento->cpf }} - {{ $ordemServico->estabelecimento->nome_fantasia }} - {{ $ordemServico->estabelecimento->razao_social }}
                             </option>
-                            @endforeach
+                            @endif
                         </select>
                         @error('estabelecimento_id')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ $message }}
+                            </p>
                         @enderror
+                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Digite para buscar por <strong>CNPJ</strong>, <strong>CPF</strong>, <strong>Nome Fantasia</strong> ou <strong>Razão Social</strong>
+                        </p>
                         @if($ordemServico->estabelecimento_id)
                         <p class="mt-2 text-xs text-blue-600 flex items-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +89,7 @@
                     {{-- Processo (aparece quando estabelecimento é selecionado) --}}
                     <div class="md:col-span-2" id="processo-container" style="display: none;">
                         <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-1">
-                            Processo Vinculado <span class="text-gray-500">(Opcional)</span>
+                            Processo Vinculado <span id="processo-obrigatorio-label" class="text-red-500" style="display: none;">*</span>
                         </label>
                         <div id="processo-loading" class="hidden">
                             <div class="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -144,12 +155,14 @@
                     {{-- Data de Início --}}
                     <div>
                         <label for="data_inicio" class="block text-sm font-medium text-gray-700 mb-1">
-                            Data de Início
+                            Data de Início <span class="text-red-500">*</span>
                         </label>
                         <input type="date" 
                                id="data_inicio" 
                                name="data_inicio" 
                                value="{{ old('data_inicio', $ordemServico->data_inicio?->format('Y-m-d')) }}"
+                               required
+                               min="{{ now()->format('Y-m-d') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
                         @error('data_inicio')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -159,36 +172,28 @@
                     {{-- Data Fim --}}
                     <div>
                         <label for="data_fim" class="block text-sm font-medium text-gray-700 mb-1">
-                            Data Fim
+                            Data de Término <span class="text-red-500">*</span>
                         </label>
                         <input type="date" 
                                id="data_fim" 
                                name="data_fim" 
                                value="{{ old('data_fim', $ordemServico->data_fim?->format('Y-m-d')) }}"
+                               required
+                               min="{{ old('data_inicio', $ordemServico->data_inicio?->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
                         @error('data_fim')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-xs text-gray-500">Pode ser no mesmo dia que a data de início</p>
                     </div>
 
-                    {{-- Prioridade --}}
-                    <div>
-                        <label for="prioridade" class="block text-sm font-medium text-gray-700 mb-1">
-                            Prioridade <span class="text-red-500">*</span>
-                        </label>
-                        <select id="prioridade" 
-                                name="prioridade" 
-                                required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('prioridade') border-red-500 @enderror">
-                            <option value="baixa" {{ old('prioridade', $ordemServico->prioridade) == 'baixa' ? 'selected' : '' }}>Baixa</option>
-                            <option value="media" {{ old('prioridade', $ordemServico->prioridade) == 'media' ? 'selected' : '' }}>Média</option>
-                            <option value="alta" {{ old('prioridade', $ordemServico->prioridade) == 'alta' ? 'selected' : '' }}>Alta</option>
-                            <option value="urgente" {{ old('prioridade', $ordemServico->prioridade) == 'urgente' ? 'selected' : '' }}>Urgente</option>
-                        </select>
-                        @error('prioridade')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                    {{-- Observação sobre datas --}}
+                    <div class="md:col-span-2">
+                        <p class="text-xs text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            A data inicial deve ser hoje ou posterior e o término não pode ser anterior ao início.
+                        </p>
                     </div>
 
                     {{-- Observações --}}
@@ -226,12 +231,137 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Customização do Select2 */
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+        padding-left: 0;
+        color: #111827;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+        right: 8px;
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .select2-dropdown {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem;
+    }
+    
+    .select2-results__option {
+        padding: 0.75rem 1rem;
+    }
+    
+    .select2-results__option--highlighted {
+        background-color: #3b82f6 !important;
+    }
+    
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #eff6ff;
+        color: #1e40af;
+    }
+    
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
 @endpush
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Inicializa Select2 para Estabelecimento com busca AJAX
+        $('#estabelecimento_id').select2({
+            placeholder: 'Digite para buscar estabelecimento...',
+            allowClear: true,
+            language: {
+                inputTooShort: function() {
+                    return 'Digite pelo menos 2 caracteres para buscar';
+                },
+                searching: function() {
+                    return 'Buscando...';
+                },
+                noResults: function() {
+                    return 'Nenhum estabelecimento encontrado';
+                },
+                errorLoading: function() {
+                    return 'Erro ao carregar resultados';
+                }
+            },
+            ajax: {
+                url: '{{ route("admin.ordens-servico.api.buscar-estabelecimentos") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.pagination.more
+                        }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: function(estabelecimento) {
+                if (estabelecimento.loading) {
+                    return estabelecimento.text;
+                }
+                return $('<span>' + estabelecimento.text + '</span>');
+            },
+            templateSelection: function(estabelecimento) {
+                return estabelecimento.text;
+            }
+        });
+
+        // Sincroniza mínimo da data fim com data início
+        const dataInicioInput = document.getElementById('data_inicio');
+        const dataFimInput = document.getElementById('data_fim');
+        
+        if (dataInicioInput && dataFimInput) {
+            dataInicioInput.addEventListener('change', function() {
+                const dataInicio = this.value;
+                if (dataInicio) {
+                    dataFimInput.min = dataInicio;
+                    // Se data fim for menor que data início, limpa
+                    if (dataFimInput.value && dataFimInput.value < dataInicio) {
+                        dataFimInput.value = dataInicio;
+                    }
+                }
+            });
+        }
+
         // Inicializa Choices.js para Tipos de Ação
         const tiposAcaoSelect = new Choices('#tipos_acao_ids', {
             removeItemButton: true,
@@ -265,24 +395,32 @@
         const processoContainer = document.getElementById('processo-container');
         const processoSelect = document.getElementById('processo_id');
         const processoLoading = document.getElementById('processo-loading');
+        const processoObrigatorioLabel = document.getElementById('processo-obrigatorio-label');
         const processoAtualId = {{ $ordemServico->processo_id ?? 'null' }};
 
         // Mostra container se já tem estabelecimento selecionado
         if (estabelecimentoSelect.value) {
             processoContainer.style.display = 'block';
+            processoObrigatorioLabel.style.display = 'inline';
+            processoSelect.required = true;
             buscarProcessos(estabelecimentoSelect.value, processoAtualId);
         }
 
-        estabelecimentoSelect.addEventListener('change', function() {
+        // Listener do Select2 para estabelecimento
+        $('#estabelecimento_id').on('change', function() {
             const estabelecimentoId = this.value;
             
             if (!estabelecimentoId) {
                 processoContainer.style.display = 'none';
+                processoObrigatorioLabel.style.display = 'none';
+                processoSelect.required = false;
                 processoSelect.innerHTML = '<option value="">Sem processo vinculado</option>';
                 return;
             }
 
             processoContainer.style.display = 'block';
+            processoObrigatorioLabel.style.display = 'inline';
+            processoSelect.required = true;
             buscarProcessos(estabelecimentoId, processoAtualId);
         });
 
@@ -302,7 +440,8 @@
                     data.processos.forEach(processo => {
                         const option = document.createElement('option');
                         option.value = processo.id;
-                        option.textContent = `#${processo.numero} - ${processo.status_label} (${processo.data_abertura})`;
+                        // Formato: "2025/00004 - Licenciamento"
+                        option.textContent = processo.texto_completo || `${processo.numero} - ${processo.tipo}`;
                         
                         if (processoSelecionado && processo.id == processoSelecionado) {
                             option.selected = true;

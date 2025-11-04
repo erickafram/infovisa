@@ -15,7 +15,7 @@ class OrdemServicoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $usuario = Auth::guard('interno')->user();
         
@@ -38,9 +38,49 @@ class OrdemServicoController extends Controller
             $query->whereRaw('1 = 0');
         }
         
-        $ordensServico = $query->paginate(20);
+        // Filtros personalizados
+        if ($request->filled('estabelecimento')) {
+            $term = trim($request->input('estabelecimento'));
+            $numericTerm = preg_replace('/\D+/', '', $term);
+
+            $query->whereHas('estabelecimento', function ($subQuery) use ($term, $numericTerm) {
+                $subQuery->where(function ($inner) use ($term, $numericTerm) {
+                    $inner->where('nome_fantasia', 'like', "%{$term}%")
+                        ->orWhere('razao_social', 'like', "%{$term}%")
+                        ->orWhere('cnpj', 'like', "%{$term}%")
+                        ->orWhere('cpf', 'like', "%{$term}%");
+
+                    if (!empty($numericTerm)) {
+                        $inner->orWhere('cnpj', 'like', "%{$numericTerm}%")
+                              ->orWhere('cpf', 'like', "%{$numericTerm}%");
+                    }
+                });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('data_inicio', '>=', $request->input('data_inicio'));
+        }
+
+        if ($request->filled('data_fim')) {
+            $query->whereDate('data_fim', '<=', $request->input('data_fim'));
+        }
+
+        $ordensServico = $query->paginate(10)->withQueryString();
+
+        $statusOptions = [
+            'em_andamento' => 'Em Andamento',
+            'finalizada' => 'Finalizada',
+            'cancelada' => 'Cancelada',
+        ];
+
+        $filters = $request->only(['estabelecimento', 'status', 'data_inicio', 'data_fim']);
         
-        return view('ordens-servico.index', compact('ordensServico'));
+        return view('ordens-servico.index', compact('ordensServico', 'statusOptions', 'filters'));
     }
 
     /**
@@ -77,7 +117,9 @@ class OrdemServicoController extends Controller
     {
         $usuario = Auth::guard('interno')->user();
         
-        $validated = $request->validate([
+        // Validação condicional do documento
+        $rules = [
+            'tipo_vinculacao' => 'required|in:com_estabelecimento,sem_estabelecimento',
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'processo_id' => 'nullable|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
@@ -85,9 +127,28 @@ class OrdemServicoController extends Controller
             'tecnicos_ids' => 'required|array|min:1',
             'tecnicos_ids.*' => 'exists:usuarios_internos,id',
             'observacoes' => 'nullable|string',
-            'data_inicio' => 'nullable|date',
-            'data_fim' => 'nullable|date|after_or_equal:data_inicio',
-        ]);
+            'data_inicio' => 'required|date|after_or_equal:today',
+            'data_fim' => 'required|date|after_or_equal:data_inicio',
+            'documento_anexo' => 'nullable|file|mimes:pdf|max:10240',
+        ];
+        
+        $messages = [
+            'data_inicio.required' => 'Informe a data de início da ordem de serviço.',
+            'data_inicio.after_or_equal' => 'A data de início deve ser hoje ou uma data futura.',
+            'data_fim.required' => 'Informe a data de término da ordem de serviço.',
+            'data_fim.after_or_equal' => 'A data de término não pode ser anterior à data de início.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
+        
+        // Upload do documento se fornecido
+        if ($request->hasFile('documento_anexo')) {
+            $arquivo = $request->file('documento_anexo');
+            $nomeArquivo = time() . '_' . $arquivo->getClientOriginalName();
+            $caminhoArquivo = $arquivo->storeAs('ordens-servico/documentos', $nomeArquivo, 'public');
+            $validated['documento_anexo_path'] = $caminhoArquivo;
+            $validated['documento_anexo_nome'] = $arquivo->getClientOriginalName();
+        }
         
         // Determina competência e município
         if (!empty($validated['estabelecimento_id'])) {
@@ -140,7 +201,7 @@ class OrdemServicoController extends Controller
         // Gera número da OS e define data de abertura automática
         $validated['numero'] = OrdemServico::gerarNumero();
         $validated['data_abertura'] = now()->format('Y-m-d');
-        $validated['status'] = 'aberta';
+        $validated['status'] = 'em_andamento';
         
         $ordemServico = OrdemServico::create($validated);
         
@@ -183,9 +244,6 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
         }
         
-        // Busca estabelecimentos conforme competência
-        $estabelecimentos = $this->getEstabelecimentosPorCompetencia($usuario);
-        
         // Busca tipos de ação ativos
         $tiposAcao = TipoAcao::ativo()->orderBy('descricao')->get();
         
@@ -200,7 +258,7 @@ class OrdemServicoController extends Controller
             $municipios = Municipio::orderBy('nome')->get();
         }
         
-        return view('ordens-servico.edit', compact('ordemServico', 'estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios'));
+        return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios'));
     }
 
     /**
@@ -221,17 +279,26 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
         }
         
-        $validated = $request->validate([
+        // Validação condicional: processo é obrigatório se há estabelecimento
+        $rules = [
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
-            'processo_id' => 'nullable|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'tecnicos_ids' => 'required|array|min:1',
             'tecnicos_ids.*' => 'exists:usuarios_internos,id',
             'observacoes' => 'nullable|string',
-            'data_inicio' => 'nullable|date',
-            'data_fim' => 'nullable|date|after_or_equal:data_inicio',
-        ]);
+            'data_inicio' => 'required|date|after_or_equal:today',
+            'data_fim' => 'required|date|after_or_equal:data_inicio',
+        ];
+        
+        // Se tem estabelecimento, processo é obrigatório
+        if (!empty($request->estabelecimento_id)) {
+            $rules['processo_id'] = 'required|exists:processos,id';
+        } else {
+            $rules['processo_id'] = 'nullable|exists:processos,id';
+        }
+        
+        $validated = $request->validate($rules);
         
         // Valida se o estabelecimento pertence ao município do usuário (se municipal)
         if (!empty($validated['estabelecimento_id']) && $usuario->isMunicipal()) {
@@ -293,6 +360,80 @@ class OrdemServicoController extends Controller
         
         return redirect()->route('admin.ordens-servico.index')
             ->with('success', "Ordem de Serviço {$numero} excluída com sucesso!");
+    }
+
+    /**
+     * Cancela uma ordem de serviço
+     */
+    public function cancelar(Request $request, OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Verifica permissão
+        if (!$this->podeEditarOS($usuario, $ordemServico)) {
+            abort(403, 'Você não tem permissão para cancelar esta ordem de serviço.');
+        }
+        
+        // Não permite cancelar OS finalizada
+        if ($ordemServico->status === 'finalizada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Não é possível cancelar uma Ordem de Serviço finalizada.');
+        }
+        
+        // Não permite cancelar OS já cancelada
+        if ($ordemServico->status === 'cancelada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Esta Ordem de Serviço já está cancelada.');
+        }
+        
+        // Valida motivo do cancelamento
+        $validated = $request->validate([
+            'motivo_cancelamento' => 'required|string|min:20',
+        ], [
+            'motivo_cancelamento.required' => 'Informe o motivo do cancelamento.',
+            'motivo_cancelamento.min' => 'O motivo deve ter no mínimo 20 caracteres.',
+        ]);
+        
+        $numero = $ordemServico->numero;
+        $ordemServico->update([
+            'status' => 'cancelada',
+            'motivo_cancelamento' => $validated['motivo_cancelamento'],
+            'cancelada_em' => now(),
+            'cancelada_por' => $usuario->id,
+        ]);
+        
+        return redirect()->route('admin.ordens-servico.index')
+            ->with('success', "Ordem de Serviço {$numero} cancelada com sucesso!");
+    }
+
+    /**
+     * Reinicia uma ordem de serviço cancelada
+     */
+    public function reativar(OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Apenas gestores podem reativar
+        if (!$usuario->isAdmin() && !$usuario->isEstadual() && !$usuario->isMunicipal()) {
+            abort(403, 'Apenas gestores podem reativar ordens de serviço canceladas.');
+        }
+        
+        // Verifica se está cancelada
+        if ($ordemServico->status !== 'cancelada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Apenas ordens de serviço canceladas podem ser reativadas.');
+        }
+        
+        $numero = $ordemServico->numero;
+        $ordemServico->update([
+            'status' => 'em_andamento',
+            'motivo_cancelamento' => null,
+            'cancelada_em' => null,
+            'cancelada_por' => null,
+        ]);
+        
+        return redirect()->route('admin.ordens-servico.show', $ordemServico)
+            ->with('success', "Ordem de Serviço {$numero} reativada com sucesso!");
     }
 
     /**
@@ -546,11 +687,27 @@ class OrdemServicoController extends Controller
             'atividades_realizadas' => 'required|in:sim,parcial,nao',
             'observacoes_finalizacao' => 'required|string|min:20',
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'acoes_executadas_ids' => 'nullable|array',
+            'acoes_executadas_ids.*' => 'exists:tipo_acoes,id',
         ], [
             'atividades_realizadas.required' => 'Informe se as atividades foram realizadas.',
             'observacoes_finalizacao.required' => 'As observações são obrigatórias.',
             'observacoes_finalizacao.min' => 'As observações devem ter no mínimo 20 caracteres.',
         ]);
+        
+        // Processa ações executadas conforme status
+        $acoesExecutadasIds = [];
+        
+        if ($validated['atividades_realizadas'] === 'sim') {
+            // Concluído com sucesso: todas as ações foram executadas
+            $acoesExecutadasIds = $ordemServico->tipos_acao_ids;
+        } elseif ($validated['atividades_realizadas'] === 'parcial') {
+            // Concluído parcialmente: apenas as ações selecionadas
+            $acoesExecutadasIds = $request->input('acoes_executadas_ids', []);
+        } elseif ($validated['atividades_realizadas'] === 'nao') {
+            // Não concluído: nenhuma ação foi executada
+            $acoesExecutadasIds = [];
+        }
         
         // Se estabelecimento foi informado, vincula e busca processo
         $dadosAtualizacao = [
@@ -558,6 +715,7 @@ class OrdemServicoController extends Controller
             'data_conclusao' => now(),
             'atividades_realizadas' => $validated['atividades_realizadas'],
             'observacoes_finalizacao' => $validated['observacoes_finalizacao'],
+            'acoes_executadas_ids' => $acoesExecutadasIds,
             'finalizada_por' => $usuario->id,
             'finalizada_em' => now(),
         ];
@@ -684,6 +842,81 @@ class OrdemServicoController extends Controller
     }
 
     /**
+     * Buscar estabelecimentos com autocomplete (AJAX)
+     */
+    public function buscarEstabelecimentos(Request $request)
+    {
+        $usuario = Auth::guard('interno')->user();
+        $termo = $request->get('q', '');
+        $page = $request->get('page', 1);
+        $perPage = 20;
+        
+        // Query base
+        $query = Estabelecimento::query();
+        
+        // Filtro por competência
+        if ($usuario->isEstadual()) {
+            // Estadual vê apenas estabelecimentos estaduais
+            $query->where('competencia_manual', 'estadual');
+        } elseif ($usuario->isMunicipal()) {
+            // Municipal vê apenas estabelecimentos do seu município
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+        // Admin vê todos
+        
+        // Busca por CNPJ/CPF, Nome Fantasia ou Razão Social
+        if (!empty($termo)) {
+            // Remove formatação do termo (pontos, hífen, barra) para buscar apenas números
+            $termoNumeros = preg_replace('/[^0-9]/', '', $termo);
+            
+            $query->where(function($q) use ($termo, $termoNumeros) {
+                // Busca por CNPJ/CPF (com ou sem formatação)
+                if (!empty($termoNumeros)) {
+                    $q->where('cnpj', 'ILIKE', "%{$termoNumeros}%")
+                      ->orWhere('cpf', 'ILIKE', "%{$termoNumeros}%");
+                }
+                // Busca por nome
+                $q->orWhere('nome_fantasia', 'ILIKE', "%{$termo}%")
+                  ->orWhere('razao_social', 'ILIKE', "%{$termo}%")
+                  ->orWhere('nome_completo', 'ILIKE', "%{$termo}%");
+            });
+        }
+        
+        // Paginação
+        $total = $query->count();
+        $estabelecimentos = $query->orderBy('nome_fantasia')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get();
+        
+        // Formata resultados para Select2
+        $results = $estabelecimentos->map(function($estabelecimento) {
+            // Pessoa Jurídica (CNPJ)
+            if (!empty($estabelecimento->cnpj)) {
+                $documento = $estabelecimento->cnpj;
+                $nome = $estabelecimento->nome_fantasia . ' - ' . $estabelecimento->razao_social;
+            } 
+            // Pessoa Física (CPF)
+            else {
+                $documento = $estabelecimento->cpf ?? 'Sem documento';
+                $nome = $estabelecimento->nome_completo ?? $estabelecimento->razao_social;
+            }
+            
+            return [
+                'id' => $estabelecimento->id,
+                'text' => $documento . ' - ' . $nome
+            ];
+        });
+        
+        return response()->json([
+            'results' => $results,
+            'pagination' => [
+                'more' => ($page * $perPage) < $total
+            ]
+        ]);
+    }
+
+    /**
      * Buscar processos ativos de um estabelecimento
      */
     public function getProcessosEstabelecimento($estabelecimentoId)
@@ -703,9 +936,17 @@ class OrdemServicoController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function($processo) use ($statusLabels) {
+                    // Formata número do processo (ex: 2025/00004)
+                    $numeroProcesso = $processo->numero_processo ?? "Processo #{$processo->id}";
+                    
+                    // Tipo de processo
+                    $tipoProcesso = $processo->tipo ?? 'Não informado';
+                    
                     return [
                         'id' => $processo->id,
-                        'numero' => $processo->numero_processo ?? "Processo #{$processo->id}",
+                        'numero' => $numeroProcesso,
+                        'tipo' => $tipoProcesso,
+                        'texto_completo' => $numeroProcesso . ' - ' . $tipoProcesso,
                         'status' => $processo->status,
                         'status_label' => $statusLabels[$processo->status] ?? ucfirst($processo->status),
                         'data_abertura' => $processo->created_at ? $processo->created_at->format('d/m/Y') : '-',
