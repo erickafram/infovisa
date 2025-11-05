@@ -3,7 +3,7 @@
 @section('title', 'Configurar Senha de Assinatura Digital')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-gray-900">🔐 Senha de Assinatura Digital</h1>

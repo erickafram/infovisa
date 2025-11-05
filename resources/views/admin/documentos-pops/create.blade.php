@@ -4,7 +4,7 @@
 @section('page-title', 'Novo Documento POP')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div class="mb-6">
             <h2 class="text-xl font-bold text-gray-900">Adicionar Novo Documento POP</h2>

@@ -78,11 +78,31 @@ class AssistenteIAController extends Controller
         }
         
         // Verifica se deve buscar na internet
-        $buscaWebAtiva = ConfiguracaoSistema::where('chave', 'ia_busca_web')->value('valor') === 'true';
+        // Prioriza configuração do documento, depois configuração global
+        $buscaWebAtiva = false;
+        
+        // Se tem documento com configuração de busca
+        if (isset($documentoContexto['buscar_internet'])) {
+            $buscaWebAtiva = $documentoContexto['buscar_internet'] === true;
+        } 
+        // Senão, verifica configuração global do sistema
+        else {
+            $buscaWebAtiva = ConfiguracaoSistema::where('chave', 'ia_busca_web')->value('valor') === 'true';
+        }
+        
         if ($buscaWebAtiva && $this->deveBuscarNaInternet($userMessage, $contextoDados)) {
+            \Log::info('Iniciando busca na internet', [
+                'message' => $userMessage,
+                'tem_documento' => isset($documentoContexto),
+                'buscar_internet_doc' => $documentoContexto['buscar_internet'] ?? null
+            ]);
+            
             $resultadosWeb = $this->buscarNaInternet($userMessage);
             if (!empty($resultadosWeb)) {
                 $contextoDados['resultados_web'] = $resultadosWeb;
+                \Log::info('Resultados da busca adicionados ao contexto', [
+                    'total' => $resultadosWeb['total'] ?? 0
+                ]);
             }
         }
 
@@ -866,16 +886,64 @@ class AssistenteIAController extends Controller
         $docPdf = $contextoDados['documento_pdf'];
         $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
         $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+        $buscarInternet = $docPdf['buscar_internet'] ?? false;
         
         $prompt = "Você é um assistente especializado em análise de documentos.\n\n";
         $prompt .= "🚨 DOCUMENTO CARREGADO PELO USUÁRIO:\n\n";
         $prompt .= "**Nome:** {$nomeDoc}\n\n";
         $prompt .= "**CONTEÚDO:**\n{$conteudoDoc}\n\n";
-        $prompt .= "**INSTRUÇÕES:**\n";
-        $prompt .= "- Responda APENAS com base no conteúdo acima\n";
+        
+        // Adiciona resultados da busca na internet se disponíveis
+        if (isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web'])) {
+            $resultadosWeb = $contextoDados['resultados_web'];
+            
+            $prompt .= "\n\n==== 🌐 RESULTADOS DA BUSCA NA INTERNET ====\n";
+            $prompt .= "Busca realizada: {$resultadosWeb['query']}\n";
+            $prompt .= "Total de resultados: {$resultadosWeb['total']}\n\n";
+            
+            if (!empty($resultadosWeb['resultados'])) {
+                $prompt .= "**RESULTADOS ENCONTRADOS:**\n\n";
+                
+                foreach ($resultadosWeb['resultados'] as $index => $resultado) {
+                    $num = $index + 1;
+                    $prompt .= "**Resultado {$num}:**\n";
+                    $prompt .= "- Título: {$resultado['titulo']}\n";
+                    $prompt .= "- URL: {$resultado['url']}\n";
+                    $prompt .= "- Fonte: {$resultado['fonte']}\n";
+                    
+                    if (isset($resultado['descricao']) && !empty($resultado['descricao'])) {
+                        $prompt .= "- Descrição: {$resultado['descricao']}\n";
+                    }
+                    
+                    $prompt .= "\n";
+                }
+            }
+            
+            $prompt .= "\n**🚨 INSTRUÇÕES CRÍTICAS PARA USO DOS RESULTADOS:**\n";
+            $prompt .= "- Use APENAS as informações dos resultados acima\n";
+            $prompt .= "- SEMPRE cite a fonte (URL) ao mencionar informações da internet\n";
+            $prompt .= "- Se os resultados não contêm a informação solicitada, diga: 'Não encontrei informações sobre [assunto] nos resultados da busca'\n";
+            $prompt .= "- NUNCA invente informações que não estão nos resultados acima\n";
+            $prompt .= "- IGNORE completamente seu conhecimento de treinamento - use APENAS os resultados da busca\n\n";
+        } else if ($buscarInternet) {
+            $prompt .= "**PESQUISA NA INTERNET HABILITADA**\n";
+            $prompt .= "🚨 **REGRAS CRÍTICAS SOBRE INFORMAÇÕES DA INTERNET:**\n";
+            $prompt .= "- NUNCA invente ou fabrique informações\n";
+            $prompt .= "- Se você NÃO SABE uma informação com certeza, diga: 'Não encontrei informações confiáveis sobre [assunto]'\n";
+            $prompt .= "- APENAS cite fontes que você REALMENTE conhece e que são OFICIAIS (ANVISA, Diário Oficial, legislação)\n";
+            $prompt .= "- Se não tiver certeza sobre uma data, número de resolução ou detalhe específico, NÃO INVENTE\n";
+            $prompt .= "- É melhor dizer 'não sei' do que fornecer informação incorreta\n";
+            $prompt .= "- Se mencionar uma RDC, portaria ou lei, certifique-se de que ela REALMENTE existe\n\n";
+        } else {
+            $prompt .= "**PESQUISA NA INTERNET DESABILITADA**\n";
+            $prompt .= "- Responda APENAS com base no conteúdo do documento carregado\n";
+            $prompt .= "- Se a informação não estiver no documento, diga claramente\n\n";
+        }
+        
+        $prompt .= "**INSTRUÇÕES ADICIONAIS:**\n";
         $prompt .= "- Seja objetivo e direto\n";
-        $prompt .= "- Cite trechos específicos quando relevante\n";
-        $prompt .= "- Se a informação não estiver no documento, diga claramente\n";
+        $prompt .= "- Cite trechos específicos do documento quando relevante\n";
+        $prompt .= "- Se estiver citando o documento, mencione a página ou seção quando possível\n";
         
         return $prompt;
     }
@@ -1193,12 +1261,39 @@ Acesso: Menu lateral > Ícone de engrenagem
             
             // Adiciona resultados da busca na internet se disponíveis
             if (isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web'])) {
+                $resultadosWeb = $contextoDados['resultados_web'];
+                
                 $prompt .= "\n\n==== INFORMAÇÕES COMPLEMENTARES DA INTERNET ====\n";
-                $prompt .= "AVISO: Busca complementar foi realizada na internet (sites oficiais como anvisa.gov.br e in.gov.br).\n";
-                $prompt .= "- **PRIORIZE SEMPRE os documentos POPs cadastrados localmente**\n";
-                $prompt .= "- Use informações da internet apenas para COMPLEMENTAR quando não houver POPs\n";
-                $prompt .= "- SEMPRE indique a fonte: \"Segundo busca complementar na internet...\"\n";
-                $prompt .= "- NUNCA misture informações dos POPs com informações da internet sem deixar claro\n\n";
+                $prompt .= "Busca realizada no Google: {$resultadosWeb['query']}\n";
+                $prompt .= "Total de resultados encontrados: {$resultadosWeb['total']}\n\n";
+                
+                if (!empty($resultadosWeb['resultados'])) {
+                    $prompt .= "**RESULTADOS ENCONTRADOS:**\n\n";
+                    
+                    foreach ($resultadosWeb['resultados'] as $index => $resultado) {
+                        $num = $index + 1;
+                        $prompt .= "**Resultado {$num}:**\n";
+                        $prompt .= "- Título: {$resultado['titulo']}\n";
+                        $prompt .= "- URL: {$resultado['url']}\n";
+                        $prompt .= "- Fonte: {$resultado['fonte']}\n";
+                        
+                        if (isset($resultado['descricao']) && !empty($resultado['descricao'])) {
+                            $prompt .= "- Descrição: {$resultado['descricao']}\n";
+                        }
+                        
+                        if (isset($resultado['texto']) && !empty($resultado['texto'])) {
+                            $prompt .= "- Conteúdo: {$resultado['texto']}\n";
+                        }
+                        
+                        $prompt .= "\n";
+                    }
+                }
+                
+                $prompt .= "\n**INSTRUÇÕES PARA USO DOS RESULTADOS:**\n";
+                $prompt .= "- Use APENAS informações dos resultados acima\n";
+                $prompt .= "- SEMPRE cite a fonte (URL) ao mencionar informações da internet\n";
+                $prompt .= "- Se os resultados não contêm a informação solicitada, diga: 'Não encontrei informações sobre [assunto] nos resultados da busca'\n";
+                $prompt .= "- NUNCA invente informações que não estão nos resultados acima\n\n";
             }
         }
 
@@ -1226,6 +1321,24 @@ Acesso: Menu lateral > Ícone de engrenagem
      */
     private function deveBuscarNaInternet($message, $contextoDados)
     {
+        // Se houver documento PDF carregado, verifica a configuração buscar_internet
+        if (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
+            // Se buscar_internet estiver definido, retorna esse valor
+            if (isset($contextoDados['documento_pdf']['buscar_internet'])) {
+                $deveBuscar = $contextoDados['documento_pdf']['buscar_internet'] === true;
+                
+                \Log::info('Verificação de busca (documento)', [
+                    'deve_buscar' => $deveBuscar,
+                    'buscar_internet_config' => $contextoDados['documento_pdf']['buscar_internet']
+                ]);
+                
+                return $deveBuscar;
+            }
+            // Por padrão, não busca na internet para documentos
+            \Log::info('Documento sem configuração de busca - não busca');
+            return false;
+        }
+
         // Se não encontrou documentos POPs relevantes, busca na internet
         if (!isset($contextoDados['documentos_pops']) || empty($contextoDados['documentos_pops'])) {
             // Verifica se é uma pergunta sobre normas/regulamentações
@@ -1234,10 +1347,19 @@ Acesso: Menu lateral > Ícone de engrenagem
             
             foreach ($palavrasChaveNormas as $palavra) {
                 if (strpos($messageLower, $palavra) !== false) {
+                    \Log::info('Palavra-chave de norma encontrada - deve buscar', [
+                        'palavra' => $palavra,
+                        'message' => $message
+                    ]);
                     return true;
                 }
             }
         }
+        
+        \Log::info('Não deve buscar na internet', [
+            'tem_pops' => isset($contextoDados['documentos_pops']),
+            'message' => $message
+        ]);
         
         return false;
     }
@@ -1248,34 +1370,422 @@ Acesso: Menu lateral > Ícone de engrenagem
     private function buscarNaInternet($message)
     {
         try {
-            // Monta query de busca focada em vigilância sanitária
-            $query = $message . ' site:anvisa.gov.br OR site:in.gov.br';
+            // Monta query de busca
+            // Se menciona RDC, busca mais ampla; senão, foca em sites oficiais
+            $messageLower = strtolower($message);
+            if (strpos($messageLower, 'rdc') !== false || strpos($messageLower, 'resolução') !== false) {
+                // Busca ampla para RDCs (inclui sites não oficiais que podem ter a informação)
+                $query = $message . ' anvisa';
+            } else {
+                // Busca focada em sites oficiais
+                $query = $message . ' site:anvisa.gov.br OR site:in.gov.br';
+            }
             
-            // Usa API do Google Custom Search ou DuckDuckGo
-            // Por enquanto, vamos usar uma busca simples com file_get_contents
-            $searchUrl = 'https://www.google.com/search?q=' . urlencode($query);
-            
-            // Nota: Em produção, você deve usar uma API oficial como Google Custom Search API
-            // ou implementar um scraper mais robusto
-            
-            \Log::info('Busca na internet realizada', [
+            \Log::info('Iniciando busca na internet', [
                 'query' => $query,
-                'message' => $message
+                'message' => $message,
+                'busca_ampla' => strpos($messageLower, 'rdc') !== false
             ]);
             
-            // Por enquanto, retorna vazio - você pode implementar com uma API real
-            // Exemplo: Google Custom Search API, Bing Search API, etc.
+            // Tenta primeiro no DuckDuckGo (mais simples e permissivo)
+            $resultados = $this->buscarNoDuckDuckGo($query);
+            
+            // Se DuckDuckGo não retornar, tenta Bing
+            if (empty($resultados)) {
+                \Log::info('DuckDuckGo não retornou resultados, tentando Bing...');
+                $resultados = $this->buscarNoBing($query);
+            }
+            
+            // Se Bing não retornar, tenta Google
+            if (empty($resultados)) {
+                \Log::info('Bing não retornou resultados, tentando Google...');
+                $resultados = $this->buscarNoGoogle($query);
+            }
+            
+            if (empty($resultados)) {
+                \Log::info('Nenhum resultado encontrado em nenhum buscador');
+                return [];
+            }
+            
+            \Log::info('Resultados encontrados', [
+                'total' => count($resultados)
+            ]);
+            
             return [
-                'fonte' => 'Busca na internet',
-                'aviso' => 'Busca complementar realizada. Priorize sempre os documentos POPs cadastrados.',
+                'fonte' => 'Busca na Internet',
+                'query' => $query,
+                'resultados' => $resultados,
+                'total' => count($resultados)
             ];
             
         } catch (\Exception $e) {
             \Log::error('Erro ao buscar na internet', [
                 'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return [];
         }
+    }
+    
+    /**
+     * Busca no DuckDuckGo (HTML mais simples)
+     */
+    private function buscarNoDuckDuckGo($query)
+    {
+        try {
+            $searchUrl = 'https://html.duckduckgo.com/html/?q=' . urlencode($query);
+            
+            \Log::info('Buscando no DuckDuckGo', ['url' => $searchUrl]);
+            
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            ])->timeout(10)->get($searchUrl);
+            
+            if (!$response->successful()) {
+                \Log::warning('Falha na busca do DuckDuckGo', ['status' => $response->status()]);
+                return [];
+            }
+            
+            $html = $response->body();
+            return $this->extrairResultadosDuckDuckGo($html);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar no DuckDuckGo', ['erro' => $e->getMessage()]);
+            return [];
+        }
+    }
+    
+    /**
+     * Busca no Bing
+     */
+    private function buscarNoBing($query)
+    {
+        try {
+            $searchUrl = 'https://www.bing.com/search?q=' . urlencode($query) . '&setlang=pt-BR';
+            
+            \Log::info('Buscando no Bing', ['url' => $searchUrl]);
+            
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            ])->timeout(10)->get($searchUrl);
+            
+            if (!$response->successful()) {
+                \Log::warning('Falha na busca do Bing', ['status' => $response->status()]);
+                return [];
+            }
+            
+            $html = $response->body();
+            return $this->extrairResultadosBing($html);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar no Bing', ['erro' => $e->getMessage()]);
+            return [];
+        }
+    }
+    
+    /**
+     * Busca no Google
+     */
+    private function buscarNoGoogle($query)
+    {
+        try {
+            $searchUrl = 'https://www.google.com/search?q=' . urlencode($query) . '&hl=pt-BR';
+            
+            \Log::info('Buscando no Google', ['url' => $searchUrl]);
+            
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Encoding' => 'gzip, deflate',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1'
+            ])->timeout(10)->get($searchUrl);
+            
+            if (!$response->successful()) {
+                \Log::warning('Falha na busca do Google', ['status' => $response->status()]);
+                return [];
+            }
+            
+            $html = $response->body();
+            return $this->extrairResultadosGoogle($html);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar no Google', ['erro' => $e->getMessage()]);
+            return [];
+        }
+    }
+    
+    /**
+     * Extrai resultados da página de busca do Google
+     */
+    private function extrairResultadosGoogle($html)
+    {
+        $resultados = [];
+        
+        try {
+            // Log amostra do HTML
+            \Log::info('HTML Google (amostra)', [
+                'html_inicio' => mb_substr($html, 0, 1000)
+            ]);
+            
+            // Remove quebras de linha para facilitar regex
+            $html = str_replace(["\r", "\n"], '', $html);
+            
+            // Padrão para extrair resultados orgânicos do Google
+            // Busca por divs com classe que contém resultados
+            preg_match_all('/<div class="[^"]*g[^"]*"[^>]*>.*?<a href="\/url\?q=([^"&]+)"[^>]*>.*?<h3[^>]*>(.*?)<\/h3>.*?<\/div>/is', $html, $matches, PREG_SET_ORDER);
+            
+            if (empty($matches)) {
+                // Tenta padrão alternativo (Google muda frequentemente)
+                preg_match_all('/<a href="([^"]+)"[^>]*><h3[^>]*>(.*?)<\/h3>/is', $html, $matches2, PREG_SET_ORDER);
+                
+                foreach ($matches2 as $match) {
+                    $url = $match[1];
+                    $titulo = strip_tags($match[2]);
+                    
+                    // Filtra apenas URLs válidas (não links internos do Google)
+                    // Aceita qualquer site, mas exclui Google e sites irrelevantes
+                    if (strpos($url, 'http') === 0 && 
+                        strpos($url, 'google.com') === false &&
+                        strpos($url, 'youtube.com') === false &&
+                        strpos($url, 'facebook.com') === false) {
+                        
+                        $resultados[] = [
+                            'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                            'url' => $url,
+                            'fonte' => $this->extrairDominio($url)
+                        ];
+                        
+                        if (count($resultados) >= 5) break; // Limita a 5 resultados
+                    }
+                }
+            } else {
+                foreach ($matches as $match) {
+                    $url = urldecode($match[1]);
+                    $titulo = strip_tags($match[2]);
+                    
+                    $resultados[] = [
+                        'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                        'url' => $url,
+                        'fonte' => $this->extrairDominio($url)
+                    ];
+                    
+                    if (count($resultados) >= 5) break; // Limita a 5 resultados
+                }
+            }
+            
+            // Fallback 1: Buscar snippets de featured snippets
+            if (empty($resultados)) {
+                preg_match_all('/<div[^>]*class="[^"]*BNeawe[^"]*"[^>]*>(.*?)<\/div>/is', $html, $snippets);
+                
+                if (!empty($snippets[1])) {
+                    $texto = '';
+                    foreach (array_slice($snippets[1], 0, 3) as $snippet) {
+                        $texto .= strip_tags($snippet) . ' ';
+                    }
+                    
+                    if (!empty(trim($texto))) {
+                        $resultados[] = [
+                            'titulo' => 'Informação encontrada no Google',
+                            'descricao' => trim($texto),
+                            'url' => 'https://www.google.com',
+                            'fonte' => 'Google Search'
+                        ];
+                    }
+                }
+            }
+            
+            // Fallback 2: Extrai QUALQUER link que contenha "anvisa" ou "rdc"
+            if (empty($resultados)) {
+                preg_match_all('/<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>/is', $html, $allLinks, PREG_SET_ORDER);
+                
+                foreach ($allLinks as $link) {
+                    $url = $link[1];
+                    $titulo = strip_tags($link[2]);
+                    
+                    // Limpa URL do Google
+                    if (strpos($url, '/url?q=') !== false) {
+                        parse_str(parse_url($url, PHP_URL_QUERY), $params);
+                        $url = $params['q'] ?? $url;
+                    }
+                    
+                    $urlLower = strtolower($url);
+                    $tituloLower = strtolower($titulo);
+                    
+                    if (strpos($url, 'http') === 0 &&
+                        strpos($url, 'google.com') === false &&
+                        (strpos($urlLower, 'anvisa') !== false || 
+                         strpos($urlLower, 'rdc') !== false ||
+                         strpos($tituloLower, 'rdc') !== false) &&
+                        !empty(trim($titulo))) {
+                        
+                        $resultados[] = [
+                            'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                            'url' => urldecode($url),
+                            'fonte' => $this->extrairDominio($url),
+                            'descricao' => ''
+                        ];
+                        
+                        if (count($resultados) >= 3) break;
+                    }
+                }
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao extrair resultados do Google', [
+                'erro' => $e->getMessage()
+            ]);
+        }
+        
+        return $resultados;
+    }
+    
+    /**
+     * Extrai resultados do DuckDuckGo
+     */
+    private function extrairResultadosDuckDuckGo($html)
+    {
+        $resultados = [];
+        
+        try {
+            // Salva HTML para debug (apenas primeiros 5000 caracteres)
+            \Log::info('HTML DuckDuckGo (amostra)', [
+                'html_inicio' => mb_substr($html, 0, 1000)
+            ]);
+            
+            // Tenta múltiplos padrões para DuckDuckGo
+            
+            // Padrão 1: Links diretos
+            preg_match_all('/<a[^>]+class="[^"]*result[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>/is', $html, $matches, PREG_SET_ORDER);
+            
+            if (!empty($matches)) {
+                foreach ($matches as $match) {
+                    $url = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    $titulo = strip_tags($match[2]);
+                    
+                    // Limpa URL do DuckDuckGo (remove redirect)
+                    if (strpos($url, '//duckduckgo.com/l/?') !== false) {
+                        parse_str(parse_url($url, PHP_URL_QUERY), $params);
+                        $url = $params['uddg'] ?? $url;
+                    }
+                    
+                    // Filtra URLs válidas
+                    if (strpos($url, 'http') === 0 && 
+                        strpos($url, 'duckduckgo.com') === false &&
+                        !empty(trim($titulo))) {
+                        
+                        $resultados[] = [
+                            'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                            'url' => $url,
+                            'fonte' => $this->extrairDominio($url),
+                            'descricao' => ''
+                        ];
+                        
+                        if (count($resultados) >= 5) break;
+                    }
+                }
+            }
+            
+            // Padrão 2: Fallback - qualquer link HTTP
+            if (empty($resultados)) {
+                preg_match_all('/<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/is', $html, $matches2, PREG_SET_ORDER);
+                
+                foreach ($matches2 as $match) {
+                    $url = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    $titulo = strip_tags($match[2]);
+                    
+                    if (strpos($url, 'duckduckgo.com') === false &&
+                        strpos($url, 'anvisa') !== false &&
+                        !empty(trim($titulo))) {
+                        
+                        $resultados[] = [
+                            'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                            'url' => $url,
+                            'fonte' => $this->extrairDominio($url),
+                            'descricao' => ''
+                        ];
+                        
+                        if (count($resultados) >= 3) break;
+                    }
+                }
+            }
+            
+            \Log::info('Resultados extraídos do DuckDuckGo', ['total' => count($resultados)]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao extrair resultados do DuckDuckGo', ['erro' => $e->getMessage()]);
+        }
+        
+        return $resultados;
+    }
+    
+    /**
+     * Extrai resultados da página de busca do Bing
+     */
+    private function extrairResultadosBing($html)
+    {
+        $resultados = [];
+        
+        try {
+            // Remove quebras de linha
+            $html = str_replace(["\r", "\n"], '', $html);
+            
+            // Padrão do Bing: <li class="b_algo">
+            preg_match_all('/<li class="b_algo[^"]*">(.*?)<\/li>/is', $html, $matches);
+            
+            if (!empty($matches[1])) {
+                foreach ($matches[1] as $item) {
+                    // Extrai URL e título
+                    if (preg_match('/<a href="([^"]+)"[^>]*>(.*?)<\/a>/is', $item, $link)) {
+                        $url = html_entity_decode($link[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                        $titulo = strip_tags($link[2]);
+                        
+                        // Filtra URLs válidas
+                        if (strpos($url, 'http') === 0 && 
+                            strpos($url, 'bing.com') === false &&
+                            strpos($url, 'microsoft.com') === false) {
+                            
+                            // Extrai descrição se disponível
+                            $descricao = '';
+                            if (preg_match('/<p[^>]*>(.*?)<\/p>/is', $item, $desc)) {
+                                $descricao = strip_tags($desc[1]);
+                                $descricao = html_entity_decode($descricao, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                                $descricao = mb_substr($descricao, 0, 300); // Limita a 300 caracteres
+                            }
+                            
+                            $resultados[] = [
+                                'titulo' => html_entity_decode($titulo, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                                'url' => $url,
+                                'fonte' => $this->extrairDominio($url),
+                                'descricao' => $descricao
+                            ];
+                            
+                            if (count($resultados) >= 5) break;
+                        }
+                    }
+                }
+            }
+            
+            \Log::info('Resultados extraídos do Bing', ['total' => count($resultados)]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao extrair resultados do Bing', ['erro' => $e->getMessage()]);
+        }
+        
+        return $resultados;
+    }
+    
+    /**
+     * Extrai domínio de uma URL
+     */
+    private function extrairDominio($url)
+    {
+        $parsed = parse_url($url);
+        return $parsed['host'] ?? 'Desconhecido';
     }
 
     /**

@@ -10,7 +10,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         pdfUrl: pdfUrl,
         currentPage: 1,
         totalPages: 0,
-        scale: 1.5,
+        scale: 1.0, // Alterado de 1.5 para 1.0 (100%)
         canvas: null,
         ctx: null,
         annotationCanvas: null,
@@ -184,10 +184,13 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         },
 
         async fitToWidth() {
-            const container = this.canvas.parentElement.parentElement;
-            const containerWidth = container.clientWidth - 40;
-            this.scale = containerWidth / this.canvas.width * this.scale;
-            await this.renderPage(this.currentPage);
+            if (!this.canvas) return;
+            
+            const container = this.canvas.parentElement;
+            const containerWidth = container.clientWidth - 40; // Margem
+            const pageWidth = this.canvas.width / this.scale;
+            this.scale = (containerWidth / pageWidth) * 1.0; // 100% da largura
+            this.renderPage(this.currentPage);
         },
 
         setTool(tool) {

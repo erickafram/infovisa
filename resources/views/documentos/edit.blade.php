@@ -433,7 +433,7 @@
                                         <span class="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">Você</span>
                                     @endif
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5">{{ $usuario->cpf }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ $usuario->cpf_formatado }}</div>
                             </div>
                         </label>
                     @endforeach

@@ -4,7 +4,7 @@
 @section('page-title', 'Cadastrar Município')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form id="form-municipio" action="{{ route('admin.configuracoes.municipios.store') }}" method="POST" enctype="multipart/form-data">
             @csrf

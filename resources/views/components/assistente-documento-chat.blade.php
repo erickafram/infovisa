@@ -58,16 +58,16 @@
 }
 </style>
 
-<div x-data="assistenteDocumento()" x-init="init()" class="fixed bottom-6 left-6" style="z-index: 10000; width: 420px;" x-cloak>
+<div x-data="assistenteDocumento()" x-init="init()" class="fixed bottom-6 left-6" style="z-index: 10000; width: 380px;" x-cloak>
     {{-- Botão Flutuante (quando minimizado) --}}
     <button x-show="!chatAberto && documentoCarregado"
             @click="chatAberto = true"
             x-transition.duration.300ms
-            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 p-4 flex items-center gap-3">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 p-3 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <span class="text-sm font-medium pr-2">Assistente de Documento</span>
+        <span class="text-xs font-medium">Assistente</span>
     </button>
     
     {{-- Janela de Chat do Documento --}}
@@ -85,6 +85,13 @@
                 <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-base">Assistente de Documento</h3>
                     <p class="text-[10px] text-white/80" x-show="documentoCarregado" x-text="documentoCarregado ? `📄 ${documentoCarregado.nome_documento}` : ''"></p>
+                    <div class="flex items-center mt-1" x-show="documentoCarregado">
+                        <label class="relative inline-flex items-center cursor-pointer" title="Ativa conhecimento geral da IA (pode estar desatualizado)">
+                            <input type="checkbox" x-model="buscarInternet" @change="mostrarAvisoBuscaInternet()" class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ms-2 text-xs font-medium text-white/90">Conhecimento geral</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -168,6 +175,7 @@ function assistenteDocumento() {
         mensagens: [],
         mensagemAtual: '',
         carregando: false,
+        buscarInternet: false,
         documentoCarregado: null,
         nomeDocumento: '',
         
@@ -247,7 +255,8 @@ function assistenteDocumento() {
                         history: history.slice(0, -1),
                         documento_contexto: {
                             nome: this.documentoCarregado.nome_documento, // Nome do documento
-                            conteudo: this.documentoCarregado.conteudo    // Conteúdo extraído
+                            conteudo: this.documentoCarregado.conteudo,   // Conteúdo extraído
+                            buscar_internet: this.buscarInternet          // Se deve buscar na internet
                         }
                     })
                 });
@@ -317,6 +326,23 @@ function assistenteDocumento() {
                     this.mensagens = [];
                 }
             }, 1000);
+        },
+        
+        mostrarAvisoBuscaInternet() {
+            if (this.buscarInternet) {
+                this.mensagens.push({
+                    role: 'assistant',
+                    content: `⚠️ **Conhecimento Geral Ativado**\n\n` +
+                             `A IA agora pode usar seu conhecimento de treinamento além do documento.\n\n` +
+                             `**IMPORTANTE:**\n` +
+                             `- A IA NÃO tem acesso real à internet\n` +
+                             `- Usa apenas conhecimento do treinamento (pode estar desatualizado)\n` +
+                             `- Sempre verifique informações críticas em fontes oficiais\n` +
+                             `- Para RDCs, portarias e leis, consulte: www.anvisa.gov.br ou www.in.gov.br`,
+                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                });
+                this.scrollToBottom();
+            }
         }
     }
 }

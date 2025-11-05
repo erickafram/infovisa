@@ -33,15 +33,15 @@ class CnpjService
             }
 
             // Tenta API 1: Minha Receita (principal)
-            Log::info('Tentando buscar CNPJ na Minha Receita', ['cnpj' => $cnpjLimpo]);
+            Log::info('Tentando buscar CNPJ na Receita', ['cnpj' => $cnpjLimpo]);
             $dados = $this->consultarMinhaReceita($cnpjLimpo);
             if ($dados !== null) {
-                Log::info('CNPJ encontrado na Minha Receita', ['cnpj' => $cnpjLimpo]);
+                Log::info('CNPJ encontrado na Receita', ['cnpj' => $cnpjLimpo]);
                 return $dados;
             }
 
             // Tenta API 2: BrasilAPI (backup 1)
-            Log::info('Minha Receita falhou, tentando BrasilAPI', ['cnpj' => $cnpjLimpo]);
+            Log::info('Receita falhou, tentando BrasilAPI', ['cnpj' => $cnpjLimpo]);
             $dados = $this->consultarBrasilApi($cnpjLimpo);
             if ($dados !== null) {
                 Log::info('CNPJ encontrado na BrasilAPI', ['cnpj' => $cnpjLimpo]);

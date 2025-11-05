@@ -6,7 +6,7 @@
 @section('content')
 <div class="space-y-6">
     {{-- Mensagem de boas-vindas --}}
-    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-sm p-8 border border-blue-100/50">
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-sm p-8 border border-blue-100/50 hover:shadow transition-all duration-200">
         <h2 class="text-2xl font-semibold text-gray-800">
             Olá, {{ auth('interno')->user()->nome }}! 👋
         </h2>
@@ -19,7 +19,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
 
         {{-- CARD 1: Minhas Ordens de Serviço --}}
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
             {{-- Header --}}
             <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -29,7 +29,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-800">Minhas OSs</h3>
+                        <h3 class="text-sm font-semibold text-gray-800">Minhas OS</h3>
                         <p class="text-xs text-gray-600">{{ $stats['ordens_servico_andamento'] ?? 0 }} em andamento</p>
                     </div>
                 </div>
@@ -95,7 +95,7 @@
                     @endforeach
                 </div>
                 @else
-                <div class="p-8 text-center">
+                <div class="p-8 text-center bg-white/50 rounded-lg m-2">
                     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
@@ -116,7 +116,7 @@
         </div>
 
         {{-- CARD 2: Processos Acompanhados --}}
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
             {{-- Header --}}
             <div class="bg-gradient-to-br from-purple-50 to-pink-50 px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -166,7 +166,7 @@
                     @endforeach
                 </div>
                 @else
-                <div class="p-8 text-center">
+                <div class="p-8 text-center bg-white/50 rounded-lg m-2">
                     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -188,7 +188,7 @@
         </div>
 
         {{-- CARD 3: Assinaturas Pendentes --}}
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
             {{-- Header --}}
             <div class="bg-gradient-to-br from-amber-50 to-orange-50 px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -243,7 +243,7 @@
                     @endforeach
                 </div>
                 @else
-                <div class="p-8 text-center">
+                <div class="p-8 text-center bg-white/50 rounded-lg m-2">
                     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -264,7 +264,7 @@
         </div>
 
         {{-- CARD 4: Processos Designados --}}
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
             {{-- Header --}}
             <div class="bg-gradient-to-br from-emerald-50 to-teal-50 px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -321,7 +321,7 @@
                     @endforeach
                 </div>
                 @else
-                <div class="p-8 text-center">
+                <div class="p-8 text-center bg-white/50 rounded-lg m-2">
                     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
@@ -398,7 +398,7 @@
 
     {{-- Processos Designados para Você --}}
     @if($stats['processos_designados_pendentes'] > 0)
-    <div class="bg-white border-l-4 border-purple-400 rounded-lg shadow-sm">
+    <div class="bg-white border-l-4 border-purple-400 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border-r border-t border-b border-gray-100">
         <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <div>
                 <h3 class="text-sm font-semibold text-gray-900">
@@ -554,7 +554,7 @@
 
     {{-- Lista de Estabelecimentos Pendentes --}}
     @if($estabelecimentos_pendentes->count() > 0)
-    <div class="bg-white shadow rounded-lg">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
         <div class="px-4 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-base leading-6 font-semibold text-gray-900">
                 Estabelecimentos Aguardando Aprovação
@@ -628,7 +628,7 @@
 
             {{-- Modal de Rejeição --}}
             <div id="modal-rejeitar-{{ $estabelecimento->id }}" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-xl bg-white border-gray-100">
                     <div class="mt-3">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Rejeitar Estabelecimento</h3>
@@ -676,7 +676,7 @@
 
     {{-- Processos Acompanhados --}}
     @if($processos_acompanhados->count() > 0)
-    <div class="bg-white shadow rounded-lg">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
         <div class="px-4 py-4 border-b border-gray-200">
             <h3 class="text-base leading-6 font-semibold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -767,7 +767,7 @@
     {{-- Tabelas de Dados Recentes --}}
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {{-- Usuários Externos Recentes --}}
-        <div class="bg-white shadow rounded-lg">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
             <div class="px-4 py-4">
                 <h3 class="text-base leading-6 font-semibold text-gray-900 mb-3">
                     Usuários Externos Recentes
@@ -810,7 +810,7 @@
         </div>
 
         {{-- Usuários Internos Recentes --}}
-        <div class="bg-white shadow rounded-lg">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
             <div class="px-4 py-4">
                 <h3 class="text-base leading-6 font-semibold text-gray-900 mb-3">
                     Usuários Internos Recentes

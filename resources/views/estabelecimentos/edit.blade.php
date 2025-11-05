@@ -26,11 +26,7 @@
                 :disabled="loading"
                 type="button"
                 class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-green-100 to-green-200 rounded-lg hover:from-green-200 hover:to-green-300 shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-            <svg class="w-5 h-5" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" v-if="!loading"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" v-if="loading"/>
-            </svg>
-            <span x-text="loading ? 'Atualizando...' : '🔄 Atualizar pela API'"></span>
+            <span x-text="loading ? 'Atualizando...' : 'Atualizar pela API'"></span>
         </button>
         @endif
     </div>
@@ -247,9 +243,9 @@
                         <label for="cidade" class="block text-sm font-medium text-gray-700 mb-2">
                             Município <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="cidade" id="cidade" required
+                        <input type="text" name="cidade" id="cidade" required readonly
                                x-model="formData.cidade"
-                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 transition-colors">
                     </div>
 
                     {{-- Estado --}}
@@ -257,10 +253,10 @@
                         <label for="estado" class="block text-sm font-medium text-gray-700 mb-2">
                             Estado <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="estado" id="estado" required
+                        <input type="text" name="estado" id="estado" required readonly
                                x-model="formData.estado"
                                maxlength="2"
-                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase transition-colors">
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 uppercase transition-colors">
                     </div>
                 </div>
             </div>

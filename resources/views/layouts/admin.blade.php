@@ -113,7 +113,8 @@
             </a>
             @endif
 
-            <!-- 8. Configurações -->
+            <!-- 8. Configurações (Apenas Administradores) -->
+            @if(auth('interno')->user()->isAdmin())
             <a href="{{ route('admin.configuracoes.index') }}" 
                title="Configurações"
                class="group flex items-center justify-center p-3 rounded-xl {{ request()->routeIs('admin.configuracoes.*') ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }} transition-all duration-200">
@@ -122,6 +123,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </a>
+            @endif
 
             {{-- Logout --}}
             <div class="pt-2 border-t border-gray-100">

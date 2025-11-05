@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/verificar-cnpj/*',
         ]);
         
+        // Registrar alias para middleware customizado
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        ]);
+        
         // Configurar redirect para usuários não autenticados
         $middleware->redirectGuestsTo(function ($request) {
             // Se a rota começa com /admin ou /company, redireciona para login

@@ -248,8 +248,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         'usuarios-externos' => 'usuarioExterno'
     ]);
 
-    // Configurações
-    Route::prefix('configuracoes')->name('configuracoes.')->group(function () {
+    // Configurações - RESTRITO A ADMINISTRADORES
+    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin')->group(function () {
         // Página principal de configurações
         Route::get('/', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])->name('index');
         

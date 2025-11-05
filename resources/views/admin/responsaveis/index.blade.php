@@ -5,6 +5,32 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto">
+    {{-- Indicador de Filtro por Competência --}}
+    @if(!auth('interno')->user()->isAdmin())
+        <div class="mb-4 bg-gradient-to-r {{ auth('interno')->user()->isEstadual() ? 'from-purple-50 to-purple-100 border-purple-200' : 'from-blue-50 to-blue-100 border-blue-200' }} border rounded-lg p-4">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 {{ auth('interno')->user()->isEstadual() ? 'text-purple-600' : 'text-blue-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm font-medium {{ auth('interno')->user()->isEstadual() ? 'text-purple-900' : 'text-blue-900' }}">
+                        @if(auth('interno')->user()->isEstadual())
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-white mr-2">
+                                ESTADUAL
+                            </span>
+                            Você está visualizando apenas responsáveis de estabelecimentos de competência estadual
+                        @else
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white mr-2">
+                                {{ auth('interno')->user()->municipio ?? 'MUNICIPAL' }}
+                            </span>
+                            Você está visualizando apenas responsáveis de estabelecimentos de competência municipal do seu município
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Header com busca e filtros --}}
     <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <form method="GET" action="{{ route('admin.responsaveis.index') }}" class="space-y-4">

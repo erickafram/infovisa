@@ -55,7 +55,7 @@ class CnpjController extends Controller
             // Identifica qual API retornou os dados
             $apiSource = $dados['api_source'] ?? 'desconhecida';
             $apiNames = [
-                'minha_receita' => 'Minha Receita',
+                'minha_receita' => 'Receita Federal',
                 'brasil_api' => 'BrasilAPI',
                 'receita_ws' => 'ReceitaWS'
             ];

@@ -25,12 +25,22 @@
                 @if($documento->processo)
                     <div>
                         <label class="text-xs font-medium text-gray-500 uppercase">Processo</label>
-                        <p class="mt-1 text-sm font-medium text-gray-900">{{ $documento->processo->numero_processo ?? 'S/N' }}</p>
+                        @if($documento->processo)
+                            <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}" 
+                               class="mt-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ $documento->processo->numero_processo ?? 'S/N' }}
+                            </a>
+                        @else
+                            <p class="mt-1 text-sm font-medium text-gray-900">N/A</p>
+                        @endif
                     </div>
                     <div>
                         <label class="text-xs font-medium text-gray-500 uppercase">Estabelecimento</label>
                         <p class="mt-1 text-sm font-medium text-gray-900">
-                            {{ $documento->processo->estabelecimento->nome_fantasia ?? 'N/A' }}
+                            <a href="{{ route('admin.estabelecimentos.show', $documento->processo->estabelecimento_id) }}" 
+                               class="text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ $documento->processo->estabelecimento->nome_fantasia ?? 'N/A' }}
+                            </a>
                         </p>
                     </div>
                 @else

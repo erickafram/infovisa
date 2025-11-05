@@ -4,7 +4,7 @@
 @section('page-title', 'Editar Município')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form action="{{ route('admin.configuracoes.municipios.update', $municipio->id) }}" method="POST" enctype="multipart/form-data">
             @csrf

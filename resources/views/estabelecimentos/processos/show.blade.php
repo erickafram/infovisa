@@ -433,12 +433,6 @@
                             </svg>
                             Lista de Documentos/Arquivos
                         </h2>
-                        <div class="flex items-center gap-2">
-                            <label class="flex items-center gap-2 text-sm text-gray-600">
-                                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                Selecionar Múltiplos
-                            </label>
-                        </div>
                     </div>
                 </div>
 
