@@ -85,6 +85,7 @@ class UsuarioInternoController extends Controller
             'telefone' => 'nullable|string|max:11',
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
+            'setor' => 'nullable|string|max:100',
             'nivel_acesso' => 'required|string',
             'password' => 'required|string|min:8|confirmed',
             'ativo' => 'boolean',
@@ -129,7 +130,8 @@ class UsuarioInternoController extends Controller
     public function edit(UsuarioInterno $usuarioInterno)
     {
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
-        return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios'));
+        $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios', 'tipoSetores'));
     }
 
     /**
@@ -150,6 +152,7 @@ class UsuarioInternoController extends Controller
             'telefone' => 'nullable|string|max:11',
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
+            'setor' => 'nullable|string|max:100',
             'nivel_acesso' => 'required|string',
             'password' => 'nullable|string|min:8|confirmed',
             'ativo' => 'boolean',

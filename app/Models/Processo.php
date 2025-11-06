@@ -189,6 +189,22 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com alertas do processo
+     */
+    public function alertas()
+    {
+        return $this->hasMany(ProcessoAlerta::class)->orderBy('data_alerta', 'asc');
+    }
+
+    /**
+     * Relacionamento com alertas pendentes
+     */
+    public function alertasPendentes()
+    {
+        return $this->hasMany(ProcessoAlerta::class)->where('status', 'pendente')->orderBy('data_alerta', 'asc');
+    }
+
+    /**
      * Verifica se um usuário está acompanhando o processo
      */
     public function estaAcompanhadoPor($usuarioId): bool

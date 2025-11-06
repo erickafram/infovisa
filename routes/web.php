@@ -161,6 +161,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}/usuarios-designacao', [\App\Http\Controllers\ProcessoController::class, 'buscarUsuariosParaDesignacao'])->name('estabelecimentos.processos.usuarios.designacao');
     Route::post('/estabelecimentos/{id}/processos/{processo}/designar', [\App\Http\Controllers\ProcessoController::class, 'designarResponsavel'])->name('estabelecimentos.processos.designar');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}', [\App\Http\Controllers\ProcessoController::class, 'atualizarDesignacao'])->name('estabelecimentos.processos.designacoes.atualizar');
+    Route::put('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}/concluir', [\App\Http\Controllers\ProcessoController::class, 'concluirDesignacao'])->name('estabelecimentos.processos.designacoes.concluir');
+    
+    // Alertas do Processo
+    Route::post('/estabelecimentos/{id}/processos/{processo}/alertas', [\App\Http\Controllers\ProcessoController::class, 'criarAlerta'])->name('estabelecimentos.processos.alertas.criar');
+    Route::patch('/estabelecimentos/{id}/processos/{processo}/alertas/{alerta}/visualizar', [\App\Http\Controllers\ProcessoController::class, 'visualizarAlerta'])->name('estabelecimentos.processos.alertas.visualizar');
+    Route::patch('/estabelecimentos/{id}/processos/{processo}/alertas/{alerta}/concluir', [\App\Http\Controllers\ProcessoController::class, 'concluirAlerta'])->name('estabelecimentos.processos.alertas.concluir');
+    Route::delete('/estabelecimentos/{id}/processos/{processo}/alertas/{alerta}', [\App\Http\Controllers\ProcessoController::class, 'excluirAlerta'])->name('estabelecimentos.processos.alertas.excluir');
     
     // Gerar documento digital
     Route::post('/estabelecimentos/{id}/processos/{processo}/gerar-documento', [\App\Http\Controllers\ProcessoController::class, 'gerarDocumento'])->name('estabelecimentos.processos.gerarDocumento');
@@ -341,6 +348,24 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Assistente IA
     Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
     Route::post('/ia/extrair-pdf', [\App\Http\Controllers\AssistenteIAController::class, 'extrairPdf'])->name('assistente-ia.extrair-pdf');
+    
+    // Diário Oficial
+    Route::prefix('diario-oficial')->name('diario-oficial.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'index'])->name('index');
+        Route::post('/buscar', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'buscar'])->name('buscar');
+        
+        // Buscas Salvas
+        Route::get('/buscas-salvas', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'listarBuscas'])->name('buscas.listar');
+        Route::post('/salvar-busca', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'salvarBusca'])->name('buscas.salvar');
+        Route::delete('/excluir-busca/{id}', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'excluirBusca'])->name('buscas.excluir');
+        
+        // PDF Viewer e Proxy
+        Route::prefix('pdf')->name('pdf.')->group(function () {
+            Route::get('/proxy', [\App\Http\Controllers\Admin\PDFController::class, 'proxy'])->name('proxy');
+            Route::get('/viewer', [\App\Http\Controllers\Admin\PDFController::class, 'viewer'])->name('viewer');
+            Route::post('/search', [\App\Http\Controllers\Admin\PDFController::class, 'searchInPdf'])->name('search');
+        });
+    });
     
     // Relatórios
     Route::get('/relatorios', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('relatorios.index');

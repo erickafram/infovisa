@@ -31,7 +31,7 @@
     <div class="bg-white rounded-xl shadow-lg p-8">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Criar Conta</h1>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Criar Conta</h1>
             <p class="text-gray-600">Preencha seus dados para se cadastrar</p>
         </div>
 

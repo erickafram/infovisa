@@ -685,109 +685,97 @@
     </div>
 
     {{-- Modal Alterar Competência --}}
-    <div id="modal-alterar-competencia" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    <div id="modal-alterar-competencia" class="hidden fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-6 w-full max-w-md">
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Alterar Competência</h3>
+                        <button onclick="document.getElementById('modal-alterar-competencia').classList.add('hidden')" 
+                                class="text-gray-400 hover:text-gray-500 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
-                        </div>
-                        <h3 class="text-lg font-medium text-gray-900">Alterar Competência</h3>
+                        </button>
                     </div>
-                    <button onclick="document.getElementById('modal-alterar-competencia').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                
-                {{-- Alerta de Aviso --}}
-                <div class="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-                    <div class="flex">
-                        <svg class="h-5 w-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-medium text-yellow-800">⚠️ Atenção: Alteração Manual de Competência</p>
-                            <p class="text-xs text-yellow-700 mt-1">
-                                Esta ação sobrescreve a regra de pactuação automática. Use apenas em casos excepcionais (decisão judicial, administrativa, etc.).
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Competência Atual --}}
-                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <p class="text-xs text-gray-600 mb-1">Competência Atual:</p>
-                    <p class="text-lg font-bold text-{{ $estabelecimento->isCompetenciaEstadual() ? 'purple' : 'blue' }}-600">
-                        {{ $estabelecimento->isCompetenciaEstadual() ? '🏛️ ESTADUAL' : '🏘️ MUNICIPAL' }}
-                        @if($estabelecimento->competencia_manual)
-                            <span class="text-xs font-normal text-orange-600">(Alterada Manualmente)</span>
-                        @endif
+                    <p class="text-xs text-amber-600 mt-1">
+                        ⚠️ Use apenas em casos excepcionais (decisão judicial, administrativa, etc.)
                     </p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.estabelecimentos.alterar-competencia', $estabelecimento->id) }}">
                     @csrf
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nova Competência *</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <label class="relative flex flex-col p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                                <input type="radio" name="competencia_manual" value="municipal" required
-                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 mb-2">
-                                <div>
-                                    <span class="block text-sm font-semibold text-gray-900">🏘️ Municipal</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Forçar competência municipal</span>
-                                </div>
-                            </label>
-                            <label class="relative flex flex-col p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
-                                <input type="radio" name="competencia_manual" value="estadual" required
-                                       class="h-4 w-4 text-purple-600 focus:ring-purple-500 mb-2">
-                                <div>
-                                    <span class="block text-sm font-semibold text-gray-900">🏛️ Estadual</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Forçar competência estadual</span>
-                                </div>
-                            </label>
-                            <label class="relative flex flex-col p-4 border-2 border-green-200 bg-green-50 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
-                                <input type="radio" name="competencia_manual" value="automatica" required
-                                       class="h-4 w-4 text-green-600 focus:ring-green-500 mb-2">
-                                <div>
-                                    <span class="block text-sm font-semibold text-gray-900">⚙️ Automática</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Seguir regras de pactuação</span>
-                                </div>
-                            </label>
+                    <div class="p-6 space-y-4">
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500 mb-1">Competência Atual</p>
+                            <p class="font-medium text-{{ $estabelecimento->isCompetenciaEstadual() ? 'purple' : 'blue' }}-600">
+                                {{ $estabelecimento->isCompetenciaEstadual() ? '🏛️ Estadual' : '🏘️ Municipal' }}
+                                @if($estabelecimento->competencia_manual)
+                                    <span class="text-xs text-amber-500">(manual)</span>
+                                @endif
+                            </p>
                         </div>
-                        <p class="mt-2 text-xs text-gray-500">
-                            💡 Selecione "Automática" para remover o override manual e voltar a seguir as regras de pactuação.
-                        </p>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nova Competência</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="relative">
+                                    <input type="radio" name="competencia_manual" value="municipal" required
+                                           class="sr-only peer">
+                                    <div class="p-2 border-2 border-gray-200 rounded-lg text-center cursor-pointer
+                                              hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                                        <span class="block text-sm font-medium">🏘️</span>
+                                        <span class="text-xs">Municipal</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="relative">
+                                    <input type="radio" name="competencia_manual" value="estadual" required
+                                           class="sr-only peer">
+                                    <div class="p-2 border-2 border-gray-200 rounded-lg text-center cursor-pointer
+                                              hover:border-purple-300 peer-checked:border-purple-500 peer-checked:bg-purple-50">
+                                        <span class="block text-sm font-medium">🏛️</span>
+                                        <span class="text-xs">Estadual</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="relative">
+                                    <input type="radio" name="competencia_manual" value="automatica" required
+                                           class="sr-only peer">
+                                    <div class="p-2 border-2 border-gray-200 rounded-lg text-center cursor-pointer
+                                              hover:border-green-300 peer-checked:border-green-500 peer-checked:bg-green-50">
+                                        <span class="block text-sm font-medium">⚙️</span>
+                                        <span class="text-xs">Automática</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="motivo_alteracao" class="block text-sm font-medium text-gray-700 mb-1">
+                                Motivo <span class="text-gray-400 text-xs">(obrigatório)</span>
+                            </label>
+                            <textarea id="motivo_alteracao" name="motivo_alteracao_competencia" 
+                                      rows="2" required minlength="10" maxlength="500"
+                                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Ex: Decisão judicial nº 12345/2025"></textarea>
+                        </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="motivo_alteracao" class="block text-sm font-medium text-gray-700 mb-2">
-                            Motivo da Alteração * <span class="text-xs text-gray-500">(mínimo 10 caracteres)</span>
-                        </label>
-                        <textarea id="motivo_alteracao" name="motivo_alteracao_competencia" rows="4" required
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-                                  placeholder="Ex: Decisão judicial nº 12345/2025 determinou a transferência de competência para o município..."></textarea>
-                        <p class="mt-1 text-xs text-gray-500">
-                            Informe o motivo legal/administrativo para esta alteração (decisão judicial, portaria, etc.)
-                        </p>
-                    </div>
-                    
-                    <div class="flex gap-3">
-                        <button type="button" onclick="document.getElementById('modal-alterar-competencia').classList.add('hidden')"
-                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium">
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                        <button type="button" 
+                                onclick="document.getElementById('modal-alterar-competencia').classList.add('hidden')"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                             Cancelar
                         </button>
                         <button type="submit"
-                                class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium">
-                            Confirmar Alteração
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            Confirmar
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
             </div>
         </div>
     </div>

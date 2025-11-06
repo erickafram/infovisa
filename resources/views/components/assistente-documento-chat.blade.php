@@ -332,14 +332,17 @@ function assistenteDocumento() {
             if (this.buscarInternet) {
                 this.mensagens.push({
                     role: 'assistant',
-                    content: `⚠️ **Conhecimento Geral Ativado**\n\n` +
-                             `A IA agora pode usar seu conhecimento de treinamento além do documento.\n\n` +
-                             `**IMPORTANTE:**\n` +
-                             `- A IA NÃO tem acesso real à internet\n` +
-                             `- Usa apenas conhecimento do treinamento (pode estar desatualizado)\n` +
-                             `- Sempre verifique informações críticas em fontes oficiais\n` +
-                             `- Para RDCs, portarias e leis, consulte: www.anvisa.gov.br ou www.in.gov.br`,
-                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    content: `🌐 **Modo de Busca Avançada**\n\n` +
+         `Agora você está usando recursos avançados de IA com acesso à internet.\n\n` +
+         `**Recursos disponíveis:**\n` +
+         `- Busca em tempo real na web\n` +
+         `- Análise de documentos com IA\n` +
+         `- Respostas baseadas em conhecimento atualizado\n\n` +
+         `**Recomendações:**\n` +
+         `- Informações críticas sempre devem ser validadas\n` +
+         `- Consulte fontes oficiais quando necessário\n` +
+         `- Para RDCs, portarias e leis atualizadas: www.gov.br/anvisa ou www.in.gov.br`,
+time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                 });
                 this.scrollToBottom();
             }

@@ -119,8 +119,8 @@
                                        class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                             </div>
                             <div class="ml-3">
-                                <label for="competencia_municipal" class="font-medium text-gray-700">🏢 Municipal</label>
-                                <p class="text-sm text-gray-500">Todos os municípios podem criar este tipo de processo</p>
+                                <label for="competencia_municipal" class="font-medium text-gray-700">🏢 Somente Municipal</label>
+                                <p class="text-sm text-gray-500">Apenas municípios podem criar este tipo de processo</p>
                             </div>
                         </div>
 
@@ -135,8 +135,24 @@
                                        class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                             </div>
                             <div class="ml-3">
-                                <label for="competencia_estadual" class="font-medium text-gray-700">🏛️ Estadual</label>
-                                <p class="text-sm text-gray-500">Apenas o estado pode criar, exceto municípios descentralizados</p>
+                                <label for="competencia_estadual" class="font-medium text-gray-700">🏛️ Estadual (com seleção de municípios descentralizados)</label>
+                                <p class="text-sm text-gray-500">Apenas o estado pode criar, mas municípios descentralizados também podem (selecione abaixo)</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="radio" 
+                                       name="competencia" 
+                                       id="competencia_estadual_exclusivo"
+                                       value="estadual_exclusivo"
+                                       x-model="competencia"
+                                       {{ old('competencia', $tipoProcesso->competencia) === 'estadual_exclusivo' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <div class="ml-3">
+                                <label for="competencia_estadual_exclusivo" class="font-medium text-gray-700">🏛️ Somente Estadual</label>
+                                <p class="text-sm text-gray-500">Apenas o estado pode criar este tipo de processo (sem exceções)</p>
                             </div>
                         </div>
                     </div>

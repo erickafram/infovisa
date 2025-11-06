@@ -91,7 +91,8 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // Buscar processos designados para o usuário (pendentes e em andamento)
+        // Buscar processos designados DIRETAMENTE para o usuário (pendentes e em andamento)
+        // Exclui designações apenas por setor
         $processos_designados = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->with(['processo.estabelecimento', 'usuarioDesignador'])
@@ -102,6 +103,7 @@ class DashboardController extends Controller
         $stats['processos_designados_pendentes'] = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->count();
+
 
         // Buscar Ordens de Serviço em andamento do usuário
         // Dashboard mostra APENAS OSs onde o usuário é técnico atribuído

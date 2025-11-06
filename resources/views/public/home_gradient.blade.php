@@ -76,7 +76,7 @@
                 <span class="inline-block px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-2">
                     Nossos Serviços
                 </span>
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Soluções Digitais</h2>
+                <h2 class="text-2xl md:text-2xl font-bold text-gray-900 mb-2">Soluções Digitais</h2>
                 <p class="text-base text-gray-600 max-w-2xl mx-auto">
                     Simplificando os processos da vigilância sanitária com tecnologia e transparência
                 </p>

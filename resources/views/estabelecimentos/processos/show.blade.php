@@ -93,7 +93,7 @@
                 </h2>
                 <div class="space-y-3">
                     <div>
-                        <p class="text-lg font-bold text-gray-900">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social }}</p>
+                        <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}" class="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social }}</a>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -251,11 +251,17 @@
                         </svg>
                         Ordem de Serviço
                     </button>
-                    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                    <button @click="modalAlertas = true" 
+                            class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
                         Alertas
+                        @if($alertas->where('status', 'pendente')->count() > 0)
+                        <span class="ml-auto px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                            {{ $alertas->where('status', 'pendente')->count() }}
+                        </span>
+                        @endif
                     </button>
                 </div>
             </div>
@@ -338,21 +344,6 @@
                 </div>
             </div>
 
-            {{-- Alertas --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <button class="w-full flex items-center justify-between text-left">
-                    <h3 class="text-sm font-semibold text-gray-900 uppercase flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        Alertas
-                    </h3>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </button>
-            </div>
-
             {{-- Responsáveis Designados --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -382,7 +373,36 @@
                                 <div class="flex items-start justify-between gap-2 mb-2">
                                     <div class="flex-1 min-w-0">
                                         <p class="text-xs font-semibold text-gray-900 truncate">
-                                            {{ $designacao->usuarioDesignado->nome }}
+                                            @if($designacao->setor_designado && !$designacao->usuario_designado_id)
+                                                {{-- Apenas Setor --}}
+                                                <span class="flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                                    </svg>
+                                                    Setor: {{ $designacao->setor_designado }}
+                                                </span>
+                                            @elseif($designacao->setor_designado && $designacao->usuario_designado_id)
+                                                {{-- Setor + Usuário --}}
+                                                <span class="flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                    </svg>
+                                                    {{ $designacao->usuarioDesignado->nome }} ({{ $designacao->setor_designado }})
+                                                </span>
+                                            @else
+                                                {{-- Apenas Usuário --}}
+                                                {{ $designacao->usuarioDesignado->nome }}
+                                            @endif
+                                            
+                                            @if($designacao->usuario_designado_id === auth('interno')->id() && $designacao->status === 'pendente')
+                                                <form action="{{ route('admin.estabelecimentos.processos.designacoes.concluir', [$estabelecimento->id, $processo->id, $designacao->id]) }}" method="POST" class="inline-block ml-2">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <button type="submit" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                                                        Marcar como Resolvido
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </p>
                                         <p class="text-xs text-gray-600 mt-0.5">
                                             {{ Str::limit($designacao->descricao_tarefa, 60) }}
@@ -1003,36 +1023,43 @@
                     <form method="POST" action="{{ route('admin.estabelecimentos.processos.designar', [$estabelecimento->id, $processo->id]) }}">
                         @csrf
                         
-                        {{-- Selecionar Usuários (Múltiplos) --}}
+                        {{-- Campo oculto para tipo de designação (sempre usuário) --}}
+                        <input type="hidden" name="tipo_designacao" value="usuario">
+
+                        {{-- Selecionar Usuários --}}
                         <div class="mb-5">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Usuários Responsáveis <span class="text-red-500">*</span>
+                                Usuários <span class="text-red-500">*</span>
                             </label>
                             <div class="border border-gray-300 rounded-lg p-3 max-h-60 overflow-y-auto bg-gray-50">
-                                <template x-if="usuarios.length === 0">
+                                <template x-if="usuariosPorSetor.length === 0">
                                     <p class="text-sm text-gray-500 text-center py-2">Carregando usuários...</p>
                                 </template>
-                                <template x-if="usuarios.length > 0">
-                                    <div class="space-y-2">
-                                        <template x-for="usuario in usuarios" :key="usuario.id">
-                                            <label class="flex items-start gap-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
-                                                <input type="checkbox" 
-                                                       name="usuarios_designados[]" 
-                                                       :value="usuario.id"
-                                                       x-model="usuariosDesignados"
-                                                       class="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900" x-text="usuario.nome"></p>
-                                                    <p class="text-xs text-gray-500" x-text="usuario.cargo || usuario.nivel_acesso"></p>
-                                                </div>
-                                            </label>
-                                        </template>
-                                    </div>
-                                </template>
+
+                                {{-- Todos os usuários agrupados por setor --}}
+                                <div class="space-y-3">
+                                    <template x-for="grupo in usuariosPorSetor" :key="grupo.setor.codigo">
+                                        <div x-show="grupo.usuarios.length > 0">
+                                            <p class="text-xs font-semibold text-gray-600 uppercase mb-2" x-text="grupo.setor.nome"></p>
+                                            <div class="space-y-2 ml-2">
+                                                <template x-for="usuario in grupo.usuarios" :key="usuario.id">
+                                                    <label class="flex items-start gap-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                                                        <input type="checkbox" 
+                                                               name="usuarios_designados[]" 
+                                                               :value="usuario.id"
+                                                               x-model="usuariosDesignados"
+                                                               class="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-sm font-medium text-gray-900" x-text="usuario.nome"></p>
+                                                            <p class="text-xs text-gray-500" x-text="usuario.cargo || usuario.nivel_acesso"></p>
+                                                        </div>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
-                            <p class="mt-1 text-xs text-gray-500">
-                                Selecione um ou mais usuários do mesmo município
-                            </p>
                             <p class="mt-1 text-xs font-medium text-blue-600" x-show="usuariosDesignados.length > 0">
                                 <span x-text="usuariosDesignados.length"></span> usuário(s) selecionado(s)
                             </p>
@@ -1758,6 +1785,7 @@
                 modalParar: false,
                 modalDesignar: false,
                 modalOrdemServico: false,
+                modalAlertas: false,
                 
                 // Dados gerais
                 pdfUrl: '',
@@ -1776,10 +1804,12 @@
                 corPasta: '#3B82F6',
                 
                 // Designação
-                usuarios: [],
+                setores: [],
+                usuariosPorSetor: [],
                 usuariosDesignados: [],
                 descricaoTarefa: '',
                 dataLimite: '',
+                isCompetenciaEstadual: false,
                 
                 // Documentos (para contagem) - incluindo documentos digitais e arquivos
                 documentos: [
@@ -2088,16 +2118,18 @@
                     }
                 },
 
-                // Carrega usuários do município para designação
+                // Carrega setores e usuários para designação
                 carregarUsuarios() {
                     fetch(`{{ route('admin.estabelecimentos.processos.usuarios.designacao', [$estabelecimento->id, $processo->id]) }}`)
                         .then(response => response.json())
                         .then(data => {
-                            this.usuarios = data;
+                            this.setores = data.setores || [];
+                            this.usuariosPorSetor = data.usuariosPorSetor || [];
+                            this.isCompetenciaEstadual = data.isCompetenciaEstadual || false;
                         })
                         .catch(error => {
-                            console.error('Erro ao carregar usuários:', error);
-                            alert('Erro ao carregar usuários');
+                            console.error('Erro ao carregar setores e usuários:', error);
+                            alert('Erro ao carregar setores e usuários');
                         });
                 }
             }
@@ -2139,6 +2171,7 @@
                     @csrf
                     
                     {{-- Campos ocultos --}}
+                    <input type="hidden" name="tipo_vinculacao" value="com_estabelecimento">
                     <input type="hidden" name="estabelecimento_id" value="{{ $estabelecimento->id }}">
                     <input type="hidden" name="processo_id" value="{{ $processo->id }}">
                     <input type="hidden" name="municipio_id" value="{{ $processo->estabelecimento->municipio_id }}">
@@ -2262,6 +2295,194 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Alertas --}}
+    <div x-show="modalAlertas" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         aria-labelledby="modal-title" 
+         role="dialog" 
+         aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Overlay --}}
+            <div x-show="modalAlertas" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" 
+                 @click="modalAlertas = false"></div>
+
+            {{-- Modal --}}
+            <div x-show="modalAlertas"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+                
+                {{-- Header --}}
+                <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            Alertas do Processo
+                        </h3>
+                        <button type="button" 
+                                @click="modalAlertas = false" 
+                                class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Body --}}
+                <div class="px-6 py-6">
+                    {{-- Form Criar Alerta --}}
+                    <form method="POST" action="{{ route('admin.estabelecimentos.processos.alertas.criar', [$estabelecimento->id, $processo->id]) }}" class="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        @csrf
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Criar Novo Alerta</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Descrição *</label>
+                                <input type="text" 
+                                       name="descricao" 
+                                       required
+                                       maxlength="500"
+                                       placeholder="Ex: Verificar documentação pendente"
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Data do Alerta *</label>
+                                <input type="date" 
+                                       name="data_alerta" 
+                                       required
+                                       min="{{ date('Y-m-d') }}"
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex justify-end">
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Adicionar Alerta
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- Lista de Alertas --}}
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        @forelse($alertas as $alerta)
+                        <div class="border rounded-lg p-4 {{ $alerta->isVencido() ? 'bg-red-50 border-red-200' : ($alerta->isProximo() ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200') }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        @if($alerta->status === 'pendente')
+                                            @if($alerta->isVencido())
+                                                <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Vencido</span>
+                                            @elseif($alerta->isProximo())
+                                                <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">Próximo</span>
+                                            @else
+                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Pendente</span>
+                                            @endif
+                                        @elseif($alerta->status === 'visualizado')
+                                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">Visualizado</span>
+                                        @else
+                                            <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Concluído</span>
+                                        @endif
+                                        
+                                        <span class="text-xs text-gray-500">
+                                            <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            {{ $alerta->data_alerta->format('d/m/Y') }}
+                                        </span>
+                                    </div>
+                                    
+                                    <p class="text-sm text-gray-900 mb-1">{{ $alerta->descricao }}</p>
+                                    
+                                    <p class="text-xs text-gray-500">
+                                        Criado por {{ $alerta->usuarioCriador->nome }} • {{ $alerta->created_at->diffForHumans() }}
+                                    </p>
+                                </div>
+                                
+                                <div class="flex items-center gap-1">
+                                    @if($alerta->status === 'pendente')
+                                        <form method="POST" action="{{ route('admin.estabelecimentos.processos.alertas.visualizar', [$estabelecimento->id, $processo->id, $alerta->id]) }}" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" 
+                                                    title="Marcar como visualizado"
+                                                    class="p-1.5 text-yellow-600 hover:bg-yellow-100 rounded transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    
+                                    @if($alerta->status !== 'concluido')
+                                        <form method="POST" action="{{ route('admin.estabelecimentos.processos.alertas.concluir', [$estabelecimento->id, $processo->id, $alerta->id]) }}" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" 
+                                                    title="Marcar como concluído"
+                                                    class="p-1.5 text-green-600 hover:bg-green-100 rounded transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    
+                                    <form method="POST" action="{{ route('admin.estabelecimentos.processos.alertas.excluir', [$estabelecimento->id, $processo->id, $alerta->id]) }}" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este alerta?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                title="Excluir alerta"
+                                                class="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <p class="text-sm">Nenhum alerta cadastrado</p>
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                    <button type="button" 
+                            @click="modalAlertas = false"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Fechar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -78,17 +78,15 @@ class AssistenteIAController extends Controller
         }
         
         // Verifica se deve buscar na internet
-        // Prioriza configuração do documento, depois configuração global
+        // REGRA: Busca na internet APENAS se houver documento PDF carregado E checkbox marcado
         $buscaWebAtiva = false;
         
         // Se tem documento com configuração de busca
         if (isset($documentoContexto['buscar_internet'])) {
             $buscaWebAtiva = $documentoContexto['buscar_internet'] === true;
         } 
-        // Senão, verifica configuração global do sistema
-        else {
-            $buscaWebAtiva = ConfiguracaoSistema::where('chave', 'ia_busca_web')->value('valor') === 'true';
-        }
+        // Chat geral (sem documento) NUNCA busca na internet - apenas POPs
+        // Configuração global ia_busca_web foi DESABILITADA para chat geral
         
         if ($buscaWebAtiva && $this->deveBuscarNaInternet($userMessage, $contextoDados)) {
             \Log::info('Iniciando busca na internet', [
@@ -606,6 +604,11 @@ class AssistenteIAController extends Controller
             // Palavras-chave para busca
             $palavrasChave = $this->extrairPalavrasChave($message);
             
+            \Log::info('Busca POPs - Palavras-chave extraídas', [
+                'message' => $message,
+                'palavras_chave' => $palavrasChave
+            ]);
+            
             // Detecta se a pergunta menciona uma categoria específica
             $categoriaFiltro = $this->detectarCategoria($message);
             
@@ -614,9 +617,18 @@ class AssistenteIAController extends Controller
                 $query->whereHas('categorias', function($q) use ($categoriaFiltro) {
                     $q->where('categorias_pops.id', $categoriaFiltro->id);
                 });
+                
+                \Log::info('Busca POPs - Categoria filtrada', [
+                    'categoria' => $categoriaFiltro->nome
+                ]);
             }
             
             $documentos = $query->get();
+            
+            \Log::info('Busca POPs - Documentos encontrados', [
+                'total' => $documentos->count(),
+                'titulos' => $documentos->pluck('titulo')->toArray()
+            ]);
             
             if ($documentos->isEmpty()) {
                 return [];
@@ -629,19 +641,68 @@ class AssistenteIAController extends Controller
                 $conteudoLower = strtolower($doc->conteudo_extraido);
                 $tituloLower = strtolower($doc->titulo);
                 
+                $palavrasEncontradas = [];
+                
+                // BÔNUS MASSIVO se o título contém "NBR"
+                $messageLower = strtolower($message);
+                if (strpos($tituloLower, 'nbr') !== false) {
+                    // NBR mencionada explicitamente na pergunta
+                    if (strpos($messageLower, 'nbr') !== false) {
+                        $relevancia += 500;
+                        $palavrasEncontradas[] = 'NBR(mencionada-PRIORIDADE)';
+                    }
+                    // Pergunta sobre especificações técnicas (cores, dimensões, etc) - NBR tem prioridade
+                    elseif (preg_match('/\b(cor|cores|dimensão|dimensões|tamanho|medida|especificação|identificação|padrão)\b/i', $messageLower)) {
+                        $relevancia += 800; // PRIORIDADE ALTÍSSIMA - NBR é norma técnica
+                        $palavrasEncontradas[] = 'NBR(especificação-técnica-PRIORIDADE-MÁXIMA)';
+                    }
+                }
+                
+                // BÔNUS MASSIVO se o título contém número de RDC/NBR específico mencionado na pergunta
+                if (preg_match('/\b(\d{3,5})\b/', $tituloLower, $matchesTitulo)) {
+                    if (preg_match('/\b' . preg_quote($matchesTitulo[1], '/') . '\b/', $messageLower)) {
+                        $relevancia += 1000; // Prioridade ABSOLUTA quando número específico é mencionado
+                        $palavrasEncontradas[] = 'Número-Específico(' . $matchesTitulo[1] . '-PRIORIDADE-MÁXIMA)';
+                    }
+                }
+                
+                // BÔNUS EXTRA se o título menciona o tema principal da pergunta
+                // Ex: título "NBR 12176 e as cores dos cilindros" + pergunta sobre "cores cilindros"
+                $palavrasChaveTitulo = ['cor', 'cores', 'cilindro', 'cilindros', 'identificação', 'rotulagem'];
+                $countPalavrasTitulo = 0;
+                foreach ($palavrasChaveTitulo as $palavraTema) {
+                    if (strpos($tituloLower, $palavraTema) !== false && strpos($messageLower, $palavraTema) !== false) {
+                        $countPalavrasTitulo++;
+                    }
+                }
+                if ($countPalavrasTitulo >= 2) {
+                    $relevancia += 300; // Bônus grande se título menciona 2+ palavras-chave do tema
+                    $palavrasEncontradas[] = 'Tema-no-Título(' . $countPalavrasTitulo . '-palavras)';
+                }
+                
                 // Verifica relevância baseado em palavras-chave
                 foreach ($palavrasChave as $palavra) {
                     if (strlen($palavra) < 3) continue; // Ignora palavras muito curtas
                     
-                    // Título tem peso maior
+                    // Título tem peso MUITO maior (50 ao invés de 10)
                     if (strpos($tituloLower, $palavra) !== false) {
-                        $relevancia += 10;
+                        $relevancia += 50;
+                        $palavrasEncontradas[] = $palavra . '(título)';
                     }
                     
                     // Conteúdo
                     $ocorrencias = substr_count($conteudoLower, $palavra);
-                    $relevancia += $ocorrencias;
+                    if ($ocorrencias > 0) {
+                        $relevancia += $ocorrencias;
+                        $palavrasEncontradas[] = $palavra . '(conteúdo:' . $ocorrencias . 'x)';
+                    }
                 }
+                
+                \Log::info('Busca POPs - Score do documento', [
+                    'titulo' => $doc->titulo,
+                    'relevancia' => $relevancia,
+                    'palavras_encontradas' => $palavrasEncontradas
+                ]);
                 
                 // Se tem relevância, adiciona
                 if ($relevancia > 0) {
@@ -660,6 +721,16 @@ class AssistenteIAController extends Controller
             });
             
             $resultado = array_slice($documentosRelevantes, 0, 3);
+            
+            \Log::info('Busca POPs - Documentos selecionados', [
+                'total_relevantes' => count($documentosRelevantes),
+                'selecionados' => array_map(function($doc) {
+                    return [
+                        'titulo' => $doc['titulo'],
+                        'relevancia' => $doc['relevancia']
+                    ];
+                }, $resultado)
+            ]);
             
             // Se foi filtrado por categoria, adiciona informação
             if ($categoriaFiltro) {
@@ -685,18 +756,55 @@ class AssistenteIAController extends Controller
     private function extrairPalavrasChave($message)
     {
         // Remove palavras comuns (stop words)
-        $stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'para', 'com', 'em', 'no', 'na', 'por', 'como', 'qual', 'quais', 'que', 'e', 'ou', 'é', 'são', 'fala', 'diz'];
+        $stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'para', 'com', 'em', 'no', 'na', 'por', 'como', 'qual', 'quais', 'que', 'e', 'ou', 'é', 'são', 'fala', 'diz', 'segundo', 'conforme'];
         
         $palavras = preg_split('/\s+/', strtolower($message));
-        $palavras = array_filter($palavras, function($palavra) use ($stopWords) {
-            return !in_array($palavra, $stopWords) && strlen($palavra) >= 3;
-        });
+        $palavrasLimpas = [];
+        
+        foreach ($palavras as $palavra) {
+            // Remove pontuação da palavra
+            $palavraLimpa = preg_replace('/[^\w\d]/u', '', $palavra);
+            
+            if (!in_array($palavraLimpa, $stopWords) && strlen($palavraLimpa) >= 3) {
+                $palavrasLimpas[] = $palavraLimpa;
+                
+                // Adiciona variações plural/singular para palavras-chave importantes
+                if (substr($palavraLimpa, -1) === 's' && strlen($palavraLimpa) > 4) {
+                    // Remove 's' final para pegar singular (ex: "cilindros" -> "cilindro")
+                    $palavrasLimpas[] = substr($palavraLimpa, 0, -1);
+                } elseif (substr($palavraLimpa, -1) !== 's') {
+                    // Adiciona 's' para pegar plural (ex: "cilindro" -> "cilindros")
+                    $palavrasLimpas[] = $palavraLimpa . 's';
+                }
+            }
+        }
+        
+        $palavras = array_unique($palavrasLimpas);
+        
+        $messageLower = strtolower($message);
+        
+        // Detecta menção a NBR específica (ex: "NBR 12176")
+        if (preg_match('/nbr\s*(\d+)/i', $messageLower, $matches)) {
+            $palavras[] = 'nbr';
+            $palavras[] = $matches[1]; // número da NBR
+        }
         
         // Se a pergunta menciona "artigo" ou "rdc", adiciona palavras-chave relacionadas
-        $messageLower = strtolower($message);
         if (strpos($messageLower, 'artigo') !== false || strpos($messageLower, 'art.') !== false) {
             $palavras[] = 'aplica-se';
             $palavras[] = 'resolução';
+        }
+        
+        // Detecta menção a RDC específica (ex: "RDC 887")
+        if (preg_match('/rdc\s*n?[º°]?\s*(\d+)/i', $messageLower, $matches)) {
+            $palavras[] = 'rdc';
+            $palavras[] = $matches[1]; // número da RDC
+        }
+        
+        // Adiciona sinônimos e variações importantes
+        if (in_array('cor', $palavras) || in_array('cores', $palavras)) {
+            $palavras[] = 'identificação';
+            $palavras[] = 'pintura';
         }
         
         return array_values($palavras);
@@ -1200,6 +1308,8 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "\n**INSTRUÇÕES CRÍTICAS PARA USO DOS POPs:**\n";
                 $prompt .= "- **VOCÊ DEVE USAR APENAS O TEXTO ACIMA. NÃO USE SEU CONHECIMENTO PRÉVIO SOBRE RDCs OU RESOLUÇÕES**\n";
                 $prompt .= "- **SE A INFORMAÇÃO NÃO ESTÁ NO TRECHO ACIMA, DIGA QUE NÃO TEM A INFORMAÇÃO COMPLETA**\n";
+                $prompt .= "- **PERGUNTAS GENÉRICAS: Se a pergunta é genérica (ex: 'cores de gases medicinais'), liste TODAS as informações relevantes do trecho**\n";
+                $prompt .= "- **PERGUNTAS ESPECÍFICAS: Se a pergunta é sobre um gás específico (ex: 'cor do oxigênio'), responda apenas sobre aquele gás**\n";
                 $prompt .= "- Se a pergunta é sobre NORMAS/PROCEDIMENTOS/REQUISITOS TÉCNICOS: Use APENAS estas informações dos POPs\n";
                 $prompt .= "- NÃO misture com instruções do sistema (\"acesse o menu\", \"clique em\", etc)\n";
                 $prompt .= "- **CRÍTICO: Ao citar RDCs, copie EXATAMENTE o número que aparece no trecho acima**\n";
@@ -1210,8 +1320,8 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "- **OBRIGATÓRIO: Antes de citar qualquer RDC ou artigo, VERIFIQUE se ele está no trecho acima**\n";
                 $prompt .= "- **OBRIGATÓRIO: Se a pergunta pede o ARTIGO, procure por 'Art.' ou '§' no trecho e cite-o COMPLETO**\n";
                 $prompt .= "- **OBRIGATÓRIO: Se a informação está em um PARÁGRAFO (§), cite 'Art. X, §Y' e não apenas 'Art. X'**\n";
-                $prompt .= "- **FORMATO DE RESPOSTA: 'De acordo com a [RDC completa], [Artigo e parágrafo se houver], [conteúdo]'**\n";
-                $prompt .= "- Cite o nome do documento usado: \"De acordo com o documento [nome exato do documento]...\"\n";
+                $prompt .= "- **FORMATO DE RESPOSTA: 'De acordo com a [RDC/NBR completa], [conteúdo]'**\n";
+                $prompt .= "- Cite o nome do documento usado: \"De acordo com a NBR [número]...\" ou \"De acordo com a RDC nº [número]...\"\n";
                 $prompt .= "- Seja técnico e objetivo, focando APENAS no conteúdo dos trechos fornecidos\n";
                 $prompt .= "- CRÍTICO: Se o POP menciona uma obrigação (ex: 'deve notificar'), responda APENAS o que o POP diz\n";
                 $prompt .= "- NÃO invente como fazer essa obrigação no sistema\n";
@@ -1232,20 +1342,24 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $buscaWebAtiva = isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web']);
                 
                 if ($buscaWebAtiva) {
-                    // Com busca na internet ativa
+                    // Com busca na internet ativa - MAS SÓ USA OS RESULTADOS RETORNADOS
                     $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs LOCAIS, MAS BUSCA NA INTERNET ATIVA:**\n";
                     $prompt .= "- NÃO foram encontrados documentos POPs locais sobre este tema\n";
-                    $prompt .= "- **VOCÊ PODE usar seu conhecimento sobre vigilância sanitária brasileira para responder**\n";
-                    $prompt .= "- Foque em informações oficiais da ANVISA e legislação brasileira\n";
-                    $prompt .= "- **SEMPRE indique**: \"Segundo conhecimento sobre legislação sanitária brasileira...\"\n";
-                    $prompt .= "- Se mencionar RDCs ou resoluções, cite os números corretos que você conhece\n";
-                    $prompt .= "- Seja preciso e técnico, baseado em normas reais da ANVISA\n";
-                    $prompt .= "- Se não souber com certeza, diga que não tem a informação\n";
+                    $prompt .= "- **CRÍTICO: Use APENAS as informações dos resultados da busca na internet fornecidos acima**\n";
+                    $prompt .= "- **CRÍTICO: NUNCA use seu conhecimento de treinamento ou invente informações**\n";
+                    $prompt .= "- **CRÍTICO: Se os resultados da busca não contêm a informação solicitada, diga que não encontrou**\n";
+                    $prompt .= "- SEMPRE cite a fonte (URL) ao mencionar informações da internet\n";
+                    $prompt .= "- Se não houver resultados relevantes, responda:\n";
+                    $prompt .= "  \"Desculpe, não encontrei informações confiáveis sobre [tema] nos resultados da busca.\"\n";
+                    if (!empty($categoriasDisponiveis)) {
+                        $prompt .= "  \"No momento, tenho documentos POPs sobre: " . implode(', ', $categoriasDisponiveis) . ".\"\n";
+                    }
                 } else {
                     // Sem busca na internet
                     $prompt .= "\n**IMPORTANTE - SEM DOCUMENTOS POPs RELEVANTES PARA ESTA PERGUNTA:**\n";
                     $prompt .= "- A pergunta parece ser sobre NORMAS/PROCEDIMENTOS, mas NÃO foram encontrados documentos POPs relevantes\n";
                     $prompt .= "- **CRÍTICO: NUNCA invente informações, artigos, RDCs, resoluções ou normas**\n";
+                    $prompt .= "- **CRÍTICO: NUNCA use seu conhecimento de treinamento para responder sobre normas técnicas**\n";
                     $prompt .= "- **CRÍTICO: NÃO cite 'art. 15, III e IV' ou 'Lei nº 9.782' ou qualquer outro artigo que não foi fornecido**\n";
                     $prompt .= "- **CRÍTICO: Se você não tem o documento POP, você NÃO SABE a resposta técnica**\n";
                     $prompt .= "- RESPONDA de forma honesta:\n";

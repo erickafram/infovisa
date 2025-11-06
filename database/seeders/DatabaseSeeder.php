@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             // 3. Usuários e estabelecimentos (dados de teste)
             UsuarioInternoSeeder::class,
             EstabelecimentoSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }

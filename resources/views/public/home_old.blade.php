@@ -51,7 +51,7 @@
     <section id="servicos" class="py-16 bg-white">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900 mb-3">Nossos Serviços</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">Nossos Serviços</h2>
                 <p class="text-lg text-gray-600">
                     Soluções digitais para simplificar os processos da vigilância sanitária
                 </p>

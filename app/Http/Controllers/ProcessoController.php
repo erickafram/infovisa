@@ -8,6 +8,7 @@ use App\Models\TipoProcesso;
 use App\Models\ProcessoDocumento;
 use App\Models\ProcessoAcompanhamento;
 use App\Models\ProcessoDesignacao;
+use App\Models\ProcessoAlerta;
 use App\Models\ModeloDocumento;
 use App\Models\UsuarioInterno;
 use Illuminate\Http\Request;
@@ -298,7 +299,13 @@ class ProcessoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes'));
+        // Busca alertas do processo
+        $alertas = ProcessoAlerta::where('processo_id', $processoId)
+            ->with('usuarioCriador')
+            ->orderBy('data_alerta', 'asc')
+            ->get();
+        
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas'));
     }
 
     /**
@@ -1094,27 +1101,93 @@ class ProcessoController extends Controller
     }
 
     /**
-     * Busca usuários internos do mesmo município do processo para designação
+     * Busca setores e usuários internos para designação
      */
     public function buscarUsuariosParaDesignacao($estabelecimentoId, $processoId)
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
         
-        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+        $processo = Processo::with('tipoProcesso')
+            ->where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
-        // Busca usuários internos ativos do mesmo município
-        $usuarios = UsuarioInterno::where('ativo', true)
-            ->where('municipio_id', $estabelecimento->municipio_id)
-            ->orderBy('nome')
-            ->get(['id', 'nome', 'cargo', 'nivel_acesso']);
+        $usuarioLogado = auth('interno')->user();
         
-        return response()->json($usuarios);
+        // Determina se é competência estadual ou municipal baseado no tipo de processo
+        $tipoProcesso = $processo->tipoProcesso;
+        $isCompetenciaEstadual = $tipoProcesso && in_array($tipoProcesso->competencia, ['estadual', 'estadual_exclusivo']);
+        
+        // Busca setores disponíveis baseado na competência
+        $setores = \App\Models\TipoSetor::where('ativo', true)
+            ->orderBy('nome')
+            ->get();
+        
+        // Filtra setores por nível de acesso
+        $setoresDisponiveis = $setores->filter(function($setor) use ($isCompetenciaEstadual) {
+            if (!$setor->niveis_acesso || count($setor->niveis_acesso) === 0) {
+                return true;
+            }
+            
+            // Se é competência estadual, mostra setores estaduais
+            if ($isCompetenciaEstadual) {
+                return in_array('gestor_estadual', $setor->niveis_acesso) || 
+                       in_array('tecnico_estadual', $setor->niveis_acesso);
+            } else {
+                // Se é municipal, mostra setores municipais
+                return in_array('gestor_municipal', $setor->niveis_acesso) || 
+                       in_array('tecnico_municipal', $setor->niveis_acesso);
+            }
+        })->values();
+        
+        // Busca usuários internos ativos
+        $query = UsuarioInterno::where('ativo', true);
+        
+        // Filtra por município se for competência municipal
+        if (!$isCompetenciaEstadual) {
+            $query->where('municipio_id', $estabelecimento->municipio_id);
+        } else {
+            // Se for estadual, pega apenas usuários estaduais (sem município)
+            $query->whereNull('municipio_id');
+        }
+        
+        $usuarios = $query->orderBy('nome')
+            ->get(['id', 'nome', 'cargo', 'nivel_acesso', 'setor']);
+        
+        // Agrupa usuários por setor
+        $usuariosPorSetor = [];
+        foreach ($setoresDisponiveis as $setor) {
+            $usuariosDoSetor = $usuarios->where('setor', $setor->codigo)->values();
+            $usuariosPorSetor[] = [
+                'setor' => [
+                    'codigo' => $setor->codigo,
+                    'nome' => $setor->nome,
+                ],
+                'usuarios' => $usuariosDoSetor
+            ];
+        }
+        
+        // Adiciona usuários sem setor
+        $usuariosSemSetor = $usuarios->whereNull('setor')->values();
+        if ($usuariosSemSetor->count() > 0) {
+            $usuariosPorSetor[] = [
+                'setor' => [
+                    'codigo' => null,
+                    'nome' => 'Sem Setor',
+                ],
+                'usuarios' => $usuariosSemSetor
+            ];
+        }
+        
+        return response()->json([
+            'setores' => $setoresDisponiveis,
+            'usuariosPorSetor' => $usuariosPorSetor,
+            'isCompetenciaEstadual' => $isCompetenciaEstadual
+        ]);
     }
 
     /**
-     * Designa responsáveis para o processo (pode ser múltiplos)
+     * Designa responsáveis para o processo (apenas usuários)
      */
     public function designarResponsavel(Request $request, $estabelecimentoId, $processoId)
     {
@@ -1125,6 +1198,7 @@ class ProcessoController extends Controller
             ->findOrFail($processoId);
         
         $validated = $request->validate([
+            'tipo_designacao' => 'required|in:usuario',
             'usuarios_designados' => 'required|array|min:1',
             'usuarios_designados.*' => 'required|exists:usuarios_internos,id',
             'descricao_tarefa' => 'required|string|max:1000',
@@ -1132,14 +1206,22 @@ class ProcessoController extends Controller
         ]);
         
         $designados = 0;
-        $erros = [];
+        $tipoProcesso = $processo->tipoProcesso;
+        $isCompetenciaEstadual = $tipoProcesso && in_array($tipoProcesso->competencia, ['estadual', 'estadual_exclusivo']);
         
-        // Cria uma designação para cada usuário selecionado
+        // Designação apenas por usuário
         foreach ($validated['usuarios_designados'] as $usuarioId) {
             $usuarioDesignado = UsuarioInterno::find($usuarioId);
             
-            // Verifica se o usuário é do mesmo município
-            if ($usuarioDesignado && $usuarioDesignado->municipio_id == $estabelecimento->municipio_id) {
+            // Verifica competência
+            $podeDesignar = false;
+            if ($isCompetenciaEstadual) {
+                $podeDesignar = $usuarioDesignado && $usuarioDesignado->municipio_id === null;
+            } else {
+                $podeDesignar = $usuarioDesignado && $usuarioDesignado->municipio_id == $estabelecimento->municipio_id;
+            }
+            
+            if ($podeDesignar) {
                 ProcessoDesignacao::create([
                     'processo_id' => $processo->id,
                     'usuario_designado_id' => $usuarioId,
@@ -1149,8 +1231,6 @@ class ProcessoController extends Controller
                     'status' => 'pendente',
                 ]);
                 $designados++;
-            } else {
-                $erros[] = $usuarioDesignado ? $usuarioDesignado->nome : "Usuário ID {$usuarioId}";
             }
         }
         
@@ -1165,7 +1245,7 @@ class ProcessoController extends Controller
         }
         
         return back()->withErrors([
-            'usuarios_designados' => 'Nenhum usuário válido foi designado. Verifique se pertencem ao mesmo município.'
+            'usuarios_designados' => 'Nenhum responsável válido foi designado.'
         ]);
     }
 
@@ -1197,5 +1277,126 @@ class ProcessoController extends Controller
         return redirect()
             ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
             ->with('success', 'Status da designação atualizado!');
+    }
+    
+    /**
+     * Marca uma designação como concluída
+     */
+    public function concluirDesignacao($estabelecimentoId, $processoId, $designacaoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $designacao = ProcessoDesignacao::where('processo_id', $processoId)
+            ->where('usuario_designado_id', auth('interno')->id())
+            ->findOrFail($designacaoId);
+        
+        // Verifica se a designação já está concluída
+        if ($designacao->status === 'concluida') {
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('warning', 'Esta tarefa já está marcada como concluída.');
+        }
+        
+        // Atualiza o status para concluído
+        $designacao->status = 'concluida';
+        $designacao->concluida_em = now();
+        $designacao->save();
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Tarefa marcada como concluída com sucesso!');
+    }
+
+    /**
+     * Cria um novo alerta para o processo
+     */
+    public function criarAlerta(Request $request, $estabelecimentoId, $processoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $validated = $request->validate([
+            'descricao' => 'required|string|max:500',
+            'data_alerta' => 'required|date|after_or_equal:today',
+        ]);
+        
+        ProcessoAlerta::create([
+            'processo_id' => $processo->id,
+            'usuario_criador_id' => auth('interno')->id(),
+            'descricao' => $validated['descricao'],
+            'data_alerta' => $validated['data_alerta'],
+            'status' => 'pendente',
+        ]);
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Alerta criado com sucesso!');
+    }
+
+    /**
+     * Marca um alerta como visualizado
+     */
+    public function visualizarAlerta($estabelecimentoId, $processoId, $alertaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $alerta = ProcessoAlerta::where('processo_id', $processo->id)
+            ->findOrFail($alertaId);
+        
+        $alerta->marcarComoVisualizado();
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Alerta marcado como visualizado!');
+    }
+
+    /**
+     * Marca um alerta como concluído
+     */
+    public function concluirAlerta($estabelecimentoId, $processoId, $alertaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $alerta = ProcessoAlerta::where('processo_id', $processo->id)
+            ->findOrFail($alertaId);
+        
+        $alerta->marcarComoConcluido();
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Alerta marcado como concluído!');
+    }
+
+    /**
+     * Exclui um alerta
+     */
+    public function excluirAlerta($estabelecimentoId, $processoId, $alertaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $alerta = ProcessoAlerta::where('processo_id', $processo->id)
+            ->findOrFail($alertaId);
+        
+        $alerta->delete();
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Alerta excluído com sucesso!');
     }
 }

@@ -15,6 +15,7 @@ class ProcessoDesignacao extends Model
     protected $fillable = [
         'processo_id',
         'usuario_designado_id',
+        'setor_designado',
         'usuario_designador_id',
         'descricao_tarefa',
         'data_limite',

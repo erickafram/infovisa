@@ -6,33 +6,31 @@
 @section('content')
 <div class="max-w-8xl mx-auto">
     {{-- Header --}}
-    <div class="mb-6">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('admin.configuracoes.tipos-processo.index') }}" 
-               class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Novo Tipo de Processo</h1>
-                <p class="text-sm text-gray-600 mt-1">Adicione um novo tipo de processo ao sistema</p>
-            </div>
+    <div class="mb-6 flex items-center gap-3">
+        <a href="{{ route('admin.configuracoes.tipos-processo.index') }}" 
+           class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold text-gray-900">Novo Tipo de Processo</h1>
+            <p class="text-xs text-gray-500 mt-0.5">Adicione um novo tipo de processo ao sistema</p>
         </div>
     </div>
 
     {{-- Erros de Validação --}}
     @if ($errors->any())
-        <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-            <div class="flex items-start">
-                <svg class="w-5 h-5 text-red-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-4 bg-red-50 border border-red-200 p-3 rounded-lg">
+            <div class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <div>
-                    <h3 class="text-sm font-medium text-red-800 mb-2">Erro ao criar tipo de processo:</h3>
-                    <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-red-800 mb-1">Erro ao criar tipo de processo</p>
+                    <ul class="text-xs text-red-700 space-y-0.5">
                         @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
+                            <li>• {{ $error }}</li>
                         @endforeach
                     </ul>
                 </div>
@@ -41,122 +39,132 @@
     @endif
 
     {{-- Form --}}
-    <form action="{{ route('admin.configuracoes.tipos-processo.store') }}" method="POST" class="space-y-6">
+    <form action="{{ route('admin.configuracoes.tipos-processo.store') }}" method="POST" class="space-y-4">
         @csrf
 
         {{-- Card Principal --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Informações Básicas</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Informações Básicas</h3>
 
-            <div class="space-y-6">
-                {{-- Nome --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Nome do Tipo <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" 
-                           name="nome" 
-                           value="{{ old('nome') }}"
-                           required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nome') border-red-500 @enderror"
-                           placeholder="Ex: Licenciamento Sanitário">
-                    @error('nome')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div class="space-y-4">
+                {{-- Nome e Código --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                            Nome do Tipo <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               name="nome" 
+                               value="{{ old('nome') }}"
+                               required
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nome') border-red-500 @enderror"
+                               placeholder="Ex: Licenciamento Sanitário">
+                        @error('nome')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                {{-- Código --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Código <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" 
-                           name="codigo" 
-                           value="{{ old('codigo') }}"
-                           required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('codigo') border-red-500 @enderror"
-                           placeholder="Ex: licenciamento">
-                    <p class="mt-1 text-xs text-gray-500">Código único para identificação interna (sem espaços, apenas letras minúsculas e underscores)</p>
-                    @error('codigo')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                            Código <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               name="codigo" 
+                               value="{{ old('codigo') }}"
+                               required
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('codigo') border-red-500 @enderror"
+                               placeholder="Ex: licenciamento">
+                        @error('codigo')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 {{-- Descrição --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
                         Descrição
                     </label>
                     <textarea name="descricao" 
-                              rows="3"
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none @error('descricao') border-red-500 @enderror"
+                              rows="2"
+                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none @error('descricao') border-red-500 @enderror"
                               placeholder="Descreva brevemente este tipo de processo...">{{ old('descricao') }}</textarea>
                     @error('descricao')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
                 {{-- Ordem --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
                         Ordem de Exibição
                     </label>
                     <input type="number" 
                            name="ordem" 
                            value="{{ old('ordem', 0) }}"
                            min="0"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('ordem') border-red-500 @enderror"
+                           class="w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('ordem') border-red-500 @enderror"
                            placeholder="0">
-                    <p class="mt-1 text-xs text-gray-500">Ordem em que aparecerá nas listagens (menor número aparece primeiro)</p>
+                    <p class="mt-1 text-xs text-gray-500">Menor número aparece primeiro</p>
                     @error('ordem')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
         </div>
 
         {{-- Card Competência e Descentralização --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-data="{ competencia: '{{ old('competencia', 'municipal') }}', municipiosSelecionados: {{ json_encode(old('municipios_descentralizados', [])) }} }">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Competência e Descentralização</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5" x-data="{ competencia: '{{ old('competencia', 'municipal') }}', municipiosSelecionados: {{ json_encode(old('municipios_descentralizados', [])) }} }">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Competência</h3>
 
-            <div class="space-y-6">
+            <div class="space-y-4">
                 {{-- Competência --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">
-                        Competência <span class="text-red-500">*</span>
+                    <label class="block text-xs font-medium text-gray-700 mb-2">
+                        Tipo de Competência <span class="text-red-500">*</span>
                     </label>
-                    <div class="space-y-3">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input type="radio" 
-                                       name="competencia" 
-                                       id="competencia_municipal"
-                                       value="municipal"
-                                       x-model="competencia"
-                                       {{ old('competencia', 'municipal') === 'municipal' ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                    <div class="space-y-2">
+                        <label class="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" 
+                                   name="competencia" 
+                                   id="competencia_municipal"
+                                   value="municipal"
+                                   x-model="competencia"
+                                   {{ old('competencia', 'municipal') === 'municipal' ? 'checked' : '' }}
+                                   class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <div class="ml-3 flex-1">
+                                <span class="text-sm font-medium text-gray-900">🏢 Somente Municipal</span>
+                                <p class="text-xs text-gray-500 mt-0.5">Apenas municípios podem criar este tipo de processo</p>
                             </div>
-                            <div class="ml-3">
-                                <label for="competencia_municipal" class="font-medium text-gray-700">🏢 Municipal</label>
-                                <p class="text-sm text-gray-500">Todos os municípios podem criar este tipo de processo</p>
-                            </div>
-                        </div>
+                        </label>
 
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input type="radio" 
-                                       name="competencia" 
-                                       id="competencia_estadual"
-                                       value="estadual"
-                                       x-model="competencia"
-                                       {{ old('competencia') === 'estadual' ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <label class="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" 
+                                   name="competencia" 
+                                   id="competencia_estadual"
+                                   value="estadual"
+                                   x-model="competencia"
+                                   {{ old('competencia') === 'estadual' ? 'checked' : '' }}
+                                   class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <div class="ml-3 flex-1">
+                                <span class="text-sm font-medium text-gray-900">🏛️ Estadual (com municípios descentralizados)</span>
+                                <p class="text-xs text-gray-500 mt-0.5">Estado pode criar, e municípios descentralizados também (selecione abaixo)</p>
                             </div>
-                            <div class="ml-3">
-                                <label for="competencia_estadual" class="font-medium text-gray-700">🏛️ Estadual</label>
-                                <p class="text-sm text-gray-500">Apenas o estado pode criar, exceto municípios descentralizados</p>
+                        </label>
+
+                        <label class="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" 
+                                   name="competencia" 
+                                   id="competencia_estadual_exclusivo"
+                                   value="estadual_exclusivo"
+                                   x-model="competencia"
+                                   {{ old('competencia') === 'estadual_exclusivo' ? 'checked' : '' }}
+                                   class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <div class="ml-3 flex-1">
+                                <span class="text-sm font-medium text-gray-900">🏛️ Somente Estadual</span>
+                                <p class="text-xs text-gray-500 mt-0.5">Apenas o estado pode criar (sem exceções)</p>
                             </div>
-                        </div>
+                        </label>
                     </div>
                     @error('competencia')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -164,14 +172,14 @@
                 </div>
 
                 {{-- Municípios Descentralizados (apenas para estadual) --}}
-                <div x-show="competencia === 'estadual'" x-cloak>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                <div x-show="competencia === 'estadual'" x-cloak class="pt-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
                         Municípios Descentralizados
                     </label>
                     <select name="municipios_descentralizados[]" 
                             multiple
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            size="8">
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            size="6">
                         @foreach($municipios as $municipio)
                             <option value="{{ $municipio->nome }}" 
                                     {{ in_array($municipio->nome, old('municipios_descentralizados', [])) ? 'selected' : '' }}>
@@ -180,88 +188,79 @@
                         @endforeach
                     </select>
                     <p class="mt-1 text-xs text-gray-500">
-                        Selecione os municípios que terão permissão para criar este tipo de processo (mesmo sendo estadual). 
-                        Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplos.
+                        Segure Ctrl/Cmd para selecionar múltiplos municípios
                     </p>
                 </div>
             </div>
         </div>
 
         {{-- Card Configurações --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Configurações</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Configurações</h3>
 
-            <div class="space-y-4">
+            <div class="space-y-3">
                 {{-- Processo Anual --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="anual" 
-                               id="anual"
-                               {{ old('anual') ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="anual" 
+                           id="anual"
+                           {{ old('anual') ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Processo Anual</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Apenas um processo por estabelecimento por ano</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="anual" class="font-medium text-gray-700">Processo Anual</label>
-                        <p class="text-sm text-gray-500">Apenas um processo deste tipo pode ser aberto por estabelecimento por ano</p>
-                    </div>
-                </div>
+                </label>
 
                 {{-- Usuário Externo Pode Abrir --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="usuario_externo_pode_abrir" 
-                               id="usuario_externo_pode_abrir"
-                               {{ old('usuario_externo_pode_abrir') ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="usuario_externo_pode_abrir" 
+                           id="usuario_externo_pode_abrir"
+                           {{ old('usuario_externo_pode_abrir') ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Usuário Externo Pode Abrir</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Empresas podem abrir este tipo de processo</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="usuario_externo_pode_abrir" class="font-medium text-gray-700">Usuário Externo Pode Abrir</label>
-                        <p class="text-sm text-gray-500">Permite que usuários externos (empresas) possam abrir este tipo de processo</p>
-                    </div>
-                </div>
+                </label>
 
                 {{-- Usuário Externo Pode Visualizar --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="usuario_externo_pode_visualizar" 
-                               id="usuario_externo_pode_visualizar"
-                               {{ old('usuario_externo_pode_visualizar', true) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="usuario_externo_pode_visualizar" 
+                           id="usuario_externo_pode_visualizar"
+                           {{ old('usuario_externo_pode_visualizar', true) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Usuário Externo Pode Visualizar</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Empresas podem visualizar processos abertos por usuário interno</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="usuario_externo_pode_visualizar" class="font-medium text-gray-700">Usuário Externo Pode Visualizar</label>
-                        <p class="text-sm text-gray-500">Permite que usuários externos (empresas) possam visualizar este processo quando aberto por usuário interno. Desmarque para processos internos como Descentralização, Denúncia, etc.</p>
-                    </div>
-                </div>
+                </label>
 
                 {{-- Ativo --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="ativo" 
-                               id="ativo"
-                               {{ old('ativo', true) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="ativo" 
+                           id="ativo"
+                           {{ old('ativo', true) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Ativo</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Disponível para uso no sistema</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="ativo" class="font-medium text-gray-700">Ativo</label>
-                        <p class="text-sm text-gray-500">Tipo de processo disponível para uso no sistema</p>
-                    </div>
-                </div>
+                </label>
             </div>
         </div>
 
         {{-- Botões --}}
-        <div class="flex items-center justify-end gap-3">
+        <div class="flex items-center justify-end gap-2 pt-2">
             <a href="{{ route('admin.configuracoes.tipos-processo.index') }}"
-               class="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancelar
             </a>
             <button type="submit"
-                    class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 Criar Tipo de Processo
             </button>
         </div>

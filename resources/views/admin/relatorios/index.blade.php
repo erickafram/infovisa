@@ -6,7 +6,7 @@
 <div class="container-fluid px-4 py-6">
     {{-- Cabeçalho --}}
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Relatórios</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Relatórios</h1>
         <p class="text-gray-600 mt-2">Gere relatórios personalizados do sistema</p>
     </div>
 

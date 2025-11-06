@@ -342,6 +342,7 @@
         </div>
     </div>
 
+
     {{-- Remover todos os outros cards antigos abaixo --}}
     @if(false) {{-- Desabilitar cards antigos --}}
     @if($stats['documentos_pendentes_assinatura'] > 0)
