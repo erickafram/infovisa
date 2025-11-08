@@ -2,14 +2,18 @@
 <style>
 /* Estilos do chat de documentos */
 .assistente-documento-mensagem {
-    font-size: 0.8125rem; /* 13px - fonte menor */
-    line-height: 1.5;
+    font-size: 0.8125rem; /* 13px - fonte menor e mais compacta */
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .assistente-documento-mensagem p {
-    margin-bottom: 0.5rem;
-    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
     color: #374151;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .assistente-documento-mensagem strong {
@@ -20,14 +24,18 @@
 .assistente-documento-mensagem ul,
 .assistente-documento-mensagem ol {
     margin-left: 1.25rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     padding-left: 0.25rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .assistente-documento-mensagem li {
-    margin-bottom: 0.375rem;
-    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
     color: #374151;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .assistente-documento-mensagem code {
@@ -36,20 +44,49 @@
     border-radius: 0.25rem;
     font-family: monospace;
     font-size: 0.75rem;
+    border: 1px solid #e5e7eb;
 }
 
 .assistente-documento-mensagem h3 {
     color: #7c3aed;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     font-size: 0.875rem;
     font-weight: 600;
 }
 
 .assistente-documento-mensagem h4 {
     color: #6b7280;
-    margin-bottom: 0.375rem;
+    margin-bottom: 0.5rem;
     font-size: 0.8125rem;
     font-weight: 600;
+}
+
+/* Melhorias no layout das mensagens */
+.assistente-documento-mensagem {
+    max-width: 95%; /* Mais espaço para texto */
+}
+
+/* Destaque para categorias em roxo */
+.assistente-documento-mensagem .categoria {
+    color: #7c3aed;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+/* Melhorias adicionais para legibilidade */
+.assistente-documento-mensagem br {
+    line-height: 1.8;
+}
+
+/* Espaçamento melhor entre parágrafos */
+.assistente-documento-mensagem p:first-child {
+    margin-top: 0;
+}
+
+.assistente-documento-mensagem p:last-child {
+    margin-bottom: 0;
 }
 
 /* Esconde elementos antes da inicialização do Alpine.js */
@@ -58,7 +95,7 @@
 }
 </style>
 
-<div x-data="assistenteDocumento()" x-init="init()" class="fixed bottom-6 left-6" style="z-index: 10000; width: 380px;" x-cloak>
+<div x-data="assistenteDocumento()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; width: 380px;" x-cloak>
     {{-- Botão Flutuante (quando minimizado) --}}
     <button x-show="!chatAberto && documentoCarregado"
             @click="chatAberto = true"
@@ -129,8 +166,8 @@
             <template x-for="(mensagem, index) in mensagens" :key="index">
                 <div :class="mensagem.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div :class="mensagem.role === 'user' 
-                                ? 'bg-purple-600 text-white rounded-2xl rounded-br-sm px-3 py-2.5 max-w-[85%] shadow-md' 
-                                : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm px-3 py-2.5 max-w-[90%] shadow-md border border-gray-200'">
+                                ? 'bg-purple-600 text-white rounded-2xl rounded-br-sm px-3 py-2.5 max-w-[95%] shadow-md' 
+                                : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm px-3 py-2.5 max-w-[95%] shadow-md border border-gray-200'">
                         <div class="assistente-documento-mensagem" x-html="formatarMensagem(mensagem.content)"></div>
                         <div class="text-[10px] mt-1.5 opacity-70" x-text="mensagem.time"></div>
                     </div>
@@ -151,11 +188,12 @@
         {{-- Input de Mensagem --}}
         <div class="border-t border-gray-200 p-3 bg-white">
             <form @submit.prevent="enviarMensagem()" class="flex gap-2">
-                <input type="text" 
-                       x-model="mensagemAtual"
-                       placeholder="Pergunte sobre o documento..."
-                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                       :disabled="carregando">
+                <textarea x-model="mensagemAtual"
+                          placeholder="Pergunte sobre o documento..."
+                          class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm resize-none"
+                          rows="2"
+                          :disabled="carregando"
+                          @keydown="handleKeyDown($event)"></textarea>
                 <button type="submit" 
                         :disabled="!mensagemAtual.trim() || carregando"
                         class="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -214,6 +252,11 @@ function assistenteDocumento() {
                 
                 this.scrollToBottom();
             });
+            
+            // Escuta evento de fechamento do modal PDF
+            window.addEventListener('pdf-modal-fechado', () => {
+                this.fecharChat();
+            });
         },
         
         async enviarMensagem() {
@@ -226,6 +269,14 @@ function assistenteDocumento() {
             
             const mensagem = this.mensagemAtual.trim();
             this.mensagemAtual = '';
+            
+            // Reseta altura do textarea
+            this.$nextTick(() => {
+                const textarea = this.$el.querySelector('textarea');
+                if (textarea) {
+                    textarea.style.height = 'auto';
+                }
+            });
             
             // Adiciona mensagem do usuário
             this.mensagens.push({
@@ -288,10 +339,49 @@ function assistenteDocumento() {
         formatarMensagem(texto) {
             // Converte markdown básico para HTML
             return texto
+                // Converte URLs em links clicáveis (antes de outras conversões)
+                .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+                // Converte asteriscos simples em negrito (ex: *texto*)
+                .replace(/\*(.+?)\*/g, '<strong>$1</strong>')
+                // Detecta categorias (início com **Sobre [Categoria]:**)
+                .replace(/^\*\*Sobre (.+?):\*\*/gm, '<span class="categoria">**Sobre $1:**</span>')
+                // Converte negrito (duplo asterisco)
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Converte quebras de linha
                 .replace(/\n/g, '<br>')
+                // Converte listas
                 .replace(/^- (.+)$/gm, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)/s, '<ul>$&</ul>');
+                // Agrupa itens de lista
+                .replace(/(<li>.*<\/li>)/s, '<ul>$&</ul>')
+                // Converte código inline
+                .replace(/`(.+?)`/g, '<code>$1</code>');
+        },
+        
+        handleKeyDown(event) {
+            // Shift+Enter: quebra linha sem enviar
+            if (event.key === 'Enter' && event.shiftKey) {
+                event.preventDefault();
+                // Insere quebra de linha no textarea
+                const start = event.target.selectionStart;
+                const end = event.target.selectionEnd;
+                const value = event.target.value;
+                
+                this.mensagemAtual = value.substring(0, start) + '\n' + value.substring(end);
+                
+                // Ajusta altura do textarea
+                this.$nextTick(() => {
+                    event.target.style.height = 'auto';
+                    event.target.style.height = event.target.scrollHeight + 'px';
+                    // Mantém cursor na posição correta
+                    event.target.selectionStart = event.target.selectionEnd = start + 1;
+                });
+            }
+            
+            // Enter sem Shift: envia mensagem
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                this.enviarMensagem();
+            }
         },
         
         scrollToBottom() {
@@ -318,6 +408,8 @@ function assistenteDocumento() {
         
         fecharChat() {
             this.chatAberto = false;
+            // Dispara evento para notificar que o chat de documento fechou
+            window.dispatchEvent(new CustomEvent('documento-chat-fechado'));
             // Limpa documento após 1 segundo (permite reabrir rapidamente)
             setTimeout(() => {
                 if (!this.chatAberto) {

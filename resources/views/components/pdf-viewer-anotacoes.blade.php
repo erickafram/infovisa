@@ -150,8 +150,8 @@
     </div>
 
     {{-- Canvas Container --}}
-    <div class="pdf-canvas-container relative overflow-auto bg-gray-100 flex justify-center" style="height: 800px;">
-        <div class="pdf-canvas-wrapper inline-block relative my-4">
+    <div class="pdf-canvas-container relative overflow-auto bg-gray-100 flex justify-start" style="height: 800px;">
+        <div class="pdf-canvas-wrapper inline-block relative my-4 ml-4">
             <canvas id="pdf-canvas" class="shadow-lg"></canvas>
             <canvas id="annotation-canvas" 
                     class="absolute top-0 left-0 cursor-crosshair" 

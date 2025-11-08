@@ -699,7 +699,7 @@
                         </button>
                     </div>
                     <p class="text-xs text-amber-600 mt-1">
-                        ⚠️ Use apenas em casos excepcionais (decisão judicial, administrativa, etc.)
+                        ⚠️ Use apenas em casos excepcionais.
                     </p>
                 </div>
 
@@ -758,7 +758,7 @@
                             <textarea id="motivo_alteracao" name="motivo_alteracao_competencia" 
                                       rows="2" required minlength="10" maxlength="500"
                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                      placeholder="Ex: Decisão judicial nº 12345/2025"></textarea>
+                                      placeholder="Ex: Conforme Pactuação"></textarea>
                         </div>
                     </div>
                     

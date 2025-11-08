@@ -348,6 +348,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Assistente IA
     Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
     Route::post('/ia/extrair-pdf', [\App\Http\Controllers\AssistenteIAController::class, 'extrairPdf'])->name('assistente-ia.extrair-pdf');
+    Route::post('/ia/chat-edicao-documento', [\App\Http\Controllers\AssistenteIAController::class, 'chatEdicaoDocumento'])->name('ia.chat-edicao-documento');
     
     // Diário Oficial
     Route::prefix('diario-oficial')->name('diario-oficial.')->group(function () {

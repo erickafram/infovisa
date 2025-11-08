@@ -12,20 +12,30 @@
     
     <style>
         .pdf-highlight {
-            background-color: rgba(255, 255, 0, 0.6);
-            border: 2px solid rgba(255, 200, 0, 0.8);
+            background-color: rgba(255, 255, 0, 0.3);
+            border: none;
             position: absolute;
             pointer-events: auto;
             cursor: pointer;
             animation: pulse 2s ease-in-out infinite;
-            z-index: 10;
+            z-index: 15;
+            border-radius: 1px;
+            box-shadow: none;
+            transition: all 0.2s ease;
+        }
+        
+        .pdf-highlight:hover {
+            background-color: rgba(255, 255, 0, 0.4);
+            border: none;
+            box-shadow: none;
         }
         
         .pdf-highlight.active {
-            background-color: rgba(255, 0, 0, 0.6);
-            border-color: rgba(255, 0, 0, 0.8);
+            background-color: rgba(255, 255, 0, 0.5);
+            border: none;
             animation: none;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            box-shadow: none;
+            border-radius: 1px;
         }
         
         @keyframes pulse {
@@ -39,6 +49,13 @@
             position: relative;
             background: white;
             border: 1px solid #e5e7eb;
+            display: inline-block;
+        }
+        
+        .pdf-page canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
         }
         
         .page-number {
@@ -61,7 +78,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 5;
+            z-index: 10;
         }
         
         .text-layer {
@@ -377,42 +394,56 @@
                         
                         // Verificar se o item contém o texto buscado
                         if (textLower.includes(searchLower)) {
-                            // Calcular posição do highlight
-                            const transform = pdfjsLib.Util.transform(
-                                viewport.transform,
-                                item.transform
-                            );
-
-                            const highlight = document.createElement('div');
-                            highlight.className = 'pdf-highlight';
-                            highlight.dataset.page = pageNum;
-                            highlight.dataset.occurrence = allHighlights.length;
-                            highlight.title = `Clique para navegar - "${text}"`;
+                            // Encontrar todas as ocorrências dentro deste item
+                            const regex = new RegExp(searchLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                            let match;
                             
-                            // Posicionamento preciso
-                            highlight.style.left = `${transform[4]}px`;
-                            highlight.style.top = `${viewport.height - transform[5] - item.height}px`;
-                            highlight.style.width = `${item.width}px`;
-                            highlight.style.height = `${item.height}px`;
+                            while ((match = regex.exec(text)) !== null) {
+                                const startIndex = match.index;
+                                const endIndex = startIndex + match[0].length;
+                                
+                                // Calcular a largura proporcional baseada nos caracteres
+                                const charWidth = item.width / text.length;
+                                const highlightWidth = charWidth * match[0].length;
+                                const highlightLeft = item.transform[4] + (charWidth * startIndex);
+                                
+                                // Calcular posição do highlight
+                                const transform = pdfjsLib.Util.transform(
+                                    viewport.transform,
+                                    [highlightWidth, 0, 0, item.height, highlightLeft, item.transform[5]]
+                                );
 
-                            // Event listener para clique
-                            highlight.addEventListener('click', () => {
-                                setActiveOccurrence(parseInt(highlight.dataset.occurrence));
-                            });
+                                const highlight = document.createElement('div');
+                                highlight.className = 'pdf-highlight';
+                                highlight.dataset.page = pageNum;
+                                highlight.dataset.occurrence = allHighlights.length;
+                                highlight.title = `Clique para navegar - "${match[0]}"`;
+                                
+                                // Posicionamento preciso
+                                highlight.style.left = `${transform[4]}px`;
+                                highlight.style.top = `${viewport.height - transform[5] - item.height}px`;
+                                highlight.style.width = `${transform[0]}px`;
+                                highlight.style.height = `${item.height}px`;
 
-                            // Permitir interação
-                            highlight.style.pointerEvents = 'auto';
+                                // Event listener para clique
+                                highlight.addEventListener('click', () => {
+                                    setActiveOccurrence(parseInt(highlight.dataset.occurrence));
+                                });
 
-                            highlightLayer.appendChild(highlight);
-                            allHighlights.push({
-                                element: highlight,
-                                page: pageNum,
-                                index: allHighlights.length,
-                                text: text
-                            });
+                                // Permitir interação
+                                highlight.style.pointerEvents = 'auto';
 
-                            pageOccurrences++;
-                            totalOccurrences++;
+                                highlightLayer.appendChild(highlight);
+                                allHighlights.push({
+                                    element: highlight,
+                                    page: pageNum,
+                                    index: allHighlights.length,
+                                    text: match[0]
+                                });
+                                
+                                pageOccurrences++;
+                                totalOccurrences++;
+                            }
                         }
                     });
 
@@ -523,9 +554,29 @@
             const resultsDiv = document.getElementById('searchResults');
             const resultsInfo = document.getElementById('resultsInfo');
 
+            // Encontrar o primeiro trecho encontrado
+            let firstSnippet = '';
+            if (allHighlights.length > 0) {
+                firstSnippet = allHighlights[0].text;
+                // Limitar tamanho do trecho se for muito grande
+                if (firstSnippet.length > 100) {
+                    firstSnippet = firstSnippet.substring(0, 100) + '...';
+                }
+            }
+
             resultsInfo.innerHTML = `
-                <i class="fas fa-check-circle mr-2"></i>
-                <strong>${totalOccurrences}</strong> ocorrência(s) de "<strong>${searchText}</strong>" encontrada(s)
+                <div class="flex items-center justify-between w-full">
+                    <div>
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>${totalOccurrences}</strong> ocorrência(s) de "<strong>${searchText}</strong>" encontrada(s)
+                    </div>
+                    ${firstSnippet ? `
+                        <div class="text-sm text-green-700 ml-4">
+                            <i class="fas fa-quote-left mr-1"></i>
+                            <em>"${firstSnippet}"</em>
+                        </div>
+                    ` : ''}
+                </div>
             `;
 
             resultsDiv.classList.remove('hidden');

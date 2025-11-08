@@ -2000,9 +2000,317 @@ Acesso: Menu lateral > Ícone de engrenagem
             ]);
 
             return response()->json([
-                'success' => false,
-                'message' => 'Erro ao processar PDF: ' . $e->getMessage()
+                'error' => 'Erro ao processar mensagem: ' . $e->getMessage()
             ], 500);
         }
     }
-} 
+
+    /**
+     * Chat especializado para auxiliar na edição/criação de documentos
+     */
+    public function chatEdicaoDocumento(Request $request)
+    {
+        $request->validate([
+            'mensagem' => 'required|string|max:2000',
+            'historico' => 'nullable|array',
+            'texto_atual' => 'nullable|string|max:50000',
+            'conhecimento_geral' => 'nullable|boolean',
+        ]);
+
+        // Verifica se IA está ativa
+        $iaAtiva = ConfiguracaoSistema::where('chave', 'ia_ativa')->value('valor');
+        if ($iaAtiva !== 'true') {
+            return response()->json([
+                'error' => 'Assistente de IA está desativado'
+            ], 403);
+        }
+
+        $mensagem = $request->input('mensagem');
+        $historico = $request->input('historico', []);
+        $textoAtual = $request->input('texto_atual', '');
+        $conhecimentoGeral = $request->input('conhecimento_geral', false);
+        $dadosEstabelecimento = $request->input('dados_estabelecimento', []);
+
+        try {
+            // Se conhecimento geral está ativo, busca na internet primeiro
+            $resultadosBusca = '';
+            if ($conhecimentoGeral) {
+                \Log::info('Buscando na internet para assistente de edição', [
+                    'mensagem' => $mensagem
+                ]);
+                
+                // Usa a mesma lógica de busca do assistente principal
+                $messageLower = strtolower($mensagem);
+                
+                if (strpos($messageLower, 'rdc') !== false || strpos($messageLower, 'resolução') !== false) {
+                    // Busca ampla para RDCs (inclui sites não oficiais que podem ter a informação)
+                    $query = $mensagem . ' anvisa';
+                } else {
+                    // Busca focada em sites oficiais
+                    $query = $mensagem . ' site:anvisa.gov.br OR site:in.gov.br';
+                }
+                
+                // Tenta busca na internet
+                $resultadosBusca = $this->buscarNaInternet($query);
+                
+                if (!empty($resultadosBusca)) {
+                    \Log::info('Resultados da busca na internet encontrados', [
+                        'resultados_count' => count($resultadosBusca)
+                    ]);
+                }
+            }
+            
+            // Monta o prompt do sistema
+            $systemPrompt = $this->construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca, $dadosEstabelecimento);
+
+            // Monta histórico de mensagens
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt]
+            ];
+
+            // Adiciona histórico (últimas 10 mensagens)
+            foreach (array_slice($historico, -10) as $msg) {
+                if (isset($msg['role']) && isset($msg['content'])) {
+                    $messages[] = [
+                        'role' => $msg['role'] === 'user' ? 'user' : 'assistant',
+                        'content' => strip_tags($msg['content'])
+                    ];
+                }
+            }
+
+            // Adiciona mensagem atual
+            $messages[] = [
+                'role' => 'user',
+                'content' => $mensagem
+            ];
+
+            // Busca configurações da IA do banco de dados
+            $apiKey = ConfiguracaoSistema::where('chave', 'ia_api_key')->value('valor');
+            $apiUrl = ConfiguracaoSistema::where('chave', 'ia_api_url')->value('valor');
+            $model = ConfiguracaoSistema::where('chave', 'ia_model')->value('valor');
+
+            if (empty($apiKey)) {
+                throw new \Exception('Chave da API não configurada no sistema');
+            }
+
+            if (empty($apiUrl)) {
+                throw new \Exception('URL da API não configurada no sistema');
+            }
+
+            if (empty($model)) {
+                throw new \Exception('Modelo de IA não configurado no sistema');
+            }
+
+            // Chama API do Together AI
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(60)->post($apiUrl, [
+                'model' => $model,
+                'messages' => $messages,
+                'temperature' => 0.7,
+                'max_tokens' => 2000,
+            ]);
+
+            if (!$response->successful()) {
+                \Log::error('Erro na API Together AI', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \Exception('Erro ao comunicar com a IA');
+            }
+
+            $data = $response->json();
+            $resposta = $data['choices'][0]['message']['content'] ?? 'Desculpe, não consegui processar sua solicitação.';
+
+            return response()->json([
+                'resposta' => $resposta
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro no chat de edição de documento', [
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Erro ao processar mensagem: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Constrói o prompt do sistema para edição de documentos
+     */
+    private function construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca = '', $dadosEstabelecimento = [])
+    {
+        $prompt = "Você é um assistente especializado em redação e correção de textos para documentos oficiais.\n\n";
+        
+        // Adiciona dados do estabelecimento se disponíveis
+        if (!empty($dadosEstabelecimento) && (isset($dadosEstabelecimento['nome']) || isset($dadosEstabelecimento['cnpj']))) {
+            $prompt .= "**DADOS DO ESTABELECIMENTO/PROCESSO:**\n";
+            if (!empty($dadosEstabelecimento['nome'])) {
+                $prompt .= "- Nome: " . $dadosEstabelecimento['nome'] . "\n";
+            }
+            if (!empty($dadosEstabelecimento['cnpj'])) {
+                $prompt .= "- CNPJ: " . $dadosEstabelecimento['cnpj'] . "\n";
+            }
+            if (!empty($dadosEstabelecimento['telefone'])) {
+                $prompt .= "- Telefone: " . $dadosEstabelecimento['telefone'] . "\n";
+            }
+            if (!empty($dadosEstabelecimento['endereco'])) {
+                $prompt .= "- Endereço: " . $dadosEstabelecimento['endereco'] . "\n";
+            }
+            if (!empty($dadosEstabelecimento['processo_numero'])) {
+                $prompt .= "- Processo nº: " . $dadosEstabelecimento['processo_numero'] . "\n";
+            }
+            $prompt .= "\n⚠️ IMPORTANTE: Use estes dados automaticamente quando o usuário pedir para criar ofícios, despachos, notificações ou outros documentos.\n\n";
+        }
+        
+        $prompt .= "**SUA FUNÇÃO:**\n";
+        $prompt .= "- Auxiliar na redação de documentos oficiais (notificações, ofícios, pareceres, despachos, etc.)\n";
+        $prompt .= "- Corrigir erros de português (gramática, ortografia, concordância)\n";
+        $prompt .= "- Melhorar a clareza e objetividade do texto\n";
+        $prompt .= "- Sugerir redações mais formais e técnicas\n";
+        $prompt .= "- Ajudar a estruturar argumentos e parágrafos\n\n";
+        
+        $prompt .= "**DIRETRIZES:**\n";
+        $prompt .= "- Use linguagem formal e técnica adequada para documentos oficiais\n";
+        $prompt .= "- Seja objetivo e direto nas correções\n";
+        $prompt .= "- Explique as correções quando necessário\n";
+        $prompt .= "- Mantenha o tom respeitoso e profissional\n";
+        $prompt .= "- Preserve a intenção original do texto\n\n";
+        
+        $prompt .= "**FORMATO DE RESPOSTA PARA CORREÇÕES E ESTRUTURAÇÃO:**\n";
+        $prompt .= "⚠️ IMPORTANTE: Quando o usuário pedir para 'corrigir', 'melhorar', 'revisar', 'estruturar', 'reorganizar' ou 'formatar' o texto, você DEVE usar este formato EXATO:\n\n";
+        
+        $prompt .= "**PARA CRIAÇÃO DE DOCUMENTOS (OFÍCIOS, DESPACHOS, NOTIFICAÇÕES):**\n";
+        $prompt .= "Quando o usuário pedir para 'criar', 'fazer', 'redigir' um ofício, despacho, notificação ou similar, use UM ÚNICO bloco:\n";
+        $prompt .= "```TEXTO_CORRIGIDO\n";
+        $prompt .= "[corpo do documento]\n";
+        $prompt .= "```\n\n";
+        $prompt .= "⚠️ REGRAS IMPORTANTES:\n";
+        $prompt .= "1. NÃO inclua cabeçalho (número do despacho, CNPJ, endereço) - isso já vem no PDF gerado\n";
+        $prompt .= "2. NÃO coloque título como 'DESPACHO:', 'OFÍCIO:', etc.\n";
+        $prompt .= "3. INCLUA o nome do estabelecimento no corpo do texto (ex: 'o estabelecimento SUPERMERCADO ROCHA...')\n";
+        $prompt .= "4. Use os dados fornecidos (nome, processo, valores) naturalmente no texto\n";
+        $prompt .= "5. Mantenha texto estruturado, coerente, resumido mas com detalhes necessários\n";
+        $prompt .= "6. Use linguagem formal e profissional\n";
+        $prompt .= "7. Comece direto com o conteúdo (ex: 'Senhor(a) Responsável,' ou direto com o assunto)\n\n";
+        $prompt .= "EXEMPLO CORRETO:\n";
+        $prompt .= "```TEXTO_CORRIGIDO\n";
+        $prompt .= "Senhor(a) Responsável,\n\n";
+        $prompt .= "Em cumprimento às normas vigentes, solicitamos que o estabelecimento SUPERMERCADO ROCHA efetue o pagamento da taxa no valor de R$ 50,00 (cinquenta reais), referente ao processo nº 2025/00006.\n\n";
+        $prompt .= "O pagamento deverá ser realizado no prazo de 30 (trinta) dias corridos, a contar da data de ciência deste despacho.\n\n";
+        $prompt .= "Atenciosamente.\n";
+        $prompt .= "```\n\n";
+        
+        $prompt .= "**PARA ESTRUTURAÇÃO/REORGANIZAÇÃO DE TEXTO:**\n";
+        $prompt .= "Quando o usuário pedir para 'estruturar', 'reorganizar' ou 'formatar' o texto, use UM ÚNICO bloco:\n";
+        $prompt .= "```TEXTO_CORRIGIDO\n";
+        $prompt .= "[texto completo estruturado com títulos, seções, numeração, etc.]\n";
+        $prompt .= "```\n\n";
+        $prompt .= "Depois do bloco, explique as melhorias feitas na estrutura.\n\n";
+        
+        $prompt .= "**PARA CORREÇÃO DE TEXTO:**\n";
+        $prompt .= "⚠️ MUITO IMPORTANTE: Quando o usuário pedir para 'corrigir', 'revisar' ou 'melhorar' o texto, você DEVE SEMPRE usar o formato de PARÁGRAFOS para dar controle ao usuário:\n\n";
+        $prompt .= "1. Identifique cada parágrafo ou seção do texto\n";
+        $prompt .= "2. Para CADA parágrafo, crie um bloco separado:\n\n";
+        $prompt .= "```PARAGRAFO_1\n";
+        $prompt .= "[parágrafo 1 corrigido OU 'SEM_ERROS' se não tiver erros]\n";
+        $prompt .= "```\n\n";
+        $prompt .= "```PARAGRAFO_2\n";
+        $prompt .= "[parágrafo 2 corrigido OU 'SEM_ERROS' se não tiver erros]\n";
+        $prompt .= "```\n\n";
+        $prompt .= "E assim por diante para cada parágrafo.\n\n";
+        $prompt .= "3. Isso permite que o usuário escolha quais parágrafos aplicar no editor\n";
+        $prompt .= "4. O usuário pode aplicar um parágrafo de cada vez, mantendo controle total\n\n";
+        $prompt .= "⚠️ NÃO use ```TEXTO_CORRIGIDO``` para correções, APENAS para estruturação!\n\n";
+        $prompt .= "EXCEÇÃO: Se o texto tiver APENAS UM PARÁGRAFO CURTO (menos de 3 linhas), use:\n";
+        $prompt .= "```TEXTO_CORRIGIDO\n";
+        $prompt .= "[texto corrigido]\n";
+        $prompt .= "```\n\n";
+        $prompt .= "Depois dos blocos de código, explique as correções feitas em cada parágrafo.\n\n";
+        $prompt .= "EXEMPLO DE RESPOSTA CORRETA (múltiplos parágrafos):\n";
+        $prompt .= "```PARAGRAFO_1\n";
+        $prompt .= "Quero o coração para mim. A notificação está errada.\n";
+        $prompt .= "```\n\n";
+        $prompt .= "```PARAGRAFO_2\n";
+        $prompt .= "SEM_ERROS\n";
+        $prompt .= "```\n\n";
+        $prompt .= "```PARAGRAFO_3\n";
+        $prompt .= "Este estabelecimento está correto agora.\n";
+        $prompt .= "```\n\n";
+        $prompt .= "**Correções realizadas:**\n";
+        $prompt .= "- Parágrafo 1: 'coracao' → 'coração' (acento), 'erada' → 'errada' (ortografia)\n";
+        $prompt .= "- Parágrafo 2: Sem erros\n";
+        $prompt .= "- Parágrafo 3: 'estabeleccimento' → 'estabelecimento' (ortografia)\n\n";
+        
+        $prompt .= "EXEMPLO DE RESPOSTA CORRETA (estruturação de texto):\n";
+        $prompt .= "```TEXTO_CORRIGIDO\n";
+        $prompt .= "I. INTRODUÇÃO\n\n";
+        $prompt .= "No dia 04 de novembro de 2025, durante fiscalização sanitária...\n\n";
+        $prompt .= "II. NOTIFICAÇÃO\n\n";
+        $prompt .= "Fica o estabelecimento NOTIFICADO que...\n\n";
+        $prompt .= "III. REQUISITOS\n\n";
+        $prompt .= "O estabelecimento deverá providenciar:\n";
+        $prompt .= "1. Item um\n";
+        $prompt .= "2. Item dois\n";
+        $prompt .= "```\n\n";
+        $prompt .= "**Melhorias realizadas:**\n";
+        $prompt .= "- Organizado em seções com títulos claros\n";
+        $prompt .= "- Adicionada numeração sequencial\n";
+        $prompt .= "- Melhorada a hierarquia visual\n\n";
+        
+        $prompt .= "EXEMPLO DE RESPOSTA CORRETA (correção de documento longo):\n";
+        $prompt .= "Usuário pede: 'corrija o texto'\n\n";
+        $prompt .= "```PARAGRAFO_1\n";
+        $prompt .= "I. INTRODUÇÃO\n\n";
+        $prompt .= "No dia 04 de novembro de 2025, durante a fiscalização sanitária...\n";
+        $prompt .= "```\n\n";
+        $prompt .= "```PARAGRAFO_2\n";
+        $prompt .= "II. NOTIFICAÇÃO\n\n";
+        $prompt .= "Fica o estabelecimento notificado que foram identificadas...\n";
+        $prompt .= "```\n\n";
+        $prompt .= "```PARAGRAFO_3\n";
+        $prompt .= "III. REQUISITOS\n\n";
+        $prompt .= "O estabelecimento deverá providenciar:\n1. Item um\n2. Item dois\n";
+        $prompt .= "```\n\n";
+        $prompt .= "**Correções realizadas:**\n";
+        $prompt .= "- Parágrafo 1: Corrigido 'fiscalizaçao' → 'fiscalização'\n";
+        $prompt .= "- Parágrafo 2: Corrigido 'notificado' → 'NOTIFICADO' (ênfase)\n";
+        $prompt .= "- Parágrafo 3: Sem erros de ortografia\n\n";
+        $prompt .= "⚠️ Isso permite que o usuário aplique cada seção separadamente!\n\n";
+        
+        if (!empty($textoAtual)) {
+            $prompt .= "**TEXTO ATUAL DO DOCUMENTO:**\n";
+            $prompt .= "```\n" . mb_substr($textoAtual, 0, 5000) . "\n```\n\n";
+            $prompt .= "Este é o texto que o usuário está escrevendo. Use-o como contexto para suas sugestões.\n\n";
+        }
+        
+        if ($conhecimentoGeral) {
+            $prompt .= "**CONHECIMENTO GERAL ATIVADO:**\n";
+            $prompt .= "Você pode buscar informações gerais e exemplos de documentos oficiais para auxiliar o usuário.\n";
+            $prompt .= "Pode sugerir modelos, templates e boas práticas de redação oficial.\n\n";
+            
+            if (!empty($resultadosBusca)) {
+                $prompt .= "**RESULTADOS DA BUSCA NA INTERNET:**\n";
+                $prompt .= "Use estas informações como referência para suas respostas:\n\n";
+                $prompt .= $resultadosBusca . "\n\n";
+                $prompt .= "**IMPORTANTE:** Baseie suas respostas principalmente nos resultados da busca acima, ";
+                $prompt .= "pois são informações atualizadas e relevantes. Se necessário, complemente com seu conhecimento.\n\n";
+            }
+        }
+        
+        $prompt .= "**EXEMPLOS DE AJUDA:**\n";
+        $prompt .= "- Correção: \"Corrija este texto: [texto]\"\n";
+        $prompt .= "- Melhoria: \"Melhore a redação deste parágrafo\"\n";
+        $prompt .= "- Formalização: \"Como posso escrever isso de forma mais formal?\"\n";
+        $prompt .= "- Sugestão: \"Sugira um texto para notificar sobre irregularidades\"\n";
+        $prompt .= "- Estrutura: \"Como organizar melhor este documento?\"\n\n";
+        
+        $prompt .= "Seja prestativo, claro e objetivo em suas respostas!";
+        
+        return $prompt;
+    }
+}

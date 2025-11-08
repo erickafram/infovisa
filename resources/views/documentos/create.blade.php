@@ -1024,4 +1024,8 @@ function documentoEditor() {
     }
 }
 </script>
+
+{{-- Assistente de Edição de Documento --}}
+@include('components.assistente-edicao-documento-chat')
+
 @endsection

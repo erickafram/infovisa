@@ -106,15 +106,15 @@
     display: none !important;
 }
 </style>
-<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000;" x-cloak>
+<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; display: none !important;" x-cloak>
     {{-- Botão Flutuante --}}
     <button @click="toggleChat()" 
-            x-show="!chatAberto"
+            x-show="!chatAberto && !assistenteDocumentoAberto && !modalPdfAberto"
             class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center gap-3 group">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none !important;">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
-        <span class="font-semibold hidden group-hover:inline-block">Assistente IA</span>
+        <span class="font-semibold hidden group-hover:inline-block" style="display: none !important;">Assistente IA</span>
     </button>
 
     {{-- Janela de Chat --}}
@@ -291,7 +291,10 @@ function assistenteIA() {
         mensagens: mensagensIniciais,
         mensagemAtual: '',
         carregando: false,
+        digitando: false,
         inicializado: false,
+        assistenteDocumentoAberto: false,
+        modalPdfAberto: false,  // Controla se o modal PDF está aberto
         
         init() {
             // Marca como inicializado e rola para o final se chat estiver aberto
@@ -305,7 +308,35 @@ function assistenteIA() {
                 }
             });
 
-            // REMOVIDO: Lógica de documento movida para assistente-documento-chat.blade.php
+            // Escuta eventos do assistente de documento
+            window.addEventListener('documento-carregado', () => {
+                this.assistenteDocumentoAberto = true;
+            });
+            
+            // Escuta evento de fechamento do assistente de documento
+            window.addEventListener('documento-chat-fechado', () => {
+                this.assistenteDocumentoAberto = false;
+            });
+            
+            // Escuta eventos do modal PDF
+            window.addEventListener('pdf-modal-aberto', () => {
+                this.modalPdfAberto = true;
+            });
+            
+            window.addEventListener('pdf-modal-fechado', () => {
+                this.modalPdfAberto = false;
+            });
+            
+            // Verifica se já tem documento carregado ao iniciar
+            setTimeout(() => {
+                const documentoChat = document.querySelector('[x-data*="assistenteDocumento"]');
+                if (documentoChat && documentoChat._x_dataStack) {
+                    const data = documentoChat._x_dataStack[0];
+                    if (data && data.chatAberto && data.documentoCarregado) {
+                        this.assistenteDocumentoAberto = true;
+                    }
+                }
+            }, 100);
         },
         
         toggleChat() {

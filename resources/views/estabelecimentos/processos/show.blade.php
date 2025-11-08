@@ -1168,7 +1168,7 @@
     <template x-teleport="body">
         <div x-show="modalVisualizadorAnotacoes" 
              x-cloak
-             @keydown.escape.window="modalVisualizadorAnotacoes = false"
+             @keydown.escape.window="fecharModalPDF()"
              style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
             
             {{-- Modal Content - Tela Toda --}}
@@ -1181,7 +1181,7 @@
                             </svg>
                             Visualizar e Anotar PDF
                         </h3>
-                        <button @click="modalVisualizadorAnotacoes = false"
+                        <button @click="fecharModalPDF()"
                                 class="text-gray-400 hover:text-gray-600 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -2061,6 +2061,9 @@
                     this.pdfUrlAnotacoes = pdfUrl;
                     this.modalVisualizadorAnotacoes = true;
                     
+                    // Notificar que o modal PDF foi aberto
+                    window.dispatchEvent(new CustomEvent('pdf-modal-aberto'));
+                    
                     // Carrega automaticamente o documento na IA
                     await this.carregarDocumentoNaIA();
                 },
@@ -2116,6 +2119,13 @@
                         console.error('Erro ao carregar documento:', error);
                         alert('❌ Erro ao carregar documento na IA');
                     }
+                },
+
+                // Fecha o modal PDF e dispara evento para fechar assistente de documento
+                fecharModalPDF() {
+                    this.modalVisualizadorAnotacoes = false;
+                    // Dispara evento para notificar que o modal PDF foi fechado
+                    window.dispatchEvent(new CustomEvent('pdf-modal-fechado'));
                 },
 
                 // Carrega setores e usuários para designação

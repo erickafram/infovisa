@@ -8,7 +8,7 @@
     {{-- Header com Botão Adicionar --}}
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Documentos POPS/IA</h2>
+            <h2 class="text-2xl font-bold text-gray-900">Documentos IA</h2>
             <p class="mt-1 text-sm text-gray-600">Gerencie documentos de procedimentos operacionais padrão e integração com Assistente IA</p>
         </div>
         <a href="{{ route('admin.configuracoes.documentos-pops.create') }}" 
