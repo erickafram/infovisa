@@ -39,7 +39,7 @@
 }
 </style>
 
-<div x-data="assistenteEdicaoDocumento()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; width: 380px;" x-cloak>
+<div x-data="assistenteEdicaoDocumento()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; width: 380px;">
     {{-- Botão Flutuante (só mostra quando chat está fechado) --}}
     <button type="button"
             x-show="!chatAberto && !minimizado"
@@ -72,7 +72,7 @@
          x-transition:leave-start="opacity-100 transform scale-100"
          x-transition:leave-end="opacity-0 transform scale-95"
          class="bg-white rounded-lg shadow-xl border-2 border-green-200 flex flex-col"
-         style="height: 60px; width: 200px; position: fixed; bottom: 6px; right: 6px; z-index: 9999;">
+         style="height: 60px; width: 200px;">
         
         {{-- Header Minimizado --}}
         <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white px-3 py-3 rounded-t-lg flex items-center justify-between">
