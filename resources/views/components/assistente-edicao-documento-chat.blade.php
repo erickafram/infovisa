@@ -2,15 +2,15 @@
 <style>
 /* Estilos do chat de edição */
 .assistente-edicao-mensagem {
-    font-size: 0.8125rem;
-    line-height: 1.6;
+    font-size: 0.75rem;
+    line-height: 1.5;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
 
 .assistente-edicao-mensagem p {
-    margin-bottom: 0.75rem;
-    line-height: 1.6;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
     color: #374151;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -29,8 +29,8 @@
 }
 
 .assistente-edicao-mensagem li {
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
+    margin-bottom: 0.375rem;
+    line-height: 1.5;
     color: #374151;
 }
 
@@ -39,7 +39,7 @@
 }
 </style>
 
-<div x-data="assistenteEdicaoDocumento()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; width: 380px;">
+<div x-data="assistenteEdicaoDocumento()" x-init="init()" x-cloak class="fixed bottom-6 right-6" style="z-index: 10000; width: 340px;">
     {{-- Botão Flutuante (só mostra quando chat está fechado) --}}
     <button type="button"
             x-show="!chatAberto && !minimizado"
@@ -52,25 +52,9 @@
         <span class="text-sm font-medium whitespace-nowrap">Redação</span>
     </button>
 
-    {{-- Janela do Chat (normal) --}}
-    <div x-show="chatAberto && !minimizado"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-95"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-95"
-         class="bg-white rounded-lg shadow-2xl border-2 border-green-200 flex flex-col"
-         style="height: 450px;">
-
-    {{-- Janela do Chat (minimizado no canto direito) --}}
+    {{-- Janela do Chat (minimizado) --}}
     <div x-show="minimizado"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-95"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-95"
+         x-transition.duration.300ms
          class="bg-white rounded-lg shadow-xl border-2 border-green-200 flex flex-col"
          style="height: 60px; width: 200px;">
         
@@ -105,8 +89,14 @@
         </div>
     </div>
 
-    {{-- Header Normal --}}
-    <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
+    {{-- Janela do Chat (normal) --}}
+    <div x-show="chatAberto && !minimizado"
+         x-transition.duration.300ms
+         class="bg-white rounded-lg shadow-2xl border-2 border-green-200 flex flex-col"
+         style="height: 450px;">
+
+        {{-- Header Normal --}}
+        <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
         <div class="flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -233,9 +223,13 @@
 
 <script>
 function assistenteEdicaoDocumento() {
+    // Carrega estados ANTES da inicialização para evitar animação
+    const estadoSalvo = localStorage.getItem('assistente_edicao_aberto');
+    const estadoMinimizado = localStorage.getItem('assistente_edicao_minimizado');
+    
     return {
-        chatAberto: false,
-        minimizado: false,
+        chatAberto: estadoSalvo === 'true',
+        minimizado: estadoMinimizado === 'true',
         mensagens: [],
         mensagemAtual: '',
         carregando: false,
@@ -243,20 +237,13 @@ function assistenteEdicaoDocumento() {
         textoEditor: '',
         
         init() {
-            // Carrega estado do localStorage
-            const estadoSalvo = localStorage.getItem('assistente_edicao_aberto');
-            if (estadoSalvo === 'true') {
-                this.chatAberto = true;
-            }
-            
-            const estadoMinimizado = localStorage.getItem('assistente_edicao_minimizado');
-            if (estadoMinimizado === 'true') {
-                this.minimizado = true;
-                this.chatAberto = false;
-            }
-            
             // Monitora mudanças no editor de texto
             this.monitorarEditor();
+            
+            // Scroll para o final se chat estiver aberto
+            if (this.chatAberto && !this.minimizado) {
+                this.$nextTick(() => this.scrollToBottom());
+            }
         },
         
         toggleChat() {

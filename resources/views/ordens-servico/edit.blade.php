@@ -3,34 +3,48 @@
 @section('title', 'Editar Ordem de Serviço')
 
 @section('content')
-<div class="container-fluid px-4 py-6">
+<div class="max-w-5xl mx-auto px-4 py-6">
     {{-- Header --}}
     <div class="mb-6">
-        <div class="flex items-center gap-3 mb-2">
+        <div class="flex items-center gap-4 mb-3">
             <a href="{{ route('admin.ordens-servico.index') }}" 
-               class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </a>
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Editar Ordem de Serviço</h1>
-                <p class="text-sm text-gray-600 mt-1">{{ $ordemServico->numero }} - Atualize as informações da ordem de serviço</p>
+            <div class="flex-1">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Editar Ordem de Serviço</h1>
+                        <p class="text-sm text-gray-500 mt-0.5">{{ $ordemServico->numero }} - Atualize as informações</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     {{-- Formulário --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <form method="POST" action="{{ route('admin.ordens-servico.update', $ordemServico) }}" class="space-y-6">
+    <form method="POST" action="{{ route('admin.ordens-servico.update', $ordemServico) }}" class="space-y-5">
             @csrf
             @method('PUT')
 
-            {{-- Dados Principais --}}
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                    Dados Principais
-                </h2>
+        {{-- Card: Dados Principais --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <h2 class="text-base font-semibold text-gray-900">Dados Principais</h2>
+                </div>
+            </div>
+            <div class="p-5">
                 
                 @if(!$ordemServico->estabelecimento_id)
                 <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">

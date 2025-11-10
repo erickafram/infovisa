@@ -2,6 +2,11 @@
 
 @section('title', 'Criar Novo Documento')
 
+@php
+    // Desativa o assistente IA principal nesta página (já tem o assistente de redação)
+    $desativarAssistenteIA = true;
+@endphp
+
 @push('styles')
 <style>
     [x-cloak] { display: none !important; }

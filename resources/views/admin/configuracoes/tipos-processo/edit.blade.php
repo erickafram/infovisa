@@ -6,17 +6,26 @@
 @section('content')
 <div class="max-w-8xl mx-auto">
     {{-- Header --}}
-    <div class="mb-6">
-        <div class="flex items-center gap-4">
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
             <a href="{{ route('admin.configuracoes.tipos-processo.index') }}" 
-               class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors">
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </a>
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Editar Tipo de Processo</h1>
-                <p class="text-sm text-gray-600 mt-1">{{ $tipoProcesso->nome }}</p>
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Editar Tipo de Processo</h1>
+                        <p class="text-sm text-gray-500 mt-0.5">{{ $tipoProcesso->nome }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -27,8 +36,16 @@
         @method('PUT')
 
         {{-- Card Principal --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Informações Básicas</h3>
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-900">Informações Básicas</h3>
+                </div>
+            </div>
+            <div class="p-6">
 
             <div class="space-y-6">
                 {{-- Nome --}}
@@ -98,8 +115,16 @@
         </div>
 
         {{-- Card Competência e Descentralização --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-data="{ competencia: '{{ old('competencia', $tipoProcesso->competencia ?? 'municipal') }}', municipiosSelecionados: {{ json_encode(old('municipios_descentralizados', $tipoProcesso->municipios_descentralizados ?? [])) }} }">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Competência e Descentralização</h3>
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden" x-data="{ competencia: '{{ old('competencia', $tipoProcesso->competencia ?? 'municipal') }}' }">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-900">Competência e Descentralização</h3>
+                </div>
+            </div>
+            <div class="p-6">
 
             <div class="space-y-6">
                 {{-- Competência --}}
@@ -186,8 +211,16 @@
         </div>
 
         {{-- Card Configurações --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Configurações</h3>
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-900">Configurações</h3>
+                </div>
+            </div>
+            <div class="p-6">
 
             <div class="space-y-4">
                 {{-- Processo Anual --}}
@@ -253,13 +286,19 @@
         </div>
 
         {{-- Botões --}}
-        <div class="flex items-center justify-end gap-3">
+        <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
             <a href="{{ route('admin.configuracoes.tipos-processo.index') }}"
-               class="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+               class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
                 Cancelar
             </a>
             <button type="submit"
-                    class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
                 Salvar Alterações
             </button>
         </div>

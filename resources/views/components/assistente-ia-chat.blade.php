@@ -2,6 +2,9 @@
 @php
     $iaAtiva = \App\Models\ConfiguracaoSistema::where('chave', 'ia_ativa')->value('valor');
     
+    // Verifica se o assistente IA foi desativado na página atual
+    $desativarNaPagina = isset($desativarAssistenteIA) && $desativarAssistenteIA === true;
+    
     // Busca categorias POPs ativas para sugestões
     $categoriasPops = \App\Models\CategoriaPop::ativas()
         ->ordenadas()
@@ -14,7 +17,7 @@
     $primeiroNome = explode(' ', $nomeUsuario)[0]; // Pega apenas o primeiro nome
 @endphp
 
-@if($iaAtiva === 'true')
+@if($iaAtiva === 'true' && !$desativarNaPagina)
 <style>
 .transition-none {
     transition: none !important;
@@ -106,15 +109,15 @@
     display: none !important;
 }
 </style>
-<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; display: none !important;" x-cloak>
+<div x-data="assistenteIA()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000;" x-cloak>
     {{-- Botão Flutuante --}}
     <button @click="toggleChat()" 
             x-show="!chatAberto && !assistenteDocumentoAberto && !modalPdfAberto"
             class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center gap-3 group">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none !important;">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
-        <span class="font-semibold hidden group-hover:inline-block" style="display: none !important;">Assistente IA</span>
+        <span class="font-semibold hidden group-hover:inline-block">Assistente IA</span>
     </button>
 
     {{-- Janela de Chat --}}

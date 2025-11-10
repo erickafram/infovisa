@@ -36,7 +36,7 @@ class TipoProcessoController extends Controller
             'codigo' => 'required|string|max:255|unique:tipo_processos,codigo',
             'descricao' => 'nullable|string',
             'ordem' => 'nullable|integer|min:0',
-            'competencia' => 'required|in:estadual,municipal',
+            'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -91,7 +91,7 @@ class TipoProcessoController extends Controller
             'codigo' => 'required|string|max:255|unique:tipo_processos,codigo,' . $tipoProcesso->id,
             'descricao' => 'nullable|string',
             'ordem' => 'nullable|integer|min:0',
-            'competencia' => 'required|in:estadual,municipal',
+            'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)

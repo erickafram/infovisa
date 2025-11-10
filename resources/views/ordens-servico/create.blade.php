@@ -3,54 +3,59 @@
 @section('title', 'Nova Ordem de Serviço')
 
 @section('content')
-<div class="container-fluid px-4 py-6">
+<div class="max-w-8xl mx-auto px-4 py-6">
     {{-- Header --}}
-    <div class="mb-6 flex items-center gap-3">
-        <a href="{{ route('admin.ordens-servico.index') }}" 
-           class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-        </a>
-        <h1 class="text-xl font-semibold text-gray-900">Nova Ordem de Serviço</h1>
+    <div class="mb-6">
+        <div class="flex items-center gap-4 mb-3">
+            <a href="{{ route('admin.ordens-servico.index') }}" 
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <div class="flex-1">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Nova Ordem de Serviço</h1>
+                        <p class="text-sm text-gray-500 mt-0.5">Preencha os dados para criar uma nova OS</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Formulário --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <form method="POST" action="{{ route('admin.ordens-servico.store') }}" enctype="multipart/form-data" class="divide-y divide-gray-200">
+    <form method="POST" action="{{ route('admin.ordens-servico.store') }}" enctype="multipart/form-data" class="space-y-5">
             @csrf
 
-            {{-- Estabelecimento e Processo --}}
-            <div class="p-6">
-                <h2 class="text-base font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                    Estabelecimento e Processo
-                </h2>
-                
-                <div class="space-y-6">
+        {{-- Card: Estabelecimento e Processo --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-5">
+                <div class="space-y-4">
                     {{-- Tipo de Vinculação --}}
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <label class="block text-sm font-semibold text-gray-900 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
                             Vinculação de Estabelecimento
                         </label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <label class="flex items-center cursor-pointer bg-white px-4 py-3 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center cursor-pointer bg-white px-3 py-2.5 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors">
                                 <input type="radio" 
                                        name="tipo_vinculacao" 
                                        value="com_estabelecimento" 
                                        id="com_estabelecimento"
                                        {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'com_estabelecimento' ? 'checked' : '' }}
                                        class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <span class="ml-3 text-sm font-medium text-gray-900">
-                                    <span class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        Com estabelecimento
-                                    </span>
-                                </span>
+                                <div class="ml-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-gray-900">Com estabelecimento</span>
+                                </div>
                             </label>
                             <label class="flex items-center cursor-pointer bg-white px-4 py-3 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
                                 <input type="radio" 
@@ -59,22 +64,20 @@
                                        id="sem_estabelecimento"
                                        {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'sem_estabelecimento' ? 'checked' : '' }}
                                        class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <span class="ml-3 text-sm font-medium text-gray-900">
-                                    <span class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                        Sem estabelecimento
-                                    </span>
-                                </span>
+                                <div class="ml-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-gray-900">Sem estabelecimento</span>
+                                </div>
                             </label>
                         </div>
-                        <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="mt-2 bg-blue-50 border-l-4 border-blue-400 p-2.5 rounded-r">
                             <p class="text-xs text-blue-800 flex items-start gap-2">
-                                <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span>Você pode vincular o estabelecimento posteriormente ao editar ou finalizar a Ordem de Serviço.</span>
+                                <span>Você pode vincular posteriormente ao editar ou finalizar.</span>
                             </p>
                         </div>
                     </div>
@@ -156,22 +159,25 @@
                 </div>
             </div>
 
-            {{-- Upload de Documento --}}
-            <div class="p-6">
-                <h2 class="text-base font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        {{-- Card: Upload de Documento --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
+                <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    Documento Anexo
-                </h2>
-
-                <div class="space-y-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p class="text-sm text-blue-800 flex items-start gap-2">
-                            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <h2 class="text-base font-semibold text-gray-900">Documento Anexo</h2>
+                    <span class="ml-auto text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">Opcional</span>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="space-y-3">
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-2.5 rounded-r">
+                        <p class="text-xs text-blue-800 flex items-start gap-2">
+                            <svg class="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <span><strong>Documento opcional:</strong> Anexe arquivos complementares (ofícios, denúncias, etc.) caso deseje registrar a origem da solicitação.</span>
+                            <span>Anexe arquivos complementares (ofícios, denúncias, etc.)</span>
                         </p>
                     </div>
 
@@ -237,9 +243,17 @@
                 </div>
             </div>
 
-            {{-- Tipos de Ação --}}
-            <div class="p-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Tipos de Ação</h2>
+        {{-- Card: Tipos de Ação --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    <h2 class="text-base font-semibold text-gray-900">Tipos de Ação</h2>
+                </div>
+            </div>
+            <div class="p-5">
                 
                 <div>
                     <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-2">
@@ -265,9 +279,17 @@
                 </div>
             </div>
 
-            {{-- Técnicos Responsáveis --}}
-            <div class="p-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Técnicos Responsáveis</h2>
+        {{-- Card: Técnicos Responsáveis --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <h2 class="text-base font-semibold text-gray-900">Técnicos Responsáveis</h2>
+                </div>
+            </div>
+            <div class="p-5">
                 
                 <div>
                     <label for="tecnicos_ids" class="block text-sm font-medium text-gray-700 mb-2">
@@ -293,9 +315,17 @@
                 </div>
             </div>
 
-            {{-- Período e Observações --}}
-            <div class="p-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Período e Observações</h2>
+        {{-- Card: Período e Observações --}}
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <h2 class="text-base font-semibold text-gray-900">Período e Observações</h2>
+                </div>
+            </div>
+            <div class="p-5">
                 
                 <div class="space-y-4">
 
@@ -364,19 +394,25 @@
                 </div>
             </div>
 
-            {{-- Botões --}}
-            <div class="flex items-center justify-end gap-3 p-6 bg-gray-50">
-                <a href="{{ route('admin.ordens-servico.index') }}" 
-                   class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
-                    Cancelar
-                </a>
-                <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition">
-                    Salvar Ordem de Serviço
-                </button>
-            </div>
-        </form>
-    </div>
+        {{-- Botões --}}
+        <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
+            <a href="{{ route('admin.ordens-servico.index') }}" 
+               class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Salvar Ordem de Serviço
+            </button>
+        </div>
+    </form>
+</div>
 </div>
 @endsection
 

@@ -2,6 +2,11 @@
 
 @section('title', 'Editar Rascunho')
 
+@php
+    // Desativa o assistente IA principal nesta página (já tem o assistente de redação)
+    $desativarAssistenteIA = true;
+@endphp
+
 @section('content')
 {{-- Script de Edição Colaborativa --}}
 <script src="{{ asset('js/edicao-colaborativa.js') }}"></script>
@@ -839,4 +844,7 @@ function documentoEditor() {
     }
 }
 </script>
+
+{{-- Assistente de Redação --}}
+@include('components.assistente-edicao-documento-chat')
 @endsection
