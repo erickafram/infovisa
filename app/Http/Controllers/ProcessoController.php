@@ -217,9 +217,16 @@ class ProcessoController extends Controller
                 ->route('admin.estabelecimentos.processos.index', $estabelecimento->id)
                 ->with('success', 'Processo ' . $processo->numero_processo . ' criado com sucesso!');
         } catch (\Exception $e) {
+            \Log::error('Erro ao criar processo', [
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'estabelecimento_id' => $estabelecimento->id,
+                'tipo' => $validated['tipo'] ?? null
+            ]);
+            
             return redirect()
                 ->back()
-                ->with('error', 'Erro ao criar processo. Por favor, tente novamente.');
+                ->with('error', 'Erro ao criar processo: ' . $e->getMessage());
         }
     }
 

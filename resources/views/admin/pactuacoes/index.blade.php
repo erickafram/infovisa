@@ -23,6 +23,81 @@
         </div>
     </div>
 
+    {{-- Campo de Pesquisa Global --}}
+    <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" 
+                   x-model="termoPesquisa"
+                   @input="pesquisarAtividade()"
+                   placeholder="Pesquisar atividade por código CNAE ou descrição..."
+                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <button @click="limparPesquisa()" 
+                    x-show="termoPesquisa.length > 0"
+                    class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                Limpar
+            </button>
+        </div>
+        
+        {{-- Resultados da Pesquisa --}}
+        <div x-show="resultadosPesquisa.length > 0" 
+             x-cloak
+             class="mt-4 border-t border-gray-200 pt-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">
+                <span x-text="resultadosPesquisa.length"></span> resultado(s) encontrado(s):
+            </h4>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                <template x-for="resultado in resultadosPesquisa" :key="resultado.id">
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                         @click="irParaAba(resultado.tabela)">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-mono text-sm font-semibold text-gray-900" x-text="resultado.cnae_codigo"></span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full"
+                                      :class="{
+                                          'bg-blue-100 text-blue-800': resultado.tabela === 'I',
+                                          'bg-orange-100 text-orange-800': resultado.tabela === 'II',
+                                          'bg-red-100 text-red-800': resultado.tabela === 'III',
+                                          'bg-purple-100 text-purple-800': resultado.tabela === 'IV',
+                                          'bg-green-100 text-green-800': resultado.tabela === 'V'
+                                      }"
+                                      x-text="'Tabela ' + resultado.tabela"></span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full"
+                                      :class="resultado.tipo === 'estadual' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'"
+                                      x-text="resultado.tipo === 'estadual' ? 'Estadual' : 'Municipal'"></span>
+                            </div>
+                            <p class="text-sm text-gray-700" x-text="resultado.cnae_descricao"></p>
+                            <p x-show="resultado.observacao" class="text-xs text-gray-500 mt-1" x-text="resultado.observacao"></p>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        {{-- Mensagem quando não encontrar --}}
+        <div x-show="termoPesquisa.length > 0 && resultadosPesquisa.length === 0 && !pesquisando" 
+             x-cloak
+             class="mt-4 text-center py-8 text-gray-500">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm">Nenhuma atividade encontrada com "<span x-text="termoPesquisa" class="font-semibold"></span>"</p>
+        </div>
+        
+        {{-- Loading --}}
+        <div x-show="pesquisando" x-cloak class="mt-4 text-center py-4">
+            <svg class="animate-spin h-6 w-6 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    </div>
+
     {{-- Tabs --}}
     <div class="mb-6">
         <div class="border-b border-gray-200">
@@ -719,6 +794,12 @@ function pactuacaoManager() {
         editarId: null,
         editarObservacao: '',
         processando: false,
+        
+        // Pesquisa
+        termoPesquisa: '',
+        resultadosPesquisa: [],
+        pesquisando: false,
+        timeoutPesquisa: null,
 
         async adicionarAtividades() {
             if (!this.cnaesTexto.trim()) {
@@ -986,6 +1067,55 @@ function pactuacaoManager() {
             } finally {
                 this.processando = false;
             }
+        },
+
+        // Função de pesquisa com debounce
+        pesquisarAtividade() {
+            clearTimeout(this.timeoutPesquisa);
+            
+            if (this.termoPesquisa.trim().length < 2) {
+                this.resultadosPesquisa = [];
+                return;
+            }
+            
+            this.pesquisando = true;
+            
+            this.timeoutPesquisa = setTimeout(async () => {
+                try {
+                    const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/pesquisar?termo=${encodeURIComponent(this.termoPesquisa)}`);
+                    const data = await response.json();
+                    this.resultadosPesquisa = data;
+                } catch (error) {
+                    console.error('Erro ao pesquisar:', error);
+                    this.resultadosPesquisa = [];
+                } finally {
+                    this.pesquisando = false;
+                }
+            }, 500);
+        },
+
+        limparPesquisa() {
+            this.termoPesquisa = '';
+            this.resultadosPesquisa = [];
+        },
+
+        irParaAba(tabela) {
+            const mapa = {
+                'I': 'tabela-i',
+                'II': 'tabela-ii',
+                'III': 'tabela-iii',
+                'IV': 'tabela-iv',
+                'V': 'tabela-v'
+            };
+            this.abaAtiva = mapa[tabela] || 'tabela-i';
+            
+            // Scroll suave para o topo das tabs
+            setTimeout(() => {
+                document.querySelector('.border-b.border-gray-200')?.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 100);
         }
     }
 }

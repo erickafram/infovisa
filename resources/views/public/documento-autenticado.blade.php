@@ -3,7 +3,7 @@
 @section('title', 'Documento Autenticado')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Mensagem de Sucesso --}}
     <div class="mb-6 p-6 bg-green-50 border-l-4 border-green-500 rounded-lg shadow">
         <div class="flex items-start">

@@ -341,4 +341,41 @@ class PactuacaoController extends Controller
             ], 422);
         }
     }
+
+    /**
+     * Pesquisa atividades por código CNAE ou descrição
+     */
+    public function pesquisar(Request $request)
+    {
+        $termo = $request->input('termo', '');
+        
+        if (strlen($termo) < 2) {
+            return response()->json([]);
+        }
+        
+        // Busca por código CNAE ou descrição
+        $resultados = Pactuacao::where(function($query) use ($termo) {
+                $query->where('cnae_codigo', 'LIKE', '%' . $termo . '%')
+                      ->orWhere('cnae_descricao', 'ILIKE', '%' . $termo . '%');
+            })
+            ->where('ativo', true)
+            ->orderBy('tabela')
+            ->orderBy('cnae_codigo')
+            ->limit(50)
+            ->get()
+            ->map(function($pactuacao) {
+                return [
+                    'id' => $pactuacao->id,
+                    'cnae_codigo' => $pactuacao->cnae_codigo,
+                    'cnae_descricao' => $pactuacao->cnae_descricao,
+                    'tabela' => $pactuacao->tabela,
+                    'tipo' => $pactuacao->tipo,
+                    'observacao' => $pactuacao->observacao,
+                    'classificacao_risco' => $pactuacao->classificacao_risco,
+                    'requer_questionario' => $pactuacao->requer_questionario
+                ];
+            });
+        
+        return response()->json($resultados);
+    }
 }

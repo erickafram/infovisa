@@ -16,7 +16,7 @@
 <body class="bg-gray-50 font-sans antialiased">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex items-center justify-between w-full">
                 <!-- Logo -->
                 <a href="{{ route('home') }}" class="flex items-center space-x-2 flex-shrink-0">
@@ -83,7 +83,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-300 py-12 mt-20">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Logo e Descrição -->
                 <div class="col-span-1 md:col-span-2">

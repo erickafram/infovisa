@@ -245,6 +245,21 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('notificacoes/{id}/marcar-lida', [\App\Http\Controllers\NotificacaoController::class, 'marcarComoLida'])->name('notificacoes.marcar-lida');
     Route::post('notificacoes/marcar-todas-lidas', [\App\Http\Controllers\NotificacaoController::class, 'marcarTodasComoLidas'])->name('notificacoes.marcar-todas-lidas');
 
+    // Receituários
+    Route::prefix('receituarios')->name('receituarios.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ReceituarioController::class, 'index'])->name('index');
+        Route::get('create', [\App\Http\Controllers\ReceituarioController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\ReceituarioController::class, 'store'])->name('store');
+        Route::get('buscar-cnpj', [\App\Http\Controllers\ReceituarioController::class, 'buscarCnpj'])->name('buscar-cnpj');
+        Route::get('{id}/pdf-gerado', [\App\Http\Controllers\ReceituarioController::class, 'pdfGerado'])->name('pdf-gerado');
+        Route::get('{id}/pdf', [\App\Http\Controllers\ReceituarioController::class, 'gerarPdf'])->name('gerar-pdf');
+        Route::get('{id}', [\App\Http\Controllers\ReceituarioController::class, 'show'])->name('show');
+        Route::get('{id}/edit', [\App\Http\Controllers\ReceituarioController::class, 'edit'])->name('edit');
+        Route::put('{id}', [\App\Http\Controllers\ReceituarioController::class, 'update'])->name('update');
+        Route::delete('{id}', [\App\Http\Controllers\ReceituarioController::class, 'destroy'])->name('destroy');
+        Route::post('{id}/criar-processo', [\App\Http\Controllers\ReceituarioController::class, 'criarProcesso'])->name('criar-processo');
+    });
+
     // Usuários Internos
     Route::resource('usuarios-internos', \App\Http\Controllers\UsuarioInternoController::class)->parameters([
         'usuarios-internos' => 'usuarioInterno'
@@ -289,16 +304,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Pactuação (Competências Municipais e Estaduais)
         Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');
-            Route::get('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'show'])->name('show');
+            Route::get('buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
+            Route::post('buscar-questionarios', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarQuestionarios'])->name('buscar-questionarios');
+            Route::get('pesquisar', [\App\Http\Controllers\Admin\PactuacaoController::class, 'pesquisar'])->name('pesquisar');
             Route::post('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'store'])->name('store');
-            Route::post('/multiple', [\App\Http\Controllers\Admin\PactuacaoController::class, 'storeMultiple'])->name('store-multiple');
-            Route::put('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'update'])->name('update');
-            Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\PactuacaoController::class, 'toggleStatus'])->name('toggle');
-            Route::post('/{id}/adicionar-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'adicionarExcecao'])->name('adicionar-excecao');
-            Route::post('/{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
-            Route::delete('/{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
-            Route::get('/buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
-            Route::post('/buscar-questionarios', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarQuestionarios'])->name('buscar-questionarios');
+            Route::post('multiple', [\App\Http\Controllers\Admin\PactuacaoController::class, 'storeMultiple'])->name('store-multiple');
+            Route::get('{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'show'])->name('show');
+            Route::put('{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'update'])->name('update');
+            Route::post('{id}/toggle', [\App\Http\Controllers\Admin\PactuacaoController::class, 'toggleStatus'])->name('toggle');
+            Route::post('{id}/adicionar-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'adicionarExcecao'])->name('adicionar-excecao');
+            Route::post('{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
+            Route::delete('{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
         });
         
         // Municípios

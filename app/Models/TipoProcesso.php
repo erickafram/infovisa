@@ -86,8 +86,8 @@ class TipoProcesso extends Model
                     continue;
                 }
                 
-                // Para tipos estaduais, verifica descentralização
-                if ($tipo->competencia === 'estadual' && $tipo->municipios_descentralizados) {
+                // Para tipos estaduais (estadual ou estadual_exclusivo), verifica descentralização
+                if (in_array($tipo->competencia, ['estadual', 'estadual_exclusivo']) && $tipo->municipios_descentralizados) {
                     foreach ($tipo->municipios_descentralizados as $municipioDesc) {
                         $municipioDescNorm = strtoupper(self::removerAcentosStatic(trim($municipioDesc)));
                         
