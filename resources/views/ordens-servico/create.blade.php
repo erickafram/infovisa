@@ -4,87 +4,86 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto px-4 py-6">
-    {{-- Header --}}
-    <div class="mb-6">
-        <div class="flex items-center gap-4 mb-3">
+    {{-- Header Compacto --}}
+    <div class="mb-4">
+        <div class="flex items-center gap-3">
             <a href="{{ route('admin.ordens-servico.index') }}" 
-               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </a>
-            <div class="flex-1">
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Nova Ordem de Serviço</h1>
-                        <p class="text-sm text-gray-500 mt-0.5">Preencha os dados para criar uma nova OS</p>
-                    </div>
+            <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-blue-600 rounded-lg">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-900">Nova Ordem de Serviço</h1>
+                    <p class="text-xs text-gray-500">Preencha os dados para criar uma nova OS</p>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Formulário --}}
-    <form method="POST" action="{{ route('admin.ordens-servico.store') }}" enctype="multipart/form-data" class="space-y-5">
+    <form method="POST" action="{{ route('admin.ordens-servico.store') }}" enctype="multipart/form-data" class="space-y-3">
             @csrf
 
         {{-- Card: Estabelecimento e Processo --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="p-5">
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">1. Vinculação</h2>
+            </div>
+            <div class="p-4">
                 <div class="space-y-4">
                     {{-- Tipo de Vinculação --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Vinculação de Estabelecimento
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                            Tipo de Vinculação
                         </label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center cursor-pointer bg-white px-3 py-2.5 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center cursor-pointer bg-white px-2.5 py-2 rounded border-2 border-gray-300 hover:border-blue-500 transition-colors">
                                 <input type="radio" 
                                        name="tipo_vinculacao" 
                                        value="com_estabelecimento" 
                                        id="com_estabelecimento"
                                        {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'com_estabelecimento' ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <div class="ml-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <div class="ml-2 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
-                                    <span class="text-sm font-medium text-gray-900">Com estabelecimento</span>
+                                    <span class="text-xs font-medium text-gray-900">Com estabelecimento</span>
                                 </div>
                             </label>
-                            <label class="flex items-center cursor-pointer bg-white px-4 py-3 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
+                            <label class="flex items-center cursor-pointer bg-white px-2.5 py-2 rounded border-2 border-gray-300 hover:border-blue-500 transition-colors flex-1">
                                 <input type="radio" 
                                        name="tipo_vinculacao" 
                                        value="sem_estabelecimento" 
                                        id="sem_estabelecimento"
                                        {{ old('tipo_vinculacao', 'sem_estabelecimento') == 'sem_estabelecimento' ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <div class="ml-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <div class="ml-2 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
-                                    <span class="text-sm font-medium text-gray-900">Sem estabelecimento</span>
+                                    <span class="text-xs font-medium text-gray-900">Sem estabelecimento</span>
                                 </div>
                             </label>
                         </div>
-                        <div class="mt-2 bg-blue-50 border-l-4 border-blue-400 p-2.5 rounded-r">
-                            <p class="text-xs text-blue-800 flex items-start gap-2">
-                                <svg class="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>Você pode vincular posteriormente ao editar ou finalizar.</span>
-                            </p>
-                        </div>
+                        <p class="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Você pode vincular posteriormente
+                        </p>
                     </div>
 
                     {{-- Estabelecimento --}}
                     <div id="estabelecimento-container" style="display: none;">
-                        <label for="estabelecimento_id" class="block text-sm font-semibold text-gray-900 mb-2">
+                        <label for="estabelecimento_id" class="block text-xs font-medium text-gray-700 mb-1.5">
                             Buscar Estabelecimento <span class="text-red-500">*</span>
                         </label>
                         <select name="estabelecimento_id" 
@@ -110,23 +109,20 @@
                                 {{ $message }}
                             </p>
                         @enderror
-                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            Digite pelo menos 2 caracteres para buscar por <strong>CNPJ</strong>, <strong>Nome Fantasia</strong> ou <strong>Razão Social</strong>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Digite 2+ caracteres (CNPJ, Nome ou Razão Social)
                         </p>
                     </div>
 
                     {{-- Processo --}}
                     <div id="processo-container">
-                        <label for="processo_id" class="block text-sm font-semibold text-gray-900 mb-2">
-                            Processo Vinculado <span class="text-gray-500 font-normal">(Opcional)</span>
+                        <label for="processo_id" class="block text-xs font-medium text-gray-700 mb-1.5">
+                            Processo Vinculado <span class="text-red-500">*</span>
                         </label>
                         <select name="processo_id" 
                                 id="processo_id" 
                                 disabled
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 @error('processo_id') border-red-500 @enderror">
+                                class="w-full px-2.5 py-2 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 @error('processo_id') border-red-500 @enderror">
                             <option value="">Selecione primeiro um estabelecimento</option>
                         </select>
                         @error('processo_id')
@@ -137,22 +133,12 @@
                                 {{ $message }}
                             </p>
                         @enderror
-                        <div class="mt-2 space-y-2">
-                            <div id="processo-info" class="hidden bg-green-50 border border-green-200 rounded-lg p-3">
-                                <span class="text-xs text-green-800 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <span id="processo-count" class="font-medium"></span>
-                                </span>
+                        <div class="mt-1.5 space-y-1.5">
+                            <div id="processo-info" class="hidden bg-green-50 border-l-2 border-green-400 p-1.5 rounded-r">
+                                <span class="text-xs text-green-700" id="processo-count"></span>
                             </div>
-                            <div id="processo-sem-processo" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3">
-                                <span class="text-xs text-amber-800 flex items-start gap-2">
-                                    <svg class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                    </svg>
-                                    <span>Este estabelecimento não possui processos ativos. Você pode criar um processo antes de criar a ordem de serviço.</span>
-                                </span>
+                            <div id="processo-sem-processo" class="hidden bg-amber-50 border-l-2 border-amber-400 p-1.5 rounded-r">
+                                <span class="text-xs text-amber-700">Sem processos ativos. Crie um processo primeiro.</span>
                             </div>
                         </div>
                     </div>
@@ -160,42 +146,24 @@
             </div>
 
         {{-- Card: Upload de Documento --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <h2 class="text-base font-semibold text-gray-900">Documento Anexo</h2>
-                    <span class="ml-auto text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">Opcional</span>
-                </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">2. Documento Anexo <span class="text-xs text-gray-500 font-normal">(Opcional)</span></h2>
             </div>
-            <div class="p-5">
+            <div class="p-4">
                 <div class="space-y-3">
-                    <div class="bg-blue-50 border-l-4 border-blue-400 p-2.5 rounded-r">
-                        <p class="text-xs text-blue-800 flex items-start gap-2">
-                            <svg class="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Anexe arquivos complementares (ofícios, denúncias, etc.)</span>
-                        </p>
-                    </div>
-
                     {{-- Campo de upload --}}
                     <div>
-                        <label for="documento_anexo" class="block text-sm font-semibold text-gray-900 mb-2">
-                            Anexar Documento (PDF) <span class="text-gray-500 font-normal">(Opcional)</span>
-                        </label>
                         <div class="flex items-center justify-center w-full">
-                            <label for="documento_anexo" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label for="documento_anexo" class="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div class="flex flex-col items-center justify-center py-2">
+                                    <svg class="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                     </svg>
-                                    <p class="mb-2 text-sm text-gray-600">
-                                        <span class="font-semibold">Clique para fazer upload</span> ou arraste o arquivo
+                                    <p class="text-xs text-gray-600">
+                                        <span class="font-medium">Clique ou arraste</span> o arquivo PDF
                                     </p>
-                                    <p class="text-xs text-gray-500">Apenas arquivos PDF (Máx. 10MB)</p>
+                                    <p class="text-xs text-gray-400">Máx. 10MB</p>
                                 </div>
                                 <input id="documento_anexo" 
                                        name="documento_anexo" 
@@ -206,18 +174,18 @@
                         </div>
                         
                         {{-- Nome do arquivo selecionado --}}
-                        <div id="arquivo-selecionado" class="hidden mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="arquivo-selecionado" class="hidden mt-2 bg-green-50 border-l-2 border-green-400 p-1.5 rounded-r">
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span class="text-sm text-green-800">
-                                    <strong>Arquivo selecionado:</strong> <span id="nome-arquivo"></span>
+                                <span class="text-xs text-green-700">
+                                    <span id="nome-arquivo"></span>
                                 </span>
                                 <button type="button" 
                                         onclick="removerArquivo()"
                                         class="ml-auto text-green-600 hover:text-green-800">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
                                 </button>
@@ -233,31 +201,20 @@
                             </p>
                         @enderror
 
-                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Exemplos: denúncia, solicitação do MPE, ofício, notificação, etc.
-                        </p>
                     </div>
                 </div>
             </div>
 
         {{-- Card: Tipos de Ação --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                    </svg>
-                    <h2 class="text-base font-semibold text-gray-900">Tipos de Ação</h2>
-                </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">3. Tipos de Ação <span class="text-red-500">*</span></h2>
             </div>
-            <div class="p-5">
+            <div class="p-4">
                 
                 <div>
-                    <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-2">
-                        Selecione as ações que serão executadas <span class="text-red-500">*</span>
+                    <label for="tipos_acao_ids" class="block text-xs font-medium text-gray-700 mb-1.5">
+                        Selecione as ações <span class="text-red-500">*</span>
                     </label>
                     <select name="tipos_acao_ids[]" 
                             id="tipos_acao_ids" 
@@ -273,27 +230,22 @@
                     @error('tipos_acao_ids')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                    <p class="mt-2 text-xs text-gray-600">
-                        💡 Clique para selecionar múltiplas ações. Use a busca para encontrar rapidamente.
+                    <p class="mt-1 text-xs text-gray-500">
+                        Use a busca para encontrar rapidamente
                     </p>
                 </div>
             </div>
 
         {{-- Card: Técnicos Responsáveis --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    <h2 class="text-base font-semibold text-gray-900">Técnicos Responsáveis</h2>
-                </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">4. Técnicos Responsáveis <span class="text-red-500">*</span></h2>
             </div>
-            <div class="p-5">
+            <div class="p-4">
                 
                 <div>
-                    <label for="tecnicos_ids" class="block text-sm font-medium text-gray-700 mb-2">
-                        Selecione os técnicos que executarão a ordem de serviço <span class="text-red-500">*</span>
+                    <label for="tecnicos_ids" class="block text-xs font-medium text-gray-700 mb-1.5">
+                        Selecione os técnicos <span class="text-red-500">*</span>
                     </label>
                     <select name="tecnicos_ids[]" 
                             id="tecnicos_ids" 
@@ -309,32 +261,27 @@
                     @error('tecnicos_ids')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                    <p class="mt-2 text-xs text-gray-600">
-                        💡 Clique para selecionar múltiplos técnicos. Use a busca para encontrar rapidamente.
+                    <p class="mt-1 text-xs text-gray-500">
+                        Use a busca para encontrar rapidamente
                     </p>
                 </div>
             </div>
 
         {{-- Card: Período e Observações --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <h2 class="text-base font-semibold text-gray-900">Período e Observações</h2>
-                </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-900">5. Período e Observações</h2>
             </div>
-            <div class="p-5">
+            <div class="p-4">
                 
-                <div class="space-y-4">
+                <div class="space-y-3">
 
                     {{-- Período de Execução --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">
                             Período de Execução
                         </label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {{-- Data de Início --}}
                             <div>
                                 <label for="data_inicio" class="block text-xs font-medium text-gray-600 mb-1">
@@ -346,7 +293,7 @@
                                        value="{{ old('data_inicio') }}"
                                        required
                                        min="{{ now()->format('Y-m-d') }}"
-                                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
+                                       class="w-full px-2.5 py-2 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
                                 @error('data_inicio')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -363,7 +310,7 @@
                                        value="{{ old('data_fim') }}"
                                        required
                                        min="{{ old('data_inicio', now()->format('Y-m-d')) }}"
-                                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
+                                       class="w-full px-2.5 py-2 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
                                 @error('data_fim')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -379,36 +326,37 @@
 
                     {{-- Observações --}}
                     <div>
-                        <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="observacoes" class="block text-xs font-medium text-gray-700 mb-1.5">
                             Observações
                         </label>
                         <textarea id="observacoes" 
                                   name="observacoes" 
-                                  rows="4"
-                                  placeholder="Descreva informações adicionais sobre esta ordem de serviço..."
-                                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('observacoes') border-red-500 @enderror">{{ old('observacoes') }}</textarea>
+                                  rows="3"
+                                  placeholder="Informações adicionais..."
+                                  class="w-full px-2.5 py-2 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('observacoes') border-red-500 @enderror">{{ old('observacoes') }}</textarea>
                         @error('observacoes')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
             </div>
+        </div>
 
-        {{-- Botões --}}
-        <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
+        {{-- Botões de Ação --}}
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-200">
             <a href="{{ route('admin.ordens-servico.index') }}" 
-               class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
                 Cancelar
             </a>
             <button type="submit" 
-                    class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
-                Salvar Ordem de Serviço
+                Salvar OS
             </button>
         </div>
     </form>
@@ -806,14 +754,15 @@
                         submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                         
                     } else {
-                        // Não tem processos
+                        // Não tem processos - BLOQUEIA submit pois processo é obrigatório
                         processoSelect.innerHTML = '<option value="">Nenhum processo disponível</option>';
                         processoSelect.disabled = true;
                         processoSemProcesso.classList.remove('hidden');
                         
-                        // Habilita botão de submit mesmo sem processo (pode criar OS sem processo)
-                        submitButton.disabled = false;
-                        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        // DESABILITA botão de submit (processo é obrigatório quando há estabelecimento)
+                        submitButton.disabled = true;
+                        submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                        submitButton.title = 'É necessário ter um processo vinculado ao estabelecimento';
                     }
                 })
                 .catch(error => {
@@ -825,6 +774,21 @@
                     submitButton.disabled = false;
                     submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 });
+        });
+
+        // Validação antes de enviar o formulário
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const tipoVinculacao = document.querySelector('input[name="tipo_vinculacao"]:checked')?.value;
+            const estabelecimentoId = document.getElementById('estabelecimento_id')?.value;
+            const processoId = document.getElementById('processo_id')?.value;
+
+            // Se tem estabelecimento, processo é obrigatório
+            if (tipoVinculacao === 'com_estabelecimento' && estabelecimentoId && !processoId) {
+                e.preventDefault();
+                alert('⚠️ Selecione um processo vinculado ao estabelecimento antes de continuar.');
+                document.getElementById('processo_id').focus();
+                return false;
+            }
         });
     });
 </script>

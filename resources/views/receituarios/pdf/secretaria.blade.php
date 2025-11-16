@@ -119,7 +119,7 @@
             <tr>
                 <td style="width: 50%;">
                     <div class="label">Município:</div>
-                    <div class="value">{{ $receituario->municipio->nome ?? '' }}</div>
+                    <div class="value">{{ $receituario->municipio?->nome ?? $receituario->municipio ?? '' }}</div>
                 </td>
                 <td style="width: 50%;">
                     <div class="label">CEP:</div>

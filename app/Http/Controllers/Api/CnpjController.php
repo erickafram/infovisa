@@ -82,6 +82,7 @@ class CnpjController extends Controller
 
     /**
      * Verifica se um CNPJ já existe no sistema
+     * Retorna lista de estabelecimentos se existirem
      */
     public function verificarExistente($cnpj)
     {
@@ -89,12 +90,23 @@ class CnpjController extends Controller
             // Remove formatação do CNPJ
             $cnpjLimpo = preg_replace('/[^0-9]/', '', $cnpj);
 
-            // Verifica se existe no banco
-            $existe = \App\Models\Estabelecimento::where('cnpj', $cnpjLimpo)->exists();
+            // Busca estabelecimentos com este CNPJ
+            $estabelecimentos = \App\Models\Estabelecimento::where('cnpj', $cnpjLimpo)
+                ->select('id', 'nome_fantasia', 'tipo_setor')
+                ->get();
+
+            $existe = $estabelecimentos->count() > 0;
 
             return response()->json([
                 'existe' => $existe,
-                'cnpj' => $cnpjLimpo
+                'cnpj' => $cnpjLimpo,
+                'estabelecimentos' => $estabelecimentos->map(function($est) {
+                    return [
+                        'id' => $est->id,
+                        'nome_fantasia' => $est->nome_fantasia,
+                        'tipo_setor' => $est->tipo_setor
+                    ];
+                })
             ]);
         } catch (\Exception $e) {
             \Log::error('Erro ao verificar CNPJ existente', [
@@ -104,7 +116,8 @@ class CnpjController extends Controller
 
             return response()->json([
                 'existe' => false,
-                'erro' => 'Erro ao verificar CNPJ'
+                'erro' => 'Erro ao verificar CNPJ',
+                'estabelecimentos' => []
             ], 500);
         }
     }

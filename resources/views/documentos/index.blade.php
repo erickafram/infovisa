@@ -67,7 +67,41 @@
                     </span>
                 @endif
             </a>
+
+            <!-- Documentos com Prazos -->
+            <a href="{{ route('admin.documentos.index', ['status' => 'com_prazos']) }}" 
+               class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      {{ $filtroStatus === 'com_prazos' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Documentos com Prazos
+                @if(isset($stats['com_prazos']) && $stats['com_prazos'] > 0)
+                    <span class="ml-2 px-2 py-0.5 text-xs font-bold rounded-full {{ $filtroStatus === 'com_prazos' ? 'bg-white text-purple-600' : 'bg-purple-600 text-white' }}">
+                        {{ $stats['com_prazos'] }}
+                    </span>
+                @endif
+            </a>
         </div>
+
+        {{-- Filtro adicional de Tipo de Documento (apenas quando status = com_prazos) --}}
+        @if($filtroStatus === 'com_prazos')
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <label for="filtro_tipo" class="block text-sm font-medium text-gray-700 mb-2">
+                Filtrar por Tipo de Documento:
+            </label>
+            <select id="filtro_tipo" 
+                    onchange="window.location.href = '{{ route('admin.documentos.index', ['status' => 'com_prazos']) }}&tipo_documento_id=' + this.value"
+                    class="w-full md:w-96 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+                <option value="">Todos os tipos</option>
+                @foreach($tiposDocumento as $tipo)
+                    <option value="{{ $tipo->id }}" {{ request('tipo_documento_id') == $tipo->id ? 'selected' : '' }}>
+                        {{ $tipo->nome }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        @endif
     </div>
 
     <!-- Lista de Documentos -->
@@ -92,6 +126,11 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Data
                             </th>
+                            @if($filtroStatus === 'com_prazos')
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Prazo/Validade
+                            </th>
+                            @endif
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Ações
                             </th>
@@ -151,6 +190,38 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ $documento->created_at->format('d/m/Y H:i') }}
                                 </td>
+                                @if($filtroStatus === 'com_prazos')
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if($documento->data_vencimento)
+                                        @php
+                                            $corBadge = $documento->cor_status_prazo;
+                                            $textoBadge = $documento->texto_status_prazo;
+                                            
+                                            $classesCor = [
+                                                'red' => 'bg-red-100 text-red-700 border-red-200',
+                                                'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                                'green' => 'bg-green-100 text-green-700 border-green-200',
+                                                'gray' => 'bg-gray-100 text-gray-700 border-gray-200',
+                                            ];
+                                            
+                                            $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
+                                        @endphp
+                                        <div class="flex flex-col gap-1">
+                                            <span class="inline-flex items-center px-2.5 py-1 {{ $classeBadge }} border rounded-full text-xs font-medium whitespace-nowrap">
+                                                <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ $textoBadge }}
+                                            </span>
+                                            <span class="text-xs text-gray-500">
+                                                Vence: {{ $documento->data_vencimento->format('d/m/Y') }}
+                                            </span>
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-400">Sem prazo</span>
+                                    @endif
+                                </td>
+                                @endif
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         @php

@@ -116,6 +116,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/documentos/{id}/mover-pasta', [\App\Http\Controllers\DocumentoDigitalController::class, 'moverPasta'])->name('documentos.mover-pasta');
     Route::post('/documentos/{id}/renomear', [\App\Http\Controllers\DocumentoDigitalController::class, 'renomear'])->name('documentos.renomear');
     Route::get('/documentos/modelos/{tipoId}', [\App\Http\Controllers\DocumentoDigitalController::class, 'buscarModelos'])->name('documentos.modelos');
+    Route::get('/documentos/prazo-tipo/{tipoId}', [\App\Http\Controllers\DocumentoDigitalController::class, 'buscarPrazoTipo'])->name('documentos.prazo-tipo');
     
     // Assinatura Digital
     Route::get('/assinatura/configurar-senha', [\App\Http\Controllers\AssinaturaDigitalController::class, 'configurarSenha'])->name('assinatura.configurar-senha');

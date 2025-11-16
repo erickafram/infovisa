@@ -174,8 +174,13 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold text-gray-900">{{ $assinatura->usuarioInterno->nome }}</p>
-                                        <p class="text-xs text-gray-600">{{ $assinatura->usuarioInterno->cargo ?? 'Cargo não informado' }}</p>
+                                        @if($assinatura->usuarioInterno)
+                                            <p class="text-sm font-semibold text-gray-900">{{ $assinatura->usuarioInterno->nome }}</p>
+                                            <p class="text-xs text-gray-600">{{ $assinatura->usuarioInterno->cargo ?? 'Cargo não informado' }}</p>
+                                        @else
+                                            <p class="text-sm font-semibold text-gray-500">Usuário removido</p>
+                                            <p class="text-xs text-gray-400">Usuário não está mais no sistema</p>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">

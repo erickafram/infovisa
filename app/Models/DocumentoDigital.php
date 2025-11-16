@@ -27,12 +27,19 @@ class DocumentoDigital extends Model
         'arquivo_pdf',
         'codigo_autenticidade',
         'finalizado_em',
+        'prazo_dias',
+        'tipo_prazo',
+        'prazo_notificacao',
+        'data_vencimento',
     ];
 
     protected $casts = [
         'sigiloso' => 'boolean',
+        'prazo_notificacao' => 'boolean',
         'finalizado_em' => 'datetime',
         'ultima_edicao_em' => 'datetime',
+        'prazo_dias' => 'integer',
+        'data_vencimento' => 'date',
     ];
 
     /**
@@ -159,5 +166,90 @@ class DocumentoDigital extends Model
             'conteudo' => $conteudo,
             'alteracoes' => $alteracoes,
         ]);
+    }
+
+    /**
+     * Calcula quantos dias faltam para o vencimento
+     */
+    public function getDiasFaltandoAttribute(): ?int
+    {
+        if (!$this->data_vencimento) {
+            return null;
+        }
+
+        return now()->startOfDay()->diffInDays($this->data_vencimento, false);
+    }
+
+    /**
+     * Verifica se o documento está vencido
+     */
+    public function getVencidoAttribute(): bool
+    {
+        if (!$this->data_vencimento) {
+            return false;
+        }
+
+        return now()->startOfDay()->gt($this->data_vencimento);
+    }
+
+    /**
+     * Verifica se o documento está próximo do vencimento (7 dias ou menos)
+     */
+    public function getProximoVencimentoAttribute(): bool
+    {
+        $diasFaltando = $this->dias_faltando;
+        
+        if ($diasFaltando === null) {
+            return false;
+        }
+
+        return $diasFaltando >= 0 && $diasFaltando <= 7;
+    }
+
+    /**
+     * Retorna a cor do badge de status do prazo
+     */
+    public function getCorStatusPrazoAttribute(): string
+    {
+        if (!$this->data_vencimento) {
+            return 'gray';
+        }
+
+        if ($this->vencido) {
+            return 'red';
+        }
+
+        if ($this->proximo_vencimento) {
+            return 'yellow';
+        }
+
+        return 'green';
+    }
+
+    /**
+     * Retorna o texto do status do prazo
+     */
+    public function getTextoStatusPrazoAttribute(): string
+    {
+        if (!$this->data_vencimento) {
+            return 'Sem prazo';
+        }
+
+        $diasFaltando = $this->dias_faltando;
+
+        if ($diasFaltando < 0) {
+            $diasVencidos = abs($diasFaltando);
+            return "Vencido há {$diasVencidos} " . ($diasVencidos === 1 ? 'dia' : 'dias');
+        }
+
+        if ($diasFaltando === 0) {
+            return 'Vence hoje';
+        }
+
+        if ($diasFaltando === 1) {
+            return 'Vence amanhã';
+        }
+
+        return "Faltam {$diasFaltando} dias";
     }
 }

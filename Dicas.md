@@ -58,6 +58,9 @@ git add .
 git commit -m "Implementação de questionários dinâmicos e override de competência"
 git push -u origin main
 
+-- 1. PUXAR ATUALIZAÇÕES DO GITHUB
+git pull origin main
+
 
 -- RODAR SEEDERS INDIVIDUALMENTE (se necessário)
 php artisan db:seed --class=MunicipioSeeder

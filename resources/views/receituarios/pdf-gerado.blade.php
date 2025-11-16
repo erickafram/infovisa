@@ -4,7 +4,7 @@
 @section('page-title', 'Documento Gerado - Aguardando Assinatura')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
+<div class="max-w-8xl mx-auto">
     
     {{-- Alerta de Ação Necessária --}}
     <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-lg">

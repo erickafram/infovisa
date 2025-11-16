@@ -117,11 +117,10 @@ class OrdemServicoController extends Controller
     {
         $usuario = Auth::guard('interno')->user();
         
-        // Validação condicional do documento
+        // Validação condicional: processo é obrigatório se há estabelecimento
         $rules = [
             'tipo_vinculacao' => 'required|in:com_estabelecimento,sem_estabelecimento',
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
-            'processo_id' => 'nullable|exists:processos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'tecnicos_ids' => 'required|array|min:1',
@@ -132,7 +131,15 @@ class OrdemServicoController extends Controller
             'documento_anexo' => 'nullable|file|mimes:pdf|max:10240',
         ];
         
+        // Se tem estabelecimento, processo é obrigatório
+        if (!empty($request->estabelecimento_id)) {
+            $rules['processo_id'] = 'required|exists:processos,id';
+        } else {
+            $rules['processo_id'] = 'nullable|exists:processos,id';
+        }
+        
         $messages = [
+            'processo_id.required' => 'Selecione um processo vinculado ao estabelecimento.',
             'data_inicio.required' => 'Informe a data de início da ordem de serviço.',
             'data_inicio.after_or_equal' => 'A data de início deve ser hoje ou uma data futura.',
             'data_fim.required' => 'Informe a data de término da ordem de serviço.',

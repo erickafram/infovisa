@@ -157,7 +157,7 @@
                 </td>
                 <td style="width: 25%;">
                     <div class="label">Município:</div>
-                    <div class="value">{{ $receituario->municipio->nome ?? '' }}</div>
+                    <div class="value">{{ $receituario->municipio?->nome ?? $receituario->municipio ?? '' }}</div>
                 </td>
             </tr>
         </table>

@@ -476,30 +476,30 @@ class CnpjService
      */
     private function isPublico(string $naturezaJuridica): string
     {
-        $naturezasPublicas = [
-            'Órgão Público do Poder Executivo Federal',
-            'Órgão Público do Poder Executivo Estadual ou do Distrito Federal',
-            'Órgão Público do Poder Executivo Municipal',
-            'Órgão Público do Poder Legislativo Federal',
-            'Órgão Público do Poder Legislativo Estadual ou do Distrito Federal',
-            'Órgão Público do Poder Legislativo Municipal',
-            'Órgão Público do Poder Judiciário Federal',
-            'Órgão Público do Poder Judiciário Estadual',
-            'Autarquia Federal',
-            'Autarquia Estadual ou do Distrito Federal',
-            'Autarquia Municipal',
-            'Fundação Pública de Direito Público Federal',
-            'Fundação Pública de Direito Público Estadual ou do Distrito Federal',
-            'Fundação Pública de Direito Público Municipal',
-            'Órgão Público Autônomo Federal',
-            'Órgão Público Autônomo Estadual ou do Distrito Federal',
-            'Órgão Público Autônomo Municipal',
+        // Lista de palavras-chave que indicam natureza pública
+        $palavrasChavePublicas = [
+            'Órgão Público',
+            'Autarquia',
+            'Fundação Pública',
             'Empresa Pública',
             'Sociedade de Economia Mista',
             'Fundo Público',
+            'Administração Direta',
+            'Administração Indireta',
+            'Poder Executivo',
+            'Poder Legislativo',
+            'Poder Judiciário',
+            'Consórcio Público',
         ];
 
-        return in_array($naturezaJuridica, $naturezasPublicas) ? 'publico' : 'privado';
+        // Verifica se a natureza jurídica contém alguma palavra-chave pública
+        foreach ($palavrasChavePublicas as $palavra) {
+            if (stripos($naturezaJuridica, $palavra) !== false) {
+                return 'publico';
+            }
+        }
+
+        return 'privado';
     }
 
     /**

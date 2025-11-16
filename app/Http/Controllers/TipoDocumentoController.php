@@ -37,7 +37,20 @@ class TipoDocumentoController extends Controller
             'descricao' => 'nullable|string',
             'ativo' => 'boolean',
             'ordem' => 'integer|min:0',
+            'tem_prazo' => 'boolean',
+            'prazo_padrao_dias' => 'nullable|integer|min:1',
+            'prazo_notificacao' => 'boolean',
         ]);
+
+        // Se tem_prazo está desmarcado, limpa o prazo_padrao_dias e prazo_notificacao
+        if (!$request->has('tem_prazo')) {
+            $validated['tem_prazo'] = false;
+            $validated['prazo_padrao_dias'] = null;
+            $validated['prazo_notificacao'] = false;
+        } else {
+            // Se tem_prazo está marcado, verifica prazo_notificacao
+            $validated['prazo_notificacao'] = $request->has('prazo_notificacao');
+        }
 
         // Gera código automaticamente se não fornecido
         if (empty($validated['codigo'])) {
@@ -70,7 +83,20 @@ class TipoDocumentoController extends Controller
             'descricao' => 'nullable|string',
             'ativo' => 'boolean',
             'ordem' => 'integer|min:0',
+            'tem_prazo' => 'boolean',
+            'prazo_padrao_dias' => 'nullable|integer|min:1',
+            'prazo_notificacao' => 'boolean',
         ]);
+
+        // Se tem_prazo está desmarcado, limpa o prazo_padrao_dias e prazo_notificacao
+        if (!$request->has('tem_prazo')) {
+            $validated['tem_prazo'] = false;
+            $validated['prazo_padrao_dias'] = null;
+            $validated['prazo_notificacao'] = false;
+        } else {
+            // Se tem_prazo está marcado, verifica prazo_notificacao
+            $validated['prazo_notificacao'] = $request->has('prazo_notificacao');
+        }
 
         // Gera código automaticamente se não fornecido
         if (empty($validated['codigo'])) {

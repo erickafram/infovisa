@@ -13,10 +13,16 @@ class TipoDocumento extends Model
         'descricao',
         'ativo',
         'ordem',
+        'tem_prazo',
+        'prazo_padrao_dias',
+        'prazo_notificacao',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'tem_prazo' => 'boolean',
+        'prazo_notificacao' => 'boolean',
+        'prazo_padrao_dias' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

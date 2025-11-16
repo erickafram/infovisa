@@ -63,10 +63,25 @@ class DocumentoDigitalController extends Controller
                 case 'assinado':
                     $query->where('status', 'assinado');
                     break;
+                    
+                case 'com_prazos':
+                    $query->whereNotNull('data_vencimento')
+                          ->orderBy('data_vencimento', 'asc');
+                    
+                    // Filtro adicional por tipo de documento
+                    if ($request->has('tipo_documento_id') && $request->get('tipo_documento_id') != '') {
+                        $query->where('tipo_documento_id', $request->get('tipo_documento_id'));
+                    }
+                    break;
             }
         }
         
         $documentos = $query->orderBy('created_at', 'desc')->paginate(20);
+        
+        // Busca todos os tipos de documento para o filtro
+        $tiposDocumento = \App\Models\TipoDocumento::where('ativo', true)
+            ->orderBy('nome')
+            ->get();
         
         // Estatísticas para badges
         $stats = [
@@ -84,9 +99,17 @@ class DocumentoDigitalController extends Controller
                   ->where('status', 'assinado');
             })
             ->count(),
+            'com_prazos' => DocumentoDigital::where(function($q) use ($usuarioLogado) {
+                $q->where('usuario_criador_id', $usuarioLogado->id)
+                  ->orWhereHas('assinaturas', function($query) use ($usuarioLogado) {
+                      $query->where('usuario_interno_id', $usuarioLogado->id);
+                  });
+            })
+            ->whereNotNull('data_vencimento')
+            ->count(),
         ];
 
-        return view('documentos.index', compact('documentos', 'filtroStatus', 'stats'));
+        return view('documentos.index', compact('documentos', 'filtroStatus', 'stats', 'tiposDocumento'));
     }
 
     /**
@@ -174,6 +197,20 @@ class DocumentoDigitalController extends Controller
     }
 
     /**
+     * Busca informações de prazo do tipo de documento (AJAX)
+     */
+    public function buscarPrazoTipo($tipoId)
+    {
+        $tipo = TipoDocumento::findOrFail($tipoId);
+
+        return response()->json([
+            'tem_prazo' => $tipo->tem_prazo,
+            'prazo_padrao_dias' => $tipo->prazo_padrao_dias,
+            'tipo_prazo' => $tipo->tipo_prazo ?? 'corridos',
+        ]);
+    }
+
+    /**
      * Salva novo documento
      */
     public function store(Request $request)
@@ -184,6 +221,8 @@ class DocumentoDigitalController extends Controller
             'sigiloso' => 'boolean',
             'assinaturas' => 'required|array|min:1',
             'assinaturas.*' => 'exists:usuarios_internos,id',
+            'prazo_dias' => 'nullable|integer|min:1',
+            'tipo_prazo' => 'nullable|in:corridos,uteis',
         ]);
 
         try {
@@ -191,6 +230,34 @@ class DocumentoDigitalController extends Controller
 
             // Busca o tipo de documento para pegar o nome
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
+            
+            // Calcula data de vencimento se prazo foi informado
+            $dataVencimento = null;
+            $tipoPrazo = $request->tipo_prazo ?? 'corridos';
+            
+            if ($request->prazo_dias) {
+                $dataInicio = now();
+                $diasPrazo = (int) $request->prazo_dias;
+                
+                if ($tipoPrazo === 'corridos') {
+                    // Dias corridos: simplesmente adiciona os dias
+                    $dataVencimento = $dataInicio->addDays($diasPrazo)->format('Y-m-d');
+                } else {
+                    // Dias úteis: adiciona apenas dias úteis (segunda a sexta)
+                    $diasAdicionados = 0;
+                    $dataAtual = $dataInicio->copy();
+                    
+                    while ($diasAdicionados < $diasPrazo) {
+                        $dataAtual->addDay();
+                        // 0 = Domingo, 6 = Sábado
+                        if ($dataAtual->dayOfWeek !== 0 && $dataAtual->dayOfWeek !== 6) {
+                            $diasAdicionados++;
+                        }
+                    }
+                    
+                    $dataVencimento = $dataAtual->format('Y-m-d');
+                }
+            }
             
             $documento = DocumentoDigital::create([
                 'tipo_documento_id' => $request->tipo_documento_id,
@@ -201,6 +268,9 @@ class DocumentoDigitalController extends Controller
                 'conteudo' => $request->conteudo,
                 'sigiloso' => $request->sigiloso ?? false,
                 'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
+                'prazo_dias' => $request->prazo_dias,
+                'tipo_prazo' => $tipoPrazo,
+                'data_vencimento' => $dataVencimento,
             ]);
 
             // Criar assinaturas

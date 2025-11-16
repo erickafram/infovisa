@@ -117,7 +117,7 @@
             <div class="p-3">
                 <select name="tipo_documento_id" 
                         x-model="tipoSelecionado"
-                        @change="carregarModelos($event.target.value); salvarAutomaticamente()"
+                        @change="carregarModelos($event.target.value); atualizarAvisoPrazo($event.target.value); salvarAutomaticamente()"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         required>
                     <option value="">Selecione o tipo de documento</option>
@@ -424,12 +424,145 @@
             </div>
         </div>
 
+        {{-- Seção: Prazo/Validade (Condicional) --}}
+        <div x-show="temPrazo" 
+             x-cloak
+             class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+            <div class="px-3 py-2 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <span class="flex items-center justify-center w-4 h-4 bg-blue-600 text-white rounded-full text-xs font-bold">3</span>
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Prazo/Validade do Documento
+                    </h2>
+                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Obrigatório</span>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 rounded">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-semibold mb-1">Este tipo de documento possui prazo de validade</p>
+                            <p>Defina o prazo em dias. A data de vencimento será calculada automaticamente a partir da data de criação.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Aviso sobre contagem de prazo (será exibido dinamicamente via JavaScript) --}}
+                <div id="aviso-prazo-container" style="display: none;">
+                    {{-- Aviso para documentos de notificação/fiscalização --}}
+                    <div id="aviso-notificacao" class="bg-yellow-50 border-l-4 border-yellow-400 p-2.5 mb-3 rounded" style="display: none;">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="text-xs text-yellow-800">
+                                <p class="font-semibold mb-1">⚠️ Contagem de Prazo para Notificação/Fiscalização</p>
+                                <p class="mb-1.5">O prazo começa a contar a partir do <strong>que ocorrer primeiro:</strong> visualização pelo estabelecimento OU 5º dia útil após anexação.</p>
+                                <p class="text-[10px] italic opacity-75">* Funcionalidade em desenvolvimento</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Aviso para documentos de licenciamento (Alvará, etc) --}}
+                    <div id="aviso-licenciamento" class="bg-blue-50 border-l-4 border-blue-400 p-2.5 mb-3 rounded" style="display: none;">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-xs text-blue-800">
+                                <p class="font-semibold mb-1">ℹ️ Prazo Anual/Fixo</p>
+                                <p>O prazo é contado a partir da <strong>data de criação do documento</strong> (ex: Alvará Sanitário válido por 1 ano).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="prazo_dias" class="block text-sm font-medium text-gray-700 mb-2">
+                            Prazo em Dias <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex items-center gap-2 mb-3">
+                            <input type="number" 
+                                   name="prazo_dias" 
+                                   id="prazo_dias"
+                                   x-model="prazoDias"
+                                   @input="calcularDataVencimento()"
+                                   min="1"
+                                   :required="temPrazo"
+                                   class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                   placeholder="Ex: 365">
+                            <span class="text-sm text-gray-600">dias</span>
+                        </div>
+                        <p class="mb-3 text-xs text-gray-500">
+                            Exemplos: Alvará (365 dias), Notificação (30 dias)
+                        </p>
+
+                        {{-- Tipo de Prazo --}}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Tipo de Prazo <span class="text-red-500">*</span>
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center cursor-pointer p-2 border border-gray-300 rounded-lg hover:bg-blue-50 transition">
+                                <input type="radio" 
+                                       name="tipo_prazo" 
+                                       value="corridos" 
+                                       x-model="tipoPrazo"
+                                       @change="calcularDataVencimento()"
+                                       :required="temPrazo"
+                                       class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-xs text-gray-700">
+                                    <strong>Dias Corridos</strong> - Todos os dias
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer p-2 border border-gray-300 rounded-lg hover:bg-blue-50 transition">
+                                <input type="radio" 
+                                       name="tipo_prazo" 
+                                       value="uteis" 
+                                       x-model="tipoPrazo"
+                                       @change="calcularDataVencimento()"
+                                       :required="temPrazo"
+                                       class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-xs text-gray-700">
+                                    <strong>Dias Úteis</strong> - Exclui finais de semana/feriados
+                                </span>
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">
+                            💡 Você pode ajustar considerando feriados municipais específicos
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Data de Vencimento Prevista
+                        </label>
+                        <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="text-sm font-medium text-gray-900" x-text="dataVencimentoFormatada || 'Informe o prazo'"></span>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Calculada automaticamente baseada no tipo de prazo
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Seção: Assinaturas Digitais --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
             <div class="px-3 py-2 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <span class="flex items-center justify-center w-4 h-4 bg-purple-600 text-white rounded-full text-xs font-bold">3</span>
+                        <span class="flex items-center justify-center w-4 h-4 bg-purple-600 text-white rounded-full text-xs font-bold" x-text="temPrazo ? '4' : '3'"></span>
                         Assinaturas Digitais
                     </h2>
                     <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
@@ -607,6 +740,17 @@
 </div>
 
 <script>
+// Dados dos tipos de documento (prazo_notificacao)
+const tiposDocumentoData = {
+    @foreach($tiposDocumento as $tipo)
+    {{ $tipo->id }}: {
+        prazo_notificacao: {{ $tipo->prazo_notificacao ? 'true' : 'false' }},
+        tem_prazo: {{ $tipo->tem_prazo ? 'true' : 'false' }},
+        prazo_padrao_dias: {{ $tipo->prazo_padrao_dias ?? 'null' }}
+    },
+    @endforeach
+};
+
 function documentoEditor() {
     return {
         tipoSelecionado: null,
@@ -621,6 +765,11 @@ function documentoEditor() {
         contadorErros: 0,
         timeoutVerificacao: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
+        // Campos de prazo
+        temPrazo: false,
+        prazoDias: null,
+        tipoPrazo: 'corridos',
+        dataVencimentoFormatada: '',
 
         init() {
             // Tenta recuperar dados salvos do localStorage
@@ -963,6 +1112,7 @@ function documentoEditor() {
             console.log('Carregando modelos para tipo:', tipoId);
             
             try {
+                // Busca modelos
                 const url = `/admin/documentos/modelos/${tipoId}`;
                 console.log('Fazendo requisição para:', url);
                 
@@ -992,8 +1142,38 @@ function documentoEditor() {
                 } else {
                     console.log('Nenhum modelo disponível para este tipo de documento');
                 }
+
+                // Busca informações de prazo do tipo
+                await this.buscarPrazoTipo(tipoId);
+                
             } catch (error) {
                 console.error('Erro ao carregar modelos:', error);
+            }
+        },
+
+        atualizarAvisoPrazo(tipoId) {
+            if (!tipoId || !tiposDocumentoData[tipoId]) {
+                // Esconde todos os avisos
+                document.getElementById('aviso-prazo-container').style.display = 'none';
+                document.getElementById('aviso-notificacao').style.display = 'none';
+                document.getElementById('aviso-licenciamento').style.display = 'none';
+                return;
+            }
+
+            const tipoData = tiposDocumentoData[tipoId];
+            
+            // Mostra o container
+            document.getElementById('aviso-prazo-container').style.display = 'block';
+            
+            // Mostra o aviso correto baseado no tipo
+            if (tipoData.prazo_notificacao) {
+                // Documento de notificação/fiscalização
+                document.getElementById('aviso-notificacao').style.display = 'block';
+                document.getElementById('aviso-licenciamento').style.display = 'none';
+            } else {
+                // Documento de licenciamento (prazo fixo)
+                document.getElementById('aviso-notificacao').style.display = 'none';
+                document.getElementById('aviso-licenciamento').style.display = 'block';
             }
         },
 
@@ -1025,6 +1205,87 @@ function documentoEditor() {
             // Limpa o localStorage após enviar (tanto rascunho quanto finalizar)
             localStorage.removeItem(this.chaveLocalStorage);
             console.log('localStorage limpo após submissão');
+        },
+
+        // Busca informações de prazo do tipo de documento
+        async buscarPrazoTipo(tipoId) {
+            try {
+                const response = await fetch(`/admin/documentos/prazo-tipo/${tipoId}`);
+                
+                if (!response.ok) {
+                    console.warn('Erro ao buscar prazo do tipo');
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Informações de prazo:', data);
+                
+                this.temPrazo = data.tem_prazo;
+                
+                // Se tem prazo, preenche os campos
+                if (data.tem_prazo) {
+                    // Preenche prazo padrão se existir
+                    if (data.prazo_padrao_dias) {
+                        this.prazoDias = data.prazo_padrao_dias;
+                    } else {
+                        this.prazoDias = null;
+                    }
+                    
+                    // Preenche tipo de prazo
+                    this.tipoPrazo = data.tipo_prazo || 'corridos';
+                    
+                    // Calcula data de vencimento se tiver prazo
+                    if (this.prazoDias) {
+                        this.calcularDataVencimento();
+                    }
+                } else {
+                    // Limpa os campos se não tem prazo
+                    this.prazoDias = null;
+                    this.tipoPrazo = 'corridos';
+                    this.dataVencimentoFormatada = '';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao buscar prazo do tipo:', error);
+            }
+        },
+
+        // Calcula a data de vencimento baseada no prazo em dias
+        calcularDataVencimento() {
+            if (!this.prazoDias || this.prazoDias < 1) {
+                this.dataVencimentoFormatada = '';
+                return;
+            }
+
+            const hoje = new Date();
+            let dataVencimento = new Date(hoje);
+            
+            if (this.tipoPrazo === 'corridos') {
+                // Dias corridos: simplesmente adiciona os dias
+                dataVencimento.setDate(hoje.getDate() + parseInt(this.prazoDias));
+            } else {
+                // Dias úteis: adiciona apenas dias úteis (segunda a sexta)
+                let diasAdicionados = 0;
+                let diasRestantes = parseInt(this.prazoDias);
+                
+                while (diasRestantes > 0) {
+                    dataVencimento.setDate(dataVencimento.getDate() + 1);
+                    const diaSemana = dataVencimento.getDay();
+                    
+                    // 0 = Domingo, 6 = Sábado
+                    if (diaSemana !== 0 && diaSemana !== 6) {
+                        diasRestantes--;
+                    }
+                }
+            }
+
+            // Formata a data em português
+            const opcoes = { 
+                day: '2-digit', 
+                month: 'long', 
+                year: 'numeric' 
+            };
+            this.dataVencimentoFormatada = dataVencimento.toLocaleDateString('pt-BR', opcoes);
         },
     }
 }

@@ -588,6 +588,30 @@
                                                         Assinado
                                                     </span>
                                                 @endif
+
+                                                {{-- Badge de Prazo/Validade --}}
+                                                @if($docDigital->data_vencimento)
+                                                    @php
+                                                        $corBadge = $docDigital->cor_status_prazo;
+                                                        $textoBadge = $docDigital->texto_status_prazo;
+                                                        
+                                                        // Define cores do badge
+                                                        $classesCor = [
+                                                            'red' => 'bg-red-100 text-red-700 border-red-200',
+                                                            'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                                            'green' => 'bg-green-100 text-green-700 border-green-200',
+                                                            'gray' => 'bg-gray-100 text-gray-700 border-gray-200',
+                                                        ];
+                                                        
+                                                        $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
+                                                    @endphp
+                                                    <span class="px-2 py-0.5 {{ $classeBadge }} border rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        {{ $textoBadge }}
+                                                    </span>
+                                                @endif
                                                 
                                                 {{-- Botão Assinar se o usuário logado precisa assinar --}}
                                                 @if($usuarioPrecisaAssinar)

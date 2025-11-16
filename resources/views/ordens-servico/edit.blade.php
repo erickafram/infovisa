@@ -3,7 +3,7 @@
 @section('title', 'Editar Ordem de Serviço')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-6">
+<div class="max-w-8xl mx-auto px-4 py-6">
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center gap-4 mb-3">

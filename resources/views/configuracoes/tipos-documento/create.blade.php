@@ -97,22 +97,112 @@
                     @enderror
                 </div>
 
-                {{-- Status --}}
-                <div>
-                    <label for="ativo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                    </label>
-                    <div class="flex items-center">
-                        <label class="inline-flex items-center cursor-pointer">
-                            <input type="checkbox" 
-                                   name="ativo" 
-                                   id="ativo" 
-                                   value="1"
-                                   {{ old('ativo', true) ? 'checked' : '' }}
-                                   class="sr-only peer">
-                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            <span class="ms-3 text-sm font-medium text-gray-700">Ativo</span>
+                {{-- Grid: Prazo e Status --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {{-- Configuração de Prazo --}}
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <label class="text-sm font-semibold text-gray-900">
+                                Configuração de Prazo
+                            </label>
+                        </div>
+
+                        {{-- Checkbox: Tem Prazo --}}
+                        <div class="mb-3">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="tem_prazo" 
+                                       id="tem_prazo" 
+                                       value="1"
+                                       {{ old('tem_prazo') ? 'checked' : '' }}
+                                       onchange="togglePrazoPadrao()"
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                                <span class="ms-2 text-sm text-gray-700">Este tipo de documento possui prazo/validade</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500 ml-6">
+                                Ex: Alvarás, Notificações, Licenças, etc.
+                            </p>
+                        </div>
+
+                        {{-- Campo: Prazo Padrão (opcional) --}}
+                        <div id="prazo_padrao_container" style="display: {{ old('tem_prazo') ? 'block' : 'none' }};">
+                            <label for="prazo_padrao_dias" class="block text-sm font-medium text-gray-700 mb-2">
+                                Prazo Padrão (opcional)
+                            </label>
+                            <div class="flex items-center gap-2 mb-3">
+                                <input type="number" 
+                                       name="prazo_padrao_dias" 
+                                       id="prazo_padrao_dias" 
+                                       value="{{ old('prazo_padrao_dias') }}"
+                                       min="1"
+                                       class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('prazo_padrao_dias') border-red-500 @enderror"
+                                       placeholder="Ex: 365">
+                                <span class="text-sm text-gray-600">dias</span>
+                            </div>
+                            @error('prazo_padrao_dias')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-2 text-xs text-gray-500">
+                                Se informado, será sugerido automaticamente ao criar o documento. O usuário poderá escolher entre dias corridos ou úteis na criação.
+                            </p>
+
+                            {{-- Checkbox: É documento de notificação/fiscalização --}}
+                            <div class="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
+                                <label class="flex items-start cursor-pointer">
+                                    <input type="checkbox" 
+                                           name="prazo_notificacao" 
+                                           id="prazo_notificacao"
+                                           value="1"
+                                           {{ old('prazo_notificacao') ? 'checked' : '' }}
+                                           class="mt-0.5 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                                    <div class="ml-3">
+                                        <span class="text-sm font-medium text-gray-900">Documento de notificação/fiscalização</span>
+                                        <p class="text-xs text-gray-600 mt-1">
+                                            Marque se for: <strong>Notificação, Auto de Infração, Intimação</strong> ou similar.
+                                        </p>
+                                        <div class="mt-2 text-xs">
+                                            <div class="flex items-start gap-1.5 text-yellow-700 bg-yellow-50 p-2 rounded">
+                                                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <span><strong>Se marcado:</strong> Prazo conta da visualização OU 5º dia útil (o que ocorrer primeiro)</span>
+                                            </div>
+                                            <div class="flex items-start gap-1.5 text-blue-700 bg-blue-50 p-2 rounded mt-1.5">
+                                                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                <span><strong>Se desmarcado:</strong> Prazo fixo/anual (ex: Alvará válido por 1 ano)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <label for="ativo" class="block text-sm font-semibold text-gray-900 mb-3">
+                            Status do Tipo
                         </label>
+                        <div class="flex items-center">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="ativo" 
+                                       id="ativo" 
+                                       value="1"
+                                       {{ old('ativo', true) ? 'checked' : '' }}
+                                       class="sr-only peer">
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                <span class="ms-3 text-sm font-medium text-gray-700">Ativo</span>
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">
+                            Tipos inativos não aparecem na lista de criação de documentos
+                        </p>
                     </div>
                 </div>
             </div>
@@ -131,4 +221,18 @@
         </div>
     </form>
 </div>
+
+<script>
+function togglePrazoPadrao() {
+    const temPrazo = document.getElementById('tem_prazo');
+    const prazoPadraoContainer = document.getElementById('prazo_padrao_container');
+    
+    if (temPrazo.checked) {
+        prazoPadraoContainer.style.display = 'block';
+    } else {
+        prazoPadraoContainer.style.display = 'none';
+        document.getElementById('prazo_padrao_dias').value = '';
+    }
+}
+</script>
 @endsection

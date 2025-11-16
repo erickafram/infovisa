@@ -243,13 +243,18 @@
                                 Localização
                             </label>
                             @php
-                                $endereco = urlencode(
-                                    $ordemServico->estabelecimento->logradouro . ', ' .
-                                    ($ordemServico->estabelecimento->numero ?? 'S/N') . ', ' .
-                                    $ordemServico->estabelecimento->bairro . ', ' .
-                                    ($ordemServico->estabelecimento->municipio->nome ?? '') . ', ' .
-                                    ($ordemServico->estabelecimento->municipio->uf ?? '') . ', Brasil'
-                                );
+                                // Usa 'endereco' se disponível, senão usa 'logradouro'
+                                $rua = $ordemServico->estabelecimento->endereco ?? $ordemServico->estabelecimento->logradouro ?? '';
+                                $numero = $ordemServico->estabelecimento->numero ?? 'S/N';
+                                $bairro = $ordemServico->estabelecimento->bairro ?? '';
+                                $cidade = $ordemServico->estabelecimento->cidade ?? ($ordemServico->estabelecimento->municipio->nome ?? '');
+                                $estado = $ordemServico->estabelecimento->estado ?? ($ordemServico->estabelecimento->municipio->uf ?? '');
+                                $cep = $ordemServico->estabelecimento->cep ?? '';
+                                
+                                // Monta o endereço completo
+                                $enderecoCompleto = trim("$rua, $numero, $bairro, $cidade - $estado, CEP: $cep, Brasil");
+                                $endereco = urlencode($enderecoCompleto);
+                                
                                 $googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" . $endereco;
                                 $googleMapsEmbedUrl = "https://www.google.com/maps?q=" . $endereco . "&output=embed";
                             @endphp
@@ -274,6 +279,12 @@
                                 src="{{ $googleMapsEmbedUrl }}"
                                 allowfullscreen>
                             </iframe>
+                        </div>
+                        
+                        
+                        {{-- Debug: Mostra o endereço que está sendo usado --}}
+                        <div class="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                            <strong>Endereço usado no mapa:</strong> {{ $enderecoCompleto }}
                         </div>
                         
                         <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">

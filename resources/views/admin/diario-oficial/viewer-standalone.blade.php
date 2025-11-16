@@ -195,7 +195,7 @@
     </div>
 
     <!-- PDF Container -->
-    <div id="pdfContainer" class="hidden max-w-5xl mx-auto px-4 py-6">
+    <div id="pdfContainer" class="hidden max-w-8xl mx-auto px-4 py-6">
         <div id="pdfPages"></div>
     </div>
 

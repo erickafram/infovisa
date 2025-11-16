@@ -170,19 +170,32 @@ class OrdemServico extends Model
     {
         $ano = date('Y');
         
-        // Busca a última OS criada (independente do ano)
-        $ultimaOS = self::orderBy('id', 'desc')->first();
+        // Busca o maior número sequencial existente (apenas números no formato correto 000000.YYYY)
+        $maiorNumero = self::whereRaw("numero ~ '^[0-9]{6}\.[0-9]{4}$'")
+            ->selectRaw('MAX(CAST(SPLIT_PART(numero, \'.\', 1) AS INTEGER)) as max_sequencial')
+            ->value('max_sequencial');
         
-        if ($ultimaOS) {
-            // Extrai o número sequencial do formato 000013.2025
-            $partes = explode('.', $ultimaOS->numero);
-            $sequencial = (int) $partes[0] + 1;
+        if ($maiorNumero) {
+            $sequencial = $maiorNumero + 1;
         } else {
             $sequencial = 1;
         }
         
-        // Retorna no formato 000013.2025
-        return str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
+        $numeroGerado = str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
+        
+        // Verifica se o número já existe (segurança adicional com lock)
+        $tentativas = 0;
+        while (self::where('numero', $numeroGerado)->exists() && $tentativas < 100) {
+            $sequencial++;
+            $numeroGerado = str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
+            $tentativas++;
+        }
+        
+        if ($tentativas >= 100) {
+            throw new \Exception('Não foi possível gerar um número único para a Ordem de Serviço após 100 tentativas.');
+        }
+        
+        return $numeroGerado;
     }
 
     /**

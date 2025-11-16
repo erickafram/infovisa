@@ -322,11 +322,39 @@
                                 Nome Fantasia <span class="text-red-500">*</span>
                             </label>
                             <input type="text" 
-                                   id="nome_fantasia" 
-                                   name="nome_fantasia"
-                                   x-model="dados.nome_fantasia"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
+                                  id="nome_fantasia" 
+                                  name="nome_fantasia"
+                                  x-model="dados.nome_fantasia"
+                                  @input="dados.nome_fantasia = toUpperCase($event.target.value)"
+                                  :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                  class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                  style="text-transform: uppercase;">
+                           
+                           {{-- Alerta para estabelecimentos públicos --}}
+                           <div x-show="dados.tipo_setor === 'publico'" 
+                                x-cloak
+                                class="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                               <div class="flex items-start gap-2">
+                                   <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                   </svg>
+                                   <div class="flex-1">
+                                       <p class="text-sm font-semibold text-yellow-800 mb-1">⚠️ Atenção: Estabelecimento Público</p>
+                                       <p class="text-xs text-yellow-700 leading-relaxed">
+                                           O nome fantasia que veio da API pode ser genérico (ex: "Fundo Municipal de Saúde"). 
+                                           <strong>Altere para o nome específico da unidade</strong>, como:
+                                       </p>
+                                       <ul class="text-xs text-yellow-700 mt-2 space-y-1 ml-4">
+                                           <li>• Hospital Municipal [Nome]</li>
+                                           <li>• Laboratório Central de Saúde Pública</li>
+                                           <li>• UBS [Nome do Bairro]</li>
+                                           <li>• HPP - Hospital de Pequeno Porte</li>
+                                           <li>• Centro de Especialidades</li>
+                                       </ul>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
 
                         {{-- Natureza Jurídica --}}
                          <div>
@@ -434,22 +462,64 @@
                  </div>
 
                  {{-- Aba: Endereço --}}
-                 <div x-show="abaAtiva === 'endereco'" x-cloak>
-                     <h3 class="text-lg font-medium text-gray-900 mb-6">Endereço da Empresa</h3>
-                     
-                     {{-- Linha 1: CEP e Logradouro --}}
+                <div x-show="abaAtiva === 'endereco'" x-cloak>
+                    <h3 class="text-lg font-medium text-gray-900 mb-6">Endereço do Estabelecimento</h3>
+                    
+                    {{-- Alerta para estabelecimentos públicos --}}
+                    <div x-show="dados.tipo_setor === 'publico'" 
+                         x-cloak
+                         class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Atenção: Endereço de Estabelecimento Público</p>
+                                <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                    O endereço que veio da API pode ser da <strong>Prefeitura ou Fundo Municipal</strong>, mas o estabelecimento real pode estar em outro local.
+                                </p>
+                                <p class="text-xs text-yellow-700 leading-relaxed">
+                                    <strong>Verifique e corrija o endereço</strong> para o local onde o estabelecimento realmente funciona:
+                                </p>
+                                <ul class="text-xs text-yellow-700 mt-2 space-y-1 ml-4">
+                                    <li>• Hospital Municipal → endereço do hospital</li>
+                                    <li>• Laboratório Central → endereço do laboratório</li>
+                                    <li>• UBS → endereço da unidade de saúde</li>
+                                    <li>• HPP → endereço do hospital</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {{-- Linha 1: CEP e Logradouro --}}
                      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                          {{-- CEP --}}
-                         <div>
-                             <label for="cep" class="block text-sm font-medium text-gray-700 mb-2">
-                                 CEP <span class="text-red-500">*</span>
-                             </label>
-                             <input type="text" 
-                                    id="cep" 
-                                    name="cep"
-                                    x-model="dados.cep"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                         </div>
+                        <div>
+                            <label for="cep" class="block text-sm font-medium text-gray-700 mb-2">
+                                CEP <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="text" 
+                                       id="cep_display" 
+                                       x-model="dados.cep"
+                                       @blur="buscarCep()"
+                                       @input="dados.cep = dados.cep.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').substring(0, 9)"
+                                       placeholder="00000-000"
+                                       maxlength="9"
+                                       class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                {{-- Campo hidden que envia apenas os números (8 dígitos) --}}
+                                <input type="hidden" 
+                                       name="cep" 
+                                       :value="dados.cep.replace(/\D/g, '')">
+                                <div x-show="loading" class="absolute right-3 top-3">
+                                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Digite o CEP e o endereço será preenchido automaticamente</p>
+                        </div>
 
                          {{-- Logradouro --}}
                          <div class="md:col-span-2">
@@ -457,10 +527,13 @@
                                  Logradouro <span class="text-red-500">*</span>
                              </label>
                              <input type="text" 
-                                    id="endereco" 
-                                    name="endereco"
-                                    x-model="dados.endereco"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="endereco" 
+                                   name="endereco"
+                                   x-model="dados.endereco"
+                                   @input="dados.endereco = toUpperCase($event.target.value)"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
                      </div>
 
@@ -472,10 +545,13 @@
                                  Número <span class="text-red-500">*</span>
                              </label>
                              <input type="text" 
-                                    id="numero" 
-                                    name="numero"
-                                    x-model="dados.numero"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="numero" 
+                                   name="numero"
+                                   x-model="dados.numero"
+                                   @input="dados.numero = toUpperCase($event.target.value)"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
 
                          {{-- Complemento --}}
@@ -484,10 +560,13 @@
                                  Complemento
                              </label>
                              <input type="text" 
-                                    id="complemento" 
-                                    name="complemento"
-                                    x-model="dados.complemento"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="complemento" 
+                                   name="complemento"
+                                   x-model="dados.complemento"
+                                   @input="dados.complemento = toUpperCase($event.target.value)"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
 
                          {{-- Bairro --}}
@@ -496,10 +575,13 @@
                                  Bairro <span class="text-red-500">*</span>
                              </label>
                              <input type="text" 
-                                    id="bairro" 
-                                    name="bairro"
-                                    x-model="dados.bairro"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="bairro" 
+                                   name="bairro"
+                                   x-model="dados.bairro"
+                                   @input="dados.bairro = toUpperCase($event.target.value)"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
                      </div>
 
@@ -511,10 +593,13 @@
                                  Cidade <span class="text-red-500">*</span>
                              </label>
                              <input type="text" 
-                                    id="cidade" 
-                                    name="cidade"
-                                    x-model="dados.cidade"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="cidade" 
+                                   name="cidade"
+                                   x-model="dados.cidade"
+                                   @input="dados.cidade = toUpperCase($event.target.value)"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
 
                          {{-- Estado --}}
@@ -523,11 +608,13 @@
                                  Estado <span class="text-red-500">*</span>
                              </label>
                              <input type="text" 
-                                    id="estado" 
-                                    name="estado"
-                                    x-model="dados.estado"
-                                    maxlength="2"
-                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                   id="estado" 
+                                   name="estado"
+                                   x-model="dados.estado"
+                                   @input="dados.estado = toUpperCase($event.target.value)"
+                                   maxlength="2"
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   style="text-transform: uppercase;">
                          </div>
 
                          {{-- Código Município IBGE --}}
@@ -845,6 +932,70 @@
              </div>
          </div>
 
+        {{-- Modal de Estabelecimentos Existentes --}}
+        <div x-show="modalEstabelecimentosExistentes.visivel" 
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+            
+            {{-- Modal --}}
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="relative bg-white rounded-lg shadow-2xl max-w-lg w-full mx-auto transform transition-all"
+                     @click.away="fecharModalEstabelecimentos()">
+                    
+                    {{-- Header --}}
+                    <div class="bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-3 rounded-t-lg">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-base font-bold text-white">Estabelecimentos Já Cadastrados</h3>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {{-- Body --}}
+                    <div class="px-4 py-4">
+                        {{-- Lista de Estabelecimentos --}}
+                        <div class="space-y-2 mb-3">
+                            <template x-for="(estabelecimento, index) in modalEstabelecimentosExistentes.estabelecimentos" :key="index">
+                                <div class="flex items-center gap-2 p-2 bg-blue-50 border-l-4 border-blue-500 rounded-r">
+                                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-gray-900" x-text="estabelecimento.nome_fantasia"></p>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        {{-- Informação --}}
+                        <div class="bg-green-50 border-l-4 border-green-400 p-2 rounded-r">
+                            <p class="text-xs text-green-700">
+                                ✅ Você pode cadastrar outro estabelecimento com o mesmo CNPJ (Hospital, Laboratório, UBS, etc.)
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 px-4 py-3 rounded-b-lg flex justify-end gap-2">
+                        <button type="button"
+                                @click="cancelarCadastro()"
+                                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                @click="continuarCadastro()"
+                                class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors">
+                            Continuar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Campos ocultos para dados da API --}}
         <div x-show="dadosCarregados" style="display: none;">
             <input type="hidden" name="situacao_cadastral" x-model="dados.situacao_cadastral">
@@ -917,6 +1068,10 @@ function estabelecimentoForm() {
         modalErro: {
             visivel: false,
             mensagens: []
+        },
+        modalEstabelecimentosExistentes: {
+            visivel: false,
+            estabelecimentos: []
         },
         dados: {
             tipo_setor: '',
@@ -1113,13 +1268,8 @@ function estabelecimentoForm() {
                         }
                     }
                     
-                    // Verifica se é privado e se já existe cadastro
-                    if (result.data.tipo_setor === 'privado') {
-                        await this.verificarCnpjExistente(result.data.cnpj, apiSource);
-                    } else {
-                        this.mostrarMensagem(`✅ Dados encontrados com sucesso na ${apiSource}!`, 'success');
-                        this.dadosCarregados = true;
-                    }
+                    // Verifica se já existe cadastro (privado ou público)
+                    await this.verificarCnpjExistente(result.data.cnpj, apiSource, result.data.tipo_setor);
                 } else {
                     this.mostrarMensagem(result.message || 'CNPJ não encontrado em nenhuma base de dados', 'error');
                 }
@@ -1130,7 +1280,7 @@ function estabelecimentoForm() {
             }
         },
 
-        async verificarCnpjExistente(cnpj, apiSource = 'API') {
+        async verificarCnpjExistente(cnpj, apiSource = 'API', tipoSetor = 'privado') {
             try {
                 const response = await fetch(`/api/verificar-cnpj/${cnpj}`, {
                     method: 'GET',
@@ -1142,8 +1292,22 @@ function estabelecimentoForm() {
                 const result = await response.json();
 
                 if (response.ok && result.existe) {
-                    this.dadosCarregados = false;
-                    this.mostrarMensagem('⚠️ Este CNPJ já está cadastrado no sistema. Estabelecimentos privados devem ter CNPJ único. Por favor, verifique a listagem de estabelecimentos.', 'error');
+                    // Se for PRIVADO, bloqueia o cadastro
+                    if (tipoSetor === 'privado') {
+                        this.dadosCarregados = false;
+                        this.mostrarMensagem('⚠️ Este CNPJ já está cadastrado no sistema. Estabelecimentos privados devem ter CNPJ único. Por favor, verifique a listagem de estabelecimentos.', 'error');
+                        return;
+                    }
+                    
+                    // Se for PÚBLICO, mostra os estabelecimentos já cadastrados no modal
+                    if (tipoSetor === 'publico' && result.estabelecimentos && result.estabelecimentos.length > 0) {
+                        this.modalEstabelecimentosExistentes.estabelecimentos = result.estabelecimentos;
+                        this.modalEstabelecimentosExistentes.visivel = true;
+                        return; // Aguarda decisão do usuário no modal
+                    }
+                    
+                    this.mostrarMensagem(`✅ Dados encontrados com sucesso na ${apiSource}!`, 'success');
+                    this.dadosCarregados = true;
                 } else {
                     this.mostrarMensagem(`✅ Dados encontrados com sucesso na ${apiSource}!`, 'success');
                     this.dadosCarregados = true;
@@ -1167,6 +1331,21 @@ function estabelecimentoForm() {
             }
             if (apiData.ddd_telefone_2) {
                 this.dados.telefone2 = this.formatarTelefone(apiData.ddd_telefone_2);
+            }
+            
+            // Se for estabelecimento público, destaca o campo Nome Fantasia
+            if (apiData.tipo_setor === 'publico') {
+                setTimeout(() => {
+                    const nomeFantasiaInput = document.getElementById('nome_fantasia');
+                    if (nomeFantasiaInput) {
+                        // Foca no campo
+                        nomeFantasiaInput.focus();
+                        // Seleciona todo o texto para facilitar a edição
+                        nomeFantasiaInput.select();
+                        // Scroll suave até o campo
+                        nomeFantasiaInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 500);
             }
             
             // Verifica competência após carregar dados (para usuários municipais)
@@ -1422,6 +1601,73 @@ function estabelecimentoForm() {
                 style: 'currency',
                 currency: 'BRL'
             }).format(numero);
+        },
+
+        // Converte texto para MAIÚSCULAS
+        toUpperCase(texto) {
+            return texto ? texto.toUpperCase() : '';
+        },
+
+        // Funções do Modal de Estabelecimentos Existentes
+        fecharModalEstabelecimentos() {
+            this.modalEstabelecimentosExistentes.visivel = false;
+            this.modalEstabelecimentosExistentes.estabelecimentos = [];
+        },
+
+        cancelarCadastro() {
+            this.fecharModalEstabelecimentos();
+            this.dadosCarregados = false;
+            this.limparFormulario();
+        },
+
+        continuarCadastro() {
+            this.fecharModalEstabelecimentos();
+            this.mostrarMensagem('✅ Dados encontrados com sucesso! Você pode continuar o cadastro.', 'success');
+            this.dadosCarregados = true;
+        },
+
+        // Busca endereço pelo CEP usando ViaCEP
+        async buscarCep() {
+            const cep = this.dados.cep.replace(/\D/g, '');
+            
+            if (cep.length !== 8) {
+                return;
+            }
+            
+            try {
+                this.loading = true;
+                
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+                
+                if (data.erro) {
+                    this.mostrarMensagem('❌ CEP não encontrado', 'error');
+                    return;
+                }
+                
+                // Preenche os campos com os dados do CEP
+                this.dados.endereco = this.toUpperCase(data.logradouro || '');
+                this.dados.bairro = this.toUpperCase(data.bairro || '');
+                this.dados.cidade = this.toUpperCase(data.localidade || '');
+                this.dados.estado = this.toUpperCase(data.uf || '');
+                this.dados.codigo_municipio_ibge = data.ibge || '';
+                
+                // Foca no campo número
+                setTimeout(() => {
+                    const numeroInput = document.getElementById('numero');
+                    if (numeroInput) {
+                        numeroInput.focus();
+                    }
+                }, 100);
+                
+                this.mostrarMensagem('✅ Endereço encontrado!', 'success');
+                
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error);
+                this.mostrarMensagem('❌ Erro ao buscar CEP. Tente novamente.', 'error');
+            } finally {
+                this.loading = false;
+            }
         },
 
         limparFormulario() {
