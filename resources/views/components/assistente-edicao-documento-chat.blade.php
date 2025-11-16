@@ -39,24 +39,25 @@
 }
 </style>
 
-<div x-data="assistenteEdicaoDocumento()" x-init="init()" x-cloak class="fixed bottom-6 right-6" style="z-index: 10000; width: 340px;">
-    {{-- Botão Flutuante (só mostra quando chat está fechado) --}}
-    <button type="button"
-            x-show="!chatAberto && !minimizado"
-            @click="toggleChat()"
-            class="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-full pl-4 pr-5 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-start gap-2"
-            style="min-width: 140px;">
-        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-        </svg>
-        <span class="text-sm font-medium whitespace-nowrap">Redação</span>
-    </button>
+<div x-data="assistenteEdicaoDocumento()" x-init="init()" x-cloak>
+    {{-- Botão Flutuante (só mostra quando chat está fechado) - NO CANTO --}}
+    <div x-show="!chatAberto && !minimizado" class="fixed bottom-6 right-6" style="z-index: 10000;">
+        <button type="button"
+                @click="toggleChat()"
+                class="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-full pl-4 pr-5 py-3 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-start gap-2"
+                style="min-width: 140px;">
+            <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            <span class="text-sm font-medium whitespace-nowrap">Redação</span>
+        </button>
+    </div>
 
-    {{-- Janela do Chat (minimizado) --}}
+    {{-- Janela do Chat (minimizado) - MAIS CENTRALIZADO --}}
     <div x-show="minimizado"
          x-transition.duration.300ms
-         class="bg-white rounded-lg shadow-xl border-2 border-green-200 flex flex-col"
-         style="height: 60px; width: 200px;">
+         class="fixed bottom-6 right-20 bg-white rounded-lg shadow-xl border-2 border-green-200 flex flex-col"
+         style="z-index: 10000; height: 60px; width: 200px;">
         
         {{-- Header Minimizado --}}
         <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white px-3 py-3 rounded-t-lg flex items-center justify-between">
@@ -89,11 +90,11 @@
         </div>
     </div>
 
-    {{-- Janela do Chat (normal) --}}
+    {{-- Janela do Chat (normal) - MAIS CENTRALIZADO --}}
     <div x-show="chatAberto && !minimizado"
          x-transition.duration.300ms
-         class="bg-white rounded-lg shadow-2xl border-2 border-green-200 flex flex-col"
-         style="height: 450px;">
+         class="fixed bottom-6 right-20 bg-white rounded-lg shadow-2xl border-2 border-green-200 flex flex-col"
+         style="z-index: 10000; height: 450px; width: 340px;">
 
         {{-- Header Normal --}}
         <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
