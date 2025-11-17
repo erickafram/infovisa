@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/consultar-cnpj',
             'api/verificar-cnpj/*',
+            'admin/ia/chat',
+            'admin/ia/chat-edicao-documento',
+            'admin/ia/extrair-pdf',
         ]);
         
         // Registrar alias para middleware customizado
