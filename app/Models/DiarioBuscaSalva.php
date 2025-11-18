@@ -12,12 +12,16 @@ class DiarioBuscaSalva extends Model
         'nome',
         'texto',
         'data_inicial',
-        'data_final'
+        'data_final',
+        'executar_diariamente',
+        'ultima_execucao'
     ];
 
     protected $casts = [
         'data_inicial' => 'date',
-        'data_final' => 'date'
+        'data_final' => 'date',
+        'executar_diariamente' => 'boolean',
+        'ultima_execucao' => 'datetime'
     ];
 
     public function usuario(): BelongsTo

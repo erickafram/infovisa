@@ -8,39 +8,42 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <style>
+        /* Ajustes para TextLayer e Highlights */
+        .textLayer {
+            opacity: 0.2; /* Útil para debug, em produção pode ser 0 ou muito baixo */
+            mix-blend-mode: multiply;
+        }
+        
         .pdf-highlight {
-            background-color: rgba(255, 255, 0, 0.3);
-            border: none;
+            background-color: rgba(255, 255, 0, 0.4);
             position: absolute;
-            pointer-events: auto;
+            z-index: 5;
             cursor: pointer;
-            animation: pulse 2s ease-in-out infinite;
-            z-index: 15;
-            border-radius: 1px;
-            box-shadow: none;
-            transition: all 0.2s ease;
+            mix-blend-mode: multiply;
+            /* Animação suave */
+            transition: background-color 0.2s;
         }
         
         .pdf-highlight:hover {
-            background-color: rgba(255, 255, 0, 0.4);
-            border: none;
-            box-shadow: none;
+            background-color: rgba(255, 255, 0, 0.6);
+            outline: 1px solid rgba(200, 200, 0, 0.8);
         }
         
         .pdf-highlight.active {
-            background-color: rgba(255, 255, 0, 0.5);
-            border: none;
-            animation: none;
-            box-shadow: none;
-            border-radius: 1px;
+            background-color: rgba(255, 165, 0, 0.6); /* Laranja para o ativo */
+            border: 2px solid rgba(255, 140, 0, 1);
+            z-index: 10;
+            animation: pulse-highlight 2s infinite;
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 0.9; }
+
+        @keyframes pulse-highlight {
+            0% { box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 165, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 165, 0, 0); }
         }
         
         .pdf-page {
@@ -49,15 +52,24 @@
             position: relative;
             background: white;
             border: 1px solid #e5e7eb;
-            display: inline-block;
+            /* Importante para posicionamento absoluto dos filhos */
         }
         
-        .pdf-page canvas {
-            display: block;
-            position: relative;
-            z-index: 1;
+        .highlight-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Permite clicar no texto abaixo se necessário */
+            z-index: 5;
         }
         
+        /* Garantir que highlights recebam cliques */
+        .pdf-highlight {
+            pointer-events: auto;
+        }
+
         .page-number {
             position: absolute;
             top: 10px;
@@ -69,26 +81,6 @@
             font-weight: bold;
             z-index: 20;
             font-size: 14px;
-        }
-        
-        .highlight-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-        
-        .text-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
         }
     </style>
 </head>
@@ -289,7 +281,7 @@
             const container = document.getElementById('pdfPages');
             container.innerHTML = '';
 
-            console.log('Renderizando', totalPages, 'páginas...');
+            console.log('Renderizando', totalPages, 'páginas com TextLayer...');
 
             for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
                 try {
@@ -301,23 +293,28 @@
                     const pageDiv = document.createElement('div');
                     pageDiv.className = 'pdf-page';
                     pageDiv.id = `page-${pageNum}`;
+                    pageDiv.style.width = `${viewport.width}px`;
+                    pageDiv.style.height = `${viewport.height}px`;
 
                     // Canvas para renderizar o PDF
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
-                    canvas.className = 'w-full';
+                    canvas.className = 'absolute inset-0 z-0'; // Z-index 0
 
-                    // Layer para highlights
+                    // Layer para texto (classe padrão do PDF.js)
+                    const textLayerDiv = document.createElement('div');
+                    textLayerDiv.className = 'textLayer';
+                    textLayerDiv.id = `text-layer-${pageNum}`;
+                    textLayerDiv.style.width = `${viewport.width}px`;
+                    textLayerDiv.style.height = `${viewport.height}px`;
+                    // PDF.js CSS cuida do posicionamento absoluto
+
+                    // Layer para highlights (acima de tudo)
                     const highlightLayer = document.createElement('div');
                     highlightLayer.className = 'highlight-layer';
                     highlightLayer.id = `highlight-layer-${pageNum}`;
-
-                    // Layer para texto (invisível, usado para busca)
-                    const textLayer = document.createElement('div');
-                    textLayer.className = 'text-layer';
-                    textLayer.id = `text-layer-${pageNum}`;
 
                     // Número da página
                     const pageNumber = document.createElement('div');
@@ -325,15 +322,25 @@
                     pageNumber.textContent = `Página ${pageNum} de ${totalPages}`;
 
                     pageDiv.appendChild(canvas);
-                    pageDiv.appendChild(textLayer);
+                    pageDiv.appendChild(textLayerDiv);
                     pageDiv.appendChild(highlightLayer);
                     pageDiv.appendChild(pageNumber);
                     container.appendChild(pageDiv);
 
-                    // Renderizar página
-                    await page.render({
+                    // Renderizar página (canvas)
+                    const renderContext = {
                         canvasContext: context,
                         viewport: viewport
+                    };
+                    await page.render(renderContext).promise;
+
+                    // Renderizar Text Layer
+                    const textContent = await page.getTextContent();
+                    await pdfjsLib.renderTextLayer({
+                        textContentSource: textContent,
+                        container: textLayerDiv,
+                        viewport: viewport,
+                        textDivs: []
                     }).promise;
 
                     console.log(`Página ${pageNum} renderizada`);
@@ -346,12 +353,12 @@
         }
 
         /**
-         * Busca texto no PDF usando PDF.js
+         * Busca texto no PDF usando DOM Range na TextLayer
          */
         async function searchInPDF() {
-            const searchText = document.getElementById('searchInput').value.trim();
+            const rawSearchText = document.getElementById('searchInput').value.trim();
             
-            if (!searchText) {
+            if (!rawSearchText) {
                 alert('Digite um texto para buscar');
                 return;
             }
@@ -361,109 +368,134 @@
                 return;
             }
 
-            console.log('Iniciando busca por:', searchText);
+            console.log('Iniciando busca precisa por:', rawSearchText);
             isSearching = true;
 
             // Limpar busca anterior
             clearHighlights();
             hideSearchResults();
-
-            // Mostrar loading na busca
             showSearchLoading();
 
             try {
                 allHighlights = [];
                 let totalOccurrences = 0;
+                
+                // Função para remover acentos mantendo tamanho 1:1 (para maioria dos latinos)
+                const normalizeChar = (char) => {
+                    return char.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                };
+                
+                // Normalizar texto de busca
+                const normalizedSearchText = normalizeChar(rawSearchText);
 
-                // Buscar em cada página usando PDF.js
+                // Buscar em cada página
                 for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    const page = await pdfDoc.getPage(pageNum);
-                    const textContent = await page.getTextContent();
-                    const viewport = page.getViewport({ scale: 1.5 });
+                    const textLayerDiv = document.getElementById(`text-layer-${pageNum}`);
                     const highlightLayer = document.getElementById(`highlight-layer-${pageNum}`);
+                    const pageDiv = document.getElementById(`page-${pageNum}`);
+                    
+                    if (!textLayerDiv || !highlightLayer) continue;
 
-                    if (!highlightLayer) continue;
+                    // Extrair nós de texto
+                    const walker = document.createTreeWalker(textLayerDiv, NodeFilter.SHOW_TEXT, null, false);
+                    
+                    let fullText = '';
+                    const nodeMap = []; // Índice em fullText -> {node, indexInNode}
 
+                    while(walker.nextNode()) {
+                        const node = walker.currentNode;
+                        const str = node.textContent;
+                        
+                        // Adicionar espaço implícito se necessário
+                        if (fullText.length > 0 && !fullText.endsWith(' ')) {
+                             fullText += ' ';
+                             nodeMap.push(null); // Espaço virtual
+                        }
+
+                        // Mapear caractere por caractere
+                        for(let i=0; i<str.length; i++) {
+                             // Usar versão normalizada para o fullText de busca
+                             fullText += normalizeChar(str[i]);
+                             // Apontar para o índice original no DOM Node
+                             nodeMap.push({node: node, index: i});
+                        }
+                    }
+
+                    let searchIndex = 0;
                     let pageOccurrences = 0;
 
-                    // Buscar texto nos itens da página
-                    textContent.items.forEach((item, itemIndex) => {
-                        const text = item.str;
-                        const searchLower = searchText.toLowerCase();
-                        const textLower = text.toLowerCase();
+                    while (true) {
+                        const foundIndex = fullText.indexOf(normalizedSearchText, searchIndex);
+                        if (foundIndex === -1) break;
                         
-                        // Verificar se o item contém o texto buscado
-                        if (textLower.includes(searchLower)) {
-                            // Encontrar todas as ocorrências dentro deste item
-                            const regex = new RegExp(searchLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                            let match;
+                        const endIndex = foundIndex + normalizedSearchText.length;
+                        
+                        // Criar Ranges para os nós envolvidos
+                        // Pode abranger múltiplos nós de texto
+                        let currentNode = null;
+                        let startOffset = -1;
+                        let occurrenceHighlights = []; // Highlights desta ocorrência específica
+                        
+                        for (let i = foundIndex; i < endIndex; i++) {
+                            const map = nodeMap[i];
+                            if (!map) continue; // Pular espaços virtuais
                             
-                            while ((match = regex.exec(text)) !== null) {
-                                const startIndex = match.index;
-                                const endIndex = startIndex + match[0].length;
+                            if (map.node !== currentNode) {
+                                // Se mudou de nó, finalizar range anterior
+                                if (currentNode) {
+                                    createRangeHighlight(currentNode, startOffset, map.node === currentNode ? map.index : currentNode.textContent.length, pageDiv, highlightLayer, totalOccurrences, occurrenceHighlights);
+                                }
                                 
-                                // Calcular a largura proporcional baseada nos caracteres
-                                const charWidth = item.width / text.length;
-                                const highlightWidth = charWidth * match[0].length;
-                                const highlightLeft = item.transform[4] + (charWidth * startIndex);
-                                
-                                // Calcular posição do highlight
-                                const transform = pdfjsLib.Util.transform(
-                                    viewport.transform,
-                                    [highlightWidth, 0, 0, item.height, highlightLeft, item.transform[5]]
-                                );
-
-                                const highlight = document.createElement('div');
-                                highlight.className = 'pdf-highlight';
-                                highlight.dataset.page = pageNum;
-                                highlight.dataset.occurrence = allHighlights.length;
-                                highlight.title = `Clique para navegar - "${match[0]}"`;
-                                
-                                // Posicionamento preciso
-                                highlight.style.left = `${transform[4]}px`;
-                                highlight.style.top = `${viewport.height - transform[5] - item.height}px`;
-                                highlight.style.width = `${transform[0]}px`;
-                                highlight.style.height = `${item.height}px`;
-
-                                // Event listener para clique
-                                highlight.addEventListener('click', () => {
-                                    setActiveOccurrence(parseInt(highlight.dataset.occurrence));
-                                });
-
-                                // Permitir interação
-                                highlight.style.pointerEvents = 'auto';
-
-                                highlightLayer.appendChild(highlight);
-                                allHighlights.push({
-                                    element: highlight,
-                                    page: pageNum,
-                                    index: allHighlights.length,
-                                    text: match[0]
-                                });
-                                
-                                pageOccurrences++;
-                                totalOccurrences++;
+                                currentNode = map.node;
+                                startOffset = map.index;
                             }
                         }
-                    });
+                        
+                        // Finalizar último nó
+                        if (currentNode) {
+                            // O fim do range deve ser o último índice processado + 1
+                            // Pegar o último mapa válido
+                            let lastMap = null;
+                            for(let j=endIndex-1; j>=foundIndex; j--) {
+                                if (nodeMap[j] && nodeMap[j].node === currentNode) {
+                                    lastMap = nodeMap[j];
+                                    break;
+                                }
+                            }
+                            if (lastMap) {
+                                createRangeHighlight(currentNode, startOffset, lastMap.index + 1, pageDiv, highlightLayer, totalOccurrences, occurrenceHighlights);
+                            }
+                        }
 
-                    if (pageOccurrences > 0) {
-                        console.log(`Página ${pageNum}: ${pageOccurrences} ocorrências encontradas`);
+                        if (occurrenceHighlights.length > 0) {
+                            pageOccurrences++;
+                            totalOccurrences++;
+                            // Marcar início
+                            const startHighlight = allHighlights.find(h => h.element === occurrenceHighlights[0]);
+                            if (startHighlight) {
+                                startHighlight.isOccurrenceStart = true;
+                                startHighlight.text = rawSearchText;
+                            }
+                        }
+                        
+                        searchIndex = foundIndex + 1;
                     }
+                    
+                    if (pageOccurrences > 0) console.log(`Página ${pageNum}: ${pageOccurrences} ocorrências`);
                 }
 
-                console.log(`Busca concluída: ${totalOccurrences} ocorrências em ${allHighlights.length} elementos`);
+                console.log(`Busca concluída: ${totalOccurrences} ocorrências`);
 
-                if (allHighlights.length > 0) {
-                    showSearchResults(totalOccurrences, searchText);
-                    setActiveOccurrence(0); // Ir para primeira ocorrência
+                if (totalOccurrences > 0) {
+                    showSearchResults(totalOccurrences, rawSearchText);
+                    setActiveOccurrence(0);
                 } else {
                     showNoResults();
                 }
 
             } catch (error) {
                 console.error('Erro na busca:', error);
-                alert('Erro ao buscar no PDF: ' + error.message);
+                alert('Erro ao buscar: ' + error.message);
             } finally {
                 hideSearchLoading();
                 isSearching = false;
@@ -471,27 +503,85 @@
         }
 
         /**
+         * Cria highlight usando DOM Range e getClientRects
+         */
+        function createRangeHighlight(node, startOffset, endOffset, pageDiv, container, occurrenceIndex, occurrenceList) {
+            try {
+                const range = document.createRange();
+                range.setStart(node, startOffset);
+                range.setEnd(node, endOffset);
+                
+                const rects = range.getClientRects();
+                const pageRect = pageDiv.getBoundingClientRect();
+                
+                for (const rect of rects) {
+                    if (rect.width === 0 || rect.height === 0) continue;
+                    
+                    const highlight = document.createElement('div');
+                    highlight.className = 'pdf-highlight';
+                    highlight.dataset.occurrenceIndex = occurrenceIndex;
+                    
+                    // Coordenadas relativas à página
+                    const left = rect.left - pageRect.left;
+                    const top = rect.top - pageRect.top;
+                    
+                    highlight.style.left = `${left}px`;
+                    highlight.style.top = `${top}px`;
+                    highlight.style.width = `${rect.width}px`;
+                    highlight.style.height = `${rect.height}px`;
+                    
+                    highlight.addEventListener('click', () => {
+                        const index = allHighlights.findIndex(h => h.occurrenceIndex === occurrenceIndex && h.isOccurrenceStart);
+                        if (index !== -1) setActiveOccurrence(index);
+                    });
+                    
+                    container.appendChild(highlight);
+                    occurrenceList.push(highlight);
+                    
+                    allHighlights.push({
+                        element: highlight,
+                        page: parseInt(pageDiv.id.replace('page-', '')),
+                        occurrenceIndex: occurrenceIndex,
+                        isOccurrenceStart: false
+                    });
+                }
+            } catch (e) {
+                console.warn('Erro ao criar range highlight:', e);
+            }
+        }
+
+        /**
          * Define ocorrência ativa
          */
         function setActiveOccurrence(index) {
-            if (index < 0 || index >= allHighlights.length) return;
+            // index é o índice no array allHighlights (filtrado por start?)
+            // Vamos adaptar: index refere-se à N-ésima ocorrência encontrada (0 a total-1)
+            
+            // Encontrar o highlight inicial desta ocorrência
+            const highlightObj = allHighlights.find(h => h.occurrenceIndex === index && h.isOccurrenceStart);
+            
+            if (!highlightObj) return;
 
-            console.log(`Navegando para ocorrência ${index + 1} de ${allHighlights.length}`);
+            console.log(`Navegando para ocorrência ${index + 1}`);
 
             // Remover classe active de todos
             allHighlights.forEach(h => h.element.classList.remove('active'));
 
-            // Adicionar classe active ao atual
-            const current = allHighlights[index];
-            current.element.classList.add('active');
+            // Adicionar classe active a TODOS os highlights desta ocorrência (pode ser multi-item)
+            allHighlights.filter(h => h.occurrenceIndex === index).forEach(h => {
+                h.element.classList.add('active');
+            });
+            
             currentOccurrence = index;
 
             // Scroll para a ocorrência
-            const pageElement = document.getElementById(`page-${current.page}`);
+            const pageElement = document.getElementById(`page-${highlightObj.page}`);
             if (pageElement) {
-                pageElement.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
+                // Tentar scrollar para o elemento específico se possível
+                // Mas scroll para página é mais seguro
+                highlightObj.element.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
                 });
 
                 // Destacar página temporariamente
@@ -504,13 +594,36 @@
             // Atualizar contador
             updateOccurrenceCounter();
         }
+        
+        /**
+         * Atualiza contador de ocorrências
+         */
+        function updateOccurrenceCounter() {
+            const counter = document.getElementById('occurrenceCounter');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            // Contar quantas ocorrências únicas existem (baseado em occurrenceIndex)
+            const totalUnique = new Set(allHighlights.map(h => h.occurrenceIndex)).size;
+            
+            if (totalUnique > 0) {
+                counter.textContent = `${currentOccurrence + 1} de ${totalUnique}`;
+                prevBtn.disabled = false;
+                nextBtn.disabled = false;
+            } else {
+                counter.textContent = '-';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+            }
+        }
 
         /**
          * Próxima ocorrência
          */
         function nextOccurrence() {
-            if (allHighlights.length === 0) return;
-            const next = (currentOccurrence + 1) % allHighlights.length;
+            const totalUnique = new Set(allHighlights.map(h => h.occurrenceIndex)).size;
+            if (totalUnique === 0) return;
+            const next = (currentOccurrence + 1) % totalUnique;
             setActiveOccurrence(next);
         }
 
@@ -518,8 +631,9 @@
          * Ocorrência anterior
          */
         function previousOccurrence() {
-            if (allHighlights.length === 0) return;
-            const prev = currentOccurrence === 0 ? allHighlights.length - 1 : currentOccurrence - 1;
+            const totalUnique = new Set(allHighlights.map(h => h.occurrenceIndex)).size;
+            if (totalUnique === 0) return;
+            const prev = currentOccurrence === 0 ? totalUnique - 1 : currentOccurrence - 1;
             setActiveOccurrence(prev);
         }
 

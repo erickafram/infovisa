@@ -78,6 +78,7 @@ class DiarioOficialController extends Controller
                         'texto' => $busca->texto,
                         'data_inicial' => $busca->data_inicial->format('Y-m-d'),
                         'data_final' => $busca->data_final->format('Y-m-d'),
+                        'executar_diariamente' => (bool)$busca->executar_diariamente,
                         'created_at' => $busca->created_at->format('d/m/Y H:i')
                     ];
                 });
@@ -113,7 +114,8 @@ class DiarioOficialController extends Controller
                 'nome' => 'required|string|max:255',
                 'texto' => 'required|string',
                 'data_inicial' => 'required|date',
-                'data_final' => 'required|date|after_or_equal:data_inicial'
+                'data_final' => 'required|date|after_or_equal:data_inicial',
+                'executar_diariamente' => 'boolean'
             ]);
             
             $busca = DiarioBuscaSalva::create([
@@ -121,7 +123,8 @@ class DiarioOficialController extends Controller
                 'nome' => $request->nome,
                 'texto' => $request->texto,
                 'data_inicial' => $request->data_inicial,
-                'data_final' => $request->data_final
+                'data_final' => $request->data_final,
+                'executar_diariamente' => $request->boolean('executar_diariamente', false)
             ]);
             
             return response()->json([
@@ -132,7 +135,8 @@ class DiarioOficialController extends Controller
                     'nome' => $busca->nome,
                     'texto' => $busca->texto,
                     'data_inicial' => $busca->data_inicial->format('Y-m-d'),
-                    'data_final' => $busca->data_final->format('Y-m-d')
+                    'data_final' => $busca->data_final->format('Y-m-d'),
+                    'executar_diariamente' => $busca->executar_diariamente
                 ]
             ]);
         } catch (Exception $e) {

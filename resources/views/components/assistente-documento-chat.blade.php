@@ -97,7 +97,7 @@
 
 <div x-data="assistenteDocumento()" x-init="init()" class="fixed bottom-6 right-6" style="z-index: 10000; width: 380px;" x-cloak>
     {{-- Botão Flutuante (quando minimizado) --}}
-    <button x-show="!chatAberto && documentoCarregado"
+    <button x-show="!chatAberto && documentosCarregados.length > 0"
             @click="chatAberto = true"
             x-transition.duration.300ms
             class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 p-3 flex items-center gap-2">
@@ -121,8 +121,8 @@
                 </svg>
                 <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-base">Assistente de Documento</h3>
-                    <p class="text-[10px] text-white/80" x-show="documentoCarregado" x-text="documentoCarregado ? `📄 ${documentoCarregado.nome_documento}` : ''"></p>
-                    <div class="flex items-center mt-1" x-show="documentoCarregado">
+                    <p class="text-[10px] text-white/80" x-show="documentosCarregados.length > 0" x-text="documentosCarregados.length === 1 ? `📄 ${documentosCarregados[0].nome_documento}` : `📄 ${documentosCarregados.length} documentos carregados`"></p>
+                    <div class="flex items-center mt-1" x-show="documentosCarregados.length > 0">
                         <label class="relative inline-flex items-center cursor-pointer" title="Ativa conhecimento geral da IA (pode estar desatualizado)">
                             <input type="checkbox" x-model="buscarInternet" @change="mostrarAvisoBuscaInternet()" class="sr-only peer">
                             <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
@@ -132,6 +132,16 @@
                 </div>
             </div>
             <div class="flex items-center gap-1">
+                {{-- Botão Adicionar Documentos --}}
+                <button @click="mostrarSeletorDocumentos = !mostrarSeletorDocumentos" 
+                        x-show="documentosCarregados.length > 0"
+                        title="Adicionar mais documentos"
+                        class="hover:bg-white/20 rounded-full p-1.5 transition-colors">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+                
                 {{-- Botão Limpar Conversa --}}
                 <button @click="limparConversa()" 
                         title="Limpar conversa"
@@ -161,6 +171,42 @@
             </div>
         </div>
 
+        {{-- Seletor de Documentos --}}
+        <div x-show="mostrarSeletorDocumentos" 
+             x-transition
+             class="border-b border-gray-200 bg-white p-3 max-h-48 overflow-y-auto">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold text-gray-700">Selecionar Documentos do Processo</h4>
+                <button @click="mostrarSeletorDocumentos = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-1">
+                <template x-for="doc in documentosDisponiveis" :key="doc.id">
+                    <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <input type="checkbox" 
+                               :value="doc.id"
+                               :checked="documentosSelecionados.includes(doc.id)"
+                               @change="toggleDocumento(doc.id)"
+                               class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                        <span class="text-xs text-gray-700 flex-1" x-text="doc.nome"></span>
+                        <span class="text-[10px] text-gray-500" x-text="doc.tamanho"></span>
+                    </label>
+                </template>
+            </div>
+            <button @click="carregarDocumentosSelecionados()" 
+                    :disabled="documentosSelecionados.length === 0 || carregandoMultiplos"
+                    class="mt-3 w-full px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <svg x-show="!carregandoMultiplos" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <div x-show="carregandoMultiplos" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span x-text="carregandoMultiplos ? 'Carregando...' : `Carregar ${documentosSelecionados.length} documento(s)`"></span>
+            </button>
+        </div>
+        
         {{-- Área de Mensagens --}}
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" x-ref="mensagensContainer">
             <template x-for="(mensagem, index) in mensagens" :key="index">
@@ -214,20 +260,31 @@ function assistenteDocumento() {
         mensagemAtual: '',
         carregando: false,
         buscarInternet: false,
-        documentoCarregado: null,
-        nomeDocumento: '',
+        documentosCarregados: [],
+        documentosDisponiveis: [],
+        documentosSelecionados: [],
+        mostrarSeletorDocumentos: false,
+        carregandoMultiplos: false,
+        processoId: null,
+        estabelecimentoId: null,
         
         init() {
             // Escuta evento de documento carregado
             window.addEventListener('documento-carregado', (event) => {
-                this.documentoCarregado = {
+                // Adiciona documento aos carregados
+                this.documentosCarregados = [{
                     documento_id: event.detail.documento_id,
                     nome_documento: event.detail.nome_documento,
                     conteudo: event.detail.conteudo,
                     total_caracteres: event.detail.total_caracteres
-                };
+                }];
                 
-                this.nomeDocumento = event.detail.nome_documento;
+                // Salva IDs do processo
+                this.processoId = event.detail.processo_id;
+                this.estabelecimentoId = event.detail.estabelecimento_id;
+                
+                // Busca documentos disponíveis do processo
+                this.buscarDocumentosDisponiveis();
                 
                 // Abre o chat automaticamente
                 this.chatAberto = true;
@@ -242,6 +299,7 @@ function assistenteDocumento() {
                              `**${event.detail.nome_documento}**\n` +
                              `${event.detail.total_caracteres.toLocaleString('pt-BR')} caracteres extraídos\n\n` +
                              `✅ **Pronto para responder suas perguntas!**\n\n` +
+                             `💡 **Dica:** Clique no botão **+** no cabeçalho para adicionar mais documentos à análise.\n\n` +
                              `**Sugestões:**\n` +
                              `- O que esse documento fala?\n` +
                              `- Qual o resumo?\n` +
@@ -262,7 +320,7 @@ function assistenteDocumento() {
         async enviarMensagem() {
             if (!this.mensagemAtual.trim() || this.carregando) return;
             
-            if (!this.documentoCarregado) {
+            if (this.documentosCarregados.length === 0) {
                 alert('Nenhum documento carregado!');
                 return;
             }
@@ -304,11 +362,18 @@ function assistenteDocumento() {
                     body: JSON.stringify({
                         message: mensagem,
                         history: history.slice(0, -1),
-                        documento_contexto: {
-                            nome: this.documentoCarregado.nome_documento, // Nome do documento
-                            conteudo: this.documentoCarregado.conteudo,   // Conteúdo extraído
-                            buscar_internet: this.buscarInternet          // Se deve buscar na internet
-                        }
+                        documentos_contexto: this.documentosCarregados.map(doc => ({
+                            nome: doc.nome_documento,
+                            conteudo: doc.conteudo,
+                            buscar_internet: this.buscarInternet
+                        })),
+                        // Fallback para compatibilidade
+                        documento_contexto: this.documentosCarregados.length === 1 ? {
+                            nome: this.documentosCarregados[0].nome_documento,
+                            conteudo: this.documentosCarregados[0].conteudo,
+                            buscar_internet: this.buscarInternet
+                        } : null,
+                        buscar_internet: this.buscarInternet
                     })
                 });
                 
@@ -394,12 +459,13 @@ function assistenteDocumento() {
         },
         
         limparConversa() {
-            if (confirm('Deseja limpar toda a conversa sobre este documento?')) {
+            if (confirm('Deseja limpar toda a conversa sobre este(s) documento(s)?')) {
                 this.mensagens = [];
-                if (this.documentoCarregado) {
+                if (this.documentosCarregados.length > 0) {
+                    const nomes = this.documentosCarregados.map(d => d.nome_documento).join(', ');
                     this.mensagens.push({
                         role: 'assistant',
-                        content: `📄 **${this.nomeDocumento}**\n\nConversa limpa! Pode fazer novas perguntas sobre o documento.`,
+                        content: `📄 **${this.documentosCarregados.length} documento(s) carregado(s)**\n\nConversa limpa! Pode fazer novas perguntas sobre os documentos.`,
                         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     });
                 }
@@ -410,34 +476,124 @@ function assistenteDocumento() {
             this.chatAberto = false;
             // Dispara evento para notificar que o chat de documento fechou
             window.dispatchEvent(new CustomEvent('documento-chat-fechado'));
-            // Limpa documento após 1 segundo (permite reabrir rapidamente)
+            // Limpa documentos após 1 segundo (permite reabrir rapidamente)
             setTimeout(() => {
                 if (!this.chatAberto) {
-                    this.documentoCarregado = null;
-                    this.nomeDocumento = '';
+                    this.documentosCarregados = [];
+                    this.documentosDisponiveis = [];
+                    this.documentosSelecionados = [];
                     this.mensagens = [];
+                    this.mostrarSeletorDocumentos = false;
                 }
             }, 1000);
         },
         
-        mostrarAvisoBuscaInternet() {
-            if (this.buscarInternet) {
-                this.mensagens.push({
-                    role: 'assistant',
-                    content: `🌐 **Modo de Busca Avançada**\n\n` +
-         `Agora você está usando recursos avançados de IA com acesso à internet.\n\n` +
-         `**Recursos disponíveis:**\n` +
-         `- Busca em tempo real na web\n` +
-         `- Análise de documentos com IA\n` +
-         `- Respostas baseadas em conhecimento atualizado\n\n` +
-         `**Recomendações:**\n` +
-         `- Informações críticas sempre devem ser validadas\n` +
-         `- Consulte fontes oficiais quando necessário\n` +
-         `- Para RDCs, portarias e leis atualizadas: www.gov.br/anvisa ou www.in.gov.br`,
-time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        async buscarDocumentosDisponiveis() {
+            if (!this.processoId || !this.estabelecimentoId) return;
+            
+            try {
+                const response = await fetch(`/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
                 });
-                this.scrollToBottom();
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Documentos retornados:', data.documentos);
+                    console.log('Documentos carregados:', this.documentosCarregados);
+                    
+                    // Remove documentos já carregados da lista
+                    const idsCarregados = this.documentosCarregados.map(d => d.documento_id);
+                    console.log('IDs carregados:', idsCarregados);
+                    
+                    this.documentosDisponiveis = data.documentos.filter(doc => !idsCarregados.includes(doc.id));
+                    console.log('Documentos disponíveis após filtro:', this.documentosDisponiveis);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar documentos:', error);
             }
+        },
+        
+        toggleDocumento(docId) {
+            const index = this.documentosSelecionados.indexOf(docId);
+            if (index > -1) {
+                this.documentosSelecionados.splice(index, 1);
+            } else {
+                this.documentosSelecionados.push(docId);
+            }
+        },
+        
+        async carregarDocumentosSelecionados() {
+            if (this.documentosSelecionados.length === 0) return;
+            
+            // Limita a 3 documentos no total para evitar exceder limite de tokens
+            const totalAposCarregar = this.documentosCarregados.length + this.documentosSelecionados.length;
+            if (totalAposCarregar > 3) {
+                alert('⚠️ Limite atingido!\n\nVocê pode carregar no máximo 3 documentos por vez para evitar exceder o limite de processamento da IA.\n\nAtualmente você tem ' + this.documentosCarregados.length + ' documento(s) carregado(s).');
+                return;
+            }
+            
+            this.carregandoMultiplos = true;
+            
+            try {
+                const response = await fetch('/admin/ia/extrair-multiplos-pdfs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        documento_ids: this.documentosSelecionados,
+                        processo_id: this.processoId,
+                        estabelecimento_id: this.estabelecimentoId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Adiciona novos documentos aos já carregados
+                    data.documentos.forEach(doc => {
+                        this.documentosCarregados.push({
+                            documento_id: doc.documento_id,
+                            nome_documento: doc.nome_documento,
+                            conteudo: doc.conteudo,
+                            total_caracteres: doc.total_caracteres
+                        });
+                    });
+                    
+                    // Atualiza lista de disponíveis
+                    await this.buscarDocumentosDisponiveis();
+                    
+                    // Limpa seleção
+                    this.documentosSelecionados = [];
+                    this.mostrarSeletorDocumentos = false;
+                    
+                    // Adiciona mensagem informativa
+                    this.mensagens.push({
+                        role: 'assistant',
+                        content: `✅ **${data.documentos.length} documento(s) adicionado(s) à análise!**\n\n` +
+                                 `Total de documentos carregados: ${this.documentosCarregados.length}\n\n` +
+                                 `Agora posso responder perguntas considerando todos os documentos carregados.`,
+                        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    });
+                    
+                    this.scrollToBottom();
+                } else {
+                    alert(data.message || 'Erro ao carregar documentos');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar documentos:', error);
+                alert('Erro ao carregar documentos. Tente novamente.');
+            } finally {
+                this.carregandoMultiplos = false;
+            }
+        },
+        
+        mostrarAvisoBuscaInternet() {
+            // Removido aviso de texto conforme solicitado
+            // O toggle visual já é suficiente
         }
     }
 }

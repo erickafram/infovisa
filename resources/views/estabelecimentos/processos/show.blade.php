@@ -2127,7 +2127,9 @@
                                     documento_id: this.documentoIdAnotacoes,
                                     nome_documento: data.nome_documento,
                                     conteudo: data.conteudo,
-                                    total_caracteres: data.total_caracteres
+                                    total_caracteres: data.total_caracteres,
+                                    processo_id: {{ $processo->id }},
+                                    estabelecimento_id: {{ $estabelecimento->id }}
                                 }
                             }));
 

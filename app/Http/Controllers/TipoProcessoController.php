@@ -43,6 +43,8 @@ class TipoProcessoController extends Controller
         $validated['anual'] = $request->has('anual');
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
         $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
+        $validated['exibir_fila_publica'] = $request->has('exibir_fila_publica');
+        $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         
@@ -98,6 +100,8 @@ class TipoProcessoController extends Controller
         $validated['anual'] = $request->has('anual');
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
         $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
+        $validated['exibir_fila_publica'] = $request->has('exibir_fila_publica');
+        $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         

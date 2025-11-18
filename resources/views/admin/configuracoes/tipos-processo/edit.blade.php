@@ -211,77 +211,119 @@
         </div>
 
         {{-- Card Configurações --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+             x-data="{ 
+                 anual: {{ old('anual', $tipoProcesso->anual) ? 'true' : 'false' }}, 
+                 unico: {{ old('unico_por_estabelecimento', $tipoProcesso->unico_por_estabelecimento) ? 'true' : 'false' }},
+                 toggleAnual() {
+                     this.anual = !this.anual;
+                     if(this.anual) this.unico = false;
+                 },
+                 toggleUnico() {
+                     this.unico = !this.unico;
+                     if(this.unico) this.anual = false;
+                 }
+             }">
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                     <h3 class="text-base font-semibold text-gray-900">Configurações</h3>
                 </div>
             </div>
             <div class="p-6">
 
-            <div class="space-y-4">
+            <div class="space-y-3">
                 {{-- Processo Anual --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="anual" 
-                               id="anual"
-                               {{ old('anual', $tipoProcesso->anual) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                       :class="anual ? 'bg-blue-50 border border-blue-200' : ''">
+                    <input type="checkbox" 
+                           name="anual" 
+                           id="anual"
+                           x-model="anual"
+                           @click="toggleAnual()"
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Processo Anual</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Apenas um processo por estabelecimento por ano</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="anual" class="font-medium text-gray-700">Processo Anual</label>
-                        <p class="text-sm text-gray-500">Apenas um processo deste tipo pode ser aberto por estabelecimento por ano</p>
+                </label>
+
+                {{-- Processo Único --}}
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                       :class="unico ? 'bg-blue-50 border border-blue-200' : ''">
+                    <input type="checkbox" 
+                           name="unico_por_estabelecimento" 
+                           id="unico_por_estabelecimento"
+                           x-model="unico"
+                           @click="toggleUnico()"
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Processo Único por Estabelecimento</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Estabelecimento poderá abrir este processo apenas UMA VEZ (não renovável)</p>
                     </div>
-                </div>
+                </label>
 
                 {{-- Usuário Externo Pode Abrir --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="usuario_externo_pode_abrir" 
-                               id="usuario_externo_pode_abrir"
-                               {{ old('usuario_externo_pode_abrir', $tipoProcesso->usuario_externo_pode_abrir) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="usuario_externo_pode_abrir" 
+                           id="usuario_externo_pode_abrir"
+                           {{ old('usuario_externo_pode_abrir', $tipoProcesso->usuario_externo_pode_abrir) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Usuário Externo Pode Abrir</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Empresas podem abrir este tipo de processo</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="usuario_externo_pode_abrir" class="font-medium text-gray-700">Usuário Externo Pode Abrir</label>
-                        <p class="text-sm text-gray-500">Permite que usuários externos (empresas) possam abrir este tipo de processo</p>
-                    </div>
-                </div>
+                </label>
 
                 {{-- Usuário Externo Pode Visualizar --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="usuario_externo_pode_visualizar" 
-                               id="usuario_externo_pode_visualizar"
-                               {{ old('usuario_externo_pode_visualizar', $tipoProcesso->usuario_externo_pode_visualizar ?? true) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="usuario_externo_pode_visualizar" 
+                           id="usuario_externo_pode_visualizar"
+                           {{ old('usuario_externo_pode_visualizar', $tipoProcesso->usuario_externo_pode_visualizar ?? true) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Usuário Externo Pode Visualizar</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Empresas podem visualizar este processo quando aberto por usuário interno. Desmarque para processos internos como Descentralização, Denúncia, etc.</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="usuario_externo_pode_visualizar" class="font-medium text-gray-700">Usuário Externo Pode Visualizar</label>
-                        <p class="text-sm text-gray-500">Permite que usuários externos (empresas) possam visualizar este processo quando aberto por usuário interno. Desmarque para processos internos como Descentralização, Denúncia, etc.</p>
+                </label>
+
+                {{-- Exibir Fila Pública --}}
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border-2 border-purple-200 bg-purple-50">
+                    <input type="checkbox" 
+                           name="exibir_fila_publica" 
+                           id="exibir_fila_publica"
+                           {{ old('exibir_fila_publica', $tipoProcesso->exibir_fila_publica) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Exibir Fila Pública
+                        </span>
+                        <p class="text-xs text-gray-600 mt-0.5">
+                            <strong>Processos deste tipo serão exibidos na página inicial pública</strong> para consulta sem login. 
+                            Ideal para processos arquitetônicos onde é necessário mostrar a ordem de chegada e status atual.
+                        </p>
                     </div>
-                </div>
+                </label>
 
                 {{-- Ativo --}}
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" 
-                               name="ativo" 
-                               id="ativo"
-                               {{ old('ativo', $tipoProcesso->ativo) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           name="ativo" 
+                           id="ativo"
+                           {{ old('ativo', $tipoProcesso->ativo) ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Ativo</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Tipo de processo disponível para uso no sistema</p>
                     </div>
-                    <div class="ml-3">
-                        <label for="ativo" class="font-medium text-gray-700">Ativo</label>
-                        <p class="text-sm text-gray-500">Tipo de processo disponível para uso no sistema</p>
-                    </div>
-                </div>
+                </label>
             </div>
         </div>
 

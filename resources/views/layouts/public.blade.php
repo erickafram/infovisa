@@ -15,63 +15,41 @@
 </head>
 <body class="bg-gray-50 font-sans antialiased">
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between w-full">
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16">
+            <div class="flex items-center justify-between h-full">
                 <!-- Logo -->
-                <a href="{{ route('home') }}" class="flex items-center space-x-2 flex-shrink-0">
-                    <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </div>
-                    <span class="text-xl font-bold text-gray-900">InfoVISA</span>
+                <a href="{{ route('home') }}" class="flex items-center flex-shrink-0 transition-opacity hover:opacity-80">
+                    <img src="{{ asset('img/logo.png') }}" alt="InfoVISA" class="h-9 w-auto" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTkgMTJsMiAyIDQtNG01LjYxOC00LjAxNkExMS45NTUgMTEuOTU1IDAgMDExMiAyLjk0NGExMS45NTUgMTEuOTU1IDAgMDEtOC42MTggMy4wNEExMi4wMiAxMi4wMiAwIDAwMyA5YzAgNS41OTEgMy44MjQgMTAuMjkgOSAxMS42MjIgNS4xNzYtMS4zMzIgOS02LjAzIDktMTEuNjIyIDAtMS4wNDItLjEzMy0yLjA1Mi0uMzgyLTMuMDE2eiIvPjwvc3ZnPg=='">
                 </a>
 
-                <!-- Desktop Menu Centralizado -->
-                <div class="hidden md:flex items-center space-x-6 flex-1 justify-center">
-                    <a href="#servicos" class="text-gray-700 hover:text-blue-600 transition font-medium">Serviços</a>
-                    <a href="#consultar" class="text-gray-700 hover:text-blue-600 transition font-medium">Consultar</a>
-                    <a href="#verificar" class="text-gray-700 hover:text-blue-600 transition font-medium">Verificar</a>
-                </div>
-
-                <!-- Botão Área Restrita e Mobile Menu -->
-                <div class="flex items-center space-x-4 flex-shrink-0">
-                    <!-- Botão Área Restrita -->
+                <!-- Botões de Ação -->
+                <div class="flex items-center gap-3">
                     @auth('interno')
-                        <a href="{{ route('admin.dashboard') }}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
-                            Dashboard
+                        <span class="hidden md:block text-sm text-gray-600 mr-2">Olá, {{ auth('interno')->user()->nome }}</span>
+                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                            Painel Administrativo
                         </a>
                     @elseauth('externo')
-                        <a href="{{ route('empresa.dashboard') }}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
-                            Dashboard
+                        <span class="hidden md:block text-sm text-gray-600 mr-2">Olá, {{ auth('externo')->user()->name ?? 'Usuário' }}</span>
+                        <a href="{{ route('company.dashboard') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Painel da Empresa
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
-                            Área Restrita
+                        <a href="{{ route('login') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600 px-3 py-2 transition-colors">
+                            Entrar
+                        </a>
+                        <a href="{{ route('registro') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md">
+                            Cadastre-se
                         </a>
                     @endauth
-
-                    <!-- Mobile Menu Button -->
-                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden p-2 text-gray-600 hover:text-gray-900">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
                 </div>
-            </div>
-
-            <!-- Mobile Menu -->
-            <div x-show="mobileMenuOpen" 
-                 x-cloak
-                 @click.away="mobileMenuOpen = false"
-                 class="md:hidden mt-4 pb-4 space-y-2">
-                <a href="#servicos" class="block text-gray-700 hover:text-blue-600 transition font-medium py-2">Serviços</a>
-                <a href="#consultar" class="block text-gray-700 hover:text-blue-600 transition font-medium py-2">Consultar</a>
-                <a href="#verificar" class="block text-gray-700 hover:text-blue-600 transition font-medium py-2">Verificar</a>
-                <a href="{{ route('login') }}" class="block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-center">
-                    Área Restrita
-                </a>
             </div>
         </nav>
     </header>
@@ -88,26 +66,19 @@
                 <!-- Logo e Descrição -->
                 <div class="col-span-1 md:col-span-2">
                     <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                        </div>
-                        <span class="text-xl font-bold text-white">InfoVISA</span>
+                        <img src="{{ asset('img/logo.png') }}" alt="InfoVISA" class="h-10 w-auto bg-white rounded p-1" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTkgMTJsMiAyIDQtNG01LjYxOC00LjAxNkExMS45NTUgMTEuOTU1IDAgMDExMiAyLjk0NGExMS45NTUgMTEuOTU1IDAgMDEtOC42MTggMy4wNEExMi4wMiAxMi4wMiAwIDAwMyA5YzAgNS41OTEgMy44MjQgMTAuMjkgOSAxMS42MjIgNS4xNzYtMS4zMzIgOS02LjAzIDktMTEuNjIyIDAtMS4wNDItLjEzMy0yLjA1Mi0uMzgyLTMuMDE2eiIvPjwvc3ZnPg=='">
                     </div>
                     <p class="text-gray-400 max-w-md">
                         Sistema de Vigilância Sanitária Municipal
                     </p>
                 </div>
 
-                <!-- Links Rápidos -->
+                <!-- Acesso -->
                 <div>
-                    <h3 class="text-white font-semibold mb-4">Links Rápidos</h3>
+                    <h3 class="text-white font-semibold mb-4">Acesso</h3>
                     <ul class="space-y-2">
-                        <li><a href="#servicos" class="hover:text-white transition">Serviços</a></li>
-                        <li><a href="#consultar" class="hover:text-white transition">Consulta</a></li>
-                        <li><a href="#verificar" class="hover:text-white transition">Verificação</a></li>
                         <li><a href="{{ route('login') }}" class="hover:text-white transition">Área Restrita</a></li>
+                        <li><a href="{{ route('home') }}" class="hover:text-white transition">Página Inicial</a></li>
                     </ul>
                 </div>
 

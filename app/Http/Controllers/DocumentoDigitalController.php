@@ -452,15 +452,52 @@ class DocumentoDigitalController extends Controller
     }
 
     /**
-     * Gera PDF do documento
+     * Gera PDF do documento para download
      */
     public function gerarPdf($id)
     {
         $documento = DocumentoDigital::findOrFail($id);
 
-        $pdf = Pdf::loadHTML($documento->conteudo);
+        // Se já tem arquivo salvo, baixa ele
+        if ($documento->arquivo_pdf && \Storage::disk('public')->exists($documento->arquivo_pdf)) {
+            return \Storage::disk('public')->download($documento->arquivo_pdf, $documento->numero_documento . '.pdf');
+        }
+
+        // Senão gera do HTML
+        $pdf = Pdf::loadHTML($documento->conteudo)
+            ->setPaper('a4')
+            ->setOption('margin-top', 20)
+            ->setOption('margin-bottom', 20)
+            ->setOption('margin-left', 20)
+            ->setOption('margin-right', 20);
         
         return $pdf->download($documento->numero_documento . '.pdf');
+    }
+
+    /**
+     * Gera PDF do documento para visualização (stream)
+     */
+    public function visualizarPdf($id)
+    {
+        $documento = DocumentoDigital::findOrFail($id);
+
+        // Se já tem arquivo salvo, exibe ele
+        if ($documento->arquivo_pdf && \Storage::disk('public')->exists($documento->arquivo_pdf)) {
+            return response()->file(\Storage::disk('public')->path($documento->arquivo_pdf), [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $documento->numero_documento . '.pdf"'
+            ]);
+        }
+
+        // Senão gera do HTML
+        $pdf = Pdf::loadHTML($documento->conteudo)
+            ->setPaper('a4')
+            ->setOption('margin-top', 20)
+            ->setOption('margin-bottom', 20)
+            ->setOption('margin-left', 20)
+            ->setOption('margin-right', 20);
+        
+        return $pdf->stream($documento->numero_documento . '.pdf');
     }
 
     /**

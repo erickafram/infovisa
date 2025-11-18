@@ -19,165 +19,90 @@
 }">
 
     <!-- Hero Section -->
-    <section class="bg-gray-50 py-16 md:py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section class="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 md:py-28 overflow-hidden">
+        <!-- Decorative Elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full opacity-20 blur-3xl"></div>
+            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-100 rounded-full opacity-20 blur-3xl"></div>
+        </div>
+        
+        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Sistema de Vigilância Sanitária
+                </div>
+                
                 <!-- Title -->
-                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                    INFO<span class="text-blue-600">VISA</span>
+                <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">
+                    INFO<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">VISA</span>
                 </h1>
                 
-                <!-- Subtitle -->
-                <p class="text-base text-gray-600 mb-8 max-w-2xl mx-auto">
-                    Sistema de Vigilância Sanitária Municipal - Consulte processos e verifique documentos
+                <!-- Description -->
+                <p class="text-lg md:text-xl text-gray-600 mb-4 max-w-3xl mx-auto leading-relaxed">
+                    Plataforma digital que <strong class="text-gray-900">moderniza e simplifica</strong> a gestão sanitária municipal e estadual
+                </p>
+                
+                <p class="text-base text-gray-500 mb-10 max-w-2xl mx-auto">
+                    Acompanhe processos em tempo real, consulte documentos oficiais e verifique autenticidade de alvarás e licenças — tudo de forma transparente e acessível
                 </p>
                 
                 <!-- CTA Buttons -->
-                <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a href="#consultar" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="{{ route('fila.processos') }}" class="group inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                        <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                         </svg>
-                        Consultar Processo
+                        Consultar Processos
                     </a>
-                    <a href="#verificar" class="inline-flex items-center justify-center px-6 py-3 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="#verificar" class="group inline-flex items-center justify-center px-6 py-3 bg-white text-gray-700 text-sm font-semibold rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5 mr-2 text-blue-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Verificar Documento
                     </a>
-                    <a href="{{ route('verificar.autenticidade.form') }}" class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                        Verificar Autenticidade
-                    </a>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Serviços Section -->
-    <section id="servicos" class="py-16 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Section Header -->
-            <div class="text-center mb-12">
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Nossos Serviços</h2>
-                <p class="text-sm text-gray-600">
-                    Soluções digitais para simplificar os processos de vigilância sanitária
-                </p>
-            </div>
-
-            <!-- Services Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Card 1: Processos -->
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
+                
+                <!-- Stats -->
+                <div class="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">100%</div>
+                        <div class="text-sm text-gray-600">Digital</div>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Processos Simplificados</h3>
-                    <p class="text-sm text-gray-600">
-                        Abertura e acompanhamento de processos sanitários de forma digital e transparente.
-                    </p>
-                </div>
-
-                <!-- Card 2: Consulta -->
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                    <div class="text-center border-x border-gray-200">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">24/7</div>
+                        <div class="text-sm text-gray-600">Disponível</div>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Consulta Rápida</h3>
-                    <p class="text-sm text-gray-600">
-                        Verifique o andamento do seu processo ou alvará sanitário em tempo real.
-                    </p>
-                </div>
-
-                <!-- Card 3: Documentos -->
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mb-4">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">0</div>
+                        <div class="text-sm text-gray-600">Burocracia</div>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Documentos Autênticos</h3>
-                    <p class="text-sm text-gray-600">
-                        Verifique a autenticidade dos documentos usando o código verificador único.
-                    </p>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Consultar Processo Section -->
-    <section id="consultar" class="py-16 bg-gray-50">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-                <!-- Header -->
-                <div class="mb-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2 flex items-center">
-                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Consultar Andamento do Processo
-                    </h2>
-                </div>
-
-                <!-- Form -->
-                <form action="{{ route('consultar.processo') }}" method="POST" class="space-y-4">
-                    @csrf
-                    <div>
-                        <label for="cnpj" class="block text-sm font-medium text-gray-700 mb-2">
-                            CNPJ da Empresa
-                        </label>
-                        <input 
-                            type="text" 
-                            id="cnpj"
-                            name="cnpj"
-                            x-model="cnpj"
-                            @input="formatCnpj()"
-                            placeholder="00.000.000/0000-00"
-                            maxlength="18"
-                            required
-                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                        <p class="mt-1.5 text-xs text-gray-500">Formato: 00.000.000/0000-00</p>
-                    </div>
-
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Consultar Processo
-                    </button>
-                </form>
             </div>
         </div>
     </section>
 
     <!-- Verificar Documento Section -->
     <section id="verificar" class="py-16 bg-white">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-                <!-- Header -->
-                <div class="mb-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2 flex items-center">
-                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        Verificar Autenticidade de Documento
-                    </h2>
-                    <p class="text-sm text-gray-600">Digite o código verificador presente no documento para confirmar sua autenticidade.</p>
+        <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-4 shadow-lg">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
                 </div>
-
-                <!-- Form -->
-                <form action="{{ route('verificar.documento') }}" method="POST" class="space-y-4">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Verificar Documento</h2>
+                <p class="text-sm text-gray-600">Confirme a autenticidade de alvarás e licenças</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+                <form action="{{ route('verificar.documento') }}" method="POST" class="space-y-5">
                     @csrf
                     <div>
-                        <label for="codigo_verificador" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="codigo_verificador" class="block text-sm font-semibold text-gray-900 mb-2">
                             Código Verificador
                         </label>
                         <input 
@@ -185,30 +110,25 @@
                             id="codigo_verificador"
                             name="codigo_verificador"
                             x-model="codigoVerificador"
-                            placeholder="Digite o código presente no documento"
+                            placeholder="Ex: ABC123XYZ"
                             required
-                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                            class="w-full px-4 py-3 text-base font-mono border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase transition-all"
                         >
-                        <p class="mt-1.5 text-xs text-gray-500">O código verificador está impresso no documento, geralmente no rodapé.</p>
-                    </div>
-
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Verificar Autenticidade
-                    </button>
-                </form>
-
-                <!-- Info Box -->
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-1">Como funciona a verificação?</h3>
-                        <p class="text-xs text-gray-600">
-                            Todos os documentos emitidos pela Vigilância Sanitária possuem um código único de verificação que garante sua autenticidade.
+                        <p class="mt-2 text-xs text-gray-600 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Código impresso no rodapé do documento
                         </p>
                     </div>
-                </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 px-4 rounded-xl text-base font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Verificar Agora
+                    </button>
+                </form>
             </div>
         </div>
     </section>

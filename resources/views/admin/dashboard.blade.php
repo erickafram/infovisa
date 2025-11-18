@@ -187,7 +187,96 @@
             </div>
         </div>
 
-        {{-- CARD 3: Assinaturas Pendentes --}}
+        {{-- CARD 3: Prazos a Vencer --}}
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
+            {{-- Header --}}
+            <div class="bg-gradient-to-br from-red-50 to-rose-50 px-5 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-white/80 rounded-lg">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-800">Prazos a Vencer</h3>
+                        <p class="text-xs text-gray-600">{{ $stats['documentos_vencendo'] ?? 0 }} documentos</p>
+                    </div>
+                </div>
+            </div>
+            
+            {{-- Lista --}}
+            <div class="flex-1 overflow-y-auto max-h-80">
+                @if(isset($documentos_vencendo) && $documentos_vencendo->count() > 0)
+                <div class="divide-y divide-gray-50">
+                    @foreach($documentos_vencendo as $doc)
+                    @php
+                         $diasFaltando = $doc->dias_faltando;
+                         $corTexto = 'text-gray-500';
+                         $textoPrazo = '';
+                         
+                         if ($diasFaltando < 0) {
+                             $corTexto = 'text-red-600 font-bold';
+                             $textoPrazo = 'Vencido há ' . abs($diasFaltando) . ' dias';
+                         } elseif ($diasFaltando == 0) {
+                             $corTexto = 'text-red-600 font-bold';
+                             $textoPrazo = 'Vence hoje';
+                         } else {
+                             $corTexto = 'text-orange-600 font-bold';
+                             $textoPrazo = 'Faltam ' . $diasFaltando . ' dias';
+                         }
+                    @endphp
+                    <a href="{{ route('admin.documentos.show', $doc->id) }}" class="block px-5 py-3.5 hover:bg-red-50/50 transition-colors">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                {{-- Tipo --}}
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold text-red-600">{{ $doc->tipoDocumento->nome }}</span>
+                                </div>
+                                
+                                {{-- Número --}}
+                                <p class="text-xs text-gray-700 font-medium truncate mb-1.5">
+                                    {{ $doc->numero_documento }}
+                                </p>
+                                
+                                {{-- Prazo --}}
+                                <div class="flex items-center gap-2 text-xs {{ $corTexto }}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    {{ $textoPrazo }}
+                                </div>
+                            </div>
+                            
+                             {{-- Seta --}}
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    @endforeach
+                </div>
+                @else
+                <div class="p-8 text-center bg-white/50 rounded-lg m-2">
+                    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-gray-500">Nenhum prazo próximo</p>
+                </div>
+                @endif
+            </div>
+            
+            {{-- Footer --}}
+            <div class="px-5 py-3.5 bg-gray-50/50">
+                <a href="{{ route('admin.documentos.index', ['status' => 'com_prazos']) }}" class="text-xs font-medium text-red-600 hover:text-red-700 flex items-center justify-center gap-1.5 transition-colors">
+                    Ver todos
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        {{-- CARD 4: Assinaturas Pendentes --}}
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-gray-200">
             {{-- Header --}}
             <div class="bg-gradient-to-br from-amber-50 to-orange-50 px-5 py-4">

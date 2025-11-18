@@ -8,6 +8,7 @@ use App\Models\UsuarioInterno;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\DocumentoAssinatura;
+use App\Models\DocumentoDigital;
 use App\Models\ProcessoDesignacao;
 use App\Models\OrdemServico;
 use Illuminate\Http\Request;
@@ -104,7 +105,6 @@ class DashboardController extends Controller
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->count();
 
-
         // Buscar Ordens de Serviço em andamento do usuário
         // Dashboard mostra APENAS OSs onde o usuário é técnico atribuído
         $usuario = Auth::guard('interno')->user();
@@ -127,6 +127,20 @@ class DashboardController extends Controller
             })
             ->count();
 
+        // Buscar documentos assinados pelo usuário que vencem em até 5 dias
+        $documentos_vencendo = DocumentoDigital::whereHas('assinaturas', function($query) {
+                $query->where('usuario_interno_id', Auth::guard('interno')->id())
+                      ->where('status', 'assinado');
+            })
+            ->whereNotNull('data_vencimento')
+            ->where('data_vencimento', '>=', now()->startOfDay())
+            ->where('data_vencimento', '<=', now()->addDays(5)->endOfDay())
+            ->with(['tipoDocumento', 'processo'])
+            ->orderBy('data_vencimento', 'asc')
+            ->get();
+            
+        $stats['documentos_vencendo'] = $documentos_vencendo->count();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
@@ -136,8 +150,8 @@ class DashboardController extends Controller
             'documentos_pendentes_assinatura',
             'documentos_rascunho_pendentes',
             'processos_designados',
-            'ordens_servico_andamento'
+            'ordens_servico_andamento',
+            'documentos_vencendo'
         ));
     }
 }
-

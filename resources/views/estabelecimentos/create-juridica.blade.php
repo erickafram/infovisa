@@ -596,10 +596,8 @@
                                    id="cidade" 
                                    name="cidade"
                                    x-model="dados.cidade"
-                                   @input="dados.cidade = toUpperCase($event.target.value)"
-                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                                   style="text-transform: uppercase;">
+                                   readonly
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-700 uppercase">
                          </div>
 
                          {{-- Estado --}}
@@ -611,10 +609,8 @@
                                    id="estado" 
                                    name="estado"
                                    x-model="dados.estado"
-                                   @input="dados.estado = toUpperCase($event.target.value)"
-                                   maxlength="2"
-                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                                   style="text-transform: uppercase;">
+                                   readonly
+                                   class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-700 uppercase">
                          </div>
 
                          {{-- Código Município IBGE --}}
@@ -723,6 +719,60 @@
                                 Atividades secundárias selecionadas:
                             </span>
                             <span class="text-sm font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full" x-text="atividadesExercidas.length"></span>
+                        </div>
+
+                        {{-- Busca de CNAE Manual (Apenas Público) --}}
+                        <div x-show="dados.tipo_setor === 'publico'" class="mb-6 mt-6 bg-white border-2 border-dashed border-blue-300 rounded-lg p-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <h4 class="text-base font-semibold text-blue-800">Adicionar Atividade Manualmente</h4>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Para estabelecimentos públicos (Prefeituras, Fundos Municipais) que não possuem os CNAEs de saúde vinculados ao CNPJ, 
+                                você pode buscar e adicionar manualmente a atividade correta aqui.
+                            </p>
+                            
+                            <div class="flex gap-2">
+                                <div class="flex-1 relative">
+                                    <input type="text" 
+                                           x-model="cnaeBusca"
+                                           @keydown.enter.prevent="buscarCnaeAdicional"
+                                           placeholder="Digite o código CNAE (7 dígitos) ou descrição" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <p x-show="cnaeErro" class="absolute text-xs text-red-600 mt-1" x-text="cnaeErro"></p>
+                                </div>
+                                <button type="button" 
+                                        @click="buscarCnaeAdicional"
+                                        :disabled="loadingCnae"
+                                        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                                    <span x-show="!loadingCnae">Buscar</span>
+                                    <span x-show="loadingCnae" class="flex items-center gap-2">
+                                        <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Buscando...
+                                    </span>
+                                </button>
+                            </div>
+
+                            {{-- Resultados da Busca --}}
+                            <div x-show="cnaeResultados.length > 0" class="mt-4 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                                <template x-for="resultado in cnaeResultados" :key="resultado.codigo">
+                                    <div class="flex items-start justify-between p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" x-text="resultado.codigo"></span>
+                                            </div>
+                                            <p class="text-sm text-gray-800 mt-1" x-text="resultado.descricao"></p>
+                                        </div>
+                                        <button type="button" 
+                                                @click="adicionarCnaeManual(resultado)"
+                                                class="ml-3 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white border border-blue-200 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors">
+                                            Adicionar
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
 
                         {{-- Questionários Dinâmicos --}}
@@ -1119,6 +1169,12 @@ function estabelecimentoForm() {
             qualificacao_do_responsavel: ''
         },
 
+        // Variáveis para busca manual de CNAE
+        cnaeBusca: '',
+        cnaeErro: '',
+        loadingCnae: false,
+        cnaeResultados: [],
+
         init() {
             // Watchers para verificar competência quando atividades mudarem
             this.$watch('atividadesExercidas', () => {
@@ -1129,6 +1185,75 @@ function estabelecimentoForm() {
                 this.verificarCompetencia();
                 this.buscarQuestionarios();
             });
+        },
+
+        // Métodos para busca manual de CNAE
+        async buscarCnaeAdicional() {
+            if (!this.cnaeBusca || this.cnaeBusca.length < 3) {
+                this.cnaeErro = 'Digite pelo menos 3 caracteres para buscar';
+                return;
+            }
+            
+            this.cnaeErro = '';
+            this.loadingCnae = true;
+            this.cnaeResultados = [];
+
+            try {
+                // Se for código (apenas números)
+                if (/^\d+$/.test(this.cnaeBusca)) {
+                     const response = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/${this.cnaeBusca}`);
+                     if (response.ok) {
+                         const data = await response.json();
+                         if (data && data.id) {
+                             this.cnaeResultados = [{
+                                 codigo: data.id,
+                                 descricao: data.descricao
+                             }];
+                         }
+                     }
+                } else {
+                    // Busca na nossa rota local por descrição
+                    const response = await fetch(`{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?q=${encodeURIComponent(this.cnaeBusca)}`);
+                    if (response.ok) {
+                        this.cnaeResultados = await response.json();
+                    }
+                }
+
+                if (this.cnaeResultados.length === 0) {
+                     this.cnaeErro = 'Nenhum CNAE encontrado';
+                }
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                this.cnaeErro = 'Erro ao buscar CNAE';
+            } finally {
+                this.loadingCnae = false;
+            }
+        },
+
+        adicionarCnaeManual(cnae) {
+            // Verifica se já existe na lista de secundários
+            // Converte para string para garantir comparação correta
+            const codigoCnae = String(cnae.codigo);
+            const existe = this.dados.cnaes_secundarios.some(c => String(c.codigo) === codigoCnae);
+            
+            if (!existe) {
+                // Adiciona à lista de secundários
+                this.dados.cnaes_secundarios.unshift({
+                    codigo: cnae.codigo,
+                    descricao: cnae.descricao,
+                    manual: true
+                });
+            }
+            
+            // Marca automaticamente
+            if (!this.atividadesExercidas.includes(codigoCnae)) {
+                this.atividadesExercidas.push(codigoCnae);
+            }
+            
+            // Limpa busca
+            this.cnaeBusca = '';
+            this.cnaeResultados = [];
+            this.mostrarMensagem('CNAE adicionado com sucesso!', 'success');
         },
 
         async verificarCompetencia() {
@@ -1320,6 +1445,11 @@ function estabelecimentoForm() {
         },
 
         preencherDados(apiData) {
+            // Filtra CNAEs secundários inválidos (codigo 0 ou vazio)
+            if (apiData.cnaes_secundarios && Array.isArray(apiData.cnaes_secundarios)) {
+                apiData.cnaes_secundarios = apiData.cnaes_secundarios.filter(cnae => cnae.codigo && parseInt(cnae.codigo) !== 0);
+            }
+
             this.dados = {
                 ...this.dados,
                 ...apiData
@@ -1382,10 +1512,18 @@ function estabelecimentoForm() {
             this.modalErro.visivel = false;
         },
 
-        proximaAba() {
+        async proximaAba() {
             // Valida a aba atual antes de avançar
             if (!this.validarAbaAtual()) {
                 return; // Não avança se houver erros
+            }
+            
+            // Validação de duplicidade para estabelecimentos públicos
+            if (this.abaAtiva === 'dados-gerais' && this.dados.tipo_setor === 'publico') {
+                const duplicado = await this.verificarDuplicidadePublico();
+                if (duplicado) {
+                    return;
+                }
             }
             
             const abas = ['dados-gerais', 'endereco', 'atividades', 'contato'];
@@ -1394,6 +1532,52 @@ function estabelecimentoForm() {
             if (abaAtualIndex < abas.length - 1) {
                 this.abaAtiva = abas[abaAtualIndex + 1];
                 this.mostrarMensagem(`Avançando para: ${this.getNomeAba(abas[abaAtualIndex + 1])}`, 'success');
+            }
+        },
+
+        async verificarDuplicidadePublico() {
+            try {
+                this.loading = true;
+                const response = await fetch('{{ route('admin.estabelecimentos.verificar-duplicidade-publico') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        cnpj: this.dados.cnpj,
+                        nome_fantasia: this.dados.nome_fantasia
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.existe) {
+                        this.abrirModalErro([
+                            '⚠️ DUPLICIDADE ENCONTRADA:',
+                            'Já existe um estabelecimento com este CNPJ e Nome Fantasia cadastrado.',
+                            'Para estabelecimentos públicos, o Nome Fantasia deve ser ÚNICO para diferenciar as unidades.',
+                            'Por favor, altere o Nome Fantasia para algo específico (ex: Hospital Municipal CENTRO, UBS BAIRRO TAL).'
+                        ]);
+                        
+                        // Destaca e foca no campo
+                        setTimeout(() => {
+                            const input = document.getElementById('nome_fantasia');
+                            if (input) {
+                                input.focus();
+                                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }, 300);
+                        
+                        return true; // Existe duplicidade
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro ao verificar duplicidade:', error);
+                return false;
+            } finally {
+                this.loading = false;
             }
         },
 

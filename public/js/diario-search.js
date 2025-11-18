@@ -246,6 +246,7 @@ class DiarioSearch {
      */
     async saveSearch() {
         const nome = document.getElementById('search_name').value;
+        const executarDiariamente = document.getElementById('executar_diariamente').checked;
 
         if (!nome || !this.currentSearch) {
             return;
@@ -262,7 +263,8 @@ class DiarioSearch {
                     nome: nome,
                     texto: this.currentSearch.texto,
                     data_inicial: this.currentSearch.data_inicial,
-                    data_final: this.currentSearch.data_final
+                    data_final: this.currentSearch.data_final,
+                    executar_diariamente: executarDiariamente
                 })
             });
 
@@ -326,7 +328,17 @@ class DiarioSearch {
                             ${index + 1}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-gray-900 mb-2 text-base">${this.escapeHtml(search.nome)}</h4>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-gray-900 mb-2 text-base">${this.escapeHtml(search.nome)}</h4>
+                                ${search.executar_diariamente ? `
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full mb-2 border border-blue-200 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Automático
+                                </span>
+                                ` : ''}
+                            </div>
                             <div class="flex flex-wrap items-center gap-3 text-sm">
                                 <div class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

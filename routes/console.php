@@ -20,3 +20,8 @@ Schedule::command('processos:licenciamento-anual')
     ->onFailure(function () {
         \Log::error('Falha ao criar processos de licenciamento anual');
     });
+
+// Verificação diária de buscas salvas no Diário Oficial
+Schedule::command('diario:verificar-novos')
+    ->dailyAt('06:00') // Executa todo dia às 06:00
+    ->timezone('America/Sao_Paulo');

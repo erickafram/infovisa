@@ -190,6 +190,24 @@
                        placeholder="Ex: Portarias de Licenciamento"
                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             </div>
+
+            <!-- Nova opção de execução diária -->
+            <div class="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="executar_diariamente" 
+                               name="executar_diariamente" 
+                               type="checkbox" 
+                               value="1"
+                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="executar_diariamente" class="font-medium text-blue-800">Executar busca diariamente</label>
+                        <p class="text-blue-600 text-xs mt-0.5">O sistema buscará novos resultados todos os dias e te avisará.</p>
+                    </div>
+                </div>
+            </div>
+            
             <div class="flex gap-2">
                 <button type="button" 
                         id="cancelSaveButton"

@@ -23,7 +23,8 @@ class AssistenteIAController extends Controller
         // Log para debug
         \Log::info('Chat request recebido', [
             'has_documento_contexto' => $request->has('documento_contexto'),
-            'documento_keys' => $request->has('documento_contexto') ? array_keys($request->documento_contexto) : null,
+            'has_documentos_contexto' => $request->has('documentos_contexto'),
+            'documento_keys' => $request->filled('documento_contexto') ? array_keys($request->input('documento_contexto')) : null,
         ]);
 
         $request->validate([
@@ -32,6 +33,9 @@ class AssistenteIAController extends Controller
             'documento_contexto' => 'nullable|array',
             'documento_contexto.nome' => 'required_with:documento_contexto|string|max:500',
             'documento_contexto.conteudo' => 'required_with:documento_contexto|string|max:50000', // 50KB de texto
+            'documentos_contexto' => 'nullable|array',
+            'documentos_contexto.*.nome' => 'required|string|max:500',
+            'documentos_contexto.*.conteudo' => 'required|string|max:50000',
             'tipo_consulta' => 'nullable|string|in:relatorios,geral',
         ]);
 
@@ -46,6 +50,7 @@ class AssistenteIAController extends Controller
         $userMessage = $request->input('message');
         $history = $request->input('history', []);
         $documentoContexto = $request->input('documento_contexto');
+        $documentosContexto = $request->input('documentos_contexto');
         $tipoConsulta = $request->input('tipo_consulta', 'geral');
         
         // Obtém usuário logado
@@ -56,9 +61,17 @@ class AssistenteIAController extends Controller
             // Se for consulta de relatórios, busca TODOS os dados
             $contextoDados = $this->obterContextoDados($userMessage, $usuario, $tipoConsulta === 'relatorios');
             
-            // Adiciona contexto do documento se fornecido
-            if ($documentoContexto) {
-                \Log::info('Adicionando documento ao contexto', [
+            // Adiciona contexto de múltiplos documentos se fornecido
+            if ($documentosContexto && is_array($documentosContexto) && count($documentosContexto) > 0) {
+                \Log::info('Adicionando múltiplos documentos ao contexto', [
+                    'total' => count($documentosContexto),
+                    'nomes' => array_map(function($doc) { return $doc['nome'] ?? 'N/A'; }, $documentosContexto)
+                ]);
+                $contextoDados['documentos_pdf'] = $documentosContexto;
+            }
+            // Fallback para documento único (compatibilidade)
+            elseif ($documentoContexto) {
+                \Log::info('Adicionando documento único ao contexto', [
                     'nome' => $documentoContexto['nome'] ?? 'N/A',
                     'tamanho_conteudo' => strlen($documentoContexto['conteudo'] ?? ''),
                 ]);
@@ -81,8 +94,17 @@ class AssistenteIAController extends Controller
         // REGRA: Busca na internet APENAS se houver documento PDF carregado E checkbox marcado
         $buscaWebAtiva = false;
         
-        // Se tem documento com configuração de busca
-        if (isset($documentoContexto['buscar_internet'])) {
+        // Se tem documentos múltiplos com configuração de busca
+        if ($documentosContexto && is_array($documentosContexto)) {
+            foreach ($documentosContexto as $doc) {
+                if (isset($doc['buscar_internet']) && $doc['buscar_internet'] === true) {
+                    $buscaWebAtiva = true;
+                    break;
+                }
+            }
+        }
+        // Fallback para documento único
+        elseif (isset($documentoContexto['buscar_internet'])) {
             $buscaWebAtiva = $documentoContexto['buscar_internet'] === true;
         } 
         // Chat geral (sem documento) NUNCA busca na internet - apenas POPs
@@ -106,8 +128,9 @@ class AssistenteIAController extends Controller
 
         // Prepara o contexto do sistema
         try {
-            // Se tem documento PDF, usa prompt simplificado para economizar tokens
-            $temDocumento = isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf']);
+            // Se tem documentos PDF (único ou múltiplos), usa prompt simplificado para economizar tokens
+            $temDocumento = (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) ||
+                           (isset($contextoDados['documentos_pdf']) && !empty($contextoDados['documentos_pdf']));
             $systemPrompt = $this->construirSystemPrompt($contextoDados, $usuario, $temDocumento);
         } catch (\Exception $e) {
             \Log::error('Erro ao construir system prompt', [
@@ -987,19 +1010,47 @@ class AssistenteIAController extends Controller
     }
 
     /**
-     * Constrói prompt simplificado quando há documento PDF (economiza tokens)
+     * Constrói prompt simplificado quando há documento(s) PDF (economiza tokens)
      */
     private function construirPromptSimplificadoDocumento($contextoDados)
     {
-        $docPdf = $contextoDados['documento_pdf'];
-        $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
-        $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
-        $buscarInternet = $docPdf['buscar_internet'] ?? false;
-        
         $prompt = "Você é um assistente especializado em análise de documentos.\n\n";
-        $prompt .= "🚨 DOCUMENTO CARREGADO PELO USUÁRIO:\n\n";
-        $prompt .= "**Nome:** {$nomeDoc}\n\n";
-        $prompt .= "**CONTEÚDO:**\n{$conteudoDoc}\n\n";
+        $buscarInternet = false;
+        
+        // Verifica se há múltiplos documentos
+        if (isset($contextoDados['documentos_pdf']) && !empty($contextoDados['documentos_pdf'])) {
+            $documentos = $contextoDados['documentos_pdf'];
+            $totalDocs = count($documentos);
+            
+            // Verifica se algum documento tem busca na internet ativada
+            foreach ($documentos as $doc) {
+                if (isset($doc['buscar_internet']) && $doc['buscar_internet'] === true) {
+                    $buscarInternet = true;
+                    break;
+                }
+            }
+            
+            $prompt .= "🚨 {$totalDocs} DOCUMENTO(S) CARREGADO(S):\n\n";
+            
+            foreach ($documentos as $index => $docPdf) {
+                $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
+                $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+                
+                $prompt .= "DOC " . ($index + 1) . ": {$nomeDoc}\n";
+                $prompt .= $conteudoDoc . "\n\n---\n\n";
+            }
+        }
+        // Fallback para documento único
+        elseif (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
+            $docPdf = $contextoDados['documento_pdf'];
+            $buscarInternet = $docPdf['buscar_internet'] ?? false;
+            $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
+            $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+            
+            $prompt .= "🚨 DOCUMENTO CARREGADO:\n\n";
+            $prompt .= "**Nome:** {$nomeDoc}\n\n";
+            $prompt .= "**CONTEÚDO:**\n{$conteudoDoc}\n\n";
+        }
         
         // Adiciona resultados da busca na internet se disponíveis
         if (isset($contextoDados['resultados_web']) && !empty($contextoDados['resultados_web'])) {
@@ -1244,9 +1295,29 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "\n(Dados filtrados: apenas competência MUNICIPAL de {$municipioNome})\n";
             }
             
-            // ===== PRIORIDADE MÁXIMA: DOCUMENTO PDF CARREGADO =====
-            // Adiciona contexto do documento PDF se disponível (ANTES de tudo)
-            if (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
+            // ===== PRIORIDADE MÁXIMA: DOCUMENTOS PDF CARREGADOS =====
+            // Adiciona contexto de múltiplos documentos PDF se disponível (ANTES de tudo)
+            if (isset($contextoDados['documentos_pdf']) && !empty($contextoDados['documentos_pdf'])) {
+                $documentos = $contextoDados['documentos_pdf'];
+                $totalDocs = count($documentos);
+                
+                $prompt .= "\n\n🚨 {$totalDocs} DOCUMENTO(S) CARREGADO(S):\n\n";
+                
+                foreach ($documentos as $index => $docPdf) {
+                    $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
+                    $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
+                    
+                    $prompt .= "DOC " . ($index + 1) . ": {$nomeDoc}\n";
+                    $prompt .= $conteudoDoc . "\n\n---\n\n";
+                }
+                
+                $prompt .= "INSTRUÇÕES:\n";
+                $prompt .= "- Responda APENAS sobre estes {$totalDocs} documentos\n";
+                $prompt .= "- Mencione qual documento ao citar informações\n";
+                $prompt .= "- IGNORE POPs e outras categorias\n\n";
+            }
+            // Fallback para documento único (compatibilidade)
+            elseif (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
                 $docPdf = $contextoDados['documento_pdf'];
                 $nomeDoc = is_array($docPdf['nome'] ?? null) ? json_encode($docPdf['nome']) : ($docPdf['nome'] ?? 'Documento');
                 $conteudoDoc = is_array($docPdf['conteudo'] ?? null) ? json_encode($docPdf['conteudo']) : ($docPdf['conteudo'] ?? '');
@@ -1435,13 +1506,24 @@ Acesso: Menu lateral > Ícone de engrenagem
      */
     private function deveBuscarNaInternet($message, $contextoDados)
     {
-        // Se houver documento PDF carregado, verifica a configuração buscar_internet
+        // Se houver múltiplos documentos PDF carregados
+        if (isset($contextoDados['documentos_pdf']) && !empty($contextoDados['documentos_pdf'])) {
+            foreach ($contextoDados['documentos_pdf'] as $doc) {
+                if (isset($doc['buscar_internet']) && $doc['buscar_internet'] === true) {
+                    \Log::info('Busca na internet ativada por documento (múltiplos)');
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Se houver documento PDF único carregado
         if (isset($contextoDados['documento_pdf']) && !empty($contextoDados['documento_pdf'])) {
             // Se buscar_internet estiver definido, retorna esse valor
             if (isset($contextoDados['documento_pdf']['buscar_internet'])) {
                 $deveBuscar = $contextoDados['documento_pdf']['buscar_internet'] === true;
                 
-                \Log::info('Verificação de busca (documento)', [
+                \Log::info('Verificação de busca (documento único)', [
                     'deve_buscar' => $deveBuscar,
                     'buscar_internet_config' => $contextoDados['documento_pdf']['buscar_internet']
                 ]);
@@ -1449,7 +1531,6 @@ Acesso: Menu lateral > Ícone de engrenagem
                 return $deveBuscar;
             }
             // Por padrão, não busca na internet para documentos
-            \Log::info('Documento sem configuração de busca - não busca');
             return false;
         }
 
@@ -2312,5 +2393,214 @@ Acesso: Menu lateral > Ícone de engrenagem
         $prompt .= "Seja prestativo, claro e objetivo em suas respostas!";
         
         return $prompt;
+    }
+
+    /**
+     * Lista documentos disponíveis de um processo
+     */
+    public function listarDocumentosProcesso($estabelecimentoId, $processoId)
+    {
+        try {
+            $processo = \App\Models\Processo::findOrFail($processoId);
+            
+            // Busca documentos digitais
+            $documentosDigitais = \App\Models\DocumentoDigital::where('processo_id', $processoId)
+                ->where('status', '!=', 'rascunho')
+                ->whereNotNull('arquivo_pdf')
+                ->get()
+                ->map(function($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'nome' => $doc->nome_documento ?? 'Documento Digital',
+                        'tamanho' => $this->formatarTamanho($doc->tamanho_arquivo ?? 0),
+                        'tipo' => 'documento_digital'
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            // Busca arquivos externos (ProcessoDocumento)
+            $arquivosExternos = [];
+            try {
+                $arquivosExternos = \App\Models\ProcessoDocumento::where('processo_id', $processoId)
+                    ->get()
+                    ->map(function($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'nome' => $doc->nome_original ?? $doc->nome_arquivo ?? 'Arquivo',
+                            'tamanho' => $this->formatarTamanho($doc->tamanho ?? 0),
+                            'tipo' => 'arquivo_externo'
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+            } catch (\Exception $e) {
+                \Log::warning('Erro ao buscar arquivos externos', [
+                    'erro' => $e->getMessage()
+                ]);
+            }
+
+            $documentos = array_merge($documentosDigitais, $arquivosExternos);
+
+            return response()->json([
+                'success' => true,
+                'documentos' => $documentos
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao listar documentos do processo', [
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'processo_id' => $processoId,
+                'estabelecimento_id' => $estabelecimentoId
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao listar documentos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Extrai texto de múltiplos PDFs
+     */
+    public function extrairMultiplosPdfs(Request $request)
+    {
+        $request->validate([
+            'documento_ids' => 'required|array',
+            'documento_ids.*' => 'required|integer',
+            'estabelecimento_id' => 'required|integer',
+            'processo_id' => 'required|integer',
+        ]);
+
+        try {
+            $documentoIds = $request->input('documento_ids');
+            $processoId = $request->input('processo_id');
+            $documentosExtraidos = [];
+
+            foreach ($documentoIds as $documentoId) {
+                // Tenta buscar como documento digital primeiro
+                $docDigital = \App\Models\DocumentoDigital::where('processo_id', $processoId)
+                    ->where('id', $documentoId)
+                    ->first();
+
+                $caminhoArquivo = null;
+                $nomeDocumento = null;
+
+                if ($docDigital && $docDigital->arquivo_pdf) {
+                    // É um documento digital
+                    $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $docDigital->arquivo_pdf);
+                    $nomeDocumento = $docDigital->nome_documento ?? 'Documento Digital';
+                } else {
+                    // Busca como arquivo externo
+                    $documento = \App\Models\ProcessoDocumento::where('processo_id', $processoId)
+                        ->find($documentoId);
+
+                    if (!$documento) {
+                        continue; // Pula se não encontrar
+                    }
+
+                    if ($documento->tipo_documento === 'documento_digital') {
+                        $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+                    } else {
+                        $caminhoArquivo = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+                    }
+                    $nomeDocumento = $documento->nome_original ?? 'Documento';
+                }
+
+                if (!file_exists($caminhoArquivo)) {
+                    \Log::warning('Arquivo PDF não encontrado', ['caminho' => $caminhoArquivo]);
+                    continue; // Pula se arquivo não existir
+                }
+
+                // Extrai texto do PDF usando Smalot\PdfParser
+                try {
+                    $parser = new \Smalot\PdfParser\Parser();
+                    $pdf = $parser->parseFile($caminhoArquivo);
+                    
+                    // Extrai texto de TODAS as páginas
+                    $pages = $pdf->getPages();
+                    $textoCompleto = '';
+                    $totalPaginas = count($pages);
+                    
+                    foreach ($pages as $pageNum => $page) {
+                        $textoPagina = $page->getText();
+                        if (!empty($textoPagina)) {
+                            $textoCompleto .= "=== PÁGINA " . ($pageNum + 1) . " de {$totalPaginas} ===\n";
+                            $textoCompleto .= $textoPagina . "\n\n";
+                        }
+                    }
+
+                    // Se não conseguiu extrair por páginas, tenta método geral
+                    if (empty($textoCompleto)) {
+                        $textoCompleto = $pdf->getText();
+                    }
+
+                    // Limpa o texto
+                    $texto = trim($textoCompleto);
+                    $texto = preg_replace('/\s+/', ' ', $texto); // Remove espaços múltiplos
+                    
+                    // Limita a aproximadamente 5.000 caracteres por documento
+                    // Com 3 documentos = ~15.000 caracteres = ~3.750 tokens
+                    // Deixa espaço para prompt do sistema (~2.000 tokens) + histórico + resposta
+                    $texto = mb_substr($texto, 0, 5000);
+
+                    if (!empty($texto)) {
+                        $documentosExtraidos[] = [
+                            'documento_id' => $documentoId,
+                            'nome_documento' => $nomeDocumento,
+                            'conteudo' => $texto,
+                            'total_caracteres' => mb_strlen($texto)
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Erro ao extrair PDF individual', [
+                        'documento_id' => $documentoId,
+                        'erro' => $e->getMessage()
+                    ]);
+                    continue; // Pula se houver erro na extração
+                }
+            }
+
+            if (empty($documentosExtraidos)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não foi possível extrair texto de nenhum documento'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'documentos' => $documentosExtraidos
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao extrair múltiplos PDFs', [
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao extrair documentos'
+            ], 500);
+        }
+    }
+
+    /**
+     * Formata tamanho de arquivo
+     */
+    private function formatarTamanho($bytes)
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2) . ' KB';
+        } else {
+            return $bytes . ' bytes';
+        }
     }
 }

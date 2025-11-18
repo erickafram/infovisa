@@ -193,6 +193,19 @@ class ProcessoController extends Controller
                     ->with('error', 'Já existe um processo de ' . $tipoProcesso->nome . ' para o ano ' . $anoAtual . ' neste estabelecimento.');
             }
         }
+
+        // Verifica se é processo único por estabelecimento e se já existe (em qualquer ano)
+        if ($tipoProcesso && $tipoProcesso->unico_por_estabelecimento) {
+            $jaExisteUnico = Processo::where('estabelecimento_id', $estabelecimento->id)
+                ->where('tipo', $validated['tipo'])
+                ->exists();
+            
+            if ($jaExisteUnico) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Este estabelecimento já possui um processo do tipo ' . $tipoProcesso->nome . '. Este tipo de processo é único e não pode ser aberto novamente.');
+            }
+        }
         
         // Usa transaction para evitar duplicação de número
         try {

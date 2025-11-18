@@ -22,6 +22,9 @@ Route::post('/consultar-processo', [HomeController::class, 'consultarProcesso'])
 // Verificar Documento
 Route::post('/verificar-documento', [HomeController::class, 'verificarDocumento'])->name('verificar.documento');
 
+// Fila de Processos Pública
+Route::get('/fila-processos', [HomeController::class, 'filaProcessos'])->name('fila.processos');
+
 // Verificar Autenticidade de Documento
 Route::get('/verificar-autenticidade', [\App\Http\Controllers\AutenticidadeController::class, 'index'])->name('verificar.autenticidade.form');
 Route::post('/verificar-autenticidade', [\App\Http\Controllers\AutenticidadeController::class, 'verificar'])->name('verificar.autenticidade.verificar');
@@ -70,6 +73,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Estabelecimentos
+    Route::post('/estabelecimentos/verificar-duplicidade-publico', [EstabelecimentoController::class, 'verificarDuplicidadePublico'])->name('estabelecimentos.verificar-duplicidade-publico');
     Route::get('/estabelecimentos/pendentes', [EstabelecimentoController::class, 'pendentes'])->name('estabelecimentos.pendentes');
     Route::get('/estabelecimentos/rejeitados', [EstabelecimentoController::class, 'rejeitados'])->name('estabelecimentos.rejeitados');
     Route::get('/estabelecimentos/desativados', [EstabelecimentoController::class, 'desativados'])->name('estabelecimentos.desativados');
@@ -125,6 +129,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/assinatura/assinar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'assinar'])->name('assinatura.assinar');
     Route::post('/assinatura/processar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processar'])->name('assinatura.processar');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');
+    Route::get('/documentos/{id}/visualizar-pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'visualizarPdf'])->name('documentos.visualizar-pdf');
     Route::post('/documentos/{id}/assinar', [\App\Http\Controllers\DocumentoDigitalController::class, 'assinar'])->name('documentos.assinar');
     Route::post('/documentos/{id}/versoes/{versao}/restaurar', [\App\Http\Controllers\DocumentoDigitalController::class, 'restaurarVersao'])->name('documentos.restaurarVersao');
     Route::post('/documentos/{id}/gerenciar-assinantes', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerenciarAssinantes'])->name('documentos.gerenciar-assinantes');
@@ -366,6 +371,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
     Route::post('/ia/extrair-pdf', [\App\Http\Controllers\AssistenteIAController::class, 'extrairPdf'])->name('assistente-ia.extrair-pdf');
     Route::post('/ia/chat-edicao-documento', [\App\Http\Controllers\AssistenteIAController::class, 'chatEdicaoDocumento'])->name('ia.chat-edicao-documento');
+    Route::get('/ia/documentos-processo/{estabelecimento}/{processo}', [\App\Http\Controllers\AssistenteIAController::class, 'listarDocumentosProcesso']);
+    Route::post('/ia/extrair-multiplos-pdfs', [\App\Http\Controllers\AssistenteIAController::class, 'extrairMultiplosPdfs']);
     
     // Diário Oficial
     Route::prefix('diario-oficial')->name('diario-oficial.')->group(function () {

@@ -562,8 +562,12 @@ class EstabelecimentoController extends Controller
                     // Atividade principal
                     if (!empty($dados['atividade_principal'])) {
                         foreach ($dados['atividade_principal'] as $atividade) {
+                            $codigo = $atividade['code'] ?? '';
+                            // Filtra códigos inválidos ou vazios
+                            if (empty($codigo) || $codigo === '00.00-0-00') continue;
+                            
                             $atividadesApi[] = [
-                                'codigo' => $atividade['code'] ?? '',
+                                'codigo' => $codigo,
                                 'descricao' => $atividade['text'] ?? '',
                                 'tipo' => 'principal'
                             ];
@@ -573,8 +577,12 @@ class EstabelecimentoController extends Controller
                     // Atividades secundárias
                     if (!empty($dados['atividades_secundarias'])) {
                         foreach ($dados['atividades_secundarias'] as $atividade) {
+                            $codigo = $atividade['code'] ?? '';
+                            // Filtra códigos inválidos ou vazios
+                            if (empty($codigo) || $codigo === '00.00-0-00') continue;
+
                             $atividadesApi[] = [
-                                'codigo' => $atividade['code'] ?? '',
+                                'codigo' => $codigo,
                                 'descricao' => $atividade['text'] ?? '',
                                 'tipo' => 'secundaria'
                             ];
@@ -583,6 +591,46 @@ class EstabelecimentoController extends Controller
                 }
             } catch (\Exception $e) {
                 \Log::error('Erro ao buscar atividades da API: ' . $e->getMessage());
+            }
+        }
+        
+        // Adiciona CNAEs manuais salvos no banco (para estabelecimentos públicos)
+        if ($estabelecimento->cnaes_secundarios) {
+            foreach ($estabelecimento->cnaes_secundarios as $cnae) {
+                // Verifica se é manual (flag 'manual' = true)
+                if (isset($cnae['manual']) && $cnae['manual']) {
+                    $codigoLimpo = preg_replace('/[^0-9]/', '', $cnae['codigo']);
+                    
+                    // Verifica duplicidade na lista atual
+                    $existe = false;
+                    foreach ($atividadesApi as $apiCnae) {
+                        // Remove pontuação para comparar
+                        $codigoApi = preg_replace('/[^0-9]/', '', $apiCnae['codigo']);
+                        
+                        if ($codigoApi === $codigoLimpo) {
+                            $existe = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$existe) {
+                        // Formata o CNAE para exibição (XX.XX-X-XX) se tiver 7 dígitos
+                        $codigoFormatado = $cnae['codigo'];
+                        if (strlen($codigoLimpo) === 7) {
+                            $codigoFormatado = substr($codigoLimpo, 0, 2) . '.' . 
+                                             substr($codigoLimpo, 2, 2) . '-' . 
+                                             substr($codigoLimpo, 4, 1) . '-' . 
+                                             substr($codigoLimpo, 5, 2);
+                        }
+
+                        $atividadesApi[] = [
+                            'codigo' => $codigoFormatado,
+                            'descricao' => $cnae['descricao'],
+                            'tipo' => 'secundaria',
+                            'manual' => true
+                        ];
+                    }
+                }
             }
         }
         
@@ -1065,38 +1113,23 @@ class EstabelecimentoController extends Controller
     }
 
     /**
-     * Buscar usuários externos por nome ou CPF
+     * Verifica se já existe um estabelecimento público com o mesmo CNPJ e Nome Fantasia
      */
-    public function buscarUsuarios(Request $request)
+    public function verificarDuplicidadePublico(Request $request)
     {
-        $query = $request->input('q');
-        $estabelecimentoId = $request->input('estabelecimento_id');
-        
-        if (strlen($query) < 3) {
-            return response()->json([]);
-        }
-        
-        // Busca usuários ativos que não estão vinculados ao estabelecimento
-        $usuarios = UsuarioExterno::where('ativo', true)
-            ->where(function($q) use ($query) {
-                $q->where('nome', 'ILIKE', "%{$query}%")
-                  ->orWhere('cpf', 'LIKE', "%{$query}%")
-                  ->orWhere('email', 'ILIKE', "%{$query}%");
-            })
-            ->whereNotIn('id', function($subquery) use ($estabelecimentoId) {
-                $subquery->select('usuario_externo_id')
-                    ->from('estabelecimento_usuario_externo')
-                    ->where('estabelecimento_id', $estabelecimentoId);
-            })
-            ->limit(10)
-            ->get(['id', 'nome', 'cpf', 'email']);
-        
-        // Formata CPF para exibição
-        $usuarios->transform(function($usuario) {
-            $usuario->cpf = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $usuario->cpf);
-            return $usuario;
-        });
-        
-        return response()->json($usuarios);
+        $request->validate([
+            'cnpj' => 'required|string',
+            'nome_fantasia' => 'required|string',
+        ]);
+
+        // Remove formatação do CNPJ
+        $cnpj = preg_replace('/\D/', '', $request->cnpj);
+        $nomeFantasia = mb_strtoupper(trim($request->nome_fantasia));
+
+        $existe = Estabelecimento::where('cnpj', $cnpj)
+            ->whereRaw('UPPER(nome_fantasia) = ?', [$nomeFantasia])
+            ->exists();
+
+        return response()->json(['existe' => $existe]);
     }
 }

@@ -227,7 +227,19 @@
         </div>
 
         {{-- Card Configurações --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden" 
+             x-data="{ 
+                 anual: {{ old('anual') ? 'true' : 'false' }}, 
+                 unico: {{ old('unico_por_estabelecimento') ? 'true' : 'false' }},
+                 toggleAnual() {
+                     this.anual = !this.anual;
+                     if(this.anual) this.unico = false;
+                 },
+                 toggleUnico() {
+                     this.unico = !this.unico;
+                     if(this.unico) this.anual = false;
+                 }
+             }">
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,15 +252,32 @@
 
             <div class="space-y-3">
                 {{-- Processo Anual --}}
-                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                       :class="anual ? 'bg-blue-50 border border-blue-200' : ''">
                     <input type="checkbox" 
                            name="anual" 
                            id="anual"
-                           {{ old('anual') ? 'checked' : '' }}
+                           x-model="anual"
+                           @click="toggleAnual()"
                            class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                     <div class="flex-1">
                         <span class="text-sm font-medium text-gray-900">Processo Anual</span>
                         <p class="text-xs text-gray-500 mt-0.5">Apenas um processo por estabelecimento por ano</p>
+                    </div>
+                </label>
+
+                {{-- Processo Único --}}
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                       :class="unico ? 'bg-blue-50 border border-blue-200' : ''">
+                    <input type="checkbox" 
+                           name="unico_por_estabelecimento" 
+                           id="unico_por_estabelecimento"
+                           x-model="unico"
+                           @click="toggleUnico()"
+                           class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">Processo Único por Estabelecimento</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Estabelecimento poderá abrir este processo apenas UMA VEZ (não renovável)</p>
                     </div>
                 </label>
 
@@ -275,6 +304,27 @@
                     <div class="flex-1">
                         <span class="text-sm font-medium text-gray-900">Usuário Externo Pode Visualizar</span>
                         <p class="text-xs text-gray-500 mt-0.5">Empresas podem visualizar processos abertos por usuário interno</p>
+                    </div>
+                </label>
+
+                {{-- Exibir Fila Pública --}}
+                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border-2 border-purple-200 bg-purple-50">
+                    <input type="checkbox" 
+                           name="exibir_fila_publica" 
+                           id="exibir_fila_publica"
+                           {{ old('exibir_fila_publica') ? 'checked' : '' }}
+                           class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                    <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Exibir Fila Pública
+                        </span>
+                        <p class="text-xs text-gray-600 mt-0.5">
+                            <strong>Processos deste tipo serão exibidos na página inicial pública</strong> para consulta sem login. 
+                            Ideal para processos arquitetônicos onde é necessário mostrar a ordem de chegada e status atual.
+                        </p>
                     </div>
                 </label>
 
