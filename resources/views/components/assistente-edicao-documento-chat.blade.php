@@ -115,6 +115,19 @@
                 </svg>
             </button>
                 
+                {{-- Botão Adicionar Documentos --}}
+                <button type="button"
+                        @click="mostrarSeletorDocumentos = !mostrarSeletorDocumentos" 
+                        title="Adicionar documentos do processo"
+                        class="hover:bg-white/20 rounded-full p-1.5 transition-colors relative">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span x-show="documentosCarregados.length > 0" 
+                          class="absolute -top-1 -right-1 bg-white text-green-600 text-[9px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full border border-green-600"
+                          x-text="documentosCarregados.length"></span>
+                </button>
+
                 {{-- Toggle Conhecimento Geral --}}
                 <div class="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1">
                     <button type="button"
@@ -152,6 +165,71 @@
             </div>
         </div>
 
+        {{-- Seletor de Documentos --}}
+        <div x-show="mostrarSeletorDocumentos" 
+             x-transition
+             class="border-b border-gray-200 bg-white p-3 max-h-48 overflow-y-auto shadow-inner">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-bold text-gray-700 uppercase">Selecionar Documentos do Processo</h4>
+                <button @click="mostrarSeletorDocumentos = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div x-show="documentosDisponiveis.length === 0" class="text-center py-4 text-gray-500 text-xs">
+                <p x-show="!processoId">Não foi possível identificar o processo atual.</p>
+                <p x-show="processoId">Nenhum documento disponível.</p>
+            </div>
+
+            <div class="space-y-1">
+                <template x-for="doc in documentosDisponiveis" :key="doc.id">
+                    <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer border border-transparent hover:border-gray-200 transition-colors">
+                        <input type="checkbox" 
+                               :value="doc.id"
+                               :checked="documentosSelecionados.includes(doc.id)"
+                               @change="toggleDocumento(doc.id)"
+                               class="rounded border-gray-300 text-green-600 focus:ring-green-500 w-4 h-4">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-700 font-medium truncate" x-text="doc.nome"></p>
+                            <p class="text-[10px] text-gray-500" x-text="doc.tamanho"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+            
+            <div class="mt-3 flex justify-end" x-show="documentosDisponiveis.length > 0">
+                <button @click="carregarDocumentosSelecionados()" 
+                        :disabled="documentosSelecionados.length === 0 || carregandoMultiplos"
+                        class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-1.5 px-3 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
+                    <span x-show="carregandoMultiplos" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span x-text="carregandoMultiplos ? 'Carregando...' : 'Carregar Selecionados'"></span>
+                </button>
+            </div>
+        </div>
+        
+        {{-- Lista de Documentos Carregados (Badge) --}}
+        <div x-show="documentosCarregados.length > 0 && !mostrarSeletorDocumentos" class="bg-green-50 px-3 py-1.5 border-b border-green-100 flex flex-col gap-1">
+            <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                <span class="text-[10px] font-bold text-green-700 uppercase flex-shrink-0">Contexto:</span>
+                <template x-for="doc in documentosCarregados" :key="doc.documento_id">
+                    <span class="inline-flex items-center gap-1 bg-white border border-green-200 rounded px-1.5 py-0.5 text-[10px] text-green-800" :title="doc.nome_documento">
+                        <span class="truncate max-w-[100px]" x-text="doc.nome_documento"></span>
+                        <button @click="removerDocumento(doc.documento_id)" class="hover:text-red-500 font-bold">×</button>
+                    </span>
+                </template>
+            </div>
+            
+            {{-- Alerta de Limite de Caracteres --}}
+            <div x-show="totalCaracteres > 15000" class="text-[9px] text-amber-600 flex items-center gap-1 font-medium">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span x-text="totalCaracteres > 20000 ? 'Limite excedido! A IA analisará apenas o início dos documentos.' : 'Muitos documentos! A análise pode ser parcial.'"></span>
+            </div>
+        </div>
+
         {{-- Mensagens --}}
         <div class="flex-1 overflow-y-auto p-4 space-y-3" x-ref="mensagensContainer">
             {{-- Mensagem de boas-vindas --}}
@@ -177,12 +255,38 @@
 
             {{-- Lista de mensagens --}}
             <template x-for="(msg, index) in mensagens" :key="index">
-                <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                <div :class="msg.role === 'user' ? 'flex justify-end mb-4' : 'flex justify-start mb-4'">
+                    
+                    {{-- Avatar Assistente (só aparece nas mensagens da IA) --}}
+                    <div x-show="msg.role !== 'user'" class="flex-shrink-0 mr-2 mt-1">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center shadow-sm">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+
                     <div :class="msg.role === 'user' 
-                                ? 'bg-green-600 text-white rounded-lg px-4 py-3 max-w-[90%]' 
-                                : 'bg-gray-100 text-gray-800 rounded-lg px-4 py-3 max-w-[90%] assistente-edicao-mensagem'">
-                        <div x-html="formatarMensagemComBotao(msg.content, index)"></div>
-                        <div class="text-xs mt-1 opacity-70" x-text="msg.time"></div>
+                                ? 'bg-gradient-to-br from-green-600 to-green-700 text-white rounded-2xl rounded-br-none px-5 py-3.5 max-w-[85%] shadow-sm' 
+                                : 'bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-bl-none px-5 py-4 max-w-[90%] shadow-sm assistente-edicao-mensagem relative'">
+                        
+                        {{-- Conteúdo da Mensagem --}}
+                        <div x-html="formatarMensagemComBotao(msg.content, index)" class="prose prose-sm max-w-none" :class="msg.role === 'user' ? 'prose-invert' : ''"></div>
+                        
+                        {{-- Hora da Mensagem --}}
+                        <div class="text-[10px] mt-1.5 flex items-center gap-1" :class="msg.role === 'user' ? 'text-green-100 justify-end' : 'text-gray-400 justify-start'">
+                            <svg x-show="msg.role === 'user'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span x-text="msg.time"></span>
+                        </div>
+                    </div>
+
+                    {{-- Avatar Usuário (só aparece nas mensagens do User) --}}
+                    <div x-show="msg.role === 'user'" class="flex-shrink-0 ml-2 mt-1">
+                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -233,18 +337,158 @@ function assistenteEdicaoDocumento() {
         minimizado: estadoMinimizado === 'true',
         mensagens: [],
         mensagemAtual: '',
+        textoEditor: '',
         carregando: false,
         conhecimentoGeral: false,
-        textoEditor: '',
+        processoId: null,
+        estabelecimentoId: null,
+        documentosDisponiveis: [],
+        documentosSelecionados: [],
+        documentosCarregados: [],
+        mostrarSeletorDocumentos: false,
+        carregandoMultiplos: false,
+        
+        get totalCaracteres() {
+            return this.documentosCarregados.reduce((total, doc) => total + (doc.conteudo ? doc.conteudo.length : 0), 0);
+        },
         
         init() {
-            // Monitora mudanças no editor de texto
-            this.monitorarEditor();
+            // Inicia minimizado
+            this.minimizado = true;
             
-            // Scroll para o final se chat estiver aberto
-            if (this.chatAberto && !this.minimizado) {
-                this.$nextTick(() => this.scrollToBottom());
+            // Tenta pegar IDs da URL ou de meta tags (se disponíveis na página)
+            const urlParams = new URLSearchParams(window.location.search);
+            this.processoId = urlParams.get('processo_id') || document.querySelector('meta[name="processo-id"]')?.content;
+            this.estabelecimentoId = urlParams.get('estabelecimento_id') || document.querySelector('meta[name="estabelecimento-id"]')?.content;
+            
+            // Se tiver IDs, busca documentos
+            if (this.processoId && this.estabelecimentoId) {
+                this.buscarDocumentosDisponiveis();
             }
+            
+            // Recupera histórico do localStorage se houver (opcional)
+            const salvo = localStorage.getItem('chat_edicao_historico');
+            if (salvo) {
+                // Implementar recuperação se desejado
+            }
+            
+            // Escuta eventos de abertura
+            window.addEventListener('abrir-chat-edicao', () => {
+                this.chatAberto = true;
+                this.minimizado = false;
+                this.$nextTick(() => this.scrollToBottom());
+            });
+            
+            this.monitorarEditor();
+        },
+        
+        async buscarDocumentosDisponiveis() {
+            console.log('Assistente Redação: Buscando documentos...', { processo: this.processoId, estabelecimento: this.estabelecimentoId });
+            
+            if (!this.processoId || !this.estabelecimentoId) {
+                console.warn('Assistente Redação: IDs ausentes');
+                return;
+            }
+            
+            try {
+                const url = `/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`;
+                console.log('Assistente Redação: URL busca', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('Assistente Redação: Resposta busca', data);
+                
+                if (data.success) {
+                    // Remove documentos já carregados da lista
+                    const idsCarregados = this.documentosCarregados.map(d => d.documento_id);
+                    this.documentosDisponiveis = data.documentos.filter(doc => !idsCarregados.includes(doc.id));
+                }
+            } catch (error) {
+                console.error('Erro ao buscar documentos:', error);
+            }
+        },
+        
+        toggleDocumento(docId) {
+            const index = this.documentosSelecionados.indexOf(docId);
+            if (index > -1) {
+                this.documentosSelecionados.splice(index, 1);
+            } else {
+                this.documentosSelecionados.push(docId);
+            }
+        },
+        
+        async carregarDocumentosSelecionados() {
+            if (this.documentosSelecionados.length === 0) return;
+            
+            // Limita a 3 documentos no total
+            const totalAposCarregar = this.documentosCarregados.length + this.documentosSelecionados.length;
+            if (totalAposCarregar > 3) {
+                alert('⚠️ Limite atingido!\n\nVocê pode carregar no máximo 3 documentos por vez.');
+                return;
+            }
+            
+            this.carregandoMultiplos = true;
+            
+            try {
+                const response = await fetch('/admin/ia/extrair-multiplos-pdfs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        documento_ids: this.documentosSelecionados,
+                        processo_id: this.processoId,
+                        estabelecimento_id: this.estabelecimentoId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Adiciona novos documentos aos já carregados
+                    data.documentos.forEach(doc => {
+                        this.documentosCarregados.push({
+                            documento_id: doc.documento_id,
+                            nome_documento: doc.nome_documento,
+                            conteudo: doc.conteudo
+                        });
+                    });
+                    
+                    // Atualiza lista de disponíveis
+                    await this.buscarDocumentosDisponiveis();
+                    
+                    // Limpa seleção
+                    this.documentosSelecionados = [];
+                    this.mostrarSeletorDocumentos = false;
+                    
+                    // Adiciona mensagem informativa
+                    this.mensagens.push({
+                        role: 'assistant',
+                        content: `✅ **${data.documentos.length} documento(s) carregado(s)!**\n\nAgora posso usar o conteúdo destes arquivos para auxiliar na redação.`,
+                        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    });
+                    
+                    this.$nextTick(() => this.scrollToBottom());
+                } else {
+                    alert(data.message || 'Erro ao carregar documentos');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar documentos:', error);
+                alert('Erro ao carregar documentos.');
+            } finally {
+                this.carregandoMultiplos = false;
+            }
+        },
+        
+        removerDocumento(docId) {
+            this.documentosCarregados = this.documentosCarregados.filter(d => d.documento_id !== docId);
+            this.buscarDocumentosDisponiveis(); // Devolve para a lista de disponíveis
         },
         
         toggleChat() {
@@ -372,6 +616,16 @@ function assistenteEdicaoDocumento() {
             
             this.carregando = true;
             
+            // Se busca web está ativa, mostra feedback
+            if (this.conhecimentoGeral) {
+                this.mensagens.push({
+                    role: 'assistant',
+                    content: '🔍 **Pesquisando na internet...**\n\nAguarde enquanto busco informações em tempo real na web.',
+                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                });
+                this.$nextTick(() => this.scrollToBottom());
+            }
+            
             // Captura dados do estabelecimento da página
             const dadosEstabelecimento = this.obterDadosEstabelecimento();
             
@@ -384,29 +638,62 @@ function assistenteEdicaoDocumento() {
                     },
                     body: JSON.stringify({
                         mensagem: mensagem,
-                        historico: this.mensagens.slice(-10),
+                        historico: this.mensagens.slice(-10).map(msg => ({
+                            role: msg.role,
+                            content: msg.content.length > 2000 ? msg.content.substring(0, 2000) + '... [truncado]' : msg.content
+                        })),
                         texto_atual: this.textoEditor,
                         conhecimento_geral: this.conhecimentoGeral,
-                        dados_estabelecimento: dadosEstabelecimento
+                        dados_estabelecimento: dadosEstabelecimento,
+                        documentos_contexto: this.documentosCarregados.map(doc => ({
+                            nome_documento: doc.nome_documento,
+                            conteudo: doc.conteudo
+                        }))
                     })
                 });
                 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Erro ${response.status}: Falha ao comunicar com servidor`);
+                }
+                
                 const data = await response.json();
                 
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
                 if (data.resposta) {
+                    // Remove mensagem de "Pesquisando..." se existir
+                    if (this.conhecimentoGeral && this.mensagens.length > 0) {
+                        const ultimaMensagem = this.mensagens[this.mensagens.length - 1];
+                        if (ultimaMensagem.role === 'assistant' && ultimaMensagem.content.includes('🔍 **Pesquisando na internet')) {
+                            this.mensagens.pop();
+                        }
+                    }
+                    
                     this.mensagens.push({
                         role: 'assistant',
                         content: this.formatarMensagem(data.resposta),
                         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     });
                 } else {
-                    throw new Error('Resposta inválida');
+                    throw new Error('Resposta inválida da IA');
                 }
             } catch (error) {
                 console.error('Erro ao enviar mensagem:', error);
+                
+                // Remove mensagem de "Pesquisando..." se existir
+                if (this.conhecimentoGeral && this.mensagens.length > 0) {
+                    const ultimaMensagem = this.mensagens[this.mensagens.length - 1];
+                    if (ultimaMensagem.role === 'assistant' && ultimaMensagem.content.includes('🔍 **Pesquisando na internet')) {
+                        this.mensagens.pop();
+                    }
+                }
+                
                 this.mensagens.push({
                     role: 'assistant',
-                    content: '❌ Desculpe, ocorreu um erro. Tente novamente.',
+                    content: `❌ ${error.message || 'Desculpe, ocorreu um erro. Tente novamente.'}`,
                     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                 });
             } finally {

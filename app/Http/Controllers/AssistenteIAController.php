@@ -1582,28 +1582,37 @@ Acesso: Menu lateral > Ícone de engrenagem
                 'busca_ampla' => strpos($messageLower, 'rdc') !== false
             ]);
             
-            // Tenta primeiro no DuckDuckGo (mais simples e permissivo)
-            $resultados = $this->buscarNoDuckDuckGo($query);
+            // PRIORIDADE 1: Tenta DuckDuckGo Instant Answer API (gratuita, sem bloqueios)
+            $resultados = $this->buscarDuckDuckGoAPI($query);
             
-            // Se DuckDuckGo não retornar, tenta Bing
+            // PRIORIDADE 2: Se API não retornar, tenta scraping do DuckDuckGo HTML
+            if (empty($resultados)) {
+                \Log::info('DuckDuckGo API não retornou, tentando scraping HTML...');
+                $resultados = $this->buscarNoDuckDuckGo($query);
+            }
+            
+            // PRIORIDADE 3: Se DuckDuckGo não retornar, tenta Bing
             if (empty($resultados)) {
                 \Log::info('DuckDuckGo não retornou resultados, tentando Bing...');
                 $resultados = $this->buscarNoBing($query);
             }
             
-            // Se Bing não retornar, tenta Google
+            // PRIORIDADE 4: Se Bing não retornar, tenta Google
             if (empty($resultados)) {
                 \Log::info('Bing não retornou resultados, tentando Google...');
                 $resultados = $this->buscarNoGoogle($query);
             }
             
             if (empty($resultados)) {
-                \Log::info('Nenhum resultado encontrado em nenhum buscador');
+                \Log::warning('❌ Nenhum resultado encontrado em nenhum buscador', [
+                    'query' => $query
+                ]);
                 return [];
             }
             
-            \Log::info('Resultados encontrados', [
-                'total' => count($resultados)
+            \Log::info('✅ Resultados encontrados!', [
+                'total' => count($resultados),
+                'fonte' => 'Internet Real'
             ]);
             
             return [
@@ -1618,6 +1627,144 @@ Acesso: Menu lateral > Ícone de engrenagem
                 'erro' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            return [];
+        }
+    }
+    
+    /**
+     * Busca usando DuckDuckGo Instant Answer API + HTML Lite (híbrido)
+     */
+    private function buscarDuckDuckGoAPI($query)
+    {
+        try {
+            $resultados = [];
+            
+            // MÉTODO 1: API Instant Answer (para definições e info geral)
+            $apiUrl = 'https://api.duckduckgo.com/?q=' . urlencode($query) . '&format=json&no_html=1&skip_disambig=1';
+            \Log::info('🦆 Buscando via DuckDuckGo API', ['url' => $apiUrl]);
+            
+            $response = Http::timeout(10)->get($apiUrl);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Extrai Abstract (resposta direta)
+                if (!empty($data['Abstract'])) {
+                    $resultados[] = [
+                        'titulo' => $data['Heading'] ?? 'Resposta Direta',
+                        'snippet' => $data['Abstract'],
+                        'url' => $data['AbstractURL'] ?? '',
+                        'fonte' => $data['AbstractSource'] ?? 'DuckDuckGo'
+                    ];
+                }
+                
+                // Extrai Related Topics (tópicos relacionados com links)
+                if (!empty($data['RelatedTopics'])) {
+                    foreach (array_slice($data['RelatedTopics'], 0, 5) as $topic) {
+                        if (isset($topic['Text']) && isset($topic['FirstURL'])) {
+                            $resultados[] = [
+                                'titulo' => strip_tags($topic['Text']),
+                                'snippet' => strip_tags($topic['Text']),
+                                'url' => $topic['FirstURL'],
+                                'fonte' => 'DuckDuckGo'
+                            ];
+                        }
+                    }
+                }
+                
+                // Extrai Results (resultados de busca)
+                if (!empty($data['Results'])) {
+                    foreach (array_slice($data['Results'], 0, 5) as $result) {
+                        if (isset($result['Text']) && isset($result['FirstURL'])) {
+                            $resultados[] = [
+                                'titulo' => strip_tags($result['Text']),
+                                'snippet' => strip_tags($result['Text']),
+                                'url' => $result['FirstURL'],
+                                'fonte' => 'DuckDuckGo'
+                            ];
+                        }
+                    }
+                }
+            }
+            
+            // MÉTODO 2: Se API não retornou links úteis, usa busca HTML lite
+            if (empty($resultados) || count($resultados) < 2) {
+                \Log::info('🔍 Tentando DuckDuckGo Lite para obter mais links...');
+                $liteResults = $this->buscarDuckDuckGoLite($query);
+                $resultados = array_merge($resultados, $liteResults);
+            }
+            
+            if (!empty($resultados)) {
+                \Log::info('✅ DuckDuckGo retornou resultados', ['total' => count($resultados)]);
+            } else {
+                \Log::info('⚠️ DuckDuckGo não retornou resultados úteis');
+            }
+            
+            return $resultados;
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro na DuckDuckGo API', ['erro' => $e->getMessage()]);
+            return [];
+        }
+    }
+    
+    /**
+     * Busca usando DuckDuckGo Lite (versão simplificada que retorna links reais)
+     */
+    private function buscarDuckDuckGoLite($query)
+    {
+        try {
+            // DuckDuckGo Lite é mais fácil de parsear e retorna links reais
+            $searchUrl = 'https://lite.duckduckgo.com/lite/?q=' . urlencode($query);
+            
+            \Log::info('🔍 Buscando no DuckDuckGo Lite', ['url' => $searchUrl]);
+            
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ])->timeout(10)->get($searchUrl);
+            
+            if (!$response->successful()) {
+                return [];
+            }
+            
+            $html = $response->body();
+            $resultados = [];
+            
+            // Parseia HTML do DuckDuckGo Lite (estrutura simples)
+            // Procura por links de resultados: <a rel="nofollow" href="URL">
+            preg_match_all('/<a\s+rel="nofollow"\s+href="([^"]+)"[^>]*>([^<]+)<\/a>/i', $html, $matches, PREG_SET_ORDER);
+            
+            foreach (array_slice($matches, 0, 5) as $match) {
+                $url = html_entity_decode($match[1]);
+                $titulo = html_entity_decode(strip_tags($match[2]));
+                
+                // Filtra URLs válidas (não links internos do DuckDuckGo)
+                if (strpos($url, 'http') === 0 && strpos($url, 'duckduckgo.com') === false) {
+                    $resultados[] = [
+                        'titulo' => $titulo,
+                        'snippet' => $titulo,
+                        'url' => $url,
+                        'fonte' => 'DuckDuckGo Lite'
+                    ];
+                }
+            }
+            
+            // Também procura por snippets (descrições)
+            preg_match_all('/<td\s+class="result-snippet"[^>]*>([^<]+)<\/td>/i', $html, $snippets);
+            if (!empty($snippets[1])) {
+                foreach ($resultados as $idx => &$resultado) {
+                    if (isset($snippets[1][$idx])) {
+                        $resultado['snippet'] = trim(strip_tags($snippets[1][$idx]));
+                    }
+                }
+            }
+            
+            \Log::info('DuckDuckGo Lite encontrou', ['total' => count($resultados)]);
+            
+            return $resultados;
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro no DuckDuckGo Lite', ['erro' => $e->getMessage()]);
             return [];
         }
     }
@@ -2096,6 +2243,7 @@ Acesso: Menu lateral > Ícone de engrenagem
             'historico' => 'nullable|array',
             'texto_atual' => 'nullable|string|max:50000',
             'conhecimento_geral' => 'nullable|boolean',
+            'documentos_contexto' => 'nullable|array',
         ]);
 
         // Verifica se IA está ativa
@@ -2111,38 +2259,48 @@ Acesso: Menu lateral > Ícone de engrenagem
         $textoAtual = $request->input('texto_atual', '');
         $conhecimentoGeral = $request->input('conhecimento_geral', false);
         $dadosEstabelecimento = $request->input('dados_estabelecimento', []);
+        $documentosContexto = $request->input('documentos_contexto', []);
 
         try {
             // Se conhecimento geral está ativo, busca na internet primeiro
             $resultadosBusca = '';
             if ($conhecimentoGeral) {
-                \Log::info('Buscando na internet para assistente de edição', [
-                    'mensagem' => $mensagem
+                \Log::info('🌐 ASSISTENTE REDAÇÃO: Busca na internet ATIVADA', [
+                    'mensagem' => $mensagem,
+                    'timestamp' => now()->toDateTimeString()
                 ]);
                 
-                // Usa a mesma lógica de busca do assistente principal
-                $messageLower = strtolower($mensagem);
-                
-                if (strpos($messageLower, 'rdc') !== false || strpos($messageLower, 'resolução') !== false) {
-                    // Busca ampla para RDCs (inclui sites não oficiais que podem ter a informação)
-                    $query = $mensagem . ' anvisa';
-                } else {
-                    // Busca focada em sites oficiais
-                    $query = $mensagem . ' site:anvisa.gov.br OR site:in.gov.br';
-                }
+                // Usa a mesma lógica de busca do assistente principal (centralizada no método buscarNaInternet)
+                // Não construímos a query aqui para evitar duplicação de filtros
                 
                 // Tenta busca na internet
-                $resultadosBusca = $this->buscarNaInternet($query);
+                $resultadosBusca = $this->buscarNaInternet($mensagem);
                 
                 if (!empty($resultadosBusca)) {
-                    \Log::info('Resultados da busca na internet encontrados', [
-                        'resultados_count' => count($resultadosBusca)
+                    $totalResultados = is_array($resultadosBusca) ? ($resultadosBusca['total'] ?? count($resultadosBusca)) : 0;
+                    \Log::info('✅ ASSISTENTE REDAÇÃO: Resultados da busca encontrados!', [
+                        'total_resultados' => $totalResultados,
+                        'tem_array_resultados' => isset($resultadosBusca['resultados']),
+                        'query_usada' => $resultadosBusca['query'] ?? 'N/A'
                     ]);
+                } else {
+                    \Log::warning('⚠️ ASSISTENTE REDAÇÃO: Nenhum resultado encontrado na busca', [
+                        'mensagem' => $mensagem
+                    ]);
+                    
+                    // Se não encontrou resultados, informa isso explicitamente no prompt
+                    $resultadosBusca = [
+                        'fonte' => 'Busca na Internet',
+                        'query' => $mensagem,
+                        'resultados' => [],
+                        'total' => 0,
+                        'aviso' => 'A busca foi executada mas não retornou resultados. Possível bloqueio de scraping ou query muito específica.'
+                    ];
                 }
             }
             
             // Monta o prompt do sistema
-            $systemPrompt = $this->construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca, $dadosEstabelecimento);
+            $systemPrompt = $this->construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca, $dadosEstabelecimento, $documentosContexto);
 
             // Monta histórico de mensagens
             $messages = [
@@ -2194,11 +2352,14 @@ Acesso: Menu lateral > Ícone de engrenagem
             ]);
 
             if (!$response->successful()) {
+                $errorBody = $response->json();
+                $errorMessage = $errorBody['error']['message'] ?? $errorBody['message'] ?? 'Erro desconhecido da IA';
+                
                 \Log::error('Erro na API Together AI', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
-                throw new \Exception('Erro ao comunicar com a IA');
+                throw new \Exception("Erro na IA: $errorMessage");
             }
 
             $data = $response->json();
@@ -2215,7 +2376,7 @@ Acesso: Menu lateral > Ícone de engrenagem
             ]);
 
             return response()->json([
-                'error' => 'Erro ao processar mensagem: ' . $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -2223,7 +2384,7 @@ Acesso: Menu lateral > Ícone de engrenagem
     /**
      * Constrói o prompt do sistema para edição de documentos
      */
-    private function construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca = '', $dadosEstabelecimento = [])
+    private function construirPromptEdicaoDocumento($textoAtual, $conhecimentoGeral, $resultadosBusca = '', $dadosEstabelecimento = [], $documentosContexto = [])
     {
         $prompt = "Você é um assistente especializado em redação e correção de textos para documentos oficiais.\n\n";
         
@@ -2246,6 +2407,37 @@ Acesso: Menu lateral > Ícone de engrenagem
                 $prompt .= "- Processo nº: " . $dadosEstabelecimento['processo_numero'] . "\n";
             }
             $prompt .= "\n⚠️ IMPORTANTE: Use estes dados automaticamente quando o usuário pedir para criar ofícios, despachos, notificações ou outros documentos.\n\n";
+        }
+
+        // Adiciona documentos de contexto
+        if (!empty($documentosContexto)) {
+            $prompt .= "**DOCUMENTOS DE REFERÊNCIA CARREGADOS:**\n";
+            $prompt .= "Use as informações contidas nestes documentos para embasar suas respostas e redações.\n";
+            $prompt .= "Se o usuário pedir para 'resumir', 'analisar' ou 'extrair informações' destes documentos, use o conteúdo abaixo.\n\n";
+            
+            // Calcula orçamento de caracteres para não estourar tokens
+            // Limite total seguro: 20.000 caracteres (~5.000 tokens)
+            // Isso deixa espaço para histórico (2000 tokens) e resposta (1000 tokens)
+            $totalDocs = count($documentosContexto);
+            $orcamentoTotal = 20000;
+            $maxCharsPorDoc = $totalDocs > 0 ? floor($orcamentoTotal / $totalDocs) : 20000;
+            
+            // Garante um mínimo de 2000 caracteres por documento se possível
+            if ($maxCharsPorDoc < 2000) $maxCharsPorDoc = 2000;
+            
+            foreach ($documentosContexto as $index => $doc) {
+                $nome = $doc['nome_documento'] ?? 'Documento ' . ($index + 1);
+                $conteudo = $doc['conteudo'] ?? '';
+                
+                // Limita tamanho dinamicamente
+                if (mb_strlen($conteudo) > $maxCharsPorDoc) {
+                    $conteudo = mb_substr($conteudo, 0, $maxCharsPorDoc) . "\n[...texto truncado pelo sistema...]";
+                }
+                
+                $prompt .= "--- INÍCIO DO DOCUMENTO: {$nome} ---\n";
+                $prompt .= $conteudo . "\n";
+                $prompt .= "--- FIM DO DOCUMENTO: {$nome} ---\n\n";
+            }
         }
         
         $prompt .= "**SUA FUNÇÃO:**\n";
@@ -2375,11 +2567,47 @@ Acesso: Menu lateral > Ícone de engrenagem
             $prompt .= "Pode sugerir modelos, templates e boas práticas de redação oficial.\n\n";
             
             if (!empty($resultadosBusca)) {
-                $prompt .= "**RESULTADOS DA BUSCA NA INTERNET:**\n";
-                $prompt .= "Use estas informações como referência para suas respostas:\n\n";
-                $prompt .= $resultadosBusca . "\n\n";
-                $prompt .= "**IMPORTANTE:** Baseie suas respostas principalmente nos resultados da busca acima, ";
-                $prompt .= "pois são informações atualizadas e relevantes. Se necessário, complemente com seu conhecimento.\n\n";
+                // Verifica se realmente tem resultados ou se está vazio
+                $listaResultados = is_array($resultadosBusca) ? ($resultadosBusca['resultados'] ?? []) : [];
+                $totalResultados = is_array($listaResultados) ? count($listaResultados) : 0;
+                
+                if ($totalResultados > 0) {
+                    $prompt .= "**RESULTADOS DA PESQUISA NA INTERNET REALIZADA PELO SISTEMA:**\n";
+                    $prompt .= "⚠️ INSTRUÇÃO CRÍTICA: O sistema acessou a internet em tempo real para você. As informações abaixo SÃO resultados reais da web obtidos AGORA.\n";
+                    $prompt .= "NÃO diga 'não tenho acesso à internet'. USE APENAS as informações abaixo. NÃO INVENTE LINKS.\n\n";
+                    
+                    foreach ($listaResultados as $idx => $result) {
+                        // Normaliza chaves (pode vir como title/titulo, snippet/descricao/resumo)
+                        $titulo = $result['title'] ?? $result['titulo'] ?? 'Resultado ' . ($idx + 1);
+                        $snippet = $result['snippet'] ?? $result['descricao'] ?? $result['resumo'] ?? '';
+                        $link = $result['link'] ?? $result['url'] ?? '';
+                        
+                        // Se não tiver snippet mas tiver titulo, usa titulo
+                        if (empty($snippet) && !empty($titulo)) {
+                            $snippet = "Ver link para mais detalhes.";
+                        }
+                        
+                        if (!empty($titulo) || !empty($link)) {
+                            $prompt .= "--- Resultado " . ($idx + 1) . " ---\n";
+                            $prompt .= "Título: {$titulo}\n";
+                            $prompt .= "Link: {$link}\n";
+                            $prompt .= "Resumo: {$snippet}\n\n";
+                        }
+                    }
+                    
+                    $prompt .= "**FIM DOS RESULTADOS DA WEB**\n\n";
+                    $prompt .= "**IMPORTANTE:** Use APENAS os links acima. NÃO invente URLs. Se o usuário pedir links, forneça EXATAMENTE os que estão listados acima.\n\n";
+                } else {
+                    // Busca foi executada mas não retornou resultados
+                    $prompt .= "**AVISO: BUSCA NA INTERNET EXECUTADA SEM RESULTADOS**\n";
+                    $prompt .= "⚠️ INSTRUÇÃO CRÍTICA: A busca na internet foi realizada, mas não retornou resultados válidos.\n";
+                    $prompt .= "Possíveis causas: bloqueio de scraping pelos buscadores, query muito específica, ou sites fora do ar.\n";
+                    $prompt .= "VOCÊ DEVE informar ao usuário que:\n";
+                    $prompt .= "1. A busca FOI executada em tempo real\n";
+                    $prompt .= "2. Mas NÃO foram encontrados resultados\n";
+                    $prompt .= "3. NÃO INVENTE links ou informações\n";
+                    $prompt .= "4. Sugira que o usuário tente uma busca manual ou reformule a pergunta\n\n";
+                }
             }
         }
         

@@ -14,6 +14,11 @@
 @endpush
 
 @section('content')
+@if(isset($processo))
+    <meta name="processo-id" content="{{ $processo->id }}">
+    <meta name="estabelecimento-id" content="{{ $processo->estabelecimento_id }}">
+@endif
+
 <div class="min-h-screen bg-gray-50" x-data="documentoEditor()">
     <div class="max-w-8xl mx-auto px-4 py-8">
         {{-- Mensagens de Erro --}}

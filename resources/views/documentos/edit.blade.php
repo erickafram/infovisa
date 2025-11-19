@@ -8,6 +8,11 @@
 @endphp
 
 @section('content')
+@if(isset($processo))
+    <meta name="processo-id" content="{{ $processo->id }}">
+    <meta name="estabelecimento-id" content="{{ $processo->estabelecimento_id }}">
+@endif
+
 {{-- Script de Edição Colaborativa --}}
 <script src="{{ asset('js/edicao-colaborativa.js') }}"></script>
 
