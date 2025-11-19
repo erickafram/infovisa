@@ -25,21 +25,16 @@ php artisan db:seed
 git pull origin main
 
 -- 2. ATUALIZAR DEPENDÊNCIAS (se houver novos pacotes)
-composer install
+composer install --no-dev --optimize-autoloader
 npm install
 
 -- 3. VERIFICAR STATUS DAS MIGRATIONS
-php artisan migrate:status
+php artisan migrate --force
 
--- 4. SE HOUVER ERRO DE "DUPLICATE TABLE" OU "TABELA JÁ EXISTE":
---    Execute o script de correção:
-php fix-migrations-2025.php
-
--- 5. RODAR MIGRATIONS (novas tabelas/colunas)
-php artisan migrate
-
--- 6. RODAR SEEDERS (novos dados)
-php artisan db:seed
+php artisan optimize:clear
+php artisan optimize
+php artisan view:clear
+php artisan config:clear
 
 -- 7. LIMPAR CACHE (SEMPRE!)
 php artisan cache:clear
