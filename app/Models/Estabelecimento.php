@@ -599,9 +599,21 @@ class Estabelecimento extends Model
             $municipio = trim($municipio);
         }
         
-        // Se pelo menos uma atividade for estadual (considerando exceções), o estabelecimento é estadual
+        // Se pelo menos uma atividade for estadual (considerando exceções e questionários), o estabelecimento é estadual
         foreach ($atividades as $cnae) {
-            if (Pactuacao::isAtividadeEstadual($cnae, $municipio)) {
+            // Busca resposta do questionário para este CNAE, se houver
+            $resposta = null;
+            $cnaeString = (string)$cnae;
+            
+            if ($this->respostas_questionario) {
+                if (isset($this->respostas_questionario[$cnaeString])) {
+                    $resposta = $this->respostas_questionario[$cnaeString];
+                } elseif (isset($this->respostas_questionario[(int)$cnaeString])) {
+                    $resposta = $this->respostas_questionario[(int)$cnaeString];
+                }
+            }
+
+            if (Pactuacao::isAtividadeEstadual($cnaeString, $municipio, $resposta)) {
                 return true;
             }
         }

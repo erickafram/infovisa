@@ -44,7 +44,8 @@
     <form id="formEstabelecimento" method="POST" action="{{ route('admin.estabelecimentos.store') }}" 
           x-data="estabelecimentoForm()" 
           @submit="handleSubmit($event)"
-          class="space-y-6">
+          class="space-y-6"
+          novalidate>
         @csrf
         <input type="hidden" name="tipo_pessoa" value="juridica">
 
@@ -1185,6 +1186,10 @@ function estabelecimentoForm() {
                 this.verificarCompetencia();
                 this.buscarQuestionarios();
             });
+            // Recalcula competência quando as respostas mudam
+            this.$watch('respostasQuestionario', () => {
+                this.verificarCompetencia();
+            }, { deep: true });
         },
 
         // Métodos para busca manual de CNAE
@@ -1274,7 +1279,8 @@ function estabelecimentoForm() {
                 cnae_fiscal: this.dados.cnae_fiscal,
                 atividadesExercidas: this.atividadesExercidas,
                 atividades: atividades,
-                municipio: this.dados.cidade
+                municipio: this.dados.cidade,
+                respostas: JSON.parse(JSON.stringify(this.respostasQuestionario)) // Debug das respostas
             });
             
             if (atividades.length === 0) {
@@ -1292,7 +1298,8 @@ function estabelecimentoForm() {
                     },
                     body: JSON.stringify({
                         atividades: atividades,
-                        municipio: this.dados.cidade
+                        municipio: this.dados.cidade,
+                        respostas_questionario: this.respostasQuestionario
                     })
                 });
                 
@@ -1915,11 +1922,16 @@ function estabelecimentoForm() {
         },
 
         handleSubmit(event) {
-            // Intercepta o submit para tratar possíveis erros 419
-            const form = event.target;
-            
             // Previne o submit padrão
             event.preventDefault();
+
+            // Valida a aba atual (contato) antes de enviar
+            if (!this.validarAbaAtual()) {
+                return;
+            }
+
+            // Intercepta o submit para tratar possíveis erros 419
+            const form = event.target;
             
             // Envia o formulário via fetch para capturar erro 419
             const formData = new FormData(form);

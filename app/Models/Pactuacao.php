@@ -53,10 +53,18 @@ class Pactuacao extends Model
     
     /**
      * Verifica se uma atividade é de competência estadual
-     * Considera exceções municipais (descentralização)
+     * Considera exceções municipais (descentralização) e resposta do questionário
      */
-    public static function isAtividadeEstadual($cnaeCodigo, $municipio = null)
+    public static function isAtividadeEstadual($cnaeCodigo, $municipio = null, $resposta = null)
     {
+        // Se a resposta do questionário for "não", a competência é MUNICIPAL
+        if ($resposta !== null) {
+            $resp = strtolower(trim($resposta));
+            if ($resp === 'nao' || $resp === 'não') {
+                return false;
+            }
+        }
+
         $pactuacao = self::where('tipo', 'estadual')
             ->where('cnae_codigo', $cnaeCodigo)
             ->where('ativo', true)

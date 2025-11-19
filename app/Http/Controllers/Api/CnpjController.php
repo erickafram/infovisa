@@ -133,10 +133,12 @@ class CnpjController extends Controller
         try {
             $atividades = $request->input('atividades', []);
             $municipio = $request->input('municipio', null);
+            $respostasQuestionario = $request->input('respostas_questionario', []);
             
             \Log::info('=== VERIFICAÇÃO DE COMPETÊNCIA INICIADA ===', [
                 'atividades_recebidas' => $atividades,
-                'municipio_recebido' => $municipio
+                'municipio_recebido' => $municipio,
+                'respostas_recebidas' => $respostasQuestionario
             ]);
             
             // Valida se tem atividades
@@ -154,6 +156,19 @@ class CnpjController extends Controller
                 $municipio = trim($municipio);
             }
 
+            // Normaliza as chaves das respostas para garantir compatibilidade
+            $respostasNormalizadas = [];
+            if (is_array($respostasQuestionario)) {
+                foreach ($respostasQuestionario as $key => $val) {
+                    $keyLimpa = preg_replace('/[^0-9]/', '', $key);
+                    $respostasNormalizadas[$keyLimpa] = $val;
+                    // Mantém a original também se for diferente
+                    if ($key !== $keyLimpa) {
+                        $respostasNormalizadas[$key] = $val;
+                    }
+                }
+            }
+
             // Verifica se pelo menos uma atividade é estadual
             $temAtividadeEstadual = false;
             $atividadesVerificadas = [];
@@ -162,24 +177,34 @@ class CnpjController extends Controller
                 try {
                     // Remove formatação do CNAE
                     $cnaeOriginal = $cnae;
-                    $cnae = preg_replace('/[^0-9]/', '', $cnae);
+                    $cnaeLimpo = preg_replace('/[^0-9]/', '', $cnae);
                     
                     \Log::info('Verificando CNAE', [
                         'cnae_original' => $cnaeOriginal,
-                        'cnae_limpo' => $cnae,
+                        'cnae_limpo' => $cnaeLimpo,
                         'municipio' => $municipio
                     ]);
+
+                    // Busca a resposta para este CNAE se houver
+                    $resposta = null;
+                    if (isset($respostasNormalizadas[$cnaeLimpo])) {
+                        $resposta = $respostasNormalizadas[$cnaeLimpo];
+                    } elseif (isset($respostasNormalizadas[$cnaeOriginal])) {
+                        $resposta = $respostasNormalizadas[$cnaeOriginal];
+                    } elseif (isset($respostasNormalizadas[(int)$cnaeLimpo])) {
+                        $resposta = $respostasNormalizadas[(int)$cnaeLimpo];
+                    }
                     
-                    // Verifica se é atividade estadual
-                    $isEstadual = \App\Models\Pactuacao::isAtividadeEstadual($cnae, $municipio);
+                    // Verifica se é atividade estadual passando a resposta
+                    $isEstadual = \App\Models\Pactuacao::isAtividadeEstadual($cnaeLimpo, $municipio, $resposta);
                     
                     \Log::info('Resultado verificação', [
-                        'cnae' => $cnae,
+                        'cnae' => $cnaeLimpo,
                         'is_estadual' => $isEstadual ? 'SIM' : 'NÃO'
                     ]);
                     
                     $atividadesVerificadas[] = [
-                        'cnae' => $cnae,
+                        'cnae' => $cnaeLimpo,
                         'estadual' => $isEstadual
                     ];
                     

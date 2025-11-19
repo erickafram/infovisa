@@ -607,13 +607,40 @@
                     <div class="mb-3" x-show="tabelaSelecionada === 'III' || tabelaSelecionada === 'IV'">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
                             Municípios Descentralizados (Exceções)
-                            <span class="text-xs text-gray-500">(separados por vírgula)</span>
                         </label>
-                        <textarea 
-                            x-model="municipiosExcecaoTexto" 
-                            rows="2"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ex: Araguaína, Palmas, Gurupi"></textarea>
+                        
+                        <div class="relative" @click.away="dropdownAberto = false">
+                            <div class="border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 cursor-text min-h-[42px] bg-white" 
+                                 @click="dropdownAberto = true; $nextTick(() => $refs.inputBusca.focus())">
+                                <template x-for="mun in municipiosSelecionados" :key="mun">
+                                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                                        <span x-text="mun"></span>
+                                        <button type="button" @click.stop="removerMunicipio(mun)" class="hover:text-blue-900 font-bold px-1">×</button>
+                                    </span>
+                                </template>
+                                <input type="text" 
+                                       x-ref="inputBusca"
+                                       x-model="buscaMunicipio" 
+                                       @focus="dropdownAberto = true"
+                                       class="outline-none text-sm flex-1 min-w-[120px] border-none focus:ring-0 p-0" 
+                                       placeholder="Buscar município...">
+                            </div>
+                            
+                            <div x-show="dropdownAberto && municipiosFiltrados().length > 0" 
+                                 class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
+                                <template x-for="mun in municipiosFiltrados()" :key="mun.id">
+                                    <div class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700" 
+                                         @click="adicionarMunicipio(mun.nome)">
+                                        <span x-text="mun.nome"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            <div x-show="dropdownAberto && municipiosFiltrados().length === 0 && buscaMunicipio.length > 0" 
+                                 class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm text-gray-500 mt-1">
+                                Nenhum município encontrado
+                            </div>
+                        </div>
+                        
                         <p class="mt-1 text-xs text-gray-500">
                             Municípios que receberam descentralização para fiscalizar esta atividade.
                         </p>
@@ -776,6 +803,11 @@
 <script>
 function pactuacaoManager() {
     return {
+        todosMunicipios: @json($todosMunicipios),
+        municipiosSelecionados: [],
+        buscaMunicipio: '',
+        dropdownAberto: false,
+        
         abaAtiva: 'tabela-i',
         modalAdicionar: false,
         modalExcecao: false,
@@ -786,7 +818,7 @@ function pactuacaoManager() {
         classificacaoRisco: '',
         perguntaQuestionario: '',
         cnaesTexto: '',
-        municipiosExcecaoTexto: '',
+        // municipiosExcecaoTexto removido
         observacaoTexto: '',
         excecaoId: null,
         excecaoCnae: '',
@@ -800,6 +832,28 @@ function pactuacaoManager() {
         resultadosPesquisa: [],
         pesquisando: false,
         timeoutPesquisa: null,
+
+        adicionarMunicipio(nome) {
+            if (!this.municipiosSelecionados.includes(nome)) {
+                this.municipiosSelecionados.push(nome);
+                this.municipiosSelecionados.sort();
+            }
+            this.buscaMunicipio = '';
+            // Mantém o dropdown aberto para selecionar mais
+            this.$refs.inputBusca.focus();
+        },
+
+        removerMunicipio(nome) {
+            this.municipiosSelecionados = this.municipiosSelecionados.filter(m => m !== nome);
+        },
+        
+        municipiosFiltrados() {
+            const busca = this.buscaMunicipio.toLowerCase();
+            return this.todosMunicipios.filter(m => 
+                m.nome.toLowerCase().includes(busca) && 
+                !this.municipiosSelecionados.includes(m.nome)
+            );
+        },
 
         async adicionarAtividades() {
             if (!this.cnaesTexto.trim()) {
@@ -852,8 +906,8 @@ function pactuacaoManager() {
 
                 // Prepara municípios de exceção se for estadual
                 let municipiosExcecao = null;
-                if (this.tipoModal === 'estadual' && this.municipiosExcecaoTexto.trim()) {
-                    municipiosExcecao = this.municipiosExcecaoTexto.split(',').map(m => m.trim()).filter(m => m);
+                if (this.tipoModal === 'estadual' && this.municipiosSelecionados.length > 0) {
+                    municipiosExcecao = this.municipiosSelecionados;
                 }
 
                 // Envia todas as atividades de uma vez
@@ -1028,7 +1082,8 @@ function pactuacaoManager() {
                     this.cnaesTexto = data.cnae_codigo;
                     this.classificacaoRisco = data.classificacao_risco;
                     this.perguntaQuestionario = data.pergunta || '';
-                    this.municipiosExcecaoTexto = data.municipios_excecao ? data.municipios_excecao.join(', ') : '';
+                    // Preencher municípios selecionados (array)
+                    this.municipiosSelecionados = data.municipios_excecao || [];
                     this.observacaoTexto = data.observacao || '';
                     this.modalAdicionar = true; // Reusar o mesmo modal
                 })
