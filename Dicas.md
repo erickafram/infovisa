@@ -22,6 +22,7 @@ php artisan db:seed
 -- ============================================================
 
 -- 1. PUXAR ATUALIZAÇÕES DO GITHUB
+cd /home/erick/htdocs/erickdev.online
 git pull origin main
 
 -- 2. ATUALIZAR DEPENDÊNCIAS (se houver novos pacotes)
