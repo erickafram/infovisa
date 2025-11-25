@@ -287,5 +287,13 @@
     {{-- Assistente de Documento (canto inferior esquerdo) --}}
     @include('components.assistente-documento-chat')
 
+    {{-- Widget de Sugestões (lado direito) --}}
+    @include('components.sugestoes-widget')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            SugestoesWidget.init({{ Auth::guard('interno')->id() }}, {{ Auth::guard('interno')->user()->isAdmin() ? 'true' : 'false' }});
+        });
+    </script>
+
 </body>
 </html>

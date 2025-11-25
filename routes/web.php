@@ -394,6 +394,19 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     
     // Relatórios
     Route::get('/relatorios', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('relatorios.index');
+    
+    // Sugestões do Sistema
+    Route::prefix('sugestoes')->name('sugestoes.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SugestaoController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\SugestaoController::class, 'store'])->name('store');
+        Route::get('/estatisticas', [\App\Http\Controllers\Admin\SugestaoController::class, 'estatisticas'])->name('estatisticas');
+        Route::get('/{sugestao}', [\App\Http\Controllers\Admin\SugestaoController::class, 'show'])->name('show');
+        Route::put('/{sugestao}', [\App\Http\Controllers\Admin\SugestaoController::class, 'update'])->name('update');
+        Route::delete('/{sugestao}', [\App\Http\Controllers\Admin\SugestaoController::class, 'destroy'])->name('destroy');
+        Route::post('/{sugestao}/checklist/toggle', [\App\Http\Controllers\Admin\SugestaoController::class, 'toggleChecklistItem'])->name('checklist.toggle');
+        Route::post('/{sugestao}/checklist/add', [\App\Http\Controllers\Admin\SugestaoController::class, 'addChecklistItem'])->name('checklist.add');
+        Route::post('/{sugestao}/checklist/remove', [\App\Http\Controllers\Admin\SugestaoController::class, 'removeChecklistItem'])->name('checklist.remove');
+    });
 });
 
 // Rota temporária para consulta de CNPJ (sem middleware CSRF para AJAX)

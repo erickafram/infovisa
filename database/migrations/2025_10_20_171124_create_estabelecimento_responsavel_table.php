@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
             
             // Garantir que não haja duplicatas
-            $table->unique(['estabelecimento_id', 'responsavel_id', 'tipo_vinculo']);
+            $table->unique(['estabelecimento_id', 'responsavel_id', 'tipo_vinculo'], 'estab_resp_unique');
             
             // Índices para consultas rápidas
             $table->index('estabelecimento_id');

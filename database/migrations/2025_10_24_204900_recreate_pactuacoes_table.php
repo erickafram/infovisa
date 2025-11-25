@@ -18,8 +18,8 @@ return new class extends Migration
         Schema::create('pactuacoes', function (Blueprint $table) {
             $table->id();
             $table->enum('tipo', ['municipal', 'estadual'])->comment('Tipo de competência');
-            $table->string('municipio')->nullable()->comment('Nome do município (null para estadual)');
-            $table->string('cnae_codigo')->comment('Código CNAE da atividade');
+            $table->string('municipio', 100)->nullable()->comment('Nome do município (null para estadual)');
+            $table->string('cnae_codigo', 20)->comment('Código CNAE da atividade');
             $table->string('cnae_descricao')->comment('Descrição da atividade');
             $table->boolean('ativo')->default(true);
             $table->timestamps();

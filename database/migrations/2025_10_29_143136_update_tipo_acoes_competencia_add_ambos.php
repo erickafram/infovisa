@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // No PostgreSQL, precisamos usar DB::statement para alterar ENUM
-        \DB::statement("ALTER TABLE tipo_acoes DROP CONSTRAINT IF EXISTS tipo_acoes_competencia_check");
-        \DB::statement("ALTER TABLE tipo_acoes ADD CONSTRAINT tipo_acoes_competencia_check CHECK (competencia IN ('estadual', 'municipal', 'ambos'))");
+        // MySQL: Modificar a coluna ENUM
+        \DB::statement("ALTER TABLE tipo_acoes MODIFY COLUMN competencia ENUM('estadual', 'municipal', 'ambos') NOT NULL");
     }
 
     /**
@@ -21,7 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        \DB::statement("ALTER TABLE tipo_acoes DROP CONSTRAINT IF EXISTS tipo_acoes_competencia_check");
-        \DB::statement("ALTER TABLE tipo_acoes ADD CONSTRAINT tipo_acoes_competencia_check CHECK (competencia IN ('estadual', 'municipal'))");
+        \DB::statement("ALTER TABLE tipo_acoes MODIFY COLUMN competencia ENUM('estadual', 'municipal') NOT NULL");
     }
 };

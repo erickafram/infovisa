@@ -12,16 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // PostgreSQL: Recriar a constraint check com o novo status
+        // MySQL: Modificar a coluna ENUM para adicionar o novo status
         DB::statement("
             ALTER TABLE processos 
-            DROP CONSTRAINT IF EXISTS processos_status_check
-        ");
-        
-        DB::statement("
-            ALTER TABLE processos 
-            ADD CONSTRAINT processos_status_check 
-            CHECK (status IN (
+            MODIFY COLUMN status ENUM(
                 'aberto',
                 'em_analise',
                 'pendente',
@@ -29,7 +23,7 @@ return new class extends Migration
                 'indeferido',
                 'parado',
                 'arquivado'
-            ))
+            ) NOT NULL DEFAULT 'aberto'
         ");
     }
 

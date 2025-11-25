@@ -12,16 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // PostgreSQL: Recriar a constraint check com os novos valores
+        // MySQL: Modificar a coluna ENUM para adicionar os novos valores
         DB::statement("
             ALTER TABLE processo_eventos 
-            DROP CONSTRAINT IF EXISTS processo_eventos_tipo_evento_check
-        ");
-        
-        DB::statement("
-            ALTER TABLE processo_eventos 
-            ADD CONSTRAINT processo_eventos_tipo_evento_check 
-            CHECK (tipo_evento IN (
+            MODIFY COLUMN tipo_evento ENUM(
                 'processo_criado',
                 'documento_anexado',
                 'documento_digital_criado',
@@ -34,7 +28,7 @@ return new class extends Migration
                 'processo_reiniciado',
                 'movimentacao',
                 'observacao_adicionada'
-            ))
+            ) NOT NULL
         ");
     }
 
