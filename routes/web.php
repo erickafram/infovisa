@@ -57,9 +57,21 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 */
 
 Route::middleware('auth:externo')->prefix('company')->name('company.')->group(function () {
-    Route::get('/dashboard', function () {
-        return 'Dashboard da Empresa - Em Desenvolvimento';
-    })->name('dashboard');
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\Company\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Estabelecimentos
+    Route::get('/estabelecimentos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'index'])->name('estabelecimentos.index');
+    Route::get('/estabelecimentos/create', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'create'])->name('estabelecimentos.create');
+    Route::get('/estabelecimentos/create/juridica', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'createJuridica'])->name('estabelecimentos.create.juridica');
+    Route::get('/estabelecimentos/create/fisica', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'createFisica'])->name('estabelecimentos.create.fisica');
+    Route::post('/estabelecimentos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'store'])->name('estabelecimentos.store');
+    Route::post('/estabelecimentos/buscar-questionarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarQuestionarios'])->name('estabelecimentos.buscar-questionarios');
+    Route::get('/estabelecimentos/{id}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'show'])->name('estabelecimentos.show');
+    
+    // Processos
+    Route::get('/processos', [\App\Http\Controllers\Company\ProcessoController::class, 'index'])->name('processos.index');
+    Route::get('/processos/{id}', [\App\Http\Controllers\Company\ProcessoController::class, 'show'])->name('processos.show');
 });
 
 /*
