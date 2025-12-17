@@ -17,15 +17,20 @@ return new class extends Migration
             ->whereIn('status', ['aberta', 'concluida'])
             ->update(['status' => 'em_andamento']);
 
-        // 2. Remover constraint antiga
-        DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
+        $driver = DB::connection()->getDriverName();
         
-        // 3. Adicionar nova constraint com apenas 3 status
-        DB::statement("
-            ALTER TABLE ordens_servico 
-            ADD CONSTRAINT ordens_servico_status_check 
-            CHECK (status IN ('em_andamento', 'finalizada', 'cancelada'))
-        ");
+        if ($driver === 'pgsql') {
+            // PostgreSQL
+            DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
+            DB::statement("
+                ALTER TABLE ordens_servico 
+                ADD CONSTRAINT ordens_servico_status_check 
+                CHECK (status IN ('em_andamento', 'finalizada', 'cancelada'))
+            ");
+        } elseif ($driver === 'mysql') {
+            // MySQL: Alterar o tipo ENUM
+            DB::statement("ALTER TABLE ordens_servico MODIFY COLUMN status ENUM('em_andamento', 'finalizada', 'cancelada') NOT NULL DEFAULT 'em_andamento'");
+        }
     }
 
     /**
@@ -33,14 +38,17 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Remover constraint nova
-        DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
+        $driver = DB::connection()->getDriverName();
         
-        // Restaurar constraint antiga
-        DB::statement("
-            ALTER TABLE ordens_servico 
-            ADD CONSTRAINT ordens_servico_status_check 
-            CHECK (status IN ('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada'))
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
+            DB::statement("
+                ALTER TABLE ordens_servico 
+                ADD CONSTRAINT ordens_servico_status_check 
+                CHECK (status IN ('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada'))
+            ");
+        } elseif ($driver === 'mysql') {
+            DB::statement("ALTER TABLE ordens_servico MODIFY COLUMN status ENUM('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada') NOT NULL DEFAULT 'aberta'");
+        }
     }
 };

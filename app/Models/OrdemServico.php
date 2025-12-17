@@ -171,7 +171,7 @@ class OrdemServico extends Model
         $ano = date('Y');
         
         // Busca o maior número sequencial existente (apenas números no formato correto 000000.YYYY)
-        $maiorNumero = self::whereRaw("numero ~ '^[0-9]{6}\.[0-9]{4}$'")
+        $maiorNumero = self::whereRaw("numero ~ '^[0-9]{6}\\.[0-9]{4}$'")
             ->selectRaw('MAX(CAST(SPLIT_PART(numero, \'.\', 1) AS INTEGER)) as max_sequencial')
             ->value('max_sequencial');
         

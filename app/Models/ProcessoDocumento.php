@@ -12,6 +12,7 @@ class ProcessoDocumento extends Model
         'processo_id',
         'pasta_id',
         'usuario_id',
+        'usuario_externo_id',
         'tipo_usuario',
         'nome_arquivo',
         'nome_original',
@@ -20,11 +21,17 @@ class ProcessoDocumento extends Model
         'tamanho',
         'tipo_documento',
         'observacoes',
+        'status_aprovacao',
+        'status',
+        'motivo_rejeicao',
+        'aprovado_por',
+        'aprovado_em',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'aprovado_em' => 'datetime',
     ];
 
     public function processo(): BelongsTo
@@ -35,6 +42,31 @@ class ProcessoDocumento extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(UsuarioInterno::class, 'usuario_id');
+    }
+
+    public function usuarioExterno(): BelongsTo
+    {
+        return $this->belongsTo(UsuarioExterno::class, 'usuario_externo_id');
+    }
+
+    public function aprovadoPor(): BelongsTo
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'aprovado_por');
+    }
+
+    public function isPendente(): bool
+    {
+        return $this->status_aprovacao === 'pendente';
+    }
+
+    public function isAprovado(): bool
+    {
+        return $this->status_aprovacao === 'aprovado';
+    }
+
+    public function isRejeitado(): bool
+    {
+        return $this->status_aprovacao === 'rejeitado';
     }
 
     public function pasta(): BelongsTo

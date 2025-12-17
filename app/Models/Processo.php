@@ -15,6 +15,8 @@ class Processo extends Model
     protected $fillable = [
         'estabelecimento_id',
         'usuario_id',
+        'usuario_externo_id',
+        'aberto_por_externo',
         'tipo',
         'ano',
         'numero_sequencial',
@@ -100,11 +102,19 @@ class Processo extends Model
     }
 
     /**
-     * Relacionamento com usuário que criou
+     * Relacionamento com usuário interno que criou
      */
     public function usuario()
     {
         return $this->belongsTo(UsuarioInterno::class, 'usuario_id');
+    }
+
+    /**
+     * Relacionamento com usuário externo que criou
+     */
+    public function usuarioExterno()
+    {
+        return $this->belongsTo(UsuarioExterno::class, 'usuario_externo_id');
     }
 
     /**

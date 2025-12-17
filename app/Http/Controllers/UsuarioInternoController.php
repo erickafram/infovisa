@@ -63,7 +63,14 @@ class UsuarioInternoController extends Controller
     public function create()
     {
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
-        $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        
+        // Tenta buscar os tipos de setor, retorna coleção vazia se a tabela não existir
+        try {
+            $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        } catch (\Exception $e) {
+            $tipoSetores = collect([]);
+        }
+        
         return view('admin.usuarios-internos.create', compact('municipios', 'tipoSetores'));
     }
 
@@ -130,7 +137,14 @@ class UsuarioInternoController extends Controller
     public function edit(UsuarioInterno $usuarioInterno)
     {
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
-        $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        
+        // Tenta buscar os tipos de setor, retorna coleção vazia se a tabela não existir
+        try {
+            $tipoSetores = \App\Models\TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        } catch (\Exception $e) {
+            $tipoSetores = collect([]);
+        }
+        
         return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios', 'tipoSetores'));
     }
 

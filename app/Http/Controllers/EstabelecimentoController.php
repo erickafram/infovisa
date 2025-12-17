@@ -706,7 +706,6 @@ class EstabelecimentoController extends Controller
     public function pendentes(Request $request)
     {
         $query = Estabelecimento::pendentes()
-            ->doMunicipioUsuario()
             ->with(['usuarioExterno']);
 
         // Filtro de busca
@@ -721,8 +720,39 @@ class EstabelecimentoController extends Controller
         }
 
         $estabelecimentos = $query->orderBy('created_at', 'asc')->paginate(15);
+        
+        // Filtra estabelecimentos por competência baseado no perfil do usuário
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            // Administrador vê todos os pendentes
+            if ($usuario->isAdmin()) {
+                // Não filtra
+            }
+            // Usuários ESTADUAIS veem APENAS estabelecimentos de competência ESTADUAL
+            elseif ($usuario->isEstadual()) {
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) {
+                    return $estabelecimento->isCompetenciaEstadual();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+            // Usuários MUNICIPAIS veem APENAS estabelecimentos de competência MUNICIPAL do seu município
+            elseif ($usuario->isMunicipal()) {
+                $municipioUsuario = $usuario->municipio_id;
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) use ($municipioUsuario) {
+                    // Deve ser do município do usuário E de competência municipal
+                    return $estabelecimento->municipio_id == $municipioUsuario && $estabelecimento->isCompetenciaMunicipal();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+        }
 
-        return view('estabelecimentos.pendentes', compact('estabelecimentos'));
+        // Totais para as tabs
+        $totalPendentes = Estabelecimento::pendentes()->count();
+        $totalRejeitados = Estabelecimento::rejeitados()->count();
+        $totalDesativados = Estabelecimento::where('ativo', false)->count();
+
+        return view('estabelecimentos.pendentes', compact('estabelecimentos', 'totalPendentes', 'totalRejeitados', 'totalDesativados'));
     }
 
     /**
@@ -731,7 +761,6 @@ class EstabelecimentoController extends Controller
     public function rejeitados(Request $request)
     {
         $query = Estabelecimento::rejeitados()
-            ->doMunicipioUsuario()
             ->with(['usuarioExterno', 'aprovadoPor']);
 
         // Filtro de busca
@@ -746,8 +775,33 @@ class EstabelecimentoController extends Controller
         }
 
         $estabelecimentos = $query->orderBy('aprovado_em', 'desc')->paginate(15);
+        
+        // Filtra estabelecimentos por competência baseado no perfil do usuário
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            if ($usuario->isAdmin()) {
+                // Não filtra
+            } elseif ($usuario->isEstadual()) {
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) {
+                    return $estabelecimento->isCompetenciaEstadual();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            } elseif ($usuario->isMunicipal()) {
+                $municipioUsuario = $usuario->municipio_id;
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) use ($municipioUsuario) {
+                    return $estabelecimento->municipio_id == $municipioUsuario && $estabelecimento->isCompetenciaMunicipal();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+        }
 
-        return view('estabelecimentos.rejeitados', compact('estabelecimentos'));
+        // Totais para as tabs
+        $totalPendentes = Estabelecimento::pendentes()->count();
+        $totalRejeitados = Estabelecimento::rejeitados()->count();
+        $totalDesativados = Estabelecimento::where('ativo', false)->count();
+
+        return view('estabelecimentos.rejeitados', compact('estabelecimentos', 'totalPendentes', 'totalRejeitados', 'totalDesativados'));
     }
 
     /**
@@ -756,7 +810,6 @@ class EstabelecimentoController extends Controller
     public function desativados(Request $request)
     {
         $query = Estabelecimento::where('ativo', false)
-            ->doMunicipioUsuario()
             ->with(['usuarioExterno', 'aprovadoPor']);
 
         // Filtro de busca
@@ -771,8 +824,33 @@ class EstabelecimentoController extends Controller
         }
 
         $estabelecimentos = $query->orderBy('updated_at', 'desc')->paginate(15);
+        
+        // Filtra estabelecimentos por competência baseado no perfil do usuário
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            if ($usuario->isAdmin()) {
+                // Não filtra
+            } elseif ($usuario->isEstadual()) {
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) {
+                    return $estabelecimento->isCompetenciaEstadual();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            } elseif ($usuario->isMunicipal()) {
+                $municipioUsuario = $usuario->municipio_id;
+                $estabelecimentosFiltrados = $estabelecimentos->getCollection()->filter(function ($estabelecimento) use ($municipioUsuario) {
+                    return $estabelecimento->municipio_id == $municipioUsuario && $estabelecimento->isCompetenciaMunicipal();
+                });
+                $estabelecimentos->setCollection($estabelecimentosFiltrados);
+            }
+        }
 
-        return view('estabelecimentos.desativados', compact('estabelecimentos'));
+        // Totais para as tabs
+        $totalPendentes = Estabelecimento::pendentes()->count();
+        $totalRejeitados = Estabelecimento::rejeitados()->count();
+        $totalDesativados = Estabelecimento::where('ativo', false)->count();
+
+        return view('estabelecimentos.desativados', compact('estabelecimentos', 'totalPendentes', 'totalRejeitados', 'totalDesativados'));
     }
 
 

@@ -12,22 +12,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Remove a constraint antiga
-        DB::statement('ALTER TABLE processos DROP CONSTRAINT IF EXISTS processos_tipo_check');
+        $driver = DB::connection()->getDriverName();
         
-        // Adiciona a nova constraint com "receituario" incluído
-        DB::statement("
-            ALTER TABLE processos 
-            ADD CONSTRAINT processos_tipo_check 
-            CHECK (tipo IN (
-                'licenciamento',
-                'analise_rotulagem',
-                'projeto_arquitetonico',
-                'administrativo',
-                'descentralizacao',
-                'receituario'
-            ))
-        ");
+        if ($driver === 'pgsql') {
+            // PostgreSQL
+            DB::statement('ALTER TABLE processos DROP CONSTRAINT IF EXISTS processos_tipo_check');
+            DB::statement("
+                ALTER TABLE processos 
+                ADD CONSTRAINT processos_tipo_check 
+                CHECK (tipo IN (
+                    'licenciamento',
+                    'analise_rotulagem',
+                    'projeto_arquitetonico',
+                    'administrativo',
+                    'descentralizacao',
+                    'receituario'
+                ))
+            ");
+        } elseif ($driver === 'mysql') {
+            // MySQL: Alterar o tipo ENUM
+            DB::statement("ALTER TABLE processos MODIFY COLUMN tipo ENUM('licenciamento', 'analise_rotulagem', 'projeto_arquitetonico', 'administrativo', 'descentralizacao', 'receituario') NOT NULL DEFAULT 'licenciamento'");
+        }
     }
 
     /**
@@ -35,20 +40,23 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Remove a constraint com receituario
-        DB::statement('ALTER TABLE processos DROP CONSTRAINT IF EXISTS processos_tipo_check');
+        $driver = DB::connection()->getDriverName();
         
-        // Restaura a constraint antiga sem "receituario"
-        DB::statement("
-            ALTER TABLE processos 
-            ADD CONSTRAINT processos_tipo_check 
-            CHECK (tipo IN (
-                'licenciamento',
-                'analise_rotulagem',
-                'projeto_arquitetonico',
-                'administrativo',
-                'descentralizacao'
-            ))
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE processos DROP CONSTRAINT IF EXISTS processos_tipo_check');
+            DB::statement("
+                ALTER TABLE processos 
+                ADD CONSTRAINT processos_tipo_check 
+                CHECK (tipo IN (
+                    'licenciamento',
+                    'analise_rotulagem',
+                    'projeto_arquitetonico',
+                    'administrativo',
+                    'descentralizacao'
+                ))
+            ");
+        } elseif ($driver === 'mysql') {
+            DB::statement("ALTER TABLE processos MODIFY COLUMN tipo ENUM('licenciamento', 'analise_rotulagem', 'projeto_arquitetonico', 'administrativo', 'descentralizacao') NOT NULL DEFAULT 'licenciamento'");
+        }
     }
 };

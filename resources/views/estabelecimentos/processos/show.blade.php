@@ -820,6 +820,31 @@
                                                         Arquivo Externo
                                                     </span>
                                                 @endif
+                                                {{-- Status de Aprovação para documentos externos --}}
+                                                @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
+                                                    @if($documento->status_aprovacao === 'pendente')
+                                                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Aguardando Aprovação
+                                                        </span>
+                                                    @elseif($documento->status_aprovacao === 'aprovado')
+                                                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                            </svg>
+                                                            Aprovado
+                                                        </span>
+                                                    @elseif($documento->status_aprovacao === 'rejeitado')
+                                                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium whitespace-nowrap flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                            </svg>
+                                                            Rejeitado
+                                                        </span>
+                                                    @endif
+                                                @endif
                                                 @if($documento->pasta_id)
                                                     <span class="flex items-center gap-1 px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
                                                           x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
@@ -836,6 +861,26 @@
                                     
                                     {{-- Ações --}}
                                     <div class="flex items-center gap-2 sm:flex-shrink-0">
+                                        {{-- Botões Aprovar/Rejeitar para documentos pendentes --}}
+                                        @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente')
+                                        <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar documento">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        <button type="button" 
+                                                @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true"
+                                                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                                                title="Rejeitar documento">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                        @endif
+                                        
                                         {{-- Mover para Pasta --}}
                                         <div class="relative" x-data="{ menuAberto: false }">
                                             <button @click.stop="menuAberto = !menuAberto"
@@ -1656,6 +1701,50 @@
         </div>
     </template>
 
+    {{-- Modal de Rejeitar Documento --}}
+    <template x-if="modalRejeitar">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalRejeitar" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalRejeitar = false"></div>
+                <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    <div class="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Rejeitar Documento
+                        </h3>
+                        <button type="button" @click="modalRejeitar = false" class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <form :action="`{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${documentoRejeitando}/rejeitar`" method="POST">
+                        @csrf
+                        <div class="px-6 py-4">
+                            <p class="text-sm text-gray-600 mb-4">Informe o motivo da rejeição do documento. O usuário externo será notificado.</p>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Motivo da Rejeição *</label>
+                                <textarea name="motivo_rejeicao" x-model="motivoRejeicao" rows="4" required
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                          placeholder="Ex: Documento ilegível, formato incorreto, informações incompletas..."></textarea>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                            <button type="button" @click="modalRejeitar = false; motivoRejeicao = ''" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                                Rejeitar Documento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Modal de Histórico do Processo --}}
     <template x-if="modalHistorico">
         <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalHistorico" style="display: none;">
@@ -1810,6 +1899,11 @@
                 modalDesignar: false,
                 modalOrdemServico: false,
                 modalAlertas: false,
+                modalRejeitar: false,
+                
+                // Rejeição de documento
+                documentoRejeitando: null,
+                motivoRejeicao: '',
                 
                 // Dados gerais
                 pdfUrl: '',

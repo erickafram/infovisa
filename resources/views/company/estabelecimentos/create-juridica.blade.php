@@ -372,59 +372,49 @@
                 <div x-show="abaAtiva === 'atividades'" x-cloak>
                     <h3 class="text-lg font-medium text-gray-900 mb-6">Atividades Econômicas</h3>
                     
-                    {{-- CNAE Principal --}}
+                    {{-- Hidden inputs --}}
+                    <input type="hidden" name="cnae_fiscal" :value="dados.cnae_fiscal">
+                    <input type="hidden" name="cnae_fiscal_descricao" :value="dados.cnae_fiscal_descricao">
+                    <input type="hidden" name="cnaes_secundarios" :value="JSON.stringify(dados.cnaes_secundarios)">
+
+                    {{-- Lista de Atividades (Principal + Secundárias) --}}
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">CNAE Principal</label>
-                        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <span class="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded">Principal</span>
-                                <div>
-                                    <span class="font-mono text-sm text-gray-900" x-text="dados.cnae_fiscal"></span>
-                                    <span class="text-sm text-gray-600" x-text="' - ' + dados.cnae_fiscal_descricao"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="hidden" name="cnae_fiscal" :value="dados.cnae_fiscal">
-                        <input type="hidden" name="cnae_fiscal_descricao" :value="dados.cnae_fiscal_descricao">
-                    </div>
-
-                    {{-- Atividade Principal - Checkbox --}}
-                    <div class="mb-4">
-                        <label class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
-                            <input type="checkbox" 
-                                   x-model="atividadePrincipalMarcada"
-                                   @change="buscarQuestionarios()"
-                                   class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <div>
-                                <span class="text-sm font-medium text-blue-900">Exercer atividade principal</span>
-                                <p class="text-xs text-blue-700 mt-1">Marque se o estabelecimento exercerá a atividade principal do CNPJ</p>
-                            </div>
-                        </label>
-                    </div>
-
-                    {{-- CNAEs Secundários --}}
-                    <div class="mb-6" x-show="dados.cnaes_secundarios && dados.cnaes_secundarios.length > 0">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Selecione as atividades que o estabelecimento exerce <span class="text-red-500">*</span>
                         </label>
                         <p class="text-xs text-gray-500 mb-3">Marque apenas as atividades que serão efetivamente exercidas neste estabelecimento.</p>
                         
-                        <div class="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        <div class="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                            {{-- Atividade Principal --}}
+                            <label x-show="dados.cnae_fiscal" class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                                <input type="checkbox" 
+                                       x-model="atividadePrincipalMarcada"
+                                       @change="buscarQuestionarios()"
+                                       class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded">Principal</span>
+                                        <span class="font-mono text-sm text-gray-900" x-text="dados.cnae_fiscal"></span>
+                                    </div>
+                                    <span class="text-sm text-gray-700" x-text="dados.cnae_fiscal_descricao"></span>
+                                </div>
+                            </label>
+
+                            {{-- Atividades Secundárias --}}
                             <template x-for="(cnae, index) in dados.cnaes_secundarios" :key="index">
-                                <label class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                <label class="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100 transition-colors">
                                     <input type="checkbox" 
-                                           :value="cnae.codigo"
+                                           :value="String(cnae.codigo)"
                                            x-model="atividadesExercidas"
                                            @change="buscarQuestionarios()"
                                            class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                    <div>
+                                    <div class="flex-1">
                                         <span class="font-mono text-sm text-gray-900" x-text="cnae.codigo"></span>
                                         <span class="text-sm text-gray-600" x-text="' - ' + (cnae.descricao || cnae.texto || '')"></span>
                                     </div>
                                 </label>
                             </template>
                         </div>
-                        <input type="hidden" name="cnaes_secundarios" :value="JSON.stringify(dados.cnaes_secundarios)">
                     </div>
 
                     {{-- Questionários Dinâmicos --}}
@@ -774,23 +764,29 @@ function estabelecimentoFormCompany() {
             // Adiciona atividade principal se marcada
             if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
                 atividades.push({ 
-                    codigo: this.dados.cnae_fiscal, 
+                    codigo: String(this.dados.cnae_fiscal), 
                     descricao: this.dados.cnae_fiscal_descricao,
                     principal: true 
                 });
             }
             
             // Adiciona atividades secundárias selecionadas
-            this.atividadesExercidas.forEach(codigo => {
-                const cnae = this.dados.cnaes_secundarios.find(c => c.codigo === codigo);
+            // Converte para string para garantir comparação correta
+            this.atividadesExercidas.forEach(codigoSelecionado => {
+                const codigoStr = String(codigoSelecionado);
+                const cnae = this.dados.cnaes_secundarios.find(c => String(c.codigo) === codigoStr);
                 if (cnae) {
                     atividades.push({ 
-                        codigo: cnae.codigo, 
+                        codigo: String(cnae.codigo), 
                         descricao: cnae.descricao || cnae.texto || '',
                         principal: false 
                     });
                 }
             });
+            
+            console.log('Atividades exercidas:', atividades);
+            console.log('Array atividadesExercidas:', this.atividadesExercidas);
+            
             return atividades;
         },
 

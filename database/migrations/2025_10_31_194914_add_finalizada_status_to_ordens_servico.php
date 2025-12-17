@@ -12,13 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // PostgreSQL: Alterar o tipo ENUM para adicionar 'finalizada'
-        DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
-        DB::statement("
-            ALTER TABLE ordens_servico 
-            ADD CONSTRAINT ordens_servico_status_check 
-            CHECK (status IN ('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada'))
-        ");
+        $driver = DB::connection()->getDriverName();
+        
+        if ($driver === 'pgsql') {
+            // PostgreSQL: Alterar o tipo ENUM para adicionar 'finalizada'
+            DB::statement("ALTER TABLE ordens_servico DROP CONSTRAINT IF EXISTS ordens_servico_status_check");
+            DB::statement("
+                ALTER TABLE ordens_servico 
+                ADD CONSTRAINT ordens_servico_status_check 
+                CHECK (status IN ('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada'))
+            ");
+        } elseif ($driver === 'mysql') {
+            // MySQL: Alterar o tipo ENUM para adicionar 'finalizada'
+            DB::statement("ALTER TABLE ordens_servico MODIFY COLUMN status ENUM('aberta', 'em_andamento', 'concluida', 'finalizada', 'cancelada') NOT NULL DEFAULT 'aberta'");
+        }
     }
 
     /**

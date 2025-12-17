@@ -21,6 +21,42 @@
         </a>
     </div>
 
+    {{-- Tabs de Navegação --}}
+    <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8">
+            <a href="{{ route('admin.estabelecimentos.pendentes') }}"
+               class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-3 px-1 text-sm font-medium flex items-center gap-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Pendentes
+                @if(isset($totalPendentes) && $totalPendentes > 0)
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full">{{ $totalPendentes }}</span>
+                @endif
+            </a>
+            <a href="{{ route('admin.estabelecimentos.rejeitados') }}"
+               class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-3 px-1 text-sm font-medium flex items-center gap-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Rejeitados
+                @if(isset($totalRejeitados) && $totalRejeitados > 0)
+                <span class="bg-red-100 text-red-800 text-xs font-semibold px-2 py-0.5 rounded-full">{{ $totalRejeitados }}</span>
+                @endif
+            </a>
+            <a href="{{ route('admin.estabelecimentos.desativados') }}"
+               class="border-b-2 border-gray-500 text-gray-700 py-3 px-1 text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                </svg>
+                Desativados
+                @if(isset($totalDesativados) && $totalDesativados > 0)
+                <span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-0.5 rounded-full">{{ $totalDesativados }}</span>
+                @endif
+            </a>
+        </nav>
+    </div>
+
     {{-- Filtro de Busca --}}
     @if($estabelecimentos->total() > 5)
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">

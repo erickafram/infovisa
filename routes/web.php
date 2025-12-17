@@ -68,10 +68,39 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::post('/estabelecimentos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'store'])->name('estabelecimentos.store');
     Route::post('/estabelecimentos/buscar-questionarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarQuestionarios'])->name('estabelecimentos.buscar-questionarios');
     Route::get('/estabelecimentos/{id}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'show'])->name('estabelecimentos.show');
+    Route::get('/estabelecimentos/{id}/edit', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'edit'])->name('estabelecimentos.edit');
+    Route::put('/estabelecimentos/{id}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'update'])->name('estabelecimentos.update');
+    
+    // Estabelecimentos - Atividades
+    Route::get('/estabelecimentos/{id}/atividades', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'editAtividades'])->name('estabelecimentos.atividades.edit');
+    Route::put('/estabelecimentos/{id}/atividades', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'updateAtividades'])->name('estabelecimentos.atividades.update');
+    
+    // Estabelecimentos - Responsáveis
+    Route::get('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisIndex'])->name('estabelecimentos.responsaveis.index');
+    Route::get('/estabelecimentos/{id}/responsaveis/create/{tipo?}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisCreate'])->name('estabelecimentos.responsaveis.create');
+    Route::post('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisStore'])->name('estabelecimentos.responsaveis.store');
+    Route::delete('/estabelecimentos/{id}/responsaveis/{responsavelId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisDestroy'])->name('estabelecimentos.responsaveis.destroy');
+    
+    // Estabelecimentos - Usuários Vinculados
+    Route::get('/estabelecimentos/{id}/usuarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosIndex'])->name('estabelecimentos.usuarios.index');
+    Route::post('/estabelecimentos/{id}/usuarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosStore'])->name('estabelecimentos.usuarios.store');
+    Route::delete('/estabelecimentos/{id}/usuarios/{usuarioId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosDestroy'])->name('estabelecimentos.usuarios.destroy');
+    
+    // Estabelecimentos - Processos
+    Route::get('/estabelecimentos/{id}/processos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'processosIndex'])->name('estabelecimentos.processos.index');
+    Route::get('/estabelecimentos/{id}/processos/create', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'processosCreate'])->name('estabelecimentos.processos.create');
+    Route::post('/estabelecimentos/{id}/processos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'processosStore'])->name('estabelecimentos.processos.store');
     
     // Processos
     Route::get('/processos', [\App\Http\Controllers\Company\ProcessoController::class, 'index'])->name('processos.index');
     Route::get('/processos/{id}', [\App\Http\Controllers\Company\ProcessoController::class, 'show'])->name('processos.show');
+    Route::post('/processos/{id}/upload', [\App\Http\Controllers\Company\ProcessoController::class, 'uploadDocumento'])->name('processos.upload');
+    Route::get('/processos/{id}/documentos/{documento}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadDocumento'])->name('processos.download');
+    Route::get('/processos/{id}/documentos/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumento'])->name('processos.documento.visualizar');
+    Route::delete('/processos/{id}/documentos/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'deleteDocumento'])->name('processos.documento.delete');
+    
+    // Busca de usuários externos para vincular
+    Route::get('/usuarios-externos/buscar', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarUsuariosExternos'])->name('usuarios-externos.buscar');
 });
 
 /*
@@ -170,6 +199,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/download', [\App\Http\Controllers\ProcessoController::class, 'downloadArquivo'])->name('estabelecimentos.processos.download');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/nome', [\App\Http\Controllers\ProcessoController::class, 'updateNomeArquivo'])->name('estabelecimentos.processos.updateNome');
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}', [\App\Http\Controllers\ProcessoController::class, 'deleteArquivo'])->name('estabelecimentos.processos.deleteArquivo');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarDocumento'])->name('estabelecimentos.processos.documento.aprovar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarDocumento'])->name('estabelecimentos.processos.documento.rejeitar');
     
     // Anotações em PDFs
     Route::get('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'carregarAnotacoes'])->name('processos.documentos.anotacoes.carregar');

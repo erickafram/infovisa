@@ -2164,6 +2164,9 @@ Acesso: Menu lateral > Ícone de engrenagem
 
                 if ($documento->tipo_documento === 'documento_digital') {
                     $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+                } else if ($documento->tipo_usuario === 'externo') {
+                    // Arquivos de usuários externos são salvos em storage/app/public/
+                    $caminhoArquivo = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
                 } else {
                     $caminhoArquivo = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
                 }

@@ -12,14 +12,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Atualiza o municipio_id das OSs baseado no município do estabelecimento
-        DB::statement("
-            UPDATE ordens_servico 
-            SET municipio_id = estabelecimentos.municipio_id
-            FROM estabelecimentos
-            WHERE ordens_servico.estabelecimento_id = estabelecimentos.id
-            AND ordens_servico.municipio_id != estabelecimentos.municipio_id
-        ");
+        $driver = DB::connection()->getDriverName();
+        
+        if ($driver === 'pgsql') {
+            // PostgreSQL: Atualiza o municipio_id das OSs baseado no município do estabelecimento
+            DB::statement("
+                UPDATE ordens_servico 
+                SET municipio_id = estabelecimentos.municipio_id
+                FROM estabelecimentos
+                WHERE ordens_servico.estabelecimento_id = estabelecimentos.id
+                AND ordens_servico.municipio_id != estabelecimentos.municipio_id
+            ");
+        } elseif ($driver === 'mysql') {
+            // MySQL: Sintaxe diferente para UPDATE com JOIN
+            DB::statement("
+                UPDATE ordens_servico 
+                INNER JOIN estabelecimentos ON ordens_servico.estabelecimento_id = estabelecimentos.id
+                SET ordens_servico.municipio_id = estabelecimentos.municipio_id
+                WHERE ordens_servico.municipio_id != estabelecimentos.municipio_id
+            ");
+        }
     }
 
     /**

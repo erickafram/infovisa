@@ -20,7 +20,7 @@
 
     <!-- Hero Section -->
     <section class="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white py-16 md:py-24">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h1 class="text-4xl md:text-5xl font-bold mb-4 leading-tight">
                     INFOVISA
@@ -49,7 +49,7 @@
 
     <!-- Serviços Section -->
     <section id="servicos" class="py-16 bg-white">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-2xl font-bold text-gray-900 mb-3">Nossos Serviços</h2>
                 <p class="text-lg text-gray-600">
@@ -102,7 +102,7 @@
 
     <!-- Consultar Processo Section -->
     <section id="consultar" class="py-16 bg-gray-50">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-2xl mx-auto">
                 <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
                     <div class="text-center mb-6">
@@ -149,7 +149,7 @@
 
     <!-- Verificar Documento Section -->
     <section id="verificar" class="py-16 bg-white">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-2xl mx-auto">
                 <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-lg p-6 md:p-8 border-2 border-purple-200">
                     <div class="text-center mb-6">
@@ -214,7 +214,7 @@
 
     <!-- CTA Final -->
     <section class="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-2xl md:text-3xl font-bold mb-3">Precisa de ajuda?</h2>
             <p class="text-base text-blue-100 mb-6">
                 Nossa equipe está pronta para atender você. Entre em contato conosco.

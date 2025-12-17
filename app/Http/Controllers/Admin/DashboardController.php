@@ -21,6 +21,29 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Conta estabelecimentos pendentes baseado no perfil do usuário
+        $estabelecimentosPendentesQuery = Estabelecimento::pendentes()->with('usuarioExterno');
+        $estabelecimentosPendentes = $estabelecimentosPendentesQuery->get();
+        
+        // Filtra por competência
+        if ($usuario->isAdmin()) {
+            // Admin vê todos
+            $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
+        } elseif ($usuario->isEstadual()) {
+            // Estadual vê apenas de competência estadual
+            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(fn($e) => $e->isCompetenciaEstadual());
+            $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
+        } elseif ($usuario->isMunicipal()) {
+            // Municipal vê apenas de competência municipal do seu município
+            $municipioId = $usuario->municipio_id;
+            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(fn($e) => $e->municipio_id == $municipioId && $e->isCompetenciaMunicipal());
+            $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
+        } else {
+            $estabelecimentosPendentesCount = 0;
+        }
+        
         $stats = [
             'usuarios_externos' => UsuarioExterno::count(),
             'usuarios_externos_ativos' => UsuarioExterno::where('ativo', true)->count(),
@@ -28,7 +51,7 @@ class DashboardController extends Controller
             'usuarios_internos' => UsuarioInterno::count(),
             'usuarios_internos_ativos' => UsuarioInterno::where('ativo', true)->count(),
             'administradores' => UsuarioInterno::administradores()->count(),
-            'estabelecimentos_pendentes' => Estabelecimento::pendentes()->doMunicipioUsuario()->count(),
+            'estabelecimentos_pendentes' => $estabelecimentosPendentesCount,
         ];
 
         $usuarios_externos_recentes = UsuarioExterno::latest()
@@ -39,13 +62,8 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Buscar os 5 últimos estabelecimentos pendentes
-        $estabelecimentos_pendentes = Estabelecimento::pendentes()
-            ->doMunicipioUsuario()
-            ->with('usuarioExterno')
-            ->latest()
-            ->take(5)
-            ->get();
+        // Buscar os 5 últimos estabelecimentos pendentes (já filtrados por competência)
+        $estabelecimentos_pendentes = $estabelecimentosPendentes->sortByDesc('created_at')->take(5);
 
         // Buscar processos que o usuário está acompanhando
         $processos_acompanhados = Processo::whereHas('acompanhamentos', function($query) {
@@ -107,8 +125,6 @@ class DashboardController extends Controller
 
         // Buscar Ordens de Serviço em andamento do usuário
         // Dashboard mostra APENAS OSs onde o usuário é técnico atribuído
-        $usuario = Auth::guard('interno')->user();
-        
         // Busca OSs onde o usuário está na lista de técnicos
         $todasOS = OrdemServico::with(['estabelecimento', 'municipio'])
             ->whereIn('status', ['aberta', 'em_andamento'])

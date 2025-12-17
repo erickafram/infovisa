@@ -642,21 +642,25 @@ class ProcessoController extends Controller
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
-        // Verifica se é documento digital (salvo em public) ou arquivo externo (salvo em app)
-        if ($documento->tipo_documento === 'documento_digital') {
+        // Verifica se é documento digital ou arquivo externo
+        // Arquivos externos enviados por usuários externos são salvos em public
+        if ($documento->tipo_documento === 'documento_digital' || $documento->tipo_usuario === 'externo') {
             $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
         } else {
             $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
         }
         
         if (!file_exists($caminhoCompleto)) {
-            abort(404, 'Arquivo não encontrado');
+            abort(404, 'Arquivo não encontrado: ' . $documento->caminho);
         }
+        
+        // Detecta o tipo MIME correto
+        $mimeType = mime_content_type($caminhoCompleto);
         
         // Retorna o arquivo para visualização inline com headers corretos
         return response()->file($caminhoCompleto, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . basename($caminhoCompleto) . '"'
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"'
         ]);
     }
 
@@ -671,8 +675,9 @@ class ProcessoController extends Controller
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
-        // Verifica se é documento digital (salvo em public) ou arquivo externo (salvo em app)
-        if ($documento->tipo_documento === 'documento_digital') {
+        // Verifica se é documento digital ou arquivo externo
+        // Arquivos externos enviados por usuários externos são salvos em public
+        if ($documento->tipo_documento === 'documento_digital' || $documento->tipo_usuario === 'externo') {
             $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
         } else {
             $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
@@ -743,6 +748,51 @@ class ProcessoController extends Controller
                 ->back()
                 ->with('error', 'Erro ao remover arquivo: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Aprova documento enviado por usuário externo
+     */
+    public function aprovarDocumento($estabelecimentoId, $processoId, $documentoId)
+    {
+        $documento = ProcessoDocumento::where('processo_id', $processoId)
+            ->where('status_aprovacao', 'pendente')
+            ->findOrFail($documentoId);
+        
+        $documento->update([
+            'status_aprovacao' => 'aprovado',
+            'aprovado_por' => auth('interno')->id(),
+            'aprovado_em' => now(),
+        ]);
+        
+        return redirect()
+            ->back()
+            ->with('success', 'Documento aprovado com sucesso!');
+    }
+
+    /**
+     * Rejeita documento enviado por usuário externo
+     */
+    public function rejeitarDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId)
+    {
+        $request->validate([
+            'motivo_rejeicao' => 'required|string|max:1000',
+        ]);
+
+        $documento = ProcessoDocumento::where('processo_id', $processoId)
+            ->where('status_aprovacao', 'pendente')
+            ->findOrFail($documentoId);
+        
+        $documento->update([
+            'status_aprovacao' => 'rejeitado',
+            'motivo_rejeicao' => $request->motivo_rejeicao,
+            'aprovado_por' => auth('interno')->id(),
+            'aprovado_em' => now(),
+        ]);
+        
+        return redirect()
+            ->back()
+            ->with('success', 'Documento rejeitado. O usuário externo será notificado.');
     }
 
     /**

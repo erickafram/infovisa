@@ -13,14 +13,22 @@ return new class extends Migration
     {
         // Adiciona campos de prazo na tabela tipo_documentos
         Schema::table('tipo_documentos', function (Blueprint $table) {
-            $table->boolean('tem_prazo')->default(false)->after('ativo');
-            $table->integer('prazo_padrao_dias')->nullable()->after('tem_prazo')->comment('Prazo padrão em dias (opcional)');
+            if (!Schema::hasColumn('tipo_documentos', 'tem_prazo')) {
+                $table->boolean('tem_prazo')->default(false)->after('ativo');
+            }
+            if (!Schema::hasColumn('tipo_documentos', 'prazo_padrao_dias')) {
+                $table->integer('prazo_padrao_dias')->nullable()->after('tem_prazo')->comment('Prazo padrão em dias (opcional)');
+            }
         });
 
         // Adiciona campos de prazo na tabela documentos_digitais
         Schema::table('documentos_digitais', function (Blueprint $table) {
-            $table->integer('prazo_dias')->nullable()->after('finalizado_em')->comment('Prazo em dias para este documento');
-            $table->date('data_vencimento')->nullable()->after('prazo_dias')->comment('Data de vencimento calculada');
+            if (!Schema::hasColumn('documentos_digitais', 'prazo_dias')) {
+                $table->integer('prazo_dias')->nullable()->after('finalizado_em')->comment('Prazo em dias para este documento');
+            }
+            if (!Schema::hasColumn('documentos_digitais', 'data_vencimento')) {
+                $table->date('data_vencimento')->nullable()->after('prazo_dias')->comment('Data de vencimento calculada');
+            }
         });
     }
 
@@ -30,11 +38,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tipo_documentos', function (Blueprint $table) {
-            $table->dropColumn(['tem_prazo', 'prazo_padrao_dias']);
+            if (Schema::hasColumn('tipo_documentos', 'tem_prazo')) {
+                $table->dropColumn('tem_prazo');
+            }
+            if (Schema::hasColumn('tipo_documentos', 'prazo_padrao_dias')) {
+                $table->dropColumn('prazo_padrao_dias');
+            }
         });
 
         Schema::table('documentos_digitais', function (Blueprint $table) {
-            $table->dropColumn(['prazo_dias', 'data_vencimento']);
+            if (Schema::hasColumn('documentos_digitais', 'prazo_dias')) {
+                $table->dropColumn('prazo_dias');
+            }
+            if (Schema::hasColumn('documentos_digitais', 'data_vencimento')) {
+                $table->dropColumn('data_vencimento');
+            }
         });
     }
 };

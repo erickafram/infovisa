@@ -10,11 +10,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Remove a constraint antiga
-        DB::statement('ALTER TABLE tipo_processos DROP CONSTRAINT IF EXISTS tipo_processos_competencia_check');
+        $driver = DB::connection()->getDriverName();
         
-        // Adiciona a nova constraint com estadual_exclusivo
-        DB::statement("ALTER TABLE tipo_processos ADD CONSTRAINT tipo_processos_competencia_check CHECK (competencia IN ('estadual', 'municipal', 'estadual_exclusivo'))");
+        if ($driver === 'pgsql') {
+            // PostgreSQL
+            DB::statement('ALTER TABLE tipo_processos DROP CONSTRAINT IF EXISTS tipo_processos_competencia_check');
+            DB::statement("ALTER TABLE tipo_processos ADD CONSTRAINT tipo_processos_competencia_check CHECK (competencia IN ('estadual', 'municipal', 'estadual_exclusivo'))");
+        } elseif ($driver === 'mysql') {
+            // MySQL: Alterar o tipo ENUM
+            DB::statement("ALTER TABLE tipo_processos MODIFY COLUMN competencia ENUM('estadual', 'municipal', 'estadual_exclusivo') NOT NULL DEFAULT 'municipal'");
+        }
     }
 
     /**
@@ -22,10 +27,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Remove a constraint nova
-        DB::statement('ALTER TABLE tipo_processos DROP CONSTRAINT IF EXISTS tipo_processos_competencia_check');
+        $driver = DB::connection()->getDriverName();
         
-        // Restaura a constraint antiga (apenas estadual e municipal)
-        DB::statement("ALTER TABLE tipo_processos ADD CONSTRAINT tipo_processos_competencia_check CHECK (competencia IN ('estadual', 'municipal'))");
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE tipo_processos DROP CONSTRAINT IF EXISTS tipo_processos_competencia_check');
+            DB::statement("ALTER TABLE tipo_processos ADD CONSTRAINT tipo_processos_competencia_check CHECK (competencia IN ('estadual', 'municipal'))");
+        } elseif ($driver === 'mysql') {
+            DB::statement("ALTER TABLE tipo_processos MODIFY COLUMN competencia ENUM('estadual', 'municipal') NOT NULL DEFAULT 'municipal'");
+        }
     }
 };
