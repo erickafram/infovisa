@@ -4,6 +4,10 @@
 @section('page-title', 'Gerenciar Atividades')
 
 @section('content')
+@php
+    $bloqueado = $estabelecimento->status === 'aprovado';
+@endphp
+
 <div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="mb-6">
@@ -20,6 +24,24 @@
             </div>
         </div>
     </div>
+
+    {{-- Aviso de Bloqueio --}}
+    @if($bloqueado)
+    <div class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m10-6a8 8 0 11-16 0 8 8 0 0116 0z"/>
+            </svg>
+            <div>
+                <h3 class="text-sm font-semibold text-amber-900 mb-1">Estabelecimento Aprovado - Edição Bloqueada</h3>
+                <p class="text-sm text-amber-800">
+                    Este estabelecimento já foi aprovado pela Vigilância Sanitária. Para alterar as atividades econômicas, 
+                    entre em contato com a equipe da VISA ou solicite uma alteração formal.
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Mensagem de sucesso --}}
     @if(session('success'))
@@ -43,6 +65,7 @@
         @method('PUT')
 
         {{-- Card de Instruções --}}
+        @if(!$bloqueado)
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
             <div class="flex items-start gap-3">
                 <svg class="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,6 +80,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- Card de Competência --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -157,7 +181,8 @@
                                    :value="atividade.codigo"
                                    @change="toggleAtividade(atividade)"
                                    :checked="isAtividadeSelecionada(atividade.codigo)"
-                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
+                                   @if($bloqueado) disabled @endif
+                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded {{ $bloqueado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer' }}">
                         </div>
                         <div class="flex-1">
                             <label :for="'atividade_' + index" class="cursor-pointer">
@@ -193,8 +218,9 @@
         <div class="flex items-center justify-between gap-4 pt-4">
             <a href="{{ route('company.estabelecimentos.show', $estabelecimento->id) }}"
                class="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                Cancelar
+                Voltar
             </a>
+            @if(!$bloqueado)
             <button type="submit"
                     class="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,6 +228,7 @@
                 </svg>
                 Salvar Atividades
             </button>
+            @endif
         </div>
     </form>
 </div>

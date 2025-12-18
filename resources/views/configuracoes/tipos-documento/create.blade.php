@@ -159,22 +159,25 @@
                                            {{ old('prazo_notificacao') ? 'checked' : '' }}
                                            class="mt-0.5 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
                                     <div class="ml-3">
-                                        <span class="text-sm font-medium text-gray-900">Documento de notificação/fiscalização</span>
+                                        <span class="text-sm font-medium text-gray-900">Documento de notificação/fiscalização (§1º)</span>
                                         <p class="text-xs text-gray-600 mt-1">
                                             Marque se for: <strong>Notificação, Auto de Infração, Intimação</strong> ou similar.
                                         </p>
                                         <div class="mt-2 text-xs">
-                                            <div class="flex items-start gap-1.5 text-yellow-700 bg-yellow-50 p-2 rounded">
+                                            <div class="flex items-start gap-1.5 text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
                                                 <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                                 </svg>
-                                                <span><strong>Se marcado:</strong> Prazo conta da visualização OU 5º dia útil (o que ocorrer primeiro)</span>
+                                                <div>
+                                                    <strong>Se marcado (§1º):</strong>
+                                                    <p class="mt-0.5">O estabelecimento é considerado notificado oficialmente quando o INFOVISA for acessado por um colaborador da empresa OU após 5 dias de disponibilidade.</p>
+                                                </div>
                                             </div>
-                                            <div class="flex items-start gap-1.5 text-blue-700 bg-blue-50 p-2 rounded mt-1.5">
+                                            <div class="flex items-start gap-1.5 text-blue-700 bg-blue-50 p-2 rounded mt-1.5 border border-blue-200">
                                                 <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
-                                                <span><strong>Se desmarcado:</strong> Prazo fixo/anual (ex: Alvará válido por 1 ano)</span>
+                                                <span><strong>Se desmarcado:</strong> Prazo fixo/anual contado da data de criação (ex: Alvará válido por 1 ano)</span>
                                             </div>
                                         </div>
                                     </div>

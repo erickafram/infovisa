@@ -271,6 +271,7 @@ class DocumentoDigitalController extends Controller
                 'prazo_dias' => $request->prazo_dias,
                 'tipo_prazo' => $tipoPrazo,
                 'data_vencimento' => $dataVencimento,
+                'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false, // Herda do tipo de documento
             ]);
 
             // Criar assinaturas
@@ -401,11 +402,15 @@ class DocumentoDigitalController extends Controller
         try {
             DB::beginTransaction();
 
+            // Busca o tipo de documento para pegar prazo_notificacao
+            $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
+
             $documento->update([
                 'tipo_documento_id' => $request->tipo_documento_id,
                 'conteudo' => $request->conteudo,
                 'sigiloso' => $request->sigiloso ?? false,
                 'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
+                'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false, // Herda do tipo de documento
             ]);
 
             // Atualiza assinaturas

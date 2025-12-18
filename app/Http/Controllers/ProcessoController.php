@@ -270,10 +270,17 @@ class ProcessoController extends Controller
             ->get();
         
         // Busca documentos digitais do processo (incluindo rascunhos)
-        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas'])
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas', 'primeiraVisualizacao.usuarioExterno'])
             ->where('processo_id', $processoId)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Verifica se algum documento de notificação precisa ter o prazo iniciado automaticamente (§1º - 5 dias úteis)
+        foreach ($documentosDigitais as $doc) {
+            if ($doc->prazo_notificacao && !$doc->prazo_iniciado_em && $doc->todasAssinaturasCompletas()) {
+                $doc->verificarInicioAutomaticoPrazo();
+            }
+        }
         
         // Mescla documentos digitais e arquivos externos em uma única coleção ordenada por data
         $todosDocumentos = collect();

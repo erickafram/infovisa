@@ -221,19 +221,98 @@
             </div>
             @endif
 
-            {{-- Documentos Aprovados --}}
+            {{-- Lista de Documentos e Arquivos do Processo --}}
+            @php
+                $totalDocumentos = $documentosAprovados->count() + (isset($documentosVigilancia) ? $documentosVigilancia->count() : 0);
+            @endphp
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-200">
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
-                        Documentos do Processo
+                        Lista de Documentos e Arquivos
+                        @if($totalDocumentos > 0)
+                        <span class="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-full">{{ $totalDocumentos }}</span>
+                        @endif
                     </h2>
+                    @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
+                    <button @click="modalUpload = true" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Enviar Arquivo
+                    </button>
+                    @endif
                 </div>
                 
-                @if($documentosAprovados->count() > 0)
+                @if($totalDocumentos > 0)
                 <div class="divide-y divide-gray-100">
+                    {{-- Documentos da Vigilância Sanitária --}}
+                    @if(isset($documentosVigilancia) && $documentosVigilancia->count() > 0)
+                        @foreach($documentosVigilancia as $docDigital)
+                        <div class="px-4 py-3 hover:bg-gray-50">
+                            <div class="flex items-center justify-between">
+                                <a href="{{ route('company.processos.documento-digital.visualizar', [$processo->id, $docDigital->id]) }}" 
+                                   target="_blank"
+                                   class="flex items-center gap-3 flex-1">
+                                    <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 hover:text-blue-600 truncate">
+                                            {{ $docDigital->tipoDocumento->nome ?? 'Documento' }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            Nº {{ $docDigital->numero_documento }} • {{ $docDigital->created_at->format('d/m/Y H:i') }}
+                                            <span class="text-blue-600 font-medium">• Vigilância Sanitária</span>
+                                        </p>
+                                    </div>
+                                </a>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    {{-- Badge de Prazo --}}
+                                    @if($docDigital->prazo_dias)
+                                        @php
+                                            $corBadge = $docDigital->cor_status_prazo;
+                                            $textoBadge = $docDigital->texto_status_prazo;
+                                            $classesCor = [
+                                                'red' => 'bg-red-100 text-red-700 border-red-200',
+                                                'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                                'green' => 'bg-green-100 text-green-700 border-green-200',
+                                                'blue' => 'bg-blue-100 text-blue-700 border-blue-200',
+                                                'gray' => 'bg-gray-100 text-gray-700 border-gray-200',
+                                            ];
+                                            $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
+                                        @endphp
+                                        <span class="px-2 py-0.5 {{ $classeBadge }} border rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            {{ $textoBadge }}
+                                        </span>
+                                    @endif
+                                    <a href="{{ route('company.processos.documento-digital.download', [$processo->id, $docDigital->id]) }}" 
+                                       class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded hover:bg-blue-200 transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                            {{-- Aviso para documentos de notificação --}}
+                            @if($docDigital->prazo_notificacao && !$docDigital->prazo_iniciado_em)
+                            <div class="mt-2 ml-13 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                                <strong>⚠️ Importante:</strong> Ao visualizar este documento, o prazo para resposta começará a ser contado.
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                    @endif
+
+                    {{-- Documentos enviados pelo usuário (aprovados) --}}
                     @foreach($documentosAprovados as $documento)
                     <div class="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
                         <button type="button" 
@@ -245,7 +324,9 @@
                                 <p class="text-xs text-gray-500">
                                     {{ $documento->tamanho_formatado }} • {{ $documento->created_at->format('d/m/Y H:i') }}
                                     @if($documento->tipo_usuario === 'externo')
-                                    <span class="text-blue-600">• Enviado por você</span>
+                                    <span class="text-green-600 font-medium">• Enviado por você</span>
+                                    @else
+                                    <span class="text-blue-600 font-medium">• Vigilância Sanitária</span>
                                     @endif
                                 </p>
                             </div>

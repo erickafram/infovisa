@@ -69,6 +69,25 @@ class ProcessoController extends Controller
         $documentosPendentes = $processo->documentos->where('status_aprovacao', 'pendente');
         $documentosRejeitados = $processo->documentos->where('status_aprovacao', 'rejeitado');
         
+        // Documentos digitais da vigilância (assinados e não sigilosos)
+        $documentosVigilancia = \App\Models\DocumentoDigital::where('processo_id', $processo->id)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->with(['tipoDocumento', 'usuarioCriador', 'assinaturas'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function ($doc) {
+                // Só mostra documentos com todas as assinaturas completas
+                return $doc->todasAssinaturasCompletas();
+            });
+
+        // Verifica se algum documento de notificação precisa ter o prazo iniciado automaticamente (§1º - 5 dias úteis)
+        foreach ($documentosVigilancia as $doc) {
+            if ($doc->prazo_notificacao && !$doc->prazo_iniciado_em) {
+                $doc->verificarInicioAutomaticoPrazo();
+            }
+        }
+        
         // Alertas do processo
         $alertas = $processo->alertas()->orderBy('data_alerta', 'asc')->get();
         
@@ -77,6 +96,7 @@ class ProcessoController extends Controller
             'documentosAprovados',
             'documentosPendentes',
             'documentosRejeitados',
+            'documentosVigilancia',
             'alertas'
         ));
     }
@@ -200,5 +220,85 @@ class ProcessoController extends Controller
 
         return redirect()->route('company.processos.show', $processo->id)
             ->with('success', 'Arquivo excluído com sucesso!');
+    }
+
+    /**
+     * Visualiza um documento digital da vigilância
+     * Registra a visualização para início da contagem de prazo (§1º)
+     */
+    public function visualizarDocumentoDigital($processoId, $documentoId)
+    {
+        $usuarioId = auth('externo')->id();
+        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        
+        $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->findOrFail($processoId);
+
+        $documento = \App\Models\DocumentoDigital::where('processo_id', $processo->id)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->findOrFail($documentoId);
+
+        // Verifica se todas as assinaturas estão completas
+        if (!$documento->todasAssinaturasCompletas()) {
+            abort(403, 'Documento ainda não está disponível.');
+        }
+
+        // Registra a visualização (isso também inicia o prazo se for documento de notificação)
+        $documento->registrarVisualizacao(
+            $usuarioId,
+            request()->ip(),
+            request()->userAgent()
+        );
+
+        // Retorna o PDF
+        if (!$documento->arquivo_pdf || !file_exists(storage_path('app/public/' . $documento->arquivo_pdf))) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        $path = storage_path('app/public/' . $documento->arquivo_pdf);
+        
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $documento->numero_documento . '.pdf"'
+        ]);
+    }
+
+    /**
+     * Download de documento digital da vigilância
+     */
+    public function downloadDocumentoDigital($processoId, $documentoId)
+    {
+        $usuarioId = auth('externo')->id();
+        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        
+        $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->findOrFail($processoId);
+
+        $documento = \App\Models\DocumentoDigital::where('processo_id', $processo->id)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->findOrFail($documentoId);
+
+        // Verifica se todas as assinaturas estão completas
+        if (!$documento->todasAssinaturasCompletas()) {
+            abort(403, 'Documento ainda não está disponível.');
+        }
+
+        // Registra a visualização
+        $documento->registrarVisualizacao(
+            $usuarioId,
+            request()->ip(),
+            request()->userAgent()
+        );
+
+        if (!$documento->arquivo_pdf || !file_exists(storage_path('app/public/' . $documento->arquivo_pdf))) {
+            return back()->with('error', 'Arquivo não encontrado.');
+        }
+
+        $path = storage_path('app/public/' . $documento->arquivo_pdf);
+        $nomeArquivo = $documento->numero_documento . '_' . ($documento->tipoDocumento->nome ?? 'documento') . '.pdf';
+        
+        return response()->download($path, $nomeArquivo);
     }
 }

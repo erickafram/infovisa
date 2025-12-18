@@ -285,7 +285,6 @@ class EstabelecimentoController extends Controller
     public function editAtividades($id)
     {
         $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
-            ->where('status', 'aprovado')
             ->findOrFail($id);
         
         return view('company.estabelecimentos.atividades', compact('estabelecimento'));
@@ -297,8 +296,13 @@ class EstabelecimentoController extends Controller
     public function updateAtividades(Request $request, $id)
     {
         $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
-            ->where('status', 'aprovado')
             ->findOrFail($id);
+
+        // Bloqueia edição se estabelecimento já foi aprovado
+        if ($estabelecimento->status === 'aprovado') {
+            return redirect()->route('company.estabelecimentos.atividades.edit', $estabelecimento->id)
+                ->with('error', 'Não é possível alterar atividades de um estabelecimento já aprovado. Entre em contato com a Vigilância Sanitária.');
+        }
 
         $atividades = $request->input('atividades_exercidas', []);
         
@@ -416,8 +420,21 @@ class EstabelecimentoController extends Controller
             $responsavel->update($updateData);
         }
 
-        $estabelecimento->responsaveis()->syncWithoutDetaching([
-            $responsavel->id => ['tipo_vinculo' => $validated['tipo_vinculo'], 'ativo' => true]
+        // Verifica se já existe vínculo com este tipo
+        $vinculoExistente = $estabelecimento->responsaveis()
+            ->where('responsavel_id', $responsavel->id)
+            ->wherePivot('tipo_vinculo', $validated['tipo_vinculo'])
+            ->exists();
+
+        if ($vinculoExistente) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('warning', 'Este responsável já está vinculado como ' . ($validated['tipo_vinculo'] === 'legal' ? 'Responsável Legal' : 'Responsável Técnico') . '.');
+        }
+
+        // Usa attach para permitir múltiplos vínculos (legal e técnico) para a mesma pessoa
+        $estabelecimento->responsaveis()->attach($responsavel->id, [
+            'tipo_vinculo' => $validated['tipo_vinculo'],
+            'ativo' => true
         ]);
 
         return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
@@ -614,5 +631,37 @@ class EstabelecimentoController extends Controller
                 'cpf' => $usuario->cpf_formatado ?? $usuario->cpf,
             ];
         }));
+    }
+
+    /**
+     * Busca responsável por CPF para preenchimento automático
+     */
+    public function buscarResponsavelPorCpf(Request $request)
+    {
+        $cpf = preg_replace('/\D/', '', $request->input('cpf', ''));
+        
+        if (strlen($cpf) !== 11) {
+            return response()->json(['encontrado' => false]);
+        }
+
+        $responsavel = \App\Models\Responsavel::where('cpf', $cpf)->first();
+
+        if (!$responsavel) {
+            return response()->json(['encontrado' => false]);
+        }
+
+        return response()->json([
+            'encontrado' => true,
+            'dados' => [
+                'nome' => $responsavel->nome,
+                'email' => $responsavel->email,
+                'telefone' => $responsavel->telefone,
+                'conselho' => $responsavel->conselho,
+                'numero_registro' => $responsavel->numero_registro_conselho,
+                // Indica se já tem documento (não envia o documento em si por segurança)
+                'tem_documento_identificacao' => !empty($responsavel->documento_identificacao),
+                'tem_carteirinha_conselho' => !empty($responsavel->carteirinha_conselho),
+            ]
+        ]);
     }
 }

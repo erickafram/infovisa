@@ -31,6 +31,8 @@ class DocumentoDigital extends Model
         'tipo_prazo',
         'prazo_notificacao',
         'data_vencimento',
+        'prazo_iniciado_em',
+        'prazo_iniciado_por',
     ];
 
     protected $casts = [
@@ -40,6 +42,7 @@ class DocumentoDigital extends Model
         'ultima_edicao_em' => 'datetime',
         'prazo_dias' => 'integer',
         'data_vencimento' => 'date',
+        'prazo_iniciado_em' => 'datetime',
     ];
 
     /**
@@ -119,11 +122,143 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Relacionamento com visualizações
+     */
+    public function visualizacoes()
+    {
+        return $this->hasMany(DocumentoVisualizacao::class);
+    }
+
+    /**
+     * Primeira visualização do documento (para mostrar quem visualizou primeiro)
+     */
+    public function primeiraVisualizacao()
+    {
+        return $this->hasOne(DocumentoVisualizacao::class)->oldestOfMany();
+    }
+
+    /**
      * Relacionamento com pasta
      */
     public function pasta()
     {
         return $this->belongsTo(ProcessoPasta::class, 'pasta_id');
+    }
+
+    /**
+     * Registra uma visualização do documento por usuário externo
+     * e inicia a contagem do prazo se for documento de notificação
+     */
+    public function registrarVisualizacao($usuarioExternoId, $ip = null, $userAgent = null): void
+    {
+        // Registra a visualização
+        $this->visualizacoes()->create([
+            'usuario_externo_id' => $usuarioExternoId,
+            'ip_address' => $ip,
+            'user_agent' => $userAgent,
+        ]);
+
+        // Se for documento de notificação e o prazo ainda não foi iniciado, inicia agora
+        if ($this->prazo_notificacao && !$this->prazo_iniciado_em && $this->todasAssinaturasCompletas()) {
+            $this->iniciarPrazoPorVisualizacao();
+        }
+    }
+
+    /**
+     * Inicia o prazo por visualização do estabelecimento
+     */
+    public function iniciarPrazoPorVisualizacao(): void
+    {
+        if ($this->prazo_iniciado_em) {
+            return; // Prazo já foi iniciado
+        }
+
+        $this->prazo_iniciado_em = now();
+        $this->prazo_iniciado_por = 'visualizacao';
+        
+        // Recalcula a data de vencimento baseada na data de início do prazo
+        if ($this->prazo_dias) {
+            $this->data_vencimento = $this->calcularDataVencimento($this->prazo_iniciado_em, $this->prazo_dias, $this->tipo_prazo);
+        }
+        
+        $this->save();
+    }
+
+    /**
+     * Inicia o prazo por tempo de disponibilidade (5 dias)
+     * Deve ser chamado por um job/scheduler
+     */
+    public function iniciarPrazoPorDisponibilidade(): void
+    {
+        if ($this->prazo_iniciado_em) {
+            return; // Prazo já foi iniciado
+        }
+
+        $this->prazo_iniciado_em = now();
+        $this->prazo_iniciado_por = 'tempo_disponibilidade';
+        
+        // Recalcula a data de vencimento baseada na data de início do prazo
+        if ($this->prazo_dias) {
+            $this->data_vencimento = $this->calcularDataVencimento($this->prazo_iniciado_em, $this->prazo_dias, $this->tipo_prazo);
+        }
+        
+        $this->save();
+    }
+
+    /**
+     * Calcula a data de vencimento baseada no tipo de prazo
+     */
+    private function calcularDataVencimento($dataInicio, $dias, $tipoPrazo): \Carbon\Carbon
+    {
+        $data = \Carbon\Carbon::parse($dataInicio);
+        
+        if ($tipoPrazo === 'uteis') {
+            // Dias úteis - exclui finais de semana
+            $diasAdicionados = 0;
+            while ($diasAdicionados < $dias) {
+                $data->addDay();
+                if (!$data->isWeekend()) {
+                    $diasAdicionados++;
+                }
+            }
+        } else {
+            // Dias corridos
+            $data->addDays($dias);
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Verifica se o documento está disponível há mais de 5 dias úteis
+     * e o prazo ainda não foi iniciado
+     */
+    public function verificarInicioAutomaticoPrazo(): bool
+    {
+        // Só aplica para documentos de notificação com prazo não iniciado
+        if (!$this->prazo_notificacao || $this->prazo_iniciado_em || !$this->todasAssinaturasCompletas()) {
+            return false;
+        }
+
+        // Calcula 5 dias úteis após a finalização
+        $dataFinalizacao = $this->finalizado_em ?? $this->created_at;
+        $diasUteis = 0;
+        $dataVerificacao = \Carbon\Carbon::parse($dataFinalizacao);
+        
+        while ($diasUteis < 5) {
+            $dataVerificacao->addDay();
+            if (!$dataVerificacao->isWeekend()) {
+                $diasUteis++;
+            }
+        }
+
+        // Se já passou os 5 dias úteis, inicia o prazo automaticamente
+        if (now()->gte($dataVerificacao)) {
+            $this->iniciarPrazoPorDisponibilidade();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -207,35 +342,53 @@ class DocumentoDigital extends Model
     }
 
     /**
-     * Retorna a cor do badge de status do prazo
-     */
-    public function getCorStatusPrazoAttribute(): string
-    {
-        if (!$this->data_vencimento) {
-            return 'gray';
-        }
-
-        if ($this->vencido) {
-            return 'red';
-        }
-
-        if ($this->proximo_vencimento) {
-            return 'yellow';
-        }
-
-        return 'green';
-    }
-
-    /**
      * Retorna o texto do status do prazo
+     * Só mostra os dias restantes após todas as assinaturas serem concluídas
      */
     public function getTextoStatusPrazoAttribute(): string
     {
-        if (!$this->data_vencimento) {
+        if (!$this->data_vencimento && !$this->prazo_dias) {
             return 'Sem prazo';
         }
 
+        // Verifica se todas as assinaturas obrigatórias foram feitas
+        if (!$this->todasAssinaturasCompletas()) {
+            $pendentes = $this->assinaturas()
+                ->where('obrigatoria', true)
+                ->where('status', '!=', 'assinado')
+                ->count();
+            $total = $this->assinaturas()->where('obrigatoria', true)->count();
+            return "Aguardando {$pendentes}/{$total} assinatura(s)";
+        }
+
+        // Para documentos de notificação, verifica se o prazo já foi iniciado
+        if ($this->prazo_notificacao && !$this->prazo_iniciado_em) {
+            // Calcula quantos dias faltam para iniciar automaticamente (5 dias úteis)
+            $dataFinalizacao = $this->finalizado_em ?? $this->created_at;
+            $diasUteis = 0;
+            $dataLimite = \Carbon\Carbon::parse($dataFinalizacao);
+            
+            while ($diasUteis < 5) {
+                $dataLimite->addDay();
+                if (!$dataLimite->isWeekend()) {
+                    $diasUteis++;
+                }
+            }
+            
+            $diasRestantes = now()->startOfDay()->diffInDays($dataLimite, false);
+            
+            if ($diasRestantes > 0) {
+                return "Aguardando visualização ({$diasRestantes}d)";
+            } else {
+                return "Prazo iniciará automaticamente";
+            }
+        }
+
         $diasFaltando = $this->dias_faltando;
+
+        if ($diasFaltando === null) {
+            return 'Sem prazo';
+        }
 
         if ($diasFaltando < 0) {
             $diasVencidos = abs($diasFaltando);
@@ -251,5 +404,36 @@ class DocumentoDigital extends Model
         }
 
         return "Faltam {$diasFaltando} dias";
+    }
+
+    /**
+     * Retorna a cor do badge de status do prazo
+     * Considera se as assinaturas estão pendentes
+     */
+    public function getCorStatusPrazoAttribute(): string
+    {
+        if (!$this->data_vencimento && !$this->prazo_dias) {
+            return 'gray';
+        }
+
+        // Se ainda tem assinaturas pendentes, mostra em cinza/neutro
+        if (!$this->todasAssinaturasCompletas()) {
+            return 'gray';
+        }
+
+        // Para documentos de notificação sem prazo iniciado
+        if ($this->prazo_notificacao && !$this->prazo_iniciado_em) {
+            return 'blue'; // Azul para indicar aguardando visualização
+        }
+
+        if ($this->vencido) {
+            return 'red';
+        }
+
+        if ($this->proximo_vencimento) {
+            return 'yellow';
+        }
+
+        return 'green';
     }
 }

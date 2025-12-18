@@ -735,7 +735,7 @@
     </div>
 </div>
 
-{{-- Modal Finalizar OS --}} Design Moderno e Clean --}}
+{{-- Modal Finalizar OS - Design Moderno e Clean --}}
 <div id="modalFinalizarOS" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {{-- Header Clean --}}

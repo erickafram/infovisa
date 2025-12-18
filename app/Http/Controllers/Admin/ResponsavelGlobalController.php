@@ -203,4 +203,96 @@ class ResponsavelGlobalController extends Controller
         
         return view('admin.responsaveis.show', compact('responsavel'));
     }
+
+    /**
+     * Formulário de edição do responsável
+     */
+    public function edit($id)
+    {
+        $responsavel = Responsavel::findOrFail($id);
+        
+        return view('admin.responsaveis.edit', compact('responsavel'));
+    }
+
+    /**
+     * Atualiza os dados do responsável
+     */
+    public function update(Request $request, $id)
+    {
+        $responsavel = Responsavel::findOrFail($id);
+
+        $rules = [
+            'nome' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'telefone' => 'nullable|string|max:20',
+        ];
+
+        // Campos específicos para responsável técnico
+        if ($responsavel->tipo === 'tecnico') {
+            $rules['conselho'] = 'nullable|string|max:100';
+            $rules['numero_registro_conselho'] = 'nullable|string|max:50';
+            $rules['carteirinha_conselho'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        } else {
+            $rules['documento_identificacao'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Limpa formatação do telefone
+        if (isset($validated['telefone'])) {
+            $validated['telefone'] = preg_replace('/\D/', '', $validated['telefone']);
+        }
+
+        // Upload de novos arquivos
+        if ($request->hasFile('carteirinha_conselho')) {
+            // Remove arquivo antigo se existir
+            if ($responsavel->carteirinha_conselho) {
+                \Storage::disk('public')->delete($responsavel->carteirinha_conselho);
+            }
+            $validated['carteirinha_conselho'] = $request->file('carteirinha_conselho')->store('responsaveis/tecnico', 'public');
+        }
+
+        if ($request->hasFile('documento_identificacao')) {
+            // Remove arquivo antigo se existir
+            if ($responsavel->documento_identificacao) {
+                \Storage::disk('public')->delete($responsavel->documento_identificacao);
+            }
+            $validated['documento_identificacao'] = $request->file('documento_identificacao')->store('responsaveis/legal', 'public');
+        }
+
+        $responsavel->update($validated);
+
+        return redirect()->route('admin.responsaveis.show', $responsavel->id)
+            ->with('success', 'Responsável atualizado com sucesso!');
+    }
+
+    /**
+     * Remove o documento de identificação do responsável
+     */
+    public function removerDocumento($id)
+    {
+        $responsavel = Responsavel::findOrFail($id);
+
+        if ($responsavel->documento_identificacao) {
+            \Storage::disk('public')->delete($responsavel->documento_identificacao);
+            $responsavel->update(['documento_identificacao' => null]);
+        }
+
+        return redirect()->back()->with('success', 'Documento removido com sucesso!');
+    }
+
+    /**
+     * Remove a carteirinha do conselho do responsável
+     */
+    public function removerCarteirinha($id)
+    {
+        $responsavel = Responsavel::findOrFail($id);
+
+        if ($responsavel->carteirinha_conselho) {
+            \Storage::disk('public')->delete($responsavel->carteirinha_conselho);
+            $responsavel->update(['carteirinha_conselho' => null]);
+        }
+
+        return redirect()->back()->with('success', 'Carteirinha removida com sucesso!');
+    }
 }

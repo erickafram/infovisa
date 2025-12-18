@@ -25,3 +25,12 @@ Schedule::command('processos:licenciamento-anual')
 Schedule::command('diario:verificar-novos')
     ->dailyAt('06:00') // Executa todo dia às 06:00
     ->timezone('America/Sao_Paulo');
+
+// Verificação de prazos de documentos de notificação (§1º - 5 dias úteis)
+// Executa a cada hora para garantir que os prazos sejam iniciados no momento correto
+Schedule::command('documentos:verificar-prazos')
+    ->hourly()
+    ->timezone('America/Sao_Paulo')
+    ->onSuccess(function () {
+        \Log::info('Verificação de prazos de documentos concluída');
+    });

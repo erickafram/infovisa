@@ -77,14 +77,19 @@
                                 <p class="text-sm text-gray-600">Telefone: {{ $responsavel->telefone_formatado ?? $responsavel->telefone }}</p>
                                 @endif
                                 @if($responsavel->documento_identificacao)
-                                    <a href="{{ asset('storage/' . $responsavel->documento_identificacao) }}" 
-                                       target="_blank"
-                                       class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-2">
+                                    <span class="inline-flex items-center gap-1 text-sm text-green-600 mt-2">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        Ver Documento
-                                    </a>
+                                        Documento cadastrado
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        Documento pendente
+                                    </span>
                                 @endif
                             </div>
                             <form method="POST" action="{{ route('company.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
@@ -145,14 +150,19 @@
                                 <p class="text-sm text-gray-600">Conselho: {{ $responsavel->conselho }} - {{ $responsavel->numero_registro_conselho ?? $responsavel->numero_registro }}</p>
                                 @endif
                                 @if($responsavel->carteirinha_conselho)
-                                    <a href="{{ asset('storage/' . $responsavel->carteirinha_conselho) }}" 
-                                       target="_blank"
-                                       class="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 mt-2">
+                                    <span class="inline-flex items-center gap-1 text-sm text-green-600 mt-2">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        Ver Carteirinha
-                                    </a>
+                                        Carteirinha cadastrada
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        Carteirinha pendente
+                                    </span>
                                 @endif
                             </div>
                             <form method="POST" action="{{ route('company.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 

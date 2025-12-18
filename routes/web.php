@@ -99,8 +99,15 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::get('/processos/{id}/documentos/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumento'])->name('processos.documento.visualizar');
     Route::delete('/processos/{id}/documentos/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'deleteDocumento'])->name('processos.documento.delete');
     
+    // Documentos digitais da vigilância (notificações, etc)
+    Route::get('/processos/{id}/documentos-vigilancia/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumentoDigital'])->name('processos.documento-digital.visualizar');
+    Route::get('/processos/{id}/documentos-vigilancia/{documento}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadDocumentoDigital'])->name('processos.documento-digital.download');
+    
     // Busca de usuários externos para vincular
     Route::get('/usuarios-externos/buscar', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarUsuariosExternos'])->name('usuarios-externos.buscar');
+    
+    // Busca de responsável por CPF
+    Route::post('/responsaveis/buscar-cpf', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarResponsavelPorCpf'])->name('responsaveis.buscar-cpf');
 });
 
 /*
@@ -149,6 +156,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Rotas de Responsáveis Globais
     Route::get('/responsaveis', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'index'])->name('responsaveis.index');
     Route::get('/responsaveis/{id}', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'show'])->name('responsaveis.show');
+    Route::get('/responsaveis/{id}/edit', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'edit'])->name('responsaveis.edit');
+    Route::put('/responsaveis/{id}', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'update'])->name('responsaveis.update');
+    Route::delete('/responsaveis/{id}/documento', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'removerDocumento'])->name('responsaveis.remover-documento');
+    Route::delete('/responsaveis/{id}/carteirinha', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'removerCarteirinha'])->name('responsaveis.remover-carteirinha');
     
     // Documentos Digitais
     Route::get('/documentos', [\App\Http\Controllers\DocumentoDigitalController::class, 'index'])->name('documentos.index');

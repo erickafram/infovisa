@@ -72,27 +72,61 @@
                                 <p class="text-sm text-gray-600 mt-1">CPF: {{ $responsavel->cpf_formatado }}</p>
                                 <p class="text-sm text-gray-600">Email: {{ $responsavel->email }}</p>
                                 <p class="text-sm text-gray-600">Telefone: {{ $responsavel->telefone_formatado }}</p>
-                                @if($responsavel->documento_identificacao)
-                                    <a href="{{ asset('storage/' . $responsavel->documento_identificacao) }}" 
-                                       target="_blank"
-                                       class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        Ver Documento
-                                    </a>
-                                @endif
+                                
+                                {{-- Documento --}}
+                                <div class="mt-3 flex items-center gap-3">
+                                    @if($responsavel->documento_identificacao)
+                                        <a href="{{ asset('storage/' . $responsavel->documento_identificacao) }}" 
+                                           target="_blank"
+                                           class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            Ver Documento
+                                        </a>
+                                        <form method="POST" action="{{ route('admin.responsaveis.remover-documento', $responsavel->id) }}" 
+                                              onsubmit="return confirm('Tem certeza que deseja remover o documento deste responsável?')"
+                                              class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                Remover Doc
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-sm text-yellow-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                            Sem documento
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
-                            <form method="POST" action="{{ route('admin.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
-                                  onsubmit="return confirm('Tem certeza que deseja remover este responsável?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-800">
+                            <div class="flex flex-col gap-2">
+                                {{-- Botão Editar --}}
+                                <a href="{{ route('admin.responsaveis.edit', $responsavel->id) }}" 
+                                   class="text-blue-600 hover:text-blue-800" title="Editar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
-                                </button>
-                            </form>
+                                </a>
+                                {{-- Botão Remover Vínculo --}}
+                                <form method="POST" action="{{ route('admin.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
+                                      onsubmit="return confirm('Tem certeza que deseja remover este responsável do estabelecimento?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-800" title="Remover vínculo">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     @endforeach
@@ -134,27 +168,61 @@
                                 <p class="text-sm text-gray-600">Email: {{ $responsavel->email }}</p>
                                 <p class="text-sm text-gray-600">Telefone: {{ $responsavel->telefone_formatado }}</p>
                                 <p class="text-sm text-gray-600">Conselho: {{ $responsavel->conselho }} - {{ $responsavel->numero_registro_conselho }}</p>
-                                @if($responsavel->carteirinha_conselho)
-                                    <a href="{{ asset('storage/' . $responsavel->carteirinha_conselho) }}" 
-                                       target="_blank"
-                                       class="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 mt-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        Ver Carteirinha
-                                    </a>
-                                @endif
+                                
+                                {{-- Carteirinha --}}
+                                <div class="mt-3 flex items-center gap-3">
+                                    @if($responsavel->carteirinha_conselho)
+                                        <a href="{{ asset('storage/' . $responsavel->carteirinha_conselho) }}" 
+                                           target="_blank"
+                                           class="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            Ver Carteirinha
+                                        </a>
+                                        <form method="POST" action="{{ route('admin.responsaveis.remover-carteirinha', $responsavel->id) }}" 
+                                              onsubmit="return confirm('Tem certeza que deseja remover a carteirinha deste responsável?')"
+                                              class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                Remover
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-sm text-yellow-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                            Sem carteirinha
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
-                            <form method="POST" action="{{ route('admin.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
-                                  onsubmit="return confirm('Tem certeza que deseja remover este responsável?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-800">
+                            <div class="flex flex-col gap-2">
+                                {{-- Botão Editar --}}
+                                <a href="{{ route('admin.responsaveis.edit', $responsavel->id) }}" 
+                                   class="text-green-600 hover:text-green-800" title="Editar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
-                                </button>
-                            </form>
+                                </a>
+                                {{-- Botão Remover Vínculo --}}
+                                <form method="POST" action="{{ route('admin.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
+                                      onsubmit="return confirm('Tem certeza que deseja remover este responsável do estabelecimento?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-800" title="Remover vínculo">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     @endforeach

@@ -461,28 +461,49 @@
                 {{-- Aviso sobre contagem de prazo (será exibido dinamicamente via JavaScript) --}}
                 <div id="aviso-prazo-container" style="display: none;">
                     {{-- Aviso para documentos de notificação/fiscalização --}}
-                    <div id="aviso-notificacao" class="bg-yellow-50 border-l-4 border-yellow-400 p-2.5 mb-3 rounded" style="display: none;">
-                        <div class="flex items-start gap-2">
-                            <svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                            <div class="text-xs text-yellow-800">
-                                <p class="font-semibold mb-1">⚠️ Contagem de Prazo para Notificação/Fiscalização</p>
-                                <p class="mb-1.5">O prazo começa a contar a partir do <strong>que ocorrer primeiro:</strong> visualização pelo estabelecimento OU 5º dia útil após anexação.</p>
-                                <p class="text-[10px] italic opacity-75">* Funcionalidade em desenvolvimento</p>
+                    <div id="aviso-notificacao" class="bg-amber-50 border-l-4 border-amber-500 p-3 mb-3 rounded-lg" style="display: none;">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-bold text-sm text-amber-800 mb-2">📋 Regra de Notificação Oficial (§1º)</p>
+                                <div class="text-xs text-amber-700 space-y-2">
+                                    <p class="leading-relaxed">O estabelecimento é considerado <strong>notificado oficialmente</strong> quando:</p>
+                                    <div class="bg-white/60 rounded-lg p-2.5 space-y-1.5">
+                                        <div class="flex items-start gap-2">
+                                            <span class="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold">1</span>
+                                            <span>O <strong>INFOVISA for acessado</strong> por um dos colaboradores da empresa (independente da visualização do documento)</span>
+                                        </div>
+                                        <div class="text-center text-amber-600 font-semibold text-[10px]">OU</div>
+                                        <div class="flex items-start gap-2">
+                                            <span class="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold">2</span>
+                                            <span>Após <strong>5 (cinco) dias</strong> de sua disponibilidade no INFOVISA</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-amber-600 italic mt-2">
+                                        ⏱️ O prazo começa a contar a partir do que ocorrer primeiro.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {{-- Aviso para documentos de licenciamento (Alvará, etc) --}}
-                    <div id="aviso-licenciamento" class="bg-blue-50 border-l-4 border-blue-400 p-2.5 mb-3 rounded" style="display: none;">
-                        <div class="flex items-start gap-2">
-                            <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <div class="text-xs text-blue-800">
-                                <p class="font-semibold mb-1">ℹ️ Prazo Anual/Fixo</p>
-                                <p>O prazo é contado a partir da <strong>data de criação do documento</strong> (ex: Alvará Sanitário válido por 1 ano).</p>
+                    <div id="aviso-licenciamento" class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 rounded-lg" style="display: none;">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-bold text-sm text-blue-800 mb-1">📅 Prazo Anual/Fixo</p>
+                                <p class="text-xs text-blue-700">
+                                    O prazo é contado a partir da <strong>data de criação do documento</strong> (ex: Alvará Sanitário válido por 1 ano).
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -546,16 +567,18 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Data de Vencimento Prevista
+                            <span x-show="!isNotificacao">Data de Vencimento Prevista</span>
+                            <span x-show="isNotificacao">Vencimento Estimado (5º dia útil)</span>
                         </label>
-                        <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg" :class="isNotificacao ? 'bg-amber-50 border-amber-300' : 'bg-gray-50'">
+                            <svg class="w-5 h-5" :class="isNotificacao ? 'text-amber-500' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
-                            <span class="text-sm font-medium text-gray-900" x-text="dataVencimentoFormatada || 'Informe o prazo'"></span>
+                            <span class="text-sm font-medium" :class="isNotificacao ? 'text-amber-800' : 'text-gray-900'" x-text="dataVencimentoFormatada || 'Informe o prazo'"></span>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">
-                            Calculada automaticamente baseada no tipo de prazo
+                        <p class="mt-1 text-xs" :class="isNotificacao ? 'text-amber-600' : 'text-gray-500'">
+                            <span x-show="!isNotificacao">Calculada automaticamente baseada no tipo de prazo</span>
+                            <span x-show="isNotificacao">⚠️ Data estimada considerando início no 5º dia útil. Pode ser antecipada se o estabelecimento visualizar antes.</span>
                         </p>
                     </div>
                 </div>
@@ -775,6 +798,7 @@ function documentoEditor() {
         prazoDias: null,
         tipoPrazo: 'corridos',
         dataVencimentoFormatada: '',
+        isNotificacao: false, // Se é documento de notificação/fiscalização (§1º)
 
         init() {
             // Tenta recuperar dados salvos do localStorage
@@ -1162,6 +1186,7 @@ function documentoEditor() {
                 document.getElementById('aviso-prazo-container').style.display = 'none';
                 document.getElementById('aviso-notificacao').style.display = 'none';
                 document.getElementById('aviso-licenciamento').style.display = 'none';
+                this.isNotificacao = false;
                 return;
             }
 
@@ -1175,11 +1200,16 @@ function documentoEditor() {
                 // Documento de notificação/fiscalização
                 document.getElementById('aviso-notificacao').style.display = 'block';
                 document.getElementById('aviso-licenciamento').style.display = 'none';
+                this.isNotificacao = true;
             } else {
                 // Documento de licenciamento (prazo fixo)
                 document.getElementById('aviso-notificacao').style.display = 'none';
                 document.getElementById('aviso-licenciamento').style.display = 'block';
+                this.isNotificacao = false;
             }
+            
+            // Recalcula a data de vencimento com a nova informação
+            this.calcularDataVencimento();
         },
 
         contarPalavras() {
@@ -1263,14 +1293,29 @@ function documentoEditor() {
             }
 
             const hoje = new Date();
-            let dataVencimento = new Date(hoje);
+            let dataInicioPrazo = new Date(hoje);
+            
+            // Para documentos de notificação (§1º), o prazo começa após 5 dias úteis
+            // (ou antes, se o estabelecimento visualizar - mas isso não sabemos agora)
+            if (this.isNotificacao) {
+                // Adiciona 5 dias úteis para início do prazo
+                let diasUteisContados = 0;
+                while (diasUteisContados < 5) {
+                    dataInicioPrazo.setDate(dataInicioPrazo.getDate() + 1);
+                    const diaSemana = dataInicioPrazo.getDay();
+                    if (diaSemana !== 0 && diaSemana !== 6) {
+                        diasUteisContados++;
+                    }
+                }
+            }
+            
+            let dataVencimento = new Date(dataInicioPrazo);
             
             if (this.tipoPrazo === 'corridos') {
                 // Dias corridos: simplesmente adiciona os dias
-                dataVencimento.setDate(hoje.getDate() + parseInt(this.prazoDias));
+                dataVencimento.setDate(dataInicioPrazo.getDate() + parseInt(this.prazoDias));
             } else {
                 // Dias úteis: adiciona apenas dias úteis (segunda a sexta)
-                let diasAdicionados = 0;
                 let diasRestantes = parseInt(this.prazoDias);
                 
                 while (diasRestantes > 0) {

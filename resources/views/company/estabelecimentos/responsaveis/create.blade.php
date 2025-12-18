@@ -4,7 +4,7 @@
 @section('page-title', 'Adicionar Responsável')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="mb-6 flex items-center gap-4">
         <a href="{{ route('company.estabelecimentos.responsaveis.index', $estabelecimento->id) }}" 
@@ -50,6 +50,31 @@
             </div>
             @endif
 
+            {{-- Campo CPF primeiro para validação --}}
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <label for="cpf" class="block text-sm font-medium text-gray-700 mb-2">
+                    CPF <span class="text-red-500">*</span>
+                </label>
+                <div class="flex gap-3">
+                    <input type="text" name="cpf" id="cpf" value="{{ old('cpf') }}" required
+                           class="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono transition-colors"
+                           placeholder="000.000.000-00" maxlength="14">
+                    <button type="button" id="btnBuscarCpf"
+                            class="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Buscar
+                    </button>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Digite o CPF e clique em "Buscar" ou aguarde o preenchimento automático
+                </p>
+            </div>
+
             {{-- Dados Pessoais --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
@@ -59,15 +84,6 @@
                     <input type="text" name="nome" id="nome" value="{{ old('nome') }}" required
                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                            placeholder="Nome completo do responsável">
-                </div>
-
-                <div>
-                    <label for="cpf" class="block text-sm font-medium text-gray-700 mb-2">
-                        CPF <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="cpf" id="cpf" value="{{ old('cpf') }}" required
-                           class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono transition-colors"
-                           placeholder="000.000.000-00" maxlength="14">
                 </div>
 
                 <div>
@@ -129,7 +145,8 @@
                                placeholder="Número do registro no conselho">
                     </div>
 
-                    <div class="md:col-span-2">
+                    {{-- Campo de upload - escondido quando já tem documento --}}
+                    <div class="md:col-span-2" id="secaoCarteirinha">
                         <label for="carteirinha_conselho" class="block text-sm font-medium text-gray-700 mb-2">
                             Carteirinha do Conselho (PDF ou Imagem)
                         </label>
@@ -137,6 +154,19 @@
                                accept=".pdf,.jpg,.jpeg,.png"
                                class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                         <p class="mt-1 text-xs text-gray-500">Formatos aceitos: PDF, JPG, PNG. Tamanho máximo: 5MB</p>
+                    </div>
+
+                    {{-- Aviso quando já tem documento --}}
+                    <div class="md:col-span-2 hidden" id="avisoCarteirinhaExistente">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-green-800">Carteirinha do Conselho já cadastrada</p>
+                                <p class="text-xs text-green-700 mt-1">Este responsável já possui carteirinha do conselho em arquivo. Por segurança, o documento não é exibido.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -150,7 +180,8 @@
                     Documento de Identificação
                 </h4>
                 
-                <div>
+                {{-- Campo de upload - escondido quando já tem documento --}}
+                <div id="secaoDocumento">
                     <label for="documento_identificacao" class="block text-sm font-medium text-gray-700 mb-2">
                         RG ou CNH (PDF ou Imagem)
                     </label>
@@ -158,6 +189,19 @@
                            accept=".pdf,.jpg,.jpeg,.png"
                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     <p class="mt-1 text-xs text-gray-500">Formatos aceitos: PDF, JPG, PNG. Tamanho máximo: 5MB</p>
+                </div>
+
+                {{-- Aviso quando já tem documento --}}
+                <div class="hidden" id="avisoDocumentoExistente">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-green-800">Documento de identificação já cadastrado</p>
+                            <p class="text-xs text-green-700 mt-1">Este responsável já possui documento de identificação em arquivo. Por segurança, o documento não é exibido.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             @endif
@@ -178,8 +222,18 @@
 </div>
 
 <script>
+const cpfInput = document.getElementById('cpf');
+const btnBuscarCpf = document.getElementById('btnBuscarCpf');
+const nomeInput = document.getElementById('nome');
+const emailInput = document.getElementById('email');
+const telefoneInput = document.getElementById('telefone');
+const conselhoInput = document.getElementById('conselho');
+const numeroRegistroInput = document.getElementById('numero_registro');
+
+let buscandoCpf = false;
+
 // Máscara para CPF
-document.getElementById('cpf').addEventListener('input', function(e) {
+cpfInput.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
     
@@ -192,10 +246,146 @@ document.getElementById('cpf').addEventListener('input', function(e) {
     }
     
     e.target.value = value;
+    
+    // Remove estilo de sucesso ao editar
+    cpfInput.classList.remove('bg-green-50', 'border-green-500');
+    
+    // Busca automática quando CPF completo
+    if (value.replace(/\D/g, '').length === 11 && !buscandoCpf) {
+        buscarResponsavelPorCpf(value);
+    }
 });
 
+// Botão de busca manual
+btnBuscarCpf.addEventListener('click', function() {
+    const cpf = cpfInput.value;
+    if (cpf.replace(/\D/g, '').length === 11) {
+        buscarResponsavelPorCpf(cpf);
+    } else {
+        mostrarMensagem('Digite um CPF válido com 11 dígitos', 'error');
+    }
+});
+
+// Busca responsável por CPF
+async function buscarResponsavelPorCpf(cpf) {
+    if (buscandoCpf) return;
+    buscandoCpf = true;
+    
+    // Mostra indicador de carregamento
+    cpfInput.classList.add('bg-yellow-50');
+    btnBuscarCpf.disabled = true;
+    btnBuscarCpf.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Buscando...
+    `;
+    
+    try {
+        const response = await fetch('{{ route("company.responsaveis.buscar-cpf") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ cpf: cpf })
+        });
+        
+        const data = await response.json();
+        
+        if (data.encontrado) {
+            // Preenche os campos automaticamente
+            if (data.dados.nome) nomeInput.value = data.dados.nome;
+            if (data.dados.email) emailInput.value = data.dados.email;
+            if (data.dados.telefone) {
+                // Formata telefone
+                let tel = data.dados.telefone.replace(/\D/g, '');
+                if (tel.length > 10) {
+                    tel = tel.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                } else if (tel.length > 6) {
+                    tel = tel.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                }
+                telefoneInput.value = tel;
+            }
+            
+            // Campos específicos de RT
+            if (conselhoInput && data.dados.conselho) {
+                conselhoInput.value = data.dados.conselho;
+            }
+            if (numeroRegistroInput && data.dados.numero_registro) {
+                numeroRegistroInput.value = data.dados.numero_registro;
+            }
+            
+            // Controla exibição dos campos de documento
+            controlarCamposDocumento(data.dados);
+            
+            // Feedback visual de sucesso
+            cpfInput.classList.remove('bg-yellow-50');
+            cpfInput.classList.add('bg-green-50', 'border-green-500');
+            
+            // Mostra mensagem
+            mostrarMensagem('Dados encontrados e preenchidos automaticamente!', 'success');
+        } else {
+            cpfInput.classList.remove('bg-yellow-50');
+            // Mostra campos de upload quando CPF não encontrado
+            mostrarCamposUpload();
+            mostrarMensagem('CPF não encontrado. Preencha os dados manualmente.', 'info');
+        }
+    } catch (error) {
+        console.error('Erro ao buscar CPF:', error);
+        cpfInput.classList.remove('bg-yellow-50');
+        mostrarMensagem('Erro ao buscar CPF. Tente novamente.', 'error');
+    }
+    
+    // Restaura botão
+    btnBuscarCpf.disabled = false;
+    btnBuscarCpf.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        Buscar
+    `;
+    
+    buscandoCpf = false;
+}
+
+// Função para mostrar mensagem temporária
+function mostrarMensagem(texto, tipo) {
+    const existente = document.getElementById('mensagem-cpf');
+    if (existente) existente.remove();
+    
+    const div = document.createElement('div');
+    div.id = 'mensagem-cpf';
+    
+    let bgClass, textClass, icon;
+    if (tipo === 'success') {
+        bgClass = 'bg-green-100';
+        textClass = 'text-green-700';
+        icon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>';
+    } else if (tipo === 'error') {
+        bgClass = 'bg-red-100';
+        textClass = 'text-red-700';
+        icon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>';
+    } else {
+        bgClass = 'bg-blue-100';
+        textClass = 'text-blue-700';
+        icon = '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>';
+    }
+    
+    div.className = `mt-3 p-3 ${bgClass} ${textClass} text-sm rounded-lg flex items-center gap-2`;
+    div.innerHTML = `
+        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">${icon}</svg>
+        <span>${texto}</span>
+    `;
+    
+    cpfInput.closest('.bg-gray-50').appendChild(div);
+    
+    setTimeout(() => div.remove(), 5000);
+}
+
 // Máscara para telefone
-document.getElementById('telefone').addEventListener('input', function(e) {
+telefoneInput.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
     
@@ -208,6 +398,97 @@ document.getElementById('telefone').addEventListener('input', function(e) {
     }
     
     e.target.value = value;
+});
+
+// Controla exibição dos campos de documento baseado nos dados do responsável
+function controlarCamposDocumento(dados) {
+    const tipoVinculo = '{{ $tipo }}';
+    
+    if (tipoVinculo === 'tecnico') {
+        const secaoCarteirinha = document.getElementById('secaoCarteirinha');
+        const avisoCarteirinha = document.getElementById('avisoCarteirinhaExistente');
+        const inputCarteirinha = document.getElementById('carteirinha_conselho');
+        
+        if (dados.tem_carteirinha_conselho) {
+            // Esconde campo de upload, desabilita e remove do form
+            if (secaoCarteirinha) secaoCarteirinha.classList.add('hidden');
+            if (avisoCarteirinha) avisoCarteirinha.classList.remove('hidden');
+            if (inputCarteirinha) {
+                inputCarteirinha.disabled = true;
+                inputCarteirinha.value = '';
+                inputCarteirinha.removeAttribute('name');
+            }
+        } else {
+            // Mostra campo de upload e habilita
+            if (secaoCarteirinha) secaoCarteirinha.classList.remove('hidden');
+            if (avisoCarteirinha) avisoCarteirinha.classList.add('hidden');
+            if (inputCarteirinha) {
+                inputCarteirinha.disabled = false;
+                inputCarteirinha.setAttribute('name', 'carteirinha_conselho');
+            }
+        }
+    } else {
+        const secaoDocumento = document.getElementById('secaoDocumento');
+        const avisoDocumento = document.getElementById('avisoDocumentoExistente');
+        const inputDocumento = document.getElementById('documento_identificacao');
+        
+        if (dados.tem_documento_identificacao) {
+            // Esconde campo de upload, desabilita e remove do form
+            if (secaoDocumento) secaoDocumento.classList.add('hidden');
+            if (avisoDocumento) avisoDocumento.classList.remove('hidden');
+            if (inputDocumento) {
+                inputDocumento.disabled = true;
+                inputDocumento.value = '';
+                inputDocumento.removeAttribute('name');
+            }
+        } else {
+            // Mostra campo de upload e habilita
+            if (secaoDocumento) secaoDocumento.classList.remove('hidden');
+            if (avisoDocumento) avisoDocumento.classList.add('hidden');
+            if (inputDocumento) {
+                inputDocumento.disabled = false;
+                inputDocumento.setAttribute('name', 'documento_identificacao');
+            }
+        }
+    }
+}
+
+// Mostra campos de upload (quando CPF não encontrado ou ao limpar)
+function mostrarCamposUpload() {
+    const tipoVinculo = '{{ $tipo }}';
+    
+    if (tipoVinculo === 'tecnico') {
+        const secaoCarteirinha = document.getElementById('secaoCarteirinha');
+        const avisoCarteirinha = document.getElementById('avisoCarteirinhaExistente');
+        const inputCarteirinha = document.getElementById('carteirinha_conselho');
+        
+        if (secaoCarteirinha) secaoCarteirinha.classList.remove('hidden');
+        if (avisoCarteirinha) avisoCarteirinha.classList.add('hidden');
+        if (inputCarteirinha) {
+            inputCarteirinha.disabled = false;
+            inputCarteirinha.setAttribute('name', 'carteirinha_conselho');
+        }
+    } else {
+        const secaoDocumento = document.getElementById('secaoDocumento');
+        const avisoDocumento = document.getElementById('avisoDocumentoExistente');
+        const inputDocumento = document.getElementById('documento_identificacao');
+        
+        if (secaoDocumento) secaoDocumento.classList.remove('hidden');
+        if (avisoDocumento) avisoDocumento.classList.add('hidden');
+        if (inputDocumento) {
+            inputDocumento.disabled = false;
+            inputDocumento.setAttribute('name', 'documento_identificacao');
+        }
+    }
+}
+
+// Reseta campos de documento quando CPF é alterado manualmente
+cpfInput.addEventListener('input', function() {
+    // Só reseta se o CPF foi alterado (não está completo)
+    const cpfLimpo = this.value.replace(/\D/g, '');
+    if (cpfLimpo.length < 11) {
+        mostrarCamposUpload();
+    }
 });
 </script>
 @endsection

@@ -600,6 +600,7 @@
                                                             'red' => 'bg-red-100 text-red-700 border-red-200',
                                                             'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
                                                             'green' => 'bg-green-100 text-green-700 border-green-200',
+                                                            'blue' => 'bg-blue-100 text-blue-700 border-blue-200',
                                                             'gray' => 'bg-gray-100 text-gray-700 border-gray-200',
                                                         ];
                                                         
@@ -611,6 +612,54 @@
                                                         </svg>
                                                         {{ $textoBadge }}
                                                     </span>
+                                                @endif
+
+                                                {{-- Informações de Visualização pelo Estabelecimento (para documentos assinados com prazo) --}}
+                                                @if($docDigital->prazo_dias && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado')
+                                                    @if($docDigital->primeiraVisualizacao)
+                                                        <div class="relative group" x-data="{ showTooltip: false }">
+                                                            <span @mouseenter="showTooltip = true" @mouseleave="showTooltip = false"
+                                                                  class="px-2 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full font-medium whitespace-nowrap flex items-center gap-1 cursor-help">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                                </svg>
+                                                                Visualizado
+                                                            </span>
+                                                            {{-- Tooltip com detalhes --}}
+                                                            <div x-show="showTooltip" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                                                                 class="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3"
+                                                                 style="display: none;">
+                                                                <div class="font-semibold text-emerald-400 mb-2 flex items-center gap-1">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                    </svg>
+                                                                    Documento Visualizado
+                                                                </div>
+                                                                <div class="space-y-1">
+                                                                    <div><span class="text-gray-400">Por:</span> <span class="font-medium">{{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'Não identificado' }}</span></div>
+                                                                    @if($docDigital->primeiraVisualizacao->usuarioExterno?->cpf)
+                                                                    <div><span class="text-gray-400">CPF:</span> <span class="font-medium">{{ $docDigital->primeiraVisualizacao->usuarioExterno->cpf }}</span></div>
+                                                                    @endif
+                                                                    <div><span class="text-gray-400">Data:</span> <span class="font-medium">{{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y \à\s H:i:s') }}</span></div>
+                                                                    @if($docDigital->primeiraVisualizacao->ip_address)
+                                                                    <div><span class="text-gray-400">IP:</span> <span class="font-medium">{{ $docDigital->primeiraVisualizacao->ip_address }}</span></div>
+                                                                    @endif
+                                                                </div>
+                                                                {{-- Seta do tooltip --}}
+                                                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
+                                                                    <div class="border-8 border-transparent border-t-gray-900"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-full font-medium whitespace-nowrap flex items-center gap-1" title="Aguardando visualização pelo estabelecimento">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                                            </svg>
+                                                            Não visualizado
+                                                        </span>
+                                                    @endif
                                                 @endif
                                                 
                                                 {{-- Botão Assinar se o usuário logado precisa assinar --}}
@@ -717,6 +766,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                
                                 @elseif($item['tipo'] === 'ordem_servico')
                                     @php
                                         $os = $item['documento'];
