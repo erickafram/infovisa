@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
+use App\Models\ProcessoAlerta;
+use App\Models\DocumentoDigital;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -35,6 +37,9 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
+        // IDs dos processos
+        $processoIds = $processos->pluck('id');
+        
         // Estatísticas de processos
         $estatisticasProcessos = [
             'total' => $processos->count(),
@@ -49,11 +54,34 @@ class DashboardController extends Controller
         // Últimos 5 processos
         $ultimosProcessos = $processos->take(5);
         
+        // Alertas pendentes dos processos do usuário (não concluídos)
+        $alertasPendentes = ProcessoAlerta::whereIn('processo_id', $processoIds)
+            ->where('status', '!=', 'concluido')
+            ->with(['processo.estabelecimento', 'usuarioCriador'])
+            ->orderBy('data_alerta', 'asc')
+            ->get();
+        
+        // Documentos digitais da vigilância que ainda NÃO foram visualizados pelo estabelecimento
+        // São documentos assinados, não sigilosos, com todas as assinaturas completas
+        $documentosPendentesVisualizacao = DocumentoDigital::whereIn('processo_id', $processoIds)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->whereDoesntHave('visualizacoes') // Ainda não foi visualizado
+            ->with(['processo.estabelecimento', 'tipoDocumento', 'assinaturas'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function ($doc) {
+                // Só mostra documentos com todas as assinaturas completas
+                return $doc->todasAssinaturasCompletas();
+            });
+        
         return view('company.dashboard', compact(
             'estatisticasEstabelecimentos',
             'estatisticasProcessos',
             'ultimosEstabelecimentos',
-            'ultimosProcessos'
+            'ultimosProcessos',
+            'alertasPendentes',
+            'documentosPendentesVisualizacao'
         ));
     }
 }

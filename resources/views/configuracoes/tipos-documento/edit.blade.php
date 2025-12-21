@@ -171,14 +171,14 @@
                                                 </svg>
                                                 <div>
                                                     <strong>Se marcado (§1º):</strong>
-                                                    <p class="mt-0.5">O estabelecimento é considerado notificado oficialmente quando o INFOVISA for acessado por um colaborador da empresa OU após 5 dias de disponibilidade.</p>
+                                                    <p class="mt-0.5">Prazo inicia quando o estabelecimento visualizar o documento OU após 5 dias úteis da última assinatura.</p>
                                                 </div>
                                             </div>
                                             <div class="flex items-start gap-1.5 text-blue-700 bg-blue-50 p-2 rounded mt-1.5 border border-blue-200">
                                                 <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
-                                                <span><strong>Se desmarcado:</strong> Prazo fixo/anual contado da data de criação (ex: Alvará válido por 1 ano)</span>
+                                                <span><strong>Se desmarcado:</strong> Prazo fixo contado da data de criação (ex: Alvará válido por 1 ano)</span>
                                             </div>
                                         </div>
                                     </div>
@@ -208,6 +208,44 @@
                             Tipos inativos não aparecem na lista de criação de documentos
                         </p>
                     </div>
+                </div>
+
+                {{-- Opção: Permitir Resposta do Estabelecimento --}}
+                <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                        <label class="text-sm font-semibold text-gray-900">
+                            Resposta do Estabelecimento
+                        </label>
+                    </div>
+
+                    <label class="flex items-start cursor-pointer">
+                        <input type="checkbox" 
+                               name="permite_resposta" 
+                               id="permite_resposta"
+                               value="1"
+                               {{ old('permite_resposta', $tipoDocumento->permite_resposta) ? 'checked' : '' }}
+                               class="mt-0.5 w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2">
+                        <div class="ml-3">
+                            <span class="text-sm font-medium text-gray-900">Permitir que a empresa responda este documento</span>
+                            <p class="text-xs text-gray-600 mt-1">
+                                Quando marcado, o estabelecimento poderá enviar uma resposta em PDF vinculada a este documento.
+                            </p>
+                            <div class="mt-2 text-xs">
+                                <div class="flex items-start gap-1.5 text-green-700 bg-white p-2 rounded border border-green-200">
+                                    <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Ideal para:</strong> Notificações Sanitárias, Autos de Infração, Intimações, etc.
+                                        <p class="mt-0.5">A resposta ficará vinculada ao documento original e pendente de aprovação pela Vigilância Sanitária.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>

@@ -11,6 +11,8 @@ use App\Models\ProcessoDesignacao;
 use App\Models\ProcessoAlerta;
 use App\Models\ModeloDocumento;
 use App\Models\UsuarioInterno;
+use App\Models\DocumentoResposta;
+use App\Models\DocumentoDigital;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -255,7 +257,7 @@ class ProcessoController extends Controller
                 'usuario', 
                 'estabelecimento', 
                 'documentos' => function($query) {
-                    $query->orderBy('created_at', 'desc');
+                    $query->with(['documentoSubstituido'])->orderBy('created_at', 'desc');
                 },
                 'documentos.usuario', 
                 'usuariosAcompanhando'
@@ -270,7 +272,7 @@ class ProcessoController extends Controller
             ->get();
         
         // Busca documentos digitais do processo (incluindo rascunhos)
-        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas', 'primeiraVisualizacao.usuarioExterno'])
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas', 'primeiraVisualizacao.usuarioExterno', 'respostas.usuarioExterno', 'respostas.avaliadoPor'])
             ->where('processo_id', $processoId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -294,8 +296,15 @@ class ProcessoController extends Controller
             ]);
         }
         
-        // Adiciona arquivos externos (exceto documentos digitais)
+        // Adiciona arquivos externos (exceto documentos digitais e rejeitados que já foram substituídos)
+        $documentosIds = $processo->documentos->pluck('id');
+        $documentosSubstituidosIds = $processo->documentos->whereNotNull('documento_substituido_id')->pluck('documento_substituido_id');
+        
         foreach ($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $arquivo) {
+            // Não mostra documentos rejeitados que já foram substituídos
+            if ($arquivo->status_aprovacao === 'rejeitado' && $documentosSubstituidosIds->contains($arquivo->id)) {
+                continue;
+            }
             $todosDocumentos->push([
                 'tipo' => 'arquivo',
                 'documento' => $arquivo,
@@ -803,6 +812,115 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Visualiza uma resposta a documento digital
+     */
+    public function visualizarRespostaDocumento($estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->findOrFail($respostaId);
+
+        $path = storage_path('app/public/' . $resposta->caminho);
+        
+        if (!file_exists($path)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $resposta->nome_original . '"'
+        ]);
+    }
+
+    /**
+     * Download de uma resposta a documento digital
+     */
+    public function downloadRespostaDocumento($estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->findOrFail($respostaId);
+
+        $path = storage_path('app/public/' . $resposta->caminho);
+        
+        if (!file_exists($path)) {
+            return back()->with('error', 'Arquivo não encontrado.');
+        }
+
+        return response()->download($path, $resposta->nome_original);
+    }
+
+    /**
+     * Aprova uma resposta a documento digital
+     */
+    public function aprovarRespostaDocumento($estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->where('status', 'pendente')
+            ->findOrFail($respostaId);
+
+        $resposta->aprovar(auth('interno')->id());
+
+        return redirect()
+            ->back()
+            ->with('success', 'Resposta aprovada com sucesso!');
+    }
+
+    /**
+     * Rejeita uma resposta a documento digital
+     */
+    public function rejeitarRespostaDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $request->validate([
+            'motivo_rejeicao' => 'required|string|max:1000',
+        ]);
+
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->where('status', 'pendente')
+            ->findOrFail($respostaId);
+
+        $resposta->rejeitar(auth('interno')->id(), $request->motivo_rejeicao);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Resposta rejeitada. O estabelecimento será notificado.');
+    }
+
+    /**
      * Gera documento digital a partir de um modelo
      */
     public function gerarDocumento(Request $request, $estabelecimentoId, $processoId)
@@ -1099,16 +1217,21 @@ class ProcessoController extends Controller
         // Valida permissão de acesso
         $this->validarPermissaoAcesso($estabelecimento);
         
-        // Busca anotações do usuário atual para este documento
+        // Busca anotações de TODOS os usuários para este documento (compartilhado)
         $anotacoes = \App\Models\ProcessoDocumentoAnotacao::where('processo_documento_id', $documentoId)
-            ->where('usuario_id', auth('interno')->id())
+            ->with('usuario:id,nome')
+            ->orderBy('created_at', 'asc')
             ->get()
             ->map(function($anotacao) {
                 return [
+                    'id' => $anotacao->id,
                     'tipo' => $anotacao->tipo,
                     'pagina' => $anotacao->pagina,
                     'dados' => $anotacao->dados,
                     'comentario' => $anotacao->comentario,
+                    'usuario_id' => $anotacao->usuario_id,
+                    'usuario_nome' => $anotacao->usuario->nome ?? 'Usuário',
+                    'created_at' => $anotacao->created_at->format('d/m/Y H:i'),
                 ];
             });
 
@@ -1127,7 +1250,7 @@ class ProcessoController extends Controller
         // Valida permissão de acesso
         $this->validarPermissaoAcesso($estabelecimento);
         
-        // Permitir array vazio para limpar anotações
+        // Permitir array vazio para limpar anotações do usuário atual
         $anotacoes = $request->input('anotacoes', []);
         if (!is_array($anotacoes)) {
             return response()->json([
@@ -1147,26 +1270,43 @@ class ProcessoController extends Controller
         }
 
         try {
-            // Remove anotações antigas deste documento do usuário atual
+            $usuarioId = auth('interno')->id();
+            
+            // Pega os IDs das anotações que vieram do frontend (que já existem no banco)
+            $idsRecebidos = collect($anotacoes)
+                ->filter(fn($a) => isset($a['id']) && is_numeric($a['id']))
+                ->pluck('id')
+                ->toArray();
+            
+            // Remove apenas as anotações do usuário atual que não estão mais na lista
             \App\Models\ProcessoDocumentoAnotacao::where('processo_documento_id', $documentoId)
-                ->where('usuario_id', auth('interno')->id())
+                ->where('usuario_id', $usuarioId)
+                ->whereNotIn('id', $idsRecebidos)
                 ->delete();
 
-            // Salva novas anotações (se houver)
+            // Salva novas anotações (apenas as que não têm ID ou são do usuário atual)
             foreach ($anotacoes as $anotacao) {
-                \App\Models\ProcessoDocumentoAnotacao::create([
-                    'processo_documento_id' => $documentoId,
-                    'usuario_id' => auth('interno')->id(),
-                    'pagina' => $anotacao['pagina'],
-                    'tipo' => $anotacao['tipo'],
-                    'dados' => $anotacao['dados'],
-                    'comentario' => $anotacao['comentario'] ?? null,
-                ]);
+                // Se já tem ID e é de outro usuário, pula (não pode editar)
+                if (isset($anotacao['id']) && isset($anotacao['usuario_id']) && $anotacao['usuario_id'] != $usuarioId) {
+                    continue;
+                }
+                
+                // Se não tem ID, é uma nova anotação
+                if (!isset($anotacao['id']) || !is_numeric($anotacao['id'])) {
+                    \App\Models\ProcessoDocumentoAnotacao::create([
+                        'processo_documento_id' => $documentoId,
+                        'usuario_id' => $usuarioId,
+                        'pagina' => $anotacao['pagina'],
+                        'tipo' => $anotacao['tipo'],
+                        'dados' => $anotacao['dados'],
+                        'comentario' => $anotacao['comentario'] ?? null,
+                    ]);
+                }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => empty($anotacoes) ? 'Anotações limpas com sucesso!' : 'Anotações salvas com sucesso!'
+                'message' => 'Anotações salvas com sucesso!'
             ]);
 
         } catch (\Exception $e) {
@@ -1475,5 +1615,63 @@ class ProcessoController extends Controller
         return redirect()
             ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
             ->with('success', 'Alerta excluído com sucesso!');
+    }
+
+    /**
+     * Finaliza o prazo de um documento digital (marca como respondido)
+     */
+    public function finalizarPrazoDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        // Verifica se o documento tem prazo
+        if (!$documento->prazo_dias && !$documento->data_vencimento) {
+            return back()->with('error', 'Este documento não possui prazo configurado.');
+        }
+
+        // Verifica se já está finalizado
+        if ($documento->isPrazoFinalizado()) {
+            return back()->with('warning', 'O prazo deste documento já foi finalizado.');
+        }
+
+        $motivo = $request->input('motivo', 'Resposta recebida e aceita');
+        $documento->finalizarPrazo(auth('interno')->id(), $motivo);
+
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Prazo do documento finalizado com sucesso!');
+    }
+
+    /**
+     * Reabre o prazo de um documento digital
+     */
+    public function reabrirPrazoDocumento($estabelecimentoId, $processoId, $documentoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        // Verifica se está finalizado
+        if (!$documento->isPrazoFinalizado()) {
+            return back()->with('warning', 'O prazo deste documento não está finalizado.');
+        }
+
+        $documento->reabrirPrazo();
+
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Prazo do documento reaberto com sucesso!');
     }
 }

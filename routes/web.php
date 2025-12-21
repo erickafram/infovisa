@@ -98,10 +98,21 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::get('/processos/{id}/documentos/{documento}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadDocumento'])->name('processos.download');
     Route::get('/processos/{id}/documentos/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumento'])->name('processos.documento.visualizar');
     Route::delete('/processos/{id}/documentos/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'deleteDocumento'])->name('processos.documento.delete');
+    Route::post('/processos/{id}/documentos/{documento}/reenviar', [\App\Http\Controllers\Company\ProcessoController::class, 'reenviarDocumento'])->name('processos.reenviar');
     
     // Documentos digitais da vigilância (notificações, etc)
     Route::get('/processos/{id}/documentos-vigilancia/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumentoDigital'])->name('processos.documento-digital.visualizar');
     Route::get('/processos/{id}/documentos-vigilancia/{documento}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadDocumentoDigital'])->name('processos.documento-digital.download');
+    
+    // Respostas a documentos digitais (notificações, etc)
+    Route::post('/processos/{id}/documentos-vigilancia/{documento}/resposta', [\App\Http\Controllers\Company\ProcessoController::class, 'enviarRespostaDocumento'])->name('processos.documento-digital.resposta');
+    Route::get('/processos/{id}/documentos-vigilancia/{documento}/respostas/{resposta}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadRespostaDocumento'])->name('processos.documento-digital.resposta.download');
+    Route::get('/processos/{id}/documentos-vigilancia/{documento}/respostas/{resposta}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarRespostaDocumento'])->name('processos.documento-digital.resposta.visualizar');
+    Route::delete('/processos/{id}/documentos-vigilancia/{documento}/respostas/{resposta}', [\App\Http\Controllers\Company\ProcessoController::class, 'excluirRespostaDocumento'])->name('processos.documento-digital.resposta.excluir');
+    
+    // Alertas do processo
+    Route::get('/alertas', [\App\Http\Controllers\Company\ProcessoController::class, 'alertasIndex'])->name('alertas.index');
+    Route::post('/processos/{id}/alertas/{alerta}/concluir', [\App\Http\Controllers\Company\ProcessoController::class, 'concluirAlerta'])->name('processos.alertas.concluir');
     
     // Busca de usuários externos para vincular
     Route::get('/usuarios-externos/buscar', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarUsuariosExternos'])->name('usuarios-externos.buscar');
@@ -187,6 +198,18 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/documentos/{id}/gerenciar-assinantes', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerenciarAssinantes'])->name('documentos.gerenciar-assinantes');
     Route::delete('/documentos/assinaturas/{id}', [\App\Http\Controllers\DocumentoDigitalController::class, 'removerAssinante'])->name('documentos.remover-assinante');
     
+    // Controle de edição simultânea de documentos
+    Route::post('/documentos/{id}/registrar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'registrarEdicao'])->name('documentos.registrar-edicao');
+    Route::get('/documentos/{id}/verificar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'verificarEdicao'])->name('documentos.verificar-edicao');
+    Route::post('/documentos/{id}/liberar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'liberarEdicao'])->name('documentos.liberar-edicao');
+    
+    // Edição colaborativa de documentos (para edit.blade.php)
+    Route::post('/documentos/{id}/iniciar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'iniciarEdicao'])->name('documentos.iniciar-edicao');
+    Route::post('/documentos/{id}/salvar-auto', [\App\Http\Controllers\DocumentoDigitalController::class, 'salvarAuto'])->name('documentos.salvar-auto');
+    Route::get('/documentos/{id}/editores-ativos', [\App\Http\Controllers\DocumentoDigitalController::class, 'editoresAtivos'])->name('documentos.editores-ativos');
+    Route::get('/documentos/{id}/obter-conteudo', [\App\Http\Controllers\DocumentoDigitalController::class, 'obterConteudo'])->name('documentos.obter-conteudo');
+    Route::post('/documentos/{id}/finalizar-edicao', [\App\Http\Controllers\DocumentoDigitalController::class, 'finalizarEdicao'])->name('documentos.finalizar-edicao');
+    
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
     
@@ -212,6 +235,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}', [\App\Http\Controllers\ProcessoController::class, 'deleteArquivo'])->name('estabelecimentos.processos.deleteArquivo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarDocumento'])->name('estabelecimentos.processos.documento.aprovar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarDocumento'])->name('estabelecimentos.processos.documento.rejeitar');
+    
+    // Respostas a documentos digitais (notificações, etc)
+    Route::get('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/visualizar', [\App\Http\Controllers\ProcessoController::class, 'visualizarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.visualizar');
+    Route::get('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/download', [\App\Http\Controllers\ProcessoController::class, 'downloadRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.download');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.aprovar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.rejeitar');
+    
+    // Finalizar/Reabrir prazo de documentos digitais
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/finalizar-prazo', [\App\Http\Controllers\ProcessoController::class, 'finalizarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.finalizar-prazo');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/reabrir-prazo', [\App\Http\Controllers\ProcessoController::class, 'reabrirPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.reabrir-prazo');
     
     // Anotações em PDFs
     Route::get('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'carregarAnotacoes'])->name('processos.documentos.anotacoes.carregar');

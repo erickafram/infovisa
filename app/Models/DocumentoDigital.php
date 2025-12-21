@@ -33,6 +33,9 @@ class DocumentoDigital extends Model
         'data_vencimento',
         'prazo_iniciado_em',
         'prazo_iniciado_por',
+        'prazo_finalizado_em',
+        'prazo_finalizado_por',
+        'prazo_finalizado_motivo',
     ];
 
     protected $casts = [
@@ -43,6 +46,7 @@ class DocumentoDigital extends Model
         'prazo_dias' => 'integer',
         'data_vencimento' => 'date',
         'prazo_iniciado_em' => 'datetime',
+        'prazo_finalizado_em' => 'datetime',
     ];
 
     /**
@@ -146,6 +150,62 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Relacionamento com usuário que finalizou o prazo
+     */
+    public function usuarioFinalizouPrazo()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'prazo_finalizado_por');
+    }
+
+    /**
+     * Finaliza o prazo do documento (marca como respondido/resolvido)
+     */
+    public function finalizarPrazo($usuarioInternoId, $motivo = null): void
+    {
+        $this->update([
+            'prazo_finalizado_em' => now(),
+            'prazo_finalizado_por' => $usuarioInternoId,
+            'prazo_finalizado_motivo' => $motivo,
+        ]);
+    }
+
+    /**
+     * Reabre o prazo do documento
+     */
+    public function reabrirPrazo(): void
+    {
+        $this->update([
+            'prazo_finalizado_em' => null,
+            'prazo_finalizado_por' => null,
+            'prazo_finalizado_motivo' => null,
+        ]);
+    }
+
+    /**
+     * Verifica se o prazo foi finalizado
+     */
+    public function isPrazoFinalizado(): bool
+    {
+        return $this->prazo_finalizado_em !== null;
+    }
+
+    /**
+     * Relacionamento com respostas do estabelecimento
+     */
+    public function respostas()
+    {
+        return $this->hasMany(DocumentoResposta::class);
+    }
+
+    /**
+     * Verifica se o tipo de documento permite resposta
+     */
+    public function permiteResposta(): bool
+    {
+        return $this->tipoDocumento && $this->tipoDocumento->permite_resposta;
+    }
+
+    /**
      * Registra uma visualização do documento por usuário externo
      * e inicia a contagem do prazo se for documento de notificação
      */
@@ -230,8 +290,26 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Retorna a data da última assinatura obrigatória do documento
+     */
+    public function getDataUltimaAssinaturaAttribute(): ?\Carbon\Carbon
+    {
+        $ultimaAssinatura = $this->assinaturas()
+            ->where('obrigatoria', true)
+            ->where('status', 'assinado')
+            ->whereNotNull('assinado_em')
+            ->orderBy('assinado_em', 'desc')
+            ->first();
+
+        return $ultimaAssinatura?->assinado_em;
+    }
+
+    /**
      * Verifica se o documento está disponível há mais de 5 dias úteis
-     * e o prazo ainda não foi iniciado
+     * e o prazo ainda não foi iniciado.
+     * 
+     * O prazo de 5 dias conta a partir da ÚLTIMA ASSINATURA do documento,
+     * conforme §1º da portaria.
      */
     public function verificarInicioAutomaticoPrazo(): bool
     {
@@ -240,20 +318,27 @@ class DocumentoDigital extends Model
             return false;
         }
 
-        // Calcula 5 dias úteis após a finalização
-        $dataFinalizacao = $this->finalizado_em ?? $this->created_at;
+        // Pega a data da última assinatura (quando o documento ficou disponível)
+        $dataUltimaAssinatura = $this->data_ultima_assinatura;
+        
+        // Se não tem data de assinatura, usa finalizado_em ou created_at como fallback
+        if (!$dataUltimaAssinatura) {
+            $dataUltimaAssinatura = $this->finalizado_em ?? $this->created_at;
+        }
+
+        // Calcula 5 dias úteis após a última assinatura
         $diasUteis = 0;
-        $dataVerificacao = \Carbon\Carbon::parse($dataFinalizacao);
+        $dataLimite = \Carbon\Carbon::parse($dataUltimaAssinatura)->copy();
         
         while ($diasUteis < 5) {
-            $dataVerificacao->addDay();
-            if (!$dataVerificacao->isWeekend()) {
+            $dataLimite->addDay();
+            if (!$dataLimite->isWeekend()) {
                 $diasUteis++;
             }
         }
 
         // Se já passou os 5 dias úteis, inicia o prazo automaticamente
-        if (now()->gte($dataVerificacao)) {
+        if (now()->startOfDay()->gte($dataLimite->startOfDay())) {
             $this->iniciarPrazoPorDisponibilidade();
             return true;
         }
@@ -351,6 +436,11 @@ class DocumentoDigital extends Model
             return 'Sem prazo';
         }
 
+        // Se o prazo foi finalizado, mostra como resolvido
+        if ($this->isPrazoFinalizado()) {
+            return 'Respondido';
+        }
+
         // Verifica se todas as assinaturas obrigatórias foram feitas
         if (!$this->todasAssinaturasCompletas()) {
             $pendentes = $this->assinaturas()
@@ -363,25 +453,7 @@ class DocumentoDigital extends Model
 
         // Para documentos de notificação, verifica se o prazo já foi iniciado
         if ($this->prazo_notificacao && !$this->prazo_iniciado_em) {
-            // Calcula quantos dias faltam para iniciar automaticamente (5 dias úteis)
-            $dataFinalizacao = $this->finalizado_em ?? $this->created_at;
-            $diasUteis = 0;
-            $dataLimite = \Carbon\Carbon::parse($dataFinalizacao);
-            
-            while ($diasUteis < 5) {
-                $dataLimite->addDay();
-                if (!$dataLimite->isWeekend()) {
-                    $diasUteis++;
-                }
-            }
-            
-            $diasRestantes = now()->startOfDay()->diffInDays($dataLimite, false);
-            
-            if ($diasRestantes > 0) {
-                return "Aguardando visualização ({$diasRestantes}d)";
-            } else {
-                return "Prazo iniciará automaticamente";
-            }
+            return "Clique para visualizar";
         }
 
         $diasFaltando = $this->dias_faltando;
@@ -416,6 +488,11 @@ class DocumentoDigital extends Model
             return 'gray';
         }
 
+        // Se o prazo foi finalizado, mostra em azul (resolvido)
+        if ($this->isPrazoFinalizado()) {
+            return 'blue';
+        }
+
         // Se ainda tem assinaturas pendentes, mostra em cinza/neutro
         if (!$this->todasAssinaturasCompletas()) {
             return 'gray';
@@ -423,7 +500,7 @@ class DocumentoDigital extends Model
 
         // Para documentos de notificação sem prazo iniciado
         if ($this->prazo_notificacao && !$this->prazo_iniciado_em) {
-            return 'blue'; // Azul para indicar aguardando visualização
+            return 'yellow'; // Amarelo para indicar ação necessária
         }
 
         if ($this->vencido) {

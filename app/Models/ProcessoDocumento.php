@@ -10,6 +10,7 @@ class ProcessoDocumento extends Model
 {
     protected $fillable = [
         'processo_id',
+        'documento_substituido_id',
         'pasta_id',
         'usuario_id',
         'usuario_externo_id',
@@ -24,14 +25,17 @@ class ProcessoDocumento extends Model
         'status_aprovacao',
         'status',
         'motivo_rejeicao',
+        'tentativas_envio',
         'aprovado_por',
         'aprovado_em',
+        'historico_rejeicao',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'aprovado_em' => 'datetime',
+        'historico_rejeicao' => 'array',
     ];
 
     public function processo(): BelongsTo
@@ -52,6 +56,64 @@ class ProcessoDocumento extends Model
     public function aprovadoPor(): BelongsTo
     {
         return $this->belongsTo(UsuarioInterno::class, 'aprovado_por');
+    }
+
+    /**
+     * Documento que este substitui (quando for correção de rejeitado)
+     */
+    public function documentoSubstituido(): BelongsTo
+    {
+        return $this->belongsTo(ProcessoDocumento::class, 'documento_substituido_id');
+    }
+
+    /**
+     * Documentos que substituíram este (histórico de tentativas)
+     */
+    public function substituicoes(): HasMany
+    {
+        return $this->hasMany(ProcessoDocumento::class, 'documento_substituido_id');
+    }
+
+    /**
+     * Verifica se este documento é uma substituição de outro rejeitado
+     * ou se tem histórico de rejeições (novo formato)
+     */
+    public function isSubstituicao(): bool
+    {
+        return $this->documento_substituido_id !== null || 
+               ($this->historico_rejeicao && count($this->historico_rejeicao) > 0);
+    }
+
+    /**
+     * Retorna o histórico completo de rejeições
+     * Primeiro verifica o campo historico_rejeicao (novo formato)
+     * Se não existir, usa a cadeia de substituições (formato antigo)
+     */
+    public function getHistoricoRejeicoes(): \Illuminate\Support\Collection
+    {
+        // Se tiver histórico no novo formato, retorna como collection de objetos
+        if ($this->historico_rejeicao && count($this->historico_rejeicao) > 0) {
+            return collect($this->historico_rejeicao)->map(function ($item) {
+                return (object) [
+                    'nome_original' => $item['arquivo_anterior'] ?? 'Arquivo',
+                    'motivo_rejeicao' => $item['motivo'] ?? null,
+                    'created_at' => isset($item['rejeitado_em']) ? \Carbon\Carbon::parse($item['rejeitado_em']) : null,
+                ];
+            });
+        }
+        
+        // Fallback: percorre a cadeia de substituições para trás (formato antigo)
+        $historico = collect();
+        $atual = $this->documentoSubstituido;
+        
+        while ($atual) {
+            if ($atual->status_aprovacao === 'rejeitado') {
+                $historico->push($atual);
+            }
+            $atual = $atual->documentoSubstituido;
+        }
+
+        return $historico->sortBy('created_at')->values();
     }
 
     public function isPendente(): bool

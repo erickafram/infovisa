@@ -176,7 +176,7 @@
                     </div>
                     
                     <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
                             <span class="text-xs font-medium px-2 py-0.5 rounded-full"
                                   :class="{
                                       'bg-yellow-100 text-yellow-700': anotacao.tipo === 'highlight',
@@ -186,16 +186,31 @@
                                       'bg-indigo-100 text-indigo-700': anotacao.tipo === 'comment'
                                   }"
                                   x-text="getTipoLabel(anotacao.tipo)"></span>
+                            {{-- Nome do usuário que fez a anotação --}}
+                            <template x-if="anotacao.usuario_nome">
+                                <span class="text-xs text-gray-500 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span x-text="anotacao.usuario_nome"></span>
+                                </span>
+                            </template>
+                            <template x-if="anotacao.created_at">
+                                <span class="text-xs text-gray-400" x-text="anotacao.created_at"></span>
+                            </template>
                         </div>
                         <p class="text-sm text-gray-700" x-text="anotacao.comentario || 'Sem comentário'"></p>
                     </div>
                     
-                    <button @click.stop="deleteAnnotation(index)" 
-                            class="text-red-600 hover:text-red-700 p-1 flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
+                    {{-- Só mostra botão de excluir se for anotação do próprio usuário --}}
+                    <template x-if="!anotacao.usuario_id || anotacao.usuario_id == {{ auth('interno')->id() }}">
+                        <button @click.stop="deleteAnnotation(index)" 
+                                class="text-red-600 hover:text-red-700 p-1 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </template>
                 </div>
             </template>
             <div x-show="getCurrentPageAnnotations().length === 0" class="text-sm text-gray-500 text-center py-4">

@@ -51,6 +51,34 @@
             </div>
         @endif
 
+        {{-- Aviso de outro usuário editando --}}
+        <div x-show="outroUsuarioEditando" 
+             x-transition
+             x-cloak
+             class="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg shadow-md">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-amber-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-bold text-amber-800">Documento em edição por outro usuário</h3>
+                    <p class="mt-1 text-sm text-amber-700">
+                        <span class="font-semibold" x-text="nomeUsuarioEditando"></span> está editando este documento no momento.
+                        <br>
+                        <span class="text-amber-600">Aguarde o usuário finalizar as alterações antes de salvar para evitar conflitos.</span>
+                    </p>
+                    <div class="mt-2 flex items-center gap-2 text-xs text-amber-600">
+                        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Verificando a cada 10 segundos...
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Mensagem de recuperação de dados --}}
         <div x-show="dadosRecuperados" 
              x-transition
@@ -462,47 +490,29 @@
                 <div id="aviso-prazo-container" style="display: none;">
                     {{-- Aviso para documentos de notificação/fiscalização --}}
                     <div id="aviso-notificacao" class="bg-amber-50 border-l-4 border-amber-500 p-3 mb-3 rounded-lg" style="display: none;">
-                        <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-bold text-sm text-amber-800 mb-2">📋 Regra de Notificação Oficial (§1º)</p>
-                                <div class="text-xs text-amber-700 space-y-2">
-                                    <p class="leading-relaxed">O estabelecimento é considerado <strong>notificado oficialmente</strong> quando:</p>
-                                    <div class="bg-white/60 rounded-lg p-2.5 space-y-1.5">
-                                        <div class="flex items-start gap-2">
-                                            <span class="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold">1</span>
-                                            <span>O <strong>INFOVISA for acessado</strong> por um dos colaboradores da empresa (independente da visualização do documento)</span>
-                                        </div>
-                                        <div class="text-center text-amber-600 font-semibold text-[10px]">OU</div>
-                                        <div class="flex items-start gap-2">
-                                            <span class="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold">2</span>
-                                            <span>Após <strong>5 (cinco) dias</strong> de sua disponibilidade no INFOVISA</span>
-                                        </div>
-                                    </div>
-                                    <p class="text-[10px] text-amber-600 italic mt-2">
-                                        ⏱️ O prazo começa a contar a partir do que ocorrer primeiro.
-                                    </p>
-                                </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="text-sm text-amber-800">
+                                <p class="font-semibold">📋 Contagem de Prazo (§1º)</p>
+                                <p class="text-xs text-amber-700 mt-1">
+                                    O prazo inicia quando o estabelecimento <strong>visualizar o documento</strong> ou após <strong>5 dias úteis da última assinatura</strong> (o que ocorrer primeiro).
+                                </p>
                             </div>
                         </div>
                     </div>
 
                     {{-- Aviso para documentos de licenciamento (Alvará, etc) --}}
                     <div id="aviso-licenciamento" class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 rounded-lg" style="display: none;">
-                        <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-bold text-sm text-blue-800 mb-1">📅 Prazo Anual/Fixo</p>
-                                <p class="text-xs text-blue-700">
-                                    O prazo é contado a partir da <strong>data de criação do documento</strong> (ex: Alvará Sanitário válido por 1 ano).
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-semibold">📅 Prazo Fixo</p>
+                                <p class="text-xs text-blue-700 mt-1">
+                                    O prazo é contado a partir da <strong>data de criação</strong> do documento.
                                 </p>
                             </div>
                         </div>
@@ -799,8 +809,26 @@ function documentoEditor() {
         tipoPrazo: 'corridos',
         dataVencimentoFormatada: '',
         isNotificacao: false, // Se é documento de notificação/fiscalização (§1º)
+        // Controle de edição simultânea
+        outroUsuarioEditando: false,
+        nomeUsuarioEditando: '',
+        documentoId: {{ isset($documento) ? $documento->id : 'null' }},
+        intervalEdicao: null,
+        edicaoBloqueada: false,
 
         init() {
+            // Inicia verificação de edição se for edição de documento existente
+            if (this.documentoId) {
+                this.iniciarVerificacaoEdicao();
+            }
+            
+            // Libera edição quando a página for fechada
+            window.addEventListener('beforeunload', () => {
+                if (this.documentoId) {
+                    this.liberarEdicao();
+                }
+            });
+            
             // Tenta recuperar dados salvos do localStorage
             const dadosSalvos = localStorage.getItem(this.chaveLocalStorage);
             
@@ -838,6 +866,78 @@ function documentoEditor() {
                 // Inicia com editor vazio
                 this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
                 document.getElementById('editor').innerHTML = this.conteudo;
+            }
+        },
+
+        // Métodos para controle de edição simultânea
+        async iniciarVerificacaoEdicao() {
+            // Primeiro, registra que estamos editando
+            await this.registrarEdicao();
+            
+            // Inicia o polling a cada 10 segundos
+            this.intervalEdicao = setInterval(() => {
+                this.registrarEdicao();
+            }, 10000);
+        },
+
+        async registrarEdicao() {
+            if (!this.documentoId) return;
+            
+            try {
+                const response = await fetch(`/admin/documentos/${this.documentoId}/registrar-edicao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.editando) {
+                    this.outroUsuarioEditando = true;
+                    this.nomeUsuarioEditando = data.usuario_nome;
+                    this.edicaoBloqueada = true;
+                } else {
+                    this.outroUsuarioEditando = false;
+                    this.nomeUsuarioEditando = '';
+                    this.edicaoBloqueada = false;
+                }
+            } catch (error) {
+                console.error('Erro ao registrar edição:', error);
+            }
+        },
+
+        async verificarEdicao() {
+            if (!this.documentoId) return;
+            
+            try {
+                const response = await fetch(`/admin/documentos/${this.documentoId}/verificar-edicao`);
+                const data = await response.json();
+                
+                if (data.editando) {
+                    this.outroUsuarioEditando = true;
+                    this.nomeUsuarioEditando = data.usuario_nome;
+                } else {
+                    this.outroUsuarioEditando = false;
+                    this.nomeUsuarioEditando = '';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar edição:', error);
+            }
+        },
+
+        async liberarEdicao() {
+            if (!this.documentoId) return;
+            
+            // Usa sendBeacon para garantir que a requisição seja enviada mesmo ao fechar a página
+            const data = new FormData();
+            data.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+            
+            navigator.sendBeacon(`/admin/documentos/${this.documentoId}/liberar-edicao`, data);
+            
+            if (this.intervalEdicao) {
+                clearInterval(this.intervalEdicao);
             }
         },
 

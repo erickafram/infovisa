@@ -10,6 +10,7 @@ use App\Models\UsuarioInterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentoDigitalController extends Controller
@@ -819,6 +820,287 @@ class DocumentoDigitalController extends Controller
                 'message' => 'Erro ao remover assinante: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Registra que o usuário está editando o documento
+     * Usado para evitar conflitos de edição simultânea
+     */
+    public function registrarEdicao($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_edicao_{$id}";
+        
+        // Verifica se outro usuário está editando
+        $edicaoAtual = Cache::get($cacheKey);
+        
+        if ($edicaoAtual && $edicaoAtual['usuario_id'] !== $usuario->id) {
+            // Outro usuário está editando - verifica se ainda está ativo (menos de 30 segundos)
+            $ultimaAtividade = \Carbon\Carbon::parse($edicaoAtual['ultima_atividade']);
+            if ($ultimaAtividade->diffInSeconds(now()) < 30) {
+                return response()->json([
+                    'success' => false,
+                    'editando' => true,
+                    'usuario_nome' => $edicaoAtual['usuario_nome'],
+                    'message' => 'Outro usuário está editando este documento.'
+                ]);
+            }
+        }
+        
+        // Registra a edição do usuário atual com TTL de 35 segundos
+        Cache::put($cacheKey, [
+            'usuario_id' => $usuario->id,
+            'usuario_nome' => $usuario->nome,
+            'ultima_atividade' => now()->toISOString(),
+        ], 35);
+        
+        return response()->json([
+            'success' => true,
+            'editando' => false,
+            'message' => 'Edição registrada.'
+        ]);
+    }
+
+    /**
+     * Verifica se outro usuário está editando o documento
+     */
+    public function verificarEdicao($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_edicao_{$id}";
+        
+        $edicaoAtual = Cache::get($cacheKey);
+        
+        if (!$edicaoAtual) {
+            return response()->json([
+                'editando' => false,
+                'usuario_nome' => null
+            ]);
+        }
+        
+        // Se é o próprio usuário, não está bloqueado
+        if ($edicaoAtual['usuario_id'] === $usuario->id) {
+            return response()->json([
+                'editando' => false,
+                'usuario_nome' => null
+            ]);
+        }
+        
+        // Verifica se a edição ainda está ativa (menos de 30 segundos)
+        $ultimaAtividade = \Carbon\Carbon::parse($edicaoAtual['ultima_atividade']);
+        if ($ultimaAtividade->diffInSeconds(now()) >= 30) {
+            // Edição expirou
+            return response()->json([
+                'editando' => false,
+                'usuario_nome' => null
+            ]);
+        }
+        
+        return response()->json([
+            'editando' => true,
+            'usuario_nome' => $edicaoAtual['usuario_nome'],
+            'ultima_atividade' => $edicaoAtual['ultima_atividade']
+        ]);
+    }
+
+    /**
+     * Libera a edição do documento (quando o usuário sai ou salva)
+     */
+    public function liberarEdicao($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_edicao_{$id}";
+        
+        $edicaoAtual = Cache::get($cacheKey);
+        
+        // Só libera se for o próprio usuário
+        if ($edicaoAtual && $edicaoAtual['usuario_id'] === $usuario->id) {
+            Cache::forget($cacheKey);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Edição liberada.'
+        ]);
+    }
+
+    /**
+     * Inicia edição colaborativa do documento
+     */
+    public function iniciarEdicao($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_editores_{$id}";
+        
+        // Busca editores atuais
+        $editores = Cache::get($cacheKey, []);
+        
+        // Remove editores inativos (mais de 30 segundos)
+        $editores = array_filter($editores, function($editor) {
+            $ultimaAtividade = \Carbon\Carbon::parse($editor['ultima_atividade']);
+            return $ultimaAtividade->diffInSeconds(now()) < 30;
+        });
+        
+        // Gera ID único para esta sessão de edição
+        $edicaoId = uniqid('edicao_');
+        
+        // Adiciona ou atualiza o editor atual
+        $editores[$usuario->id] = [
+            'usuario_id' => $usuario->id,
+            'nome' => $usuario->nome,
+            'edicao_id' => $edicaoId,
+            'iniciado_em' => now()->format('H:i'),
+            'ultima_atividade' => now()->toISOString(),
+        ];
+        
+        // Salva no cache com TTL de 60 segundos
+        Cache::put($cacheKey, $editores, 60);
+        
+        // Busca outros editores (excluindo o atual)
+        $outrosEditores = array_filter($editores, function($editor) use ($usuario) {
+            return $editor['usuario_id'] !== $usuario->id;
+        });
+        
+        return response()->json([
+            'success' => true,
+            'edicao_id' => $edicaoId,
+            'outros_editores' => array_values($outrosEditores)
+        ]);
+    }
+
+    /**
+     * Salva automaticamente o conteúdo do documento
+     */
+    public function salvarAuto(Request $request, $id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+            $usuario = auth('interno')->user();
+            
+            // Só permite salvar se for rascunho
+            if ($documento->status !== 'rascunho') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Apenas rascunhos podem ser editados.'
+                ], 400);
+            }
+            
+            $conteudo = $request->input('conteudo');
+            
+            // Atualiza o documento
+            $documento->update([
+                'conteudo' => $conteudo,
+                'ultimo_editor_id' => $usuario->id,
+                'ultima_edicao_em' => now(),
+            ]);
+            
+            // Incrementa versão interna (para controle de conflitos)
+            $versao = Cache::increment("documento_versao_{$id}", 1) ?: 1;
+            
+            // Atualiza atividade do editor
+            $cacheKey = "documento_editores_{$id}";
+            $editores = Cache::get($cacheKey, []);
+            
+            if (isset($editores[$usuario->id])) {
+                $editores[$usuario->id]['ultima_atividade'] = now()->toISOString();
+                Cache::put($cacheKey, $editores, 60);
+            }
+            
+            // Busca editores ativos
+            $editoresAtivos = array_filter($editores, function($editor) use ($usuario) {
+                $ultimaAtividade = \Carbon\Carbon::parse($editor['ultima_atividade']);
+                return $ultimaAtividade->diffInSeconds(now()) < 30 && $editor['usuario_id'] !== $usuario->id;
+            });
+            
+            return response()->json([
+                'success' => true,
+                'versao' => $versao,
+                'editores_ativos' => array_values($editoresAtivos)
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao salvar documento automaticamente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao salvar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna lista de editores ativos do documento
+     */
+    public function editoresAtivos($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_editores_{$id}";
+        
+        $editores = Cache::get($cacheKey, []);
+        
+        // Remove editores inativos
+        $editores = array_filter($editores, function($editor) {
+            $ultimaAtividade = \Carbon\Carbon::parse($editor['ultima_atividade']);
+            return $ultimaAtividade->diffInSeconds(now()) < 30;
+        });
+        
+        // Atualiza o cache
+        Cache::put($cacheKey, $editores, 60);
+        
+        return response()->json([
+            'success' => true,
+            'editores' => array_values($editores)
+        ]);
+    }
+
+    /**
+     * Obtém conteúdo atual do documento
+     */
+    public function obterConteudo($id)
+    {
+        try {
+            $documento = DocumentoDigital::findOrFail($id);
+            $versao = Cache::get("documento_versao_{$id}", 1);
+            
+            return response()->json([
+                'success' => true,
+                'conteudo' => $documento->conteudo,
+                'versao' => $versao
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Documento não encontrado.'
+            ], 404);
+        }
+    }
+
+    /**
+     * Finaliza a edição do documento (remove editor da lista)
+     */
+    public function finalizarEdicao($id)
+    {
+        $usuario = auth('interno')->user();
+        $cacheKey = "documento_editores_{$id}";
+        
+        $editores = Cache::get($cacheKey, []);
+        
+        // Remove o usuário atual da lista de editores
+        if (isset($editores[$usuario->id])) {
+            unset($editores[$usuario->id]);
+            Cache::put($cacheKey, $editores, 60);
+        }
+        
+        // Também limpa o registro de edição simples
+        $cacheKeySimples = "documento_edicao_{$id}";
+        $edicaoAtual = Cache::get($cacheKeySimples);
+        if ($edicaoAtual && $edicaoAtual['usuario_id'] === $usuario->id) {
+            Cache::forget($cacheKeySimples);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Edição finalizada.'
+        ]);
     }
 
 }
