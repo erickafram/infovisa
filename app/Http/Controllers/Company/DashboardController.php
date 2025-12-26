@@ -15,8 +15,11 @@ class DashboardController extends Controller
     {
         $usuarioId = auth('externo')->id();
         
-        // Buscar estabelecimentos do usuário
+        // Buscar estabelecimentos do usuário (próprios e vinculados)
         $estabelecimentos = Estabelecimento::where('usuario_externo_id', $usuarioId)
+            ->orWhereHas('usuariosVinculados', function($q) use ($usuarioId) {
+                $q->where('usuario_externo_id', $usuarioId);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
         

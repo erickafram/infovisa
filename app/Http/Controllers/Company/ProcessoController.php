@@ -12,12 +12,38 @@ use Illuminate\Http\Request;
 class ProcessoController extends Controller
 {
     /**
+     * Retorna IDs dos estabelecimentos do usuário (próprios e vinculados)
+     */
+    private function estabelecimentoIdsDoUsuario()
+    {
+        $usuarioId = auth('externo')->id();
+        
+        return Estabelecimento::where('usuario_externo_id', $usuarioId)
+            ->orWhereHas('usuariosVinculados', function($q) use ($usuarioId) {
+                $q->where('usuario_externo_id', $usuarioId);
+            })
+            ->pluck('id');
+    }
+
+    /**
+     * Retorna estabelecimentos do usuário (próprios e vinculados)
+     */
+    private function estabelecimentosDoUsuario()
+    {
+        $usuarioId = auth('externo')->id();
+        
+        return Estabelecimento::where('usuario_externo_id', $usuarioId)
+            ->orWhereHas('usuariosVinculados', function($q) use ($usuarioId) {
+                $q->where('usuario_externo_id', $usuarioId);
+            });
+    }
+
+    /**
      * Lista todos os alertas dos processos do usuário
      */
     public function alertasIndex(Request $request)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         $processoIds = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)->pluck('id');
         
         $query = ProcessoAlerta::whereIn('processo_id', $processoIds)
@@ -65,7 +91,7 @@ class ProcessoController extends Controller
         ];
         
         // Lista de estabelecimentos para filtro
-        $estabelecimentos = Estabelecimento::where('usuario_externo_id', $usuarioId)
+        $estabelecimentos = $this->estabelecimentosDoUsuario()
             ->orderBy('nome_fantasia')
             ->get();
         
@@ -74,10 +100,8 @@ class ProcessoController extends Controller
 
     public function index(Request $request)
     {
-        $usuarioId = auth('externo')->id();
-        
         // IDs dos estabelecimentos do usuário
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $query = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->with(['estabelecimento', 'tipoProcesso']);
@@ -111,7 +135,7 @@ class ProcessoController extends Controller
         ];
         
         // Lista de estabelecimentos para filtro
-        $estabelecimentos = Estabelecimento::where('usuario_externo_id', $usuarioId)
+        $estabelecimentos = $this->estabelecimentosDoUsuario()
             ->orderBy('nome_fantasia')
             ->get();
         
@@ -120,8 +144,7 @@ class ProcessoController extends Controller
     
     public function show($id)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->with(['estabelecimento', 'tipoProcesso', 'documentos.usuarioExterno', 'alertas'])
@@ -196,18 +219,18 @@ class ProcessoController extends Controller
     public function uploadDocumento(Request $request, $id)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($id);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif',
+            'arquivo' => 'required|file|max:10240|mimes:pdf',
             'observacoes' => 'nullable|string|max:500',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
-            'arquivo.mimes' => 'Formato de arquivo não permitido. Use: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG ou GIF.',
+            'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
         $arquivo = $request->file('arquivo');
@@ -244,8 +267,7 @@ class ProcessoController extends Controller
 
     public function downloadDocumento($processoId, $documentoId)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -264,8 +286,7 @@ class ProcessoController extends Controller
 
     public function visualizarDocumento($processoId, $documentoId)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -290,7 +311,7 @@ class ProcessoController extends Controller
     public function deleteDocumento($processoId, $documentoId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -321,7 +342,7 @@ class ProcessoController extends Controller
     public function reenviarDocumento(Request $request, $processoId, $documentoId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -332,12 +353,12 @@ class ProcessoController extends Controller
             ->findOrFail($documentoId);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif',
+            'arquivo' => 'required|file|max:10240|mimes:pdf',
             'observacoes' => 'nullable|string|max:500',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
-            'arquivo.mimes' => 'Formato de arquivo não permitido.',
+            'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
         $arquivo = $request->file('arquivo');
@@ -394,7 +415,7 @@ class ProcessoController extends Controller
     public function visualizarDocumentoDigital($processoId, $documentoId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -435,7 +456,7 @@ class ProcessoController extends Controller
     public function downloadDocumentoDigital($processoId, $documentoId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -472,8 +493,7 @@ class ProcessoController extends Controller
      */
     public function concluirAlerta($processoId, $alertaId)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -495,7 +515,7 @@ class ProcessoController extends Controller
     public function enviarRespostaDocumento(Request $request, $processoId, $documentoId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -592,8 +612,7 @@ class ProcessoController extends Controller
      */
     public function downloadRespostaDocumento($processoId, $documentoId, $respostaId)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -618,8 +637,7 @@ class ProcessoController extends Controller
      */
     public function visualizarRespostaDocumento($processoId, $documentoId, $respostaId)
     {
-        $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);
@@ -648,7 +666,7 @@ class ProcessoController extends Controller
     public function excluirRespostaDocumento($processoId, $documentoId, $respostaId)
     {
         $usuarioId = auth('externo')->id();
-        $estabelecimentoIds = Estabelecimento::where('usuario_externo_id', $usuarioId)->pluck('id');
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
             ->findOrFail($processoId);

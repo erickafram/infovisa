@@ -260,7 +260,8 @@
                                     <div>
                                         <input type="file" name="arquivo" required
                                                class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                                               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif">
+                                               accept=".pdf">
+                                        <p class="mt-1 text-xs text-gray-500">Apenas arquivos PDF. Máx: 10MB</p>
                                     </div>
                                     <div>
                                         <textarea name="observacoes" rows="2" 
@@ -533,8 +534,8 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo *</label>
                             <input type="file" name="arquivo" required
                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif">
-                            <p class="mt-1 text-xs text-gray-500">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF. Máx: 10MB</p>
+                                   accept=".pdf">
+                            <p class="mt-1 text-xs text-gray-500">Apenas arquivos PDF. Máx: 10MB</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>

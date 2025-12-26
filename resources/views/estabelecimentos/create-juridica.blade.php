@@ -1754,7 +1754,7 @@ function estabelecimentoForm() {
             }
             
             try {
-                const response = await fetch('{{ route('admin.configuracoes.pactuacao.buscar-questionarios') }}', {
+                const response = await fetch('{{ route('admin.estabelecimentos.buscar-questionarios') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

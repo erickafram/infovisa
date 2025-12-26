@@ -4,7 +4,7 @@
 @section('page-title', 'Usuários Vinculados ao Estabelecimento')
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6" x-data="usuariosVinculo()">
+<div class="max-w-8xl mx-auto space-y-6" x-data="usuariosVinculo()">
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">

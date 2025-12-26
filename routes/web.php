@@ -138,6 +138,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/desativados', [EstabelecimentoController::class, 'desativados'])->name('estabelecimentos.desativados');
     Route::get('/estabelecimentos/create/juridica', [EstabelecimentoController::class, 'createJuridica'])->name('estabelecimentos.create.juridica');
     Route::get('/estabelecimentos/create/fisica', [EstabelecimentoController::class, 'createFisica'])->name('estabelecimentos.create.fisica');
+    Route::post('/estabelecimentos/buscar-questionarios', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarQuestionarios'])->name('estabelecimentos.buscar-questionarios');
     Route::get('/estabelecimentos/buscar-por-cpf/{cpf}', [EstabelecimentoController::class, 'buscarPorCpf'])->name('estabelecimentos.buscar-cpf');
     Route::get('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'editAtividades'])->name('estabelecimentos.atividades.edit');
     Route::post('/estabelecimentos/{id}/atividades', [EstabelecimentoController::class, 'updateAtividades'])->name('estabelecimentos.atividades.update');

@@ -11,6 +11,21 @@ use Illuminate\Support\Facades\Log;
 class EstabelecimentoController extends Controller
 {
     /**
+     * Retorna query base para estabelecimentos do usuário (próprios e vinculados)
+     */
+    private function estabelecimentosDoUsuario()
+    {
+        $usuarioId = auth('externo')->id();
+        
+        return Estabelecimento::where(function($q) use ($usuarioId) {
+            $q->where('usuario_externo_id', $usuarioId)
+              ->orWhereHas('usuariosVinculados', function($q2) use ($usuarioId) {
+                  $q2->where('usuario_externo_id', $usuarioId);
+              });
+        });
+    }
+
+    /**
      * Busca questionários para uma lista de CNAEs
      */
     public function buscarQuestionarios(Request $request)
@@ -47,9 +62,11 @@ class EstabelecimentoController extends Controller
 
     public function index(Request $request)
     {
-        $usuarioId = auth('externo')->id();
+        // Busca todos os estabelecimentos do usuário (próprios e vinculados) para estatísticas
+        $todosEstabelecimentos = $this->estabelecimentosDoUsuario()->get();
         
-        $query = Estabelecimento::where('usuario_externo_id', $usuarioId);
+        // Query para listagem com filtros
+        $query = $this->estabelecimentosDoUsuario();
         
         // Filtro por status
         if ($request->filled('status')) {
@@ -60,9 +77,9 @@ class EstabelecimentoController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('nome_fantasia', 'like', "%{$search}%")
-                  ->orWhere('razao_social', 'like', "%{$search}%")
-                  ->orWhere('nome_completo', 'like', "%{$search}%")
+                $q->where('nome_fantasia', 'ilike', "%{$search}%")
+                  ->orWhere('razao_social', 'ilike', "%{$search}%")
+                  ->orWhere('nome_completo', 'ilike', "%{$search}%")
                   ->orWhere('cnpj', 'like', "%{$search}%")
                   ->orWhere('cpf', 'like', "%{$search}%");
             });
@@ -70,12 +87,12 @@ class EstabelecimentoController extends Controller
         
         $estabelecimentos = $query->orderBy('created_at', 'desc')->paginate(10);
         
-        // Estatísticas
+        // Estatísticas baseadas na collection já carregada
         $estatisticas = [
-            'total' => Estabelecimento::where('usuario_externo_id', $usuarioId)->count(),
-            'pendentes' => Estabelecimento::where('usuario_externo_id', $usuarioId)->where('status', 'pendente')->count(),
-            'aprovados' => Estabelecimento::where('usuario_externo_id', $usuarioId)->where('status', 'aprovado')->count(),
-            'rejeitados' => Estabelecimento::where('usuario_externo_id', $usuarioId)->where('status', 'rejeitado')->count(),
+            'total' => $todosEstabelecimentos->count(),
+            'pendentes' => $todosEstabelecimentos->where('status', 'pendente')->count(),
+            'aprovados' => $todosEstabelecimentos->where('status', 'aprovado')->count(),
+            'rejeitados' => $todosEstabelecimentos->where('status', 'rejeitado')->count(),
         ];
         
         return view('company.estabelecimentos.index', compact('estabelecimentos', 'estatisticas'));
@@ -83,7 +100,7 @@ class EstabelecimentoController extends Controller
     
     public function show($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->with(['processos.tipoProcesso'])
             ->findOrFail($id);
         
@@ -229,7 +246,7 @@ class EstabelecimentoController extends Controller
      */
     public function edit($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
         
@@ -241,7 +258,7 @@ class EstabelecimentoController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -284,7 +301,7 @@ class EstabelecimentoController extends Controller
      */
     public function editAtividades($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->findOrFail($id);
         
         return view('company.estabelecimentos.atividades', compact('estabelecimento'));
@@ -295,7 +312,7 @@ class EstabelecimentoController extends Controller
      */
     public function updateAtividades(Request $request, $id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->findOrFail($id);
 
         // Bloqueia edição se estabelecimento já foi aprovado
@@ -321,7 +338,7 @@ class EstabelecimentoController extends Controller
      */
     public function responsaveisIndex($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->with(['responsaveisLegais', 'responsaveisTecnicos'])
             ->findOrFail($id);
@@ -334,7 +351,7 @@ class EstabelecimentoController extends Controller
      */
     public function responsaveisCreate($id, $tipo = 'legal')
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
         
@@ -351,7 +368,7 @@ class EstabelecimentoController extends Controller
      */
     public function responsaveisStore(Request $request, $id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -446,7 +463,7 @@ class EstabelecimentoController extends Controller
      */
     public function responsaveisDestroy($id, $responsavelId)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -461,7 +478,7 @@ class EstabelecimentoController extends Controller
      */
     public function usuariosIndex($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->with('usuariosVinculados')
             ->findOrFail($id);
@@ -474,7 +491,7 @@ class EstabelecimentoController extends Controller
      */
     public function usuariosStore(Request $request, $id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -511,7 +528,7 @@ class EstabelecimentoController extends Controller
      */
     public function usuariosDestroy($id, $usuarioId)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -526,7 +543,7 @@ class EstabelecimentoController extends Controller
      */
     public function processosIndex($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->with(['processos.tipoProcesso'])
             ->findOrFail($id);
@@ -539,7 +556,7 @@ class EstabelecimentoController extends Controller
      */
     public function processosCreate($id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
@@ -558,7 +575,7 @@ class EstabelecimentoController extends Controller
      */
     public function processosStore(Request $request, $id)
     {
-        $estabelecimento = Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+        $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
 

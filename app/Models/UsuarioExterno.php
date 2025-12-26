@@ -99,11 +99,13 @@ class UsuarioExterno extends Authenticatable
     }
 
     /**
-     * Relacionamento com estabelecimentos (será implementado depois)
+     * Relacionamento com estabelecimentos vinculados
      */
-    // public function estabelecimentos()
-    // {
-    //     return $this->belongsToMany(Estabelecimento::class, 'usuarios_estabelecimentos');
-    // }
+    public function estabelecimentosVinculados()
+    {
+        return $this->belongsToMany(Estabelecimento::class, 'estabelecimento_usuario_externo')
+            ->withPivot(['tipo_vinculo', 'observacao', 'created_at'])
+            ->withTimestamps();
+    }
 }
 

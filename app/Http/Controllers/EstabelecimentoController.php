@@ -1210,4 +1210,44 @@ class EstabelecimentoController extends Controller
 
         return response()->json(['existe' => $existe]);
     }
+
+    /**
+     * Busca usuários externos para vincular ao estabelecimento
+     */
+    public function buscarUsuarios(Request $request)
+    {
+        $query = $request->input('q', '');
+        $estabelecimentoId = $request->input('estabelecimento_id');
+        
+        if (strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        // Busca usuários externos
+        $usuarios = \App\Models\UsuarioExterno::where(function($q) use ($query) {
+            $q->where('nome', 'ilike', "%{$query}%")
+              ->orWhere('email', 'ilike', "%{$query}%")
+              ->orWhere('cpf', 'like', "%{$query}%");
+        });
+
+        // Exclui usuários já vinculados ao estabelecimento
+        if ($estabelecimentoId) {
+            $estabelecimento = Estabelecimento::find($estabelecimentoId);
+            if ($estabelecimento) {
+                $usuariosVinculados = $estabelecimento->usuariosVinculados->pluck('id')->toArray();
+                $usuarios->whereNotIn('id', $usuariosVinculados);
+            }
+        }
+
+        $usuarios = $usuarios->limit(10)->get(['id', 'nome', 'email', 'cpf']);
+
+        return response()->json($usuarios->map(function($usuario) {
+            return [
+                'id' => $usuario->id,
+                'nome' => $usuario->nome,
+                'email' => $usuario->email,
+                'cpf' => $usuario->cpf_formatado ?? $usuario->cpf,
+            ];
+        }));
+    }
 }
