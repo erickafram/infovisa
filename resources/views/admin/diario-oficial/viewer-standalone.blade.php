@@ -89,7 +89,7 @@
     <div class="sticky top-0 z-50 bg-white shadow-lg">
         <!-- Header -->
         <div class="border-b">
-            <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="max-w-8xl mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <h1 class="text-xl font-bold text-gray-900">{{ $title }}</h1>
@@ -114,7 +114,7 @@
 
         <!-- Search Bar -->
         <div class="border-b">
-            <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="max-w-8xl mx-auto px-4 py-4">
                 <div class="flex items-center gap-4">
                     <div class="flex-1">
                         <div class="relative">
@@ -143,7 +143,7 @@
 
         <!-- Search Results Info - DENTRO DO STICKY -->
         <div id="searchResults" class="hidden bg-green-50 border-b border-green-200">
-            <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="max-w-8xl mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
                     <div id="resultsInfo" class="text-green-800 font-medium"></div>
                     <div class="flex items-center gap-2">
@@ -167,7 +167,7 @@
 
         <!-- No Results - DENTRO DO STICKY -->
         <div id="noResults" class="hidden bg-yellow-50 border-b border-yellow-200">
-            <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="max-w-8xl mx-auto px-4 py-4">
                 <p class="text-yellow-800">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     Texto não encontrado no PDF. Verifique se o texto está correto ou se o documento não está escaneado.

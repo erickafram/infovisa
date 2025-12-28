@@ -151,6 +151,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuários</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estabelecimentos</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pactuações</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">InfoVISA</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                         </tr>
@@ -191,9 +192,33 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                                    {{ $municipio->pactuacoes()->count() }}
-                                </span>
+                                @php
+                                    // Pactuações municipais (Tabela I) são as mesmas para todos os municípios
+                                    $pactuacoesMunicipais = \App\Models\Pactuacao::where('tipo', 'municipal')->where('tabela', 'I')->where('ativo', true)->count();
+                                    $descentralizacoes = $municipio->countDescentralizacoes();
+                                @endphp
+                                <div class="flex flex-col gap-1">
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium" title="Tabela I - Atividades municipais (todos os municípios)">
+                                        {{ $pactuacoesMunicipais }} municipais
+                                    </span>
+                                    <span class="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium" title="Tabela III - Descentralizações específicas">
+                                        {{ $descentralizacoes }} descentralizadas
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($municipio->usa_infovisa)
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" title="Aceita cadastros municipais">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Sim
+                                    </span>
+                                @else
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600" title="Não aceita cadastros municipais">
+                                        Não
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $municipio->ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">

@@ -16,11 +16,15 @@ class Municipio extends Model
         'uf',
         'slug',
         'logomarca',
-        'ativo'
+        'ativo',
+        'usa_infovisa',
+        'data_adesao_infovisa',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'usa_infovisa' => 'boolean',
+        'data_adesao_infovisa' => 'date',
     ];
 
     /**
@@ -115,5 +119,90 @@ class Municipio extends Model
     public function scopeDoTocantins($query)
     {
         return $query->where('uf', 'TO');
+    }
+
+    /**
+     * Scope para municípios que usam o InfoVISA
+     */
+    public function scopeUsaInfovisa($query)
+    {
+        return $query->where('usa_infovisa', true);
+    }
+
+    /**
+     * Verifica se o município aceita cadastros de estabelecimentos municipais
+     */
+    public function aceitaCadastroMunicipal(): bool
+    {
+        return $this->usa_infovisa === true;
+    }
+
+    /**
+     * Conta as descentralizações (atividades estaduais delegadas para este município)
+     */
+    public function countDescentralizacoes()
+    {
+        // Busca pactuações estaduais onde este município está na lista de exceções
+        // O campo municipios_excecao é um array JSON com os nomes dos municípios
+        
+        $nomeMunicipio = mb_strtolower(trim($this->nome));
+        
+        // Busca todas as pactuações estaduais ativas e filtra em PHP
+        // para garantir comparação exata (evitar "ALMAS" encontrar "PALMAS")
+        return Pactuacao::where('tipo', 'estadual')
+            ->where('ativo', true)
+            ->whereNotNull('municipios_excecao')
+            ->get()
+            ->filter(function($pactuacao) use ($nomeMunicipio) {
+                if (!$pactuacao->municipios_excecao || !is_array($pactuacao->municipios_excecao)) {
+                    return false;
+                }
+                
+                // Verifica se o nome do município está no array (case-insensitive)
+                foreach ($pactuacao->municipios_excecao as $municipioExcecao) {
+                    if (mb_strtolower(trim($municipioExcecao)) === $nomeMunicipio) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            })
+            ->count();
+    }
+
+    /**
+     * Retorna o total de pactuações (municipais + descentralizações)
+     */
+    public function getTotalPactuacoesAttribute()
+    {
+        $municipais = $this->pactuacoes()->where('tipo', 'municipal')->count();
+        $descentralizacoes = $this->countDescentralizacoes();
+        return $municipais + $descentralizacoes;
+    }
+
+    /**
+     * Retorna as descentralizações (pactuações estaduais onde este município é exceção)
+     */
+    public function descentralizacoes()
+    {
+        $nomeMunicipio = mb_strtolower(trim($this->nome));
+        
+        return Pactuacao::where('tipo', 'estadual')
+            ->where('ativo', true)
+            ->whereNotNull('municipios_excecao')
+            ->get()
+            ->filter(function($pactuacao) use ($nomeMunicipio) {
+                if (!$pactuacao->municipios_excecao || !is_array($pactuacao->municipios_excecao)) {
+                    return false;
+                }
+                
+                foreach ($pactuacao->municipios_excecao as $municipioExcecao) {
+                    if (mb_strtolower(trim($municipioExcecao)) === $nomeMunicipio) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            });
     }
 }

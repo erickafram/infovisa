@@ -162,9 +162,23 @@ class EstabelecimentoController extends Controller
             $rules['nome_completo'] = 'required|string|max:255';
             $rules['rg'] = 'required|string|max:20';
             $rules['orgao_emissor'] = 'required|string|max:20';
+            // Para pessoa física, atividades_exercidas é obrigatório
+            $rules['atividades_exercidas'] = 'required|string';
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'atividades_exercidas.required' => 'Você deve adicionar pelo menos uma Atividade Econômica (CNAE).',
+        ]);
+        
+        // Valida se há pelo menos uma atividade para pessoa física
+        if ($request->tipo_pessoa === 'fisica') {
+            $atividades = json_decode($request->atividades_exercidas, true);
+            if (empty($atividades) || !is_array($atividades) || count($atividades) === 0) {
+                return back()->withErrors([
+                    'atividades_exercidas' => 'Você deve adicionar pelo menos uma Atividade Econômica (CNAE).'
+                ])->withInput();
+            }
+        }
         
         // Limpa formatação do CNPJ/CPF antes de verificar unicidade
         if ($request->tipo_pessoa === 'juridica') {
@@ -217,6 +231,30 @@ class EstabelecimentoController extends Controller
                 $validated['municipio'] = $nomeMunicipio;
             }
         }
+
+        // ========================================
+        // VALIDAÇÃO: Município usa InfoVISA?
+        // ========================================
+        // Cria um estabelecimento temporário (não salvo) para verificar competência
+        $estabelecimentoTemp = new Estabelecimento($validated);
+        
+        // Se for de competência MUNICIPAL, verifica se o município usa o InfoVISA
+        if ($estabelecimentoTemp->isCompetenciaMunicipal()) {
+            $municipio = null;
+            if (isset($validated['municipio_id'])) {
+                $municipio = \App\Models\Municipio::find($validated['municipio_id']);
+            }
+            
+            if (!$municipio || !$municipio->usa_infovisa) {
+                $nomeMunicipioMsg = $municipio ? $municipio->nome : ($validated['municipio'] ?? 'seu município');
+                return back()->withErrors([
+                    'cidade' => "O município de {$nomeMunicipioMsg} ainda não utiliza o InfoVISA. " .
+                               "Estabelecimentos de competência municipal deste município não podem se cadastrar no momento. " .
+                               "Entre em contato com a Vigilância Sanitária do seu município para mais informações."
+                ])->withInput();
+            }
+        }
+        // ========================================
 
         // Remove formatação (CEP e telefone - CNPJ/CPF já foram limpos acima)
         if (isset($validated['cep'])) {
@@ -480,10 +518,14 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
-            ->with('usuariosVinculados')
+            ->with(['usuariosVinculados', 'usuarioExterno'])
             ->findOrFail($id);
         
-        return view('company.estabelecimentos.usuarios.index', compact('estabelecimento'));
+        // Inclui o usuário criador na lista (se não estiver já vinculado)
+        $criador = $estabelecimento->usuarioExterno;
+        $criadorVinculado = $estabelecimento->usuariosVinculados->contains('id', $criador?->id);
+        
+        return view('company.estabelecimentos.usuarios.index', compact('estabelecimento', 'criador', 'criadorVinculado'));
     }
 
     /**
@@ -532,6 +574,12 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
+        // Bloqueia exclusão do usuário criador do estabelecimento
+        if ($estabelecimento->usuario_externo_id == $usuarioId) {
+            return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
+                ->with('error', 'Não é possível desvincular o usuário que cadastrou o estabelecimento. Apenas um administrador pode realizar esta ação.');
+        }
+
         $estabelecimento->usuariosVinculados()->detach($usuarioId);
 
         return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
@@ -558,16 +606,172 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
+            ->with(['responsaveisLegais'])
             ->findOrFail($id);
 
+        // Verifica se tem responsável legal cadastrado
+        if ($estabelecimento->responsaveisLegais->isEmpty()) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', 'Para abrir um processo, é obrigatório ter pelo menos um Responsável Legal cadastrado. Por favor, cadastre o responsável legal primeiro.');
+        }
+
         // Busca tipos de processo disponíveis para usuários externos
-        $tiposProcesso = \App\Models\TipoProcesso::where('ativo', true)
+        $tiposProcessoBase = \App\Models\TipoProcesso::where('ativo', true)
             ->where('usuario_externo_pode_abrir', true)
             ->orderBy('ordem')
             ->orderBy('nome')
             ->get();
+
+        // Filtra tipos de processo baseado nas regras de anual/único
+        $anoAtual = date('Y');
+        $tiposProcesso = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual) {
+            // Se é único por estabelecimento, verifica se já existe algum processo deste tipo
+            if ($tipo->unico_por_estabelecimento) {
+                $existeProcesso = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                    ->where('tipo', $tipo->codigo)
+                    ->exists();
+                
+                if ($existeProcesso) {
+                    return false; // Não pode abrir, já existe
+                }
+            }
+            // Se é anual, verifica se já existe processo deste tipo no ano atual
+            elseif ($tipo->anual) {
+                $existeNoAno = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                    ->where('tipo', $tipo->codigo)
+                    ->where('ano', $anoAtual)
+                    ->exists();
+                
+                if ($existeNoAno) {
+                    return false; // Não pode abrir, já existe neste ano
+                }
+            }
+            
+            // Pode abrir
+            return true;
+        });
+
+        // Busca documentos obrigatórios baseados nas atividades exercidas
+        $documentosObrigatorios = $this->buscarDocumentosObrigatorios($estabelecimento, $tiposProcesso);
         
-        return view('company.estabelecimentos.processos.create', compact('estabelecimento', 'tiposProcesso'));
+        // Busca tipos bloqueados para mostrar mensagem informativa
+        $tiposBloqueados = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual) {
+            if ($tipo->unico_por_estabelecimento) {
+                return \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                    ->where('tipo', $tipo->codigo)
+                    ->exists();
+            }
+            if ($tipo->anual) {
+                return \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                    ->where('tipo', $tipo->codigo)
+                    ->where('ano', $anoAtual)
+                    ->exists();
+            }
+            return false;
+        });
+        
+        return view('company.estabelecimentos.processos.create', compact('estabelecimento', 'tiposProcesso', 'documentosObrigatorios', 'tiposBloqueados'));
+    }
+
+    /**
+     * Busca documentos obrigatórios para o estabelecimento baseado nas atividades exercidas
+     */
+    private function buscarDocumentosObrigatorios($estabelecimento, $tiposProcesso)
+    {
+        $documentosPorTipoProcesso = [];
+        
+        // Pega as atividades exercidas do estabelecimento (apenas as marcadas)
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+        
+        if (empty($atividadesExercidas)) {
+            return $documentosPorTipoProcesso;
+        }
+
+        // Extrai os códigos CNAE das atividades exercidas
+        $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
+            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+        })->filter()->values()->toArray();
+
+        if (empty($codigosCnae)) {
+            return $documentosPorTipoProcesso;
+        }
+
+        // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
+        $atividadeIds = \App\Models\Atividade::where('ativo', true)
+            ->where(function($query) use ($codigosCnae) {
+                foreach ($codigosCnae as $codigo) {
+                    $query->orWhere('codigo_cnae', $codigo);
+                }
+            })
+            ->pluck('id');
+
+        if ($atividadeIds->isEmpty()) {
+            return $documentosPorTipoProcesso;
+        }
+
+        // Para cada tipo de processo, busca as listas de documentos aplicáveis
+        foreach ($tiposProcesso as $tipoProcesso) {
+            $query = \App\Models\ListaDocumento::where('ativo', true)
+                ->where('tipo_processo_id', $tipoProcesso->id)
+                ->whereHas('atividades', function($q) use ($atividadeIds) {
+                    $q->whereIn('atividades.id', $atividadeIds);
+                })
+                ->with(['tiposDocumentoObrigatorio' => function($q) {
+                    $q->orderBy('lista_documento_tipo.ordem');
+                }]);
+
+            // Filtra por escopo (estadual ou do município do estabelecimento)
+            $query->where(function($q) use ($estabelecimento) {
+                $q->where('escopo', 'estadual');
+                if ($estabelecimento->municipio_id) {
+                    $q->orWhere(function($q2) use ($estabelecimento) {
+                        $q2->where('escopo', 'municipal')
+                           ->where('municipio_id', $estabelecimento->municipio_id);
+                    });
+                }
+            });
+
+            $listas = $query->get();
+
+            // Consolida os documentos de todas as listas aplicáveis
+            $documentos = collect();
+            foreach ($listas as $lista) {
+                foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                    // Evita duplicatas pelo ID do tipo de documento
+                    if (!$documentos->contains('id', $doc->id)) {
+                        $documentos->push([
+                            'id' => $doc->id,
+                            'nome' => $doc->nome,
+                            'descricao' => $doc->descricao,
+                            'obrigatorio' => $doc->pivot->obrigatorio,
+                            'observacao' => $doc->pivot->observacao,
+                            'lista_nome' => $lista->nome,
+                        ]);
+                    } else {
+                        // Se já existe, verifica se deve ser obrigatório (se qualquer lista marcar como obrigatório)
+                        $documentos = $documentos->map(function($item) use ($doc) {
+                            if ($item['id'] === $doc->id && $doc->pivot->obrigatorio) {
+                                $item['obrigatorio'] = true;
+                            }
+                            return $item;
+                        });
+                    }
+                }
+            }
+
+            // Ordena: obrigatórios primeiro, depois por nome
+            $documentos = $documentos->sortBy([
+                ['obrigatorio', 'desc'],
+                ['nome', 'asc'],
+            ])->values();
+
+            if ($documentos->isNotEmpty()) {
+                $documentosPorTipoProcesso[$tipoProcesso->id] = $documentos;
+            }
+        }
+
+        return $documentosPorTipoProcesso;
     }
 
     /**
@@ -582,6 +786,11 @@ class EstabelecimentoController extends Controller
         $validated = $request->validate([
             'tipo_processo_id' => 'required|exists:tipo_processos,id',
             'observacao' => 'nullable|string|max:1000',
+            'documentos' => 'nullable|array',
+            'documentos.*' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+        ], [
+            'documentos.*.max' => 'Cada arquivo não pode ter mais de 10MB.',
+            'documentos.*.mimes' => 'Apenas arquivos PDF, JPG e PNG são permitidos.',
         ]);
 
         $tipoProcesso = \App\Models\TipoProcesso::where('id', $validated['tipo_processo_id'])
@@ -589,24 +798,97 @@ class EstabelecimentoController extends Controller
             ->where('usuario_externo_pode_abrir', true)
             ->firstOrFail();
 
-        // Gera número do processo usando o método do model
-        $ano = date('Y');
-        $dadosNumero = \App\Models\Processo::gerarNumeroProcesso($ano);
+        // Validação de processo único por estabelecimento
+        if ($tipoProcesso->unico_por_estabelecimento) {
+            $existeProcesso = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                ->where('tipo', $tipoProcesso->codigo)
+                ->exists();
+            
+            if ($existeProcesso) {
+                return back()->withErrors(['tipo_processo_id' => 'Este estabelecimento já possui um processo de ' . $tipoProcesso->nome . '. Este tipo de processo só pode ser aberto uma vez.']);
+            }
+        }
+        // Validação de processo anual
+        elseif ($tipoProcesso->anual) {
+            $anoAtual = date('Y');
+            $existeNoAno = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
+                ->where('tipo', $tipoProcesso->codigo)
+                ->where('ano', $anoAtual)
+                ->exists();
+            
+            if ($existeNoAno) {
+                return back()->withErrors(['tipo_processo_id' => 'Este estabelecimento já possui um processo de ' . $tipoProcesso->nome . ' aberto em ' . $anoAtual . '. Processos anuais só podem ser abertos uma vez por ano.']);
+            }
+        }
 
-        $processo = \App\Models\Processo::create([
-            'estabelecimento_id' => $estabelecimento->id,
-            'usuario_externo_id' => auth('externo')->id(),
-            'aberto_por_externo' => true,
-            'tipo' => $tipoProcesso->codigo,
-            'ano' => $dadosNumero['ano'],
-            'numero_sequencial' => $dadosNumero['numero_sequencial'],
-            'numero_processo' => $dadosNumero['numero_processo'],
-            'status' => 'aberto',
-            'observacoes' => $validated['observacao'] ?? null,
-        ]);
+        try {
+            $processo = \DB::transaction(function () use ($estabelecimento, $tipoProcesso, $validated, $request) {
+                // Gera número do processo usando o método do model (dentro da transaction)
+                $ano = date('Y');
+                $dadosNumero = \App\Models\Processo::gerarNumeroProcesso($ano);
 
-        return redirect()->route('company.processos.show', $processo->id)
-            ->with('success', 'Processo aberto com sucesso!');
+                $processo = \App\Models\Processo::create([
+                    'estabelecimento_id' => $estabelecimento->id,
+                    'usuario_externo_id' => auth('externo')->id(),
+                    'aberto_por_externo' => true,
+                    'tipo' => $tipoProcesso->codigo,
+                    'ano' => $dadosNumero['ano'],
+                    'numero_sequencial' => $dadosNumero['numero_sequencial'],
+                    'numero_processo' => $dadosNumero['numero_processo'],
+                    'status' => 'aberto',
+                    'observacoes' => $validated['observacao'] ?? null,
+                ]);
+
+                // Salva os documentos enviados
+                if ($request->hasFile('documentos')) {
+                    foreach ($request->file('documentos') as $tipoDocumentoId => $arquivo) {
+                        if ($arquivo && $arquivo->isValid()) {
+                            $tipoDocumento = \App\Models\TipoDocumentoObrigatorio::find($tipoDocumentoId);
+                            
+                            $nomeOriginal = $arquivo->getClientOriginalName();
+                            $extensao = $arquivo->getClientOriginalExtension();
+                            $tamanho = $arquivo->getSize();
+                            $nomeArquivo = time() . '_' . uniqid() . '.' . $extensao;
+                            
+                            // Salva o arquivo
+                            $caminho = $arquivo->storeAs(
+                                'processos/' . $processo->id . '/documentos',
+                                $nomeArquivo,
+                                'public'
+                            );
+
+                            // Cria o registro do documento
+                            \App\Models\ProcessoDocumento::create([
+                                'processo_id' => $processo->id,
+                                'usuario_externo_id' => auth('externo')->id(),
+                                'tipo_usuario' => 'externo',
+                                'nome_arquivo' => $nomeArquivo,
+                                'nome_original' => $nomeOriginal,
+                                'caminho' => $caminho,
+                                'extensao' => strtolower($extensao),
+                                'tamanho' => $tamanho,
+                                'tipo_documento' => 'documento_obrigatorio',
+                                'tipo_documento_obrigatorio_id' => $tipoDocumentoId,
+                                'observacoes' => $tipoDocumento ? $tipoDocumento->nome : null,
+                                'status_aprovacao' => 'pendente',
+                            ]);
+                        }
+                    }
+                }
+
+                return $processo;
+            });
+
+            return redirect()->route('company.processos.show', $processo->id)
+                ->with('success', 'Processo aberto com sucesso!');
+        } catch (\Exception $e) {
+            \Log::error('Erro ao criar processo (company)', [
+                'erro' => $e->getMessage(),
+                'estabelecimento_id' => $estabelecimento->id,
+            ]);
+            
+            return back()->withErrors(['erro' => 'Erro ao criar processo. Tente novamente.'])->withInput();
+        }
     }
 
     /**

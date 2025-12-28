@@ -184,9 +184,23 @@ class EstabelecimentoController extends Controller
             $rules['rg'] = 'required|string|max:20';
             $rules['orgao_emissor'] = 'required|string|max:20';
             $rules['data_inicio_funcionamento'] = 'required|date';
+            // Para pessoa física, atividades_exercidas é obrigatório
+            $rules['atividades_exercidas'] = 'required|string';
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'atividades_exercidas.required' => 'Você deve adicionar pelo menos uma Atividade Econômica (CNAE).',
+        ]);
+
+        // Valida se há pelo menos uma atividade para pessoa física
+        if ($request->tipo_pessoa === 'fisica') {
+            $atividades = json_decode($request->atividades_exercidas, true);
+            if (empty($atividades) || !is_array($atividades) || count($atividades) === 0) {
+                return back()->withErrors([
+                    'atividades_exercidas' => 'Você deve adicionar pelo menos uma Atividade Econômica (CNAE).'
+                ])->withInput();
+            }
+        }
 
         // Processa campos JSON se existirem
         if ($request->filled('cnaes_secundarios')) {
@@ -401,6 +415,7 @@ class EstabelecimentoController extends Controller
             'telefone' => 'nullable|string|max:20',
             'telefone2' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
+            'codigo_municipio_ibge' => 'nullable|string',
         ];
 
         // Adicionar regras específicas baseado no tipo de pessoa
@@ -425,6 +440,36 @@ class EstabelecimentoController extends Controller
         
         if (isset($validated['cep'])) {
             $validated['cep'] = preg_replace('/[^0-9]/', '', $validated['cep']);
+        }
+
+        // Atualiza o município baseado na cidade e código IBGE
+        $nomeMunicipio = $validated['cidade'];
+        $codigoIbge = $validated['codigo_municipio_ibge'] ?? null;
+        
+        if ($nomeMunicipio) {
+            // Remove " - TO" ou "/TO" do nome se existir
+            $nomeMunicipio = preg_replace('/\s*[-\/]\s*TO\s*$/i', '', $nomeMunicipio);
+            
+            $municipioId = \App\Helpers\MunicipioHelper::normalizarEObterIdPorNome($nomeMunicipio, $codigoIbge);
+            if ($municipioId) {
+                $validated['municipio_id'] = $municipioId;
+                $validated['municipio'] = $nomeMunicipio;
+            }
+        }
+
+        // VALIDAÇÃO: Usuários municipais só podem atualizar para seu próprio município
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            if ($usuario->isMunicipal()) {
+                // Verifica se o município do estabelecimento é o mesmo do usuário
+                if (isset($validated['municipio_id']) && $validated['municipio_id'] != $usuario->municipio_id) {
+                    $municipioUsuario = $usuario->municipioRelacionado->nome ?? 'seu município';
+                    return back()->withErrors([
+                        'cidade' => "Você só pode atualizar estabelecimentos para o município de {$municipioUsuario}. O endereço informado pertence a {$nomeMunicipio}."
+                    ])->withInput();
+                }
+            }
         }
 
         $estabelecimento->update($validated);
@@ -1058,7 +1103,7 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = Estabelecimento::with(['usuariosVinculados' => function($query) {
             $query->orderBy('estabelecimento_usuario_externo.created_at', 'desc');
-        }])->findOrFail($id);
+        }, 'usuarioExterno'])->findOrFail($id);
 
         // Buscar todos os usuários externos para vincular
         $usuariosDisponiveis = UsuarioExterno::where('ativo', true)

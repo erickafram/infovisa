@@ -140,6 +140,8 @@ class ProcessoEvento extends Model
             'dados_adicionais' => [
                 'documento_digital_id' => $documentoDigital->id,
                 'tipo_documento' => $documentoDigital->tipoDocumento->nome ?? null,
+                'numero_documento' => $documentoDigital->numero_documento ?? null,
+                'nome_arquivo' => $documentoDigital->numero_documento ?? ($documentoDigital->tipoDocumento->nome ?? 'Documento'),
                 'status' => $documentoDigital->status,
             ],
             'ip_address' => request()->ip(),
@@ -228,6 +230,51 @@ class ProcessoEvento extends Model
     }
 
     /**
+     * Registrar evento de aprovação de resposta
+     */
+    public static function registrarRespostaAprovada(Processo $processo, $resposta, $usuario = null)
+    {
+        return self::create([
+            'processo_id' => $processo->id,
+            'usuario_interno_id' => $usuario?->id ?? auth('interno')->id(),
+            'tipo_evento' => 'resposta_aprovada',
+            'titulo' => 'Resposta Aprovada',
+            'descricao' => $resposta->nome_original ?? 'Arquivo',
+            'dados_adicionais' => [
+                'resposta_id' => $resposta->id,
+                'nome_arquivo' => $resposta->nome_original,
+                'documento_digital_id' => $resposta->documento_digital_id,
+                'usuario_externo' => $resposta->usuarioExterno->nome ?? null,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+
+    /**
+     * Registrar evento de rejeição de resposta
+     */
+    public static function registrarRespostaRejeitada(Processo $processo, $resposta, $motivo, $usuario = null)
+    {
+        return self::create([
+            'processo_id' => $processo->id,
+            'usuario_interno_id' => $usuario?->id ?? auth('interno')->id(),
+            'tipo_evento' => 'resposta_rejeitada',
+            'titulo' => 'Resposta Rejeitada',
+            'descricao' => $resposta->nome_original ?? 'Arquivo',
+            'dados_adicionais' => [
+                'resposta_id' => $resposta->id,
+                'nome_arquivo' => $resposta->nome_original,
+                'documento_digital_id' => $resposta->documento_digital_id,
+                'motivo_rejeicao' => $motivo,
+                'usuario_externo' => $resposta->usuarioExterno->nome ?? null,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+
+    /**
      * Obter ícone do evento
      */
     public function getIconeAttribute(): string
@@ -243,6 +290,8 @@ class ProcessoEvento extends Model
             'processo_desarquivado' => 'check',
             'processo_parado' => 'pause',
             'processo_reiniciado' => 'play',
+            'resposta_aprovada' => 'check',
+            'resposta_rejeitada' => 'x',
             'movimentacao' => 'arrow-right',
             'observacao_adicionada' => 'chat',
             default => 'info',
@@ -265,6 +314,8 @@ class ProcessoEvento extends Model
             'processo_desarquivado' => 'green',
             'processo_parado' => 'red',
             'processo_reiniciado' => 'green',
+            'resposta_aprovada' => 'green',
+            'resposta_rejeitada' => 'red',
             'movimentacao' => 'indigo',
             'observacao_adicionada' => 'gray',
             default => 'gray',

@@ -199,10 +199,21 @@ class DocumentoDigital extends Model
 
     /**
      * Verifica se o tipo de documento permite resposta
+     * Só permite resposta se o tipo permite E o prazo não foi finalizado
      */
     public function permiteResposta(): bool
     {
-        return $this->tipoDocumento && $this->tipoDocumento->permite_resposta;
+        // Verifica se o tipo de documento permite resposta
+        if (!$this->tipoDocumento || !$this->tipoDocumento->permite_resposta) {
+            return false;
+        }
+        
+        // Se tem prazo e foi finalizado, não permite mais resposta
+        if ($this->prazo_dias && $this->isPrazoFinalizado()) {
+            return false;
+        }
+        
+        return true;
     }
 
     /**

@@ -507,18 +507,47 @@ class DocumentoDigitalController extends Controller
     }
 
     /**
-     * Exclui documento digital
+     * Exclui documento digital (requer senha de assinatura)
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try {
             $documento = DocumentoDigital::findOrFail($id);
+            $usuario = Auth::guard('interno')->user();
+            
+            // Valida senha de assinatura
+            if (!$usuario->temSenhaAssinatura()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Você precisa configurar sua senha de assinatura primeiro.'
+                ], 400);
+            }
+
+            $senhaAssinatura = $request->input('senha_assinatura');
+            
+            if (!$senhaAssinatura || !\Hash::check($senhaAssinatura, $usuario->senha_assinatura_digital)) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Senha de assinatura incorreta.'
+                ], 400);
+            }
             
             // ✅ REGISTRAR EVENTO NO HISTÓRICO ANTES DE EXCLUIR
             if ($documento->processo_id) {
                 $processo = \App\Models\Processo::find($documento->processo_id);
                 if ($processo) {
-                    \App\Models\ProcessoEvento::registrarDocumentoDigitalExcluido($processo, $documento);
+                    \App\Models\ProcessoEvento::create([
+                        'processo_id' => $processo->id,
+                        'usuario_interno_id' => $usuario->id,
+                        'tipo_evento' => 'documento_digital_excluido',
+                        'titulo' => 'Documento Digital Excluído',
+                        'descricao' => 'Documento digital excluído: ' . ($documento->nome ?? $documento->tipoDocumento->nome ?? 'N/D'),
+                        'dados_adicionais' => [
+                            'nome_arquivo' => $documento->numero_documento,
+                            'tipo_documento' => $documento->tipoDocumento->nome ?? 'N/D',
+                            'excluido_por' => $usuario->nome,
+                        ]
+                    ]);
                 }
             }
             

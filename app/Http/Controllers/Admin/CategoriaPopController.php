@@ -51,7 +51,7 @@ class CategoriaPopController extends Controller
             ]);
 
             return redirect()
-                ->route('admin.configuracoes.categorias-pops.index')
+                ->route('admin.configuracoes.documentos-pops.index', ['tab' => 'categorias'])
                 ->with('success', 'Categoria criada com sucesso!');
 
         } catch (\Exception $e) {
@@ -96,7 +96,7 @@ class CategoriaPopController extends Controller
             ]);
 
             return redirect()
-                ->route('admin.configuracoes.categorias-pops.index')
+                ->route('admin.configuracoes.documentos-pops.index', ['tab' => 'categorias'])
                 ->with('success', 'Categoria atualizada com sucesso!');
 
         } catch (\Exception $e) {
@@ -126,7 +126,7 @@ class CategoriaPopController extends Controller
             $categoriaPop->delete();
 
             return redirect()
-                ->route('admin.configuracoes.categorias-pops.index')
+                ->route('admin.configuracoes.documentos-pops.index', ['tab' => 'categorias'])
                 ->with('success', 'Categoria excluída com sucesso!');
 
         } catch (\Exception $e) {

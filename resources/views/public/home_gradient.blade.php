@@ -70,7 +70,7 @@
 
     <!-- Serviços Section -->
     <section id="servicos" class="py-16 bg-gradient-to-b from-gray-50 to-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Section Header -->
             <div class="text-center mb-10">
                 <span class="inline-block px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-2">
@@ -128,7 +128,7 @@
 
     <!-- Consultar Processo Section -->
     <section id="consultar" class="py-16 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-3xl mx-auto">
                 <div class="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-6 md:p-8 border border-blue-100">
                     <!-- Header -->
@@ -182,7 +182,7 @@
 
     <!-- Verificar Documento Section -->
     <section id="verificar" class="py-16 bg-gradient-to-b from-gray-50 to-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-3xl mx-auto">
                 <div class="bg-gradient-to-br from-white to-purple-50 rounded-3xl shadow-2xl p-6 md:p-8 border border-purple-100">
                     <!-- Header -->
@@ -250,7 +250,7 @@
     <!-- CTA Final -->
     <section class="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white py-12 overflow-hidden">
         <div class="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="inline-flex items-center justify-center w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 shadow-xl">
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />

@@ -83,7 +83,7 @@
                     @foreach($processos as $processo)
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $processo->numero }}</div>
+                            <div class="text-sm font-medium text-gray-900">{{ $processo->numero_processo }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $processo->tipoProcesso->nome ?? 'N/A' }}</div>

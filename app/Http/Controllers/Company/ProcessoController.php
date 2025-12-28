@@ -39,6 +39,127 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Busca documentos obrigatórios para um processo baseado nas atividades exercidas do estabelecimento
+     */
+    private function buscarDocumentosObrigatoriosParaProcesso($processo)
+    {
+        $estabelecimento = $processo->estabelecimento;
+        $tipoProcessoId = $processo->tipoProcesso->id ?? null;
+        
+        if (!$tipoProcessoId) {
+            return collect();
+        }
+
+        // Pega as atividades exercidas do estabelecimento (apenas as marcadas)
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+        
+        if (empty($atividadesExercidas)) {
+            return collect();
+        }
+
+        // Extrai os códigos CNAE das atividades exercidas
+        $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
+            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+        })->filter()->values()->toArray();
+
+        if (empty($codigosCnae)) {
+            return collect();
+        }
+
+        // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
+        $atividadeIds = \App\Models\Atividade::where('ativo', true)
+            ->where(function($query) use ($codigosCnae) {
+                foreach ($codigosCnae as $codigo) {
+                    $query->orWhere('codigo_cnae', $codigo);
+                }
+            })
+            ->pluck('id');
+
+        if ($atividadeIds->isEmpty()) {
+            return collect();
+        }
+
+        // Busca as listas de documentos aplicáveis para este tipo de processo
+        $query = \App\Models\ListaDocumento::where('ativo', true)
+            ->where('tipo_processo_id', $tipoProcessoId)
+            ->whereHas('atividades', function($q) use ($atividadeIds) {
+                $q->whereIn('atividades.id', $atividadeIds);
+            })
+            ->with(['tiposDocumentoObrigatorio' => function($q) {
+                $q->orderBy('lista_documento_tipo.ordem');
+            }]);
+
+        // Filtra por escopo (estadual ou do município do estabelecimento)
+        $query->where(function($q) use ($estabelecimento) {
+            $q->where('escopo', 'estadual');
+            if ($estabelecimento->municipio_id) {
+                $q->orWhere(function($q2) use ($estabelecimento) {
+                    $q2->where('escopo', 'municipal')
+                       ->where('municipio_id', $estabelecimento->municipio_id);
+                });
+            }
+        });
+
+        $listas = $query->get();
+
+        // Consolida os documentos de todas as listas aplicáveis
+        $documentos = collect();
+        
+        // Busca documentos já enviados neste processo com seus status
+        $documentosEnviadosInfo = $processo->documentos
+            ->whereNotNull('tipo_documento_obrigatorio_id')
+            ->groupBy('tipo_documento_obrigatorio_id')
+            ->map(function($docs) {
+                // Pega o documento mais recente
+                $ultimo = $docs->sortByDesc('created_at')->first();
+                return [
+                    'status' => $ultimo->status_aprovacao,
+                    'id' => $ultimo->id,
+                ];
+            });
+
+        foreach ($listas as $lista) {
+            foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                // Evita duplicatas pelo ID do tipo de documento
+                if (!$documentos->contains('id', $doc->id)) {
+                    $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+                    $statusEnvio = $infoEnviado['status'] ?? null;
+                    
+                    // Considera como "já enviado" se está pendente ou aprovado
+                    // Se rejeitado, permite reenviar
+                    $jaEnviado = in_array($statusEnvio, ['pendente', 'aprovado']);
+                    
+                    $documentos->push([
+                        'id' => $doc->id,
+                        'nome' => $doc->nome,
+                        'descricao' => $doc->descricao,
+                        'obrigatorio' => $doc->pivot->obrigatorio,
+                        'observacao' => $doc->pivot->observacao,
+                        'lista_nome' => $lista->nome,
+                        'ja_enviado' => $jaEnviado,
+                        'status_envio' => $statusEnvio,
+                    ]);
+                } else {
+                    // Se já existe, verifica se deve ser obrigatório (se qualquer lista marcar como obrigatório)
+                    $documentos = $documentos->map(function($item) use ($doc) {
+                        if ($item['id'] === $doc->id && $doc->pivot->obrigatorio) {
+                            $item['obrigatorio'] = true;
+                        }
+                        return $item;
+                    });
+                }
+            }
+        }
+
+        // Ordena: obrigatórios primeiro, depois por nome
+        return $documentos->sortBy([
+            ['obrigatorio', 'desc'],
+            ['nome', 'asc'],
+        ])->values();
+    }
+
+    /**
      * Lista todos os alertas dos processos do usuário
      */
     public function alertasIndex(Request $request)
@@ -95,7 +216,16 @@ class ProcessoController extends Controller
             ->orderBy('nome_fantasia')
             ->get();
         
-        return view('company.alertas.index', compact('alertas', 'estatisticas', 'estabelecimentos'));
+        // Documentos pendentes de visualização
+        $documentosPendentes = \App\Models\DocumentoDigital::whereIn('processo_id', $processoIds)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->whereDoesntHave('visualizacoes')
+            ->with(['processo.estabelecimento', 'tipoDocumento'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('company.alertas.index', compact('alertas', 'estatisticas', 'estabelecimentos', 'documentosPendentes'));
     }
 
     public function index(Request $request)
@@ -147,16 +277,28 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
-            ->with(['estabelecimento', 'tipoProcesso', 'documentos.usuarioExterno', 'alertas'])
+            ->with(['estabelecimento', 'tipoProcesso', 'documentos.usuarioExterno', 'alertas', 'pastas'])
             ->findOrFail($id);
         
         // Documentos separados por status
         $documentosAprovados = $processo->documentos->where('status_aprovacao', 'aprovado');
         $documentosPendentes = $processo->documentos->where('status_aprovacao', 'pendente');
+        
+        // IDs de tipo_documento_obrigatorio que já têm documento pendente ou aprovado
+        $tiposComDocumentoPendenteOuAprovado = $processo->documentos
+            ->whereIn('status_aprovacao', ['pendente', 'aprovado'])
+            ->whereNotNull('tipo_documento_obrigatorio_id')
+            ->pluck('tipo_documento_obrigatorio_id')
+            ->toArray();
+        
         // Documentos rejeitados que ainda não foram substituídos (não têm correção pendente)
         $documentosRejeitados = $processo->documentos->where('status_aprovacao', 'rejeitado')
-            ->filter(function ($doc) use ($processo) {
-                // Verifica se existe algum documento que substitui este
+            ->filter(function ($doc) use ($processo, $tiposComDocumentoPendenteOuAprovado) {
+                // Se tem tipo_documento_obrigatorio_id e já existe pendente/aprovado para esse tipo, não mostra
+                if ($doc->tipo_documento_obrigatorio_id && in_array($doc->tipo_documento_obrigatorio_id, $tiposComDocumentoPendenteOuAprovado)) {
+                    return false;
+                }
+                // Verifica se existe algum documento que substitui este (método antigo)
                 return !$processo->documentos->where('documento_substituido_id', $doc->id)->count();
             });
         
@@ -187,6 +329,7 @@ class ProcessoController extends Controller
                 'tipo' => 'vigilancia',
                 'documento' => $doc,
                 'data' => $doc->created_at,
+                'pasta_id' => $doc->pasta_id,
             ]);
         }
         
@@ -196,6 +339,7 @@ class ProcessoController extends Controller
                 'tipo' => 'aprovado',
                 'documento' => $doc,
                 'data' => $doc->created_at,
+                'pasta_id' => $doc->pasta_id,
             ]);
         }
         
@@ -205,6 +349,12 @@ class ProcessoController extends Controller
         // Alertas do processo
         $alertas = $processo->alertas()->orderBy('data_alerta', 'asc')->get();
         
+        // Pastas do processo
+        $pastas = $processo->pastas()->orderBy('ordem')->get();
+
+        // Busca documentos obrigatórios baseados nas atividades exercidas
+        $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
+        
         return view('company.processos.show', compact(
             'processo',
             'documentosAprovados',
@@ -212,7 +362,9 @@ class ProcessoController extends Controller
             'documentosRejeitados',
             'documentosVigilancia',
             'todosDocumentos',
-            'alertas'
+            'alertas',
+            'documentosObrigatorios',
+            'pastas'
         ));
     }
 
@@ -225,19 +377,47 @@ class ProcessoController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf',
+            'arquivo' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
             'observacoes' => 'nullable|string|max:500',
+            'tipo_documento_obrigatorio_id' => 'nullable|exists:tipos_documento_obrigatorio,id',
+            'documento_id' => 'nullable|integer|exists:processo_documentos,id',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
-            'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
+            'arquivo.mimes' => 'Apenas arquivos PDF, JPG e PNG são permitidos.',
         ]);
 
         $arquivo = $request->file('arquivo');
-        $nomeOriginal = $arquivo->getClientOriginalName();
+        $nomeOriginalUpload = $arquivo->getClientOriginalName();
         $extensao = $arquivo->getClientOriginalExtension();
         $tamanho = $arquivo->getSize();
-        $nomeArquivo = time() . '_' . uniqid() . '.' . $extensao;
+
+        // Busca o nome do tipo de documento se informado
+        $tipoDocumentoId = $request->tipo_documento_obrigatorio_id;
+        $observacoes = $request->observacoes;
+        $nomeDocumento = null;
+        
+        if ($tipoDocumentoId) {
+            $tipoDoc = \App\Models\TipoDocumentoObrigatorio::find($tipoDocumentoId);
+            if ($tipoDoc) {
+                $nomeDocumento = $tipoDoc->nome;
+                if (!$observacoes) {
+                    $observacoes = $tipoDoc->nome;
+                }
+            }
+        }
+
+        // Define o nome do arquivo: se for documento obrigatório, usa o nome da lista
+        // Caso contrário, usa o nome original do arquivo
+        if ($nomeDocumento) {
+            // Remove caracteres especiais e espaços do nome do documento
+            $nomeBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nomeDocumento);
+            $nomeArquivo = $nomeBase . '_' . time() . '.' . strtolower($extensao);
+            $nomeOriginal = $nomeDocumento . '.' . strtolower($extensao);
+        } else {
+            $nomeArquivo = time() . '_' . uniqid() . '.' . $extensao;
+            $nomeOriginal = $nomeOriginalUpload;
+        }
         
         // Salva o arquivo
         $caminho = $arquivo->storeAs(
@@ -246,20 +426,80 @@ class ProcessoController extends Controller
             'public'
         );
 
-        // Cria o registro do documento com status pendente
-        \App\Models\ProcessoDocumento::create([
-            'processo_id' => $processo->id,
-            'usuario_externo_id' => $usuarioId,
-            'tipo_usuario' => 'externo',
-            'nome_arquivo' => $nomeArquivo,
-            'nome_original' => $nomeOriginal,
-            'caminho' => $caminho,
-            'extensao' => strtolower($extensao),
-            'tamanho' => $tamanho,
-            'tipo_documento' => 'arquivo_externo',
-            'observacoes' => $request->observacoes,
-            'status_aprovacao' => 'pendente',
-        ]);
+        // Verifica se é um documento obrigatório e se já existe um rejeitado do mesmo tipo
+        $documentoExistente = null;
+        if ($tipoDocumentoId) {
+            $documentoExistente = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
+                ->where('tipo_documento_obrigatorio_id', $tipoDocumentoId)
+                ->where('status_aprovacao', 'rejeitado')
+                ->first();
+        }
+        
+        // Se foi passado documento_id para substituir, busca o documento rejeitado específico
+        if ($request->documento_id) {
+            $documentoExistente = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
+                ->where('id', $request->documento_id)
+                ->where('status_aprovacao', 'rejeitado')
+                ->first();
+        }
+
+        if ($documentoExistente) {
+            // Guarda histórico da rejeição anterior
+            $historicoRejeicao = $documentoExistente->historico_rejeicao ?? [];
+            $historicoRejeicao[] = [
+                'arquivo_anterior' => $documentoExistente->nome_original,
+                'motivo' => $documentoExistente->motivo_rejeicao,
+                'rejeitado_em' => $documentoExistente->updated_at->toISOString(),
+            ];
+            
+            // Remove o arquivo antigo do storage
+            if ($documentoExistente->caminho && \Storage::disk('public')->exists($documentoExistente->caminho)) {
+                \Storage::disk('public')->delete($documentoExistente->caminho);
+            }
+            
+            // Atualiza o documento existente com o novo arquivo
+            $documentoExistente->update([
+                'nome_arquivo' => $nomeArquivo,
+                'nome_original' => $nomeOriginal,
+                'caminho' => $caminho,
+                'extensao' => strtolower($extensao),
+                'tamanho' => $tamanho,
+                'status_aprovacao' => 'pendente',
+                'motivo_rejeicao' => null,
+                'historico_rejeicao' => $historicoRejeicao,
+            ]);
+            
+            $documento = $documentoExistente;
+        } else {
+            // Cria o registro do documento com status pendente
+            $documento = \App\Models\ProcessoDocumento::create([
+                'processo_id' => $processo->id,
+                'usuario_externo_id' => $usuarioId,
+                'tipo_usuario' => 'externo',
+                'nome_arquivo' => $nomeArquivo,
+                'nome_original' => $nomeOriginal,
+                'caminho' => $caminho,
+                'extensao' => strtolower($extensao),
+                'tamanho' => $tamanho,
+                'tipo_documento' => $tipoDocumentoId ? 'documento_obrigatorio' : 'arquivo_externo',
+                'tipo_documento_obrigatorio_id' => $tipoDocumentoId,
+                'observacoes' => $observacoes,
+                'status_aprovacao' => 'pendente',
+            ]);
+        }
+
+        // Se for requisição AJAX, retorna JSON
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Arquivo enviado com sucesso!',
+                'documento' => [
+                    'id' => $documento->id,
+                    'nome_original' => $nomeOriginal,
+                    'tipo_documento_obrigatorio_id' => $tipoDocumentoId,
+                ]
+            ]);
+        }
 
         return redirect()->route('company.processos.show', $processo->id)
             ->with('success', 'Arquivo enviado com sucesso! Aguarde a aprovação da Vigilância Sanitária.');

@@ -81,6 +81,46 @@
         }
     }
     
+    // 5. Documentos pendentes de aprovação (enviados por empresas)
+    $docsPendentesQuery = \App\Models\ProcessoDocumento::where('status_aprovacao', 'pendente')
+        ->where('tipo_usuario', 'externo');
+    $respostasPendentesQuery = \App\Models\DocumentoResposta::where('status', 'pendente');
+    
+    // Filtrar por competência
+    if ($usuario->isEstadual()) {
+        // Estadual - filtra por competência manual ou null, depois filtra em memória
+        $docsPendentesQuery->whereHas('processo.estabelecimento', function($q) {
+            $q->where('competencia_manual', 'estadual')
+              ->orWhereNull('competencia_manual');
+        });
+        $respostasPendentesQuery->whereHas('documentoDigital.processo.estabelecimento', function($q) {
+            $q->where('competencia_manual', 'estadual')
+              ->orWhereNull('competencia_manual');
+        });
+    } elseif ($usuario->isMunicipal()) {
+        $municipioId = $usuario->municipio_id;
+        $docsPendentesQuery->whereHas('processo.estabelecimento', function($q) use ($municipioId) {
+            $q->where('municipio_id', $municipioId);
+        });
+        $respostasPendentesQuery->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($municipioId) {
+            $q->where('municipio_id', $municipioId);
+        });
+    }
+    
+    $totalDocsPendentes = $docsPendentesQuery->count() + $respostasPendentesQuery->count();
+    
+    if ($totalDocsPendentes > 0) {
+        $alertas[] = [
+            'tipo' => 'aprovacao',
+            'titulo' => 'Documentos para Aprovar',
+            'mensagem' => $totalDocsPendentes . ' documento(s) enviado(s) por empresas aguardando aprovação',
+            'quantidade' => $totalDocsPendentes,
+            'cor' => 'purple',
+            'icone' => 'check-circle',
+            'link' => route('admin.documentos-pendentes.index'),
+        ];
+    }
+    
     // 4. Processos com movimentação recente (últimas 24h)
     // Comentado temporariamente - necessário implementar relação 'acompanhantes' no model Processo
     /*
@@ -187,6 +227,10 @@
                         <svg class="w-4 h-4 @if($alerta['cor'] === 'green') text-green-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
+                        @elseif($alerta['icone'] === 'check-circle')
+                        <svg class="w-4 h-4 @if($alerta['cor'] === 'purple') text-purple-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                         @endif
                     </div>
                     
@@ -206,6 +250,8 @@
                         @elseif($alerta['cor'] === 'blue') bg-blue-100 text-blue-800
                         @elseif($alerta['cor'] === 'orange') bg-orange-100 text-orange-800
                         @elseif($alerta['cor'] === 'green') bg-green-100 text-green-800
+                        @elseif($alerta['cor'] === 'purple') bg-purple-100 text-purple-800
+                        @elseif($alerta['cor'] === 'red') bg-red-100 text-red-800
                         @else bg-gray-100 text-gray-800
                         @endif">
                         {{ $alerta['quantidade'] }}

@@ -9,18 +9,141 @@ use App\Models\ProcessoDocumento;
 use App\Models\ProcessoAcompanhamento;
 use App\Models\ProcessoDesignacao;
 use App\Models\ProcessoAlerta;
+use App\Models\ProcessoEvento;
 use App\Models\ModeloDocumento;
 use App\Models\UsuarioInterno;
 use App\Models\DocumentoResposta;
 use App\Models\DocumentoDigital;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProcessoController extends Controller
 {
+    /**
+     * Busca documentos obrigatórios para um processo baseado nas atividades exercidas do estabelecimento
+     */
+    private function buscarDocumentosObrigatoriosParaProcesso($processo)
+    {
+        $estabelecimento = $processo->estabelecimento;
+        $tipoProcessoId = $processo->tipoProcesso->id ?? null;
+        
+        if (!$tipoProcessoId || !$estabelecimento) {
+            return collect();
+        }
+
+        // Pega as atividades exercidas do estabelecimento (apenas as marcadas)
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+        
+        if (empty($atividadesExercidas)) {
+            return collect();
+        }
+
+        // Extrai os códigos CNAE das atividades exercidas
+        $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
+            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+        })->filter()->values()->toArray();
+
+        if (empty($codigosCnae)) {
+            return collect();
+        }
+
+        // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
+        $atividadeIds = \App\Models\Atividade::where('ativo', true)
+            ->where(function($query) use ($codigosCnae) {
+                foreach ($codigosCnae as $codigo) {
+                    $query->orWhere('codigo_cnae', $codigo);
+                }
+            })
+            ->pluck('id');
+
+        if ($atividadeIds->isEmpty()) {
+            return collect();
+        }
+
+        // Busca as listas de documentos aplicáveis para este tipo de processo
+        $query = \App\Models\ListaDocumento::where('ativo', true)
+            ->where('tipo_processo_id', $tipoProcessoId)
+            ->whereHas('atividades', function($q) use ($atividadeIds) {
+                $q->whereIn('atividades.id', $atividadeIds);
+            })
+            ->with(['tiposDocumentoObrigatorio' => function($q) {
+                $q->orderBy('lista_documento_tipo.ordem');
+            }]);
+
+        // Filtra por escopo (estadual ou do município do estabelecimento)
+        $query->where(function($q) use ($estabelecimento) {
+            $q->where('escopo', 'estadual');
+            if ($estabelecimento->municipio_id) {
+                $q->orWhere(function($q2) use ($estabelecimento) {
+                    $q2->where('escopo', 'municipal')
+                       ->where('municipio_id', $estabelecimento->municipio_id);
+                });
+            }
+        });
+
+        $listas = $query->get();
+
+        if ($listas->isEmpty()) {
+            return collect();
+        }
+
+        // Consolida os documentos de todas as listas aplicáveis
+        $documentos = collect();
+        
+        // Busca documentos já enviados neste processo com seus status
+        $documentosEnviadosInfo = $processo->documentos
+            ->whereNotNull('tipo_documento_obrigatorio_id')
+            ->groupBy('tipo_documento_obrigatorio_id')
+            ->map(function($docs) {
+                // Pega o documento mais recente
+                $docRecente = $docs->sortByDesc('created_at')->first();
+                return [
+                    'status' => $docRecente->status_aprovacao,
+                    'documento' => $docRecente,
+                ];
+            });
+        
+        foreach ($listas as $lista) {
+            foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                // Evita duplicatas pelo ID do tipo de documento
+                if (!$documentos->contains('id', $doc->id)) {
+                    $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+                    
+                    $documentos->push([
+                        'id' => $doc->id,
+                        'nome' => $doc->nome,
+                        'descricao' => $doc->descricao,
+                        'obrigatorio' => $doc->pivot->obrigatorio,
+                        'ordem' => $doc->pivot->ordem,
+                        'observacao' => $doc->pivot->observacao,
+                        'lista_nome' => $lista->nome,
+                        'status' => $infoEnviado['status'] ?? null,
+                        'documento_enviado' => $infoEnviado['documento'] ?? null,
+                    ]);
+                } else {
+                    // Se já existe, verifica se deve ser obrigatório
+                    $documentos = $documentos->map(function($item) use ($doc) {
+                        if ($item['id'] === $doc->id && $doc->pivot->obrigatorio) {
+                            $item['obrigatorio'] = true;
+                        }
+                        return $item;
+                    });
+                }
+            }
+        }
+        
+        // Ordena: obrigatórios primeiro, depois por nome
+        return $documentos->sortBy([
+            ['obrigatorio', 'desc'],
+            ['nome', 'asc'],
+        ])->values();
+    }
+
     /**
      * Exibe todos os processos do sistema com filtros
      */
@@ -69,6 +192,23 @@ class ProcessoController extends Controller
             $query->where('ano', $request->ano);
         }
 
+        // Filtro por responsável/setor
+        if ($request->filled('responsavel')) {
+            switch ($request->responsavel) {
+                case 'meus':
+                    $query->where('responsavel_atual_id', $usuario->id);
+                    break;
+                case 'meu_setor':
+                    if ($usuario->setor) {
+                        $query->where('setor_atual', $usuario->setor);
+                    }
+                    break;
+                case 'nao_atribuido':
+                    $query->whereNull('responsavel_atual_id')->whereNull('setor_atual');
+                    break;
+            }
+        }
+
         // Ordenação
         $ordenacao = $request->get('ordenacao', 'recentes');
         switch ($ordenacao) {
@@ -87,7 +227,7 @@ class ProcessoController extends Controller
                 $query->orderBy('created_at', 'desc');
         }
 
-        $processos = $query->paginate(20)->withQueryString();
+        $processos = $query->with('responsavelAtual')->paginate(20)->withQueryString();
 
         // ✅ FILTRO ADICIONAL POR COMPETÊNCIA (após paginação)
         if (!$usuario->isAdmin()) {
@@ -125,7 +265,130 @@ class ProcessoController extends Controller
         $statusDisponiveis = Processo::statusDisponiveis();
         $anos = Processo::select('ano')->distinct()->orderBy('ano', 'desc')->pluck('ano');
 
-        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos'));
+        // Busca IDs de processos com documentos pendentes de aprovação
+        $processosComDocsPendentes = ProcessoDocumento::where('status_aprovacao', 'pendente')
+            ->where('tipo_usuario', 'externo')
+            ->pluck('processo_id')
+            ->unique();
+        
+        $processosComRespostasPendentes = DocumentoResposta::where('documento_respostas.status', 'pendente')
+            ->join('documentos_digitais', 'documento_respostas.documento_digital_id', '=', 'documentos_digitais.id')
+            ->pluck('documentos_digitais.processo_id')
+            ->unique();
+        
+        $processosComPendencias = $processosComDocsPendentes->merge($processosComRespostasPendentes)->unique();
+
+        // Calcula status de documentos obrigatórios para cada processo
+        $statusDocsObrigatorios = [];
+        foreach ($processos as $processo) {
+            $docsObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
+            if ($docsObrigatorios->count() > 0) {
+                $totalOk = $docsObrigatorios->where('status', 'aprovado')->count();
+                $totalPendente = $docsObrigatorios->where('status', 'pendente')->count();
+                $totalRejeitado = $docsObrigatorios->where('status', 'rejeitado')->count();
+                $totalNaoEnviado = $docsObrigatorios->whereNull('status')->count();
+                $total = $docsObrigatorios->count();
+                
+                $statusDocsObrigatorios[$processo->id] = [
+                    'total' => $total,
+                    'ok' => $totalOk,
+                    'pendente' => $totalPendente,
+                    'rejeitado' => $totalRejeitado,
+                    'nao_enviado' => $totalNaoEnviado,
+                    'completo' => $totalOk === $total,
+                ];
+            }
+        }
+
+        // Filtro por documentos obrigatórios (completos/pendentes)
+        if ($request->filled('docs_obrigatorios')) {
+            $filtroDocsObrigatorios = $request->docs_obrigatorios;
+            $processos->setCollection(
+                $processos->getCollection()->filter(function ($processo) use ($statusDocsObrigatorios, $filtroDocsObrigatorios) {
+                    $status = $statusDocsObrigatorios[$processo->id] ?? null;
+                    
+                    if ($filtroDocsObrigatorios === 'completos') {
+                        // Mostra apenas processos com docs completos (todos aprovados)
+                        return $status && $status['completo'];
+                    } elseif ($filtroDocsObrigatorios === 'pendentes') {
+                        // Mostra processos com docs pendentes (não completos ou sem docs obrigatórios definidos)
+                        return !$status || !$status['completo'];
+                    }
+                    
+                    return true;
+                })
+            );
+        }
+
+        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'statusDocsObrigatorios'));
+    }
+
+    /**
+     * Exibe lista de documentos pendentes de aprovação
+     */
+    public function documentosPendentes(Request $request)
+    {
+        $usuario = auth('interno')->user();
+        
+        // Query para ProcessoDocumento pendentes
+        $docsQuery = ProcessoDocumento::where('status_aprovacao', 'pendente')
+            ->where('tipo_usuario', 'externo')
+            ->with(['processo.estabelecimento', 'usuarioExterno']);
+        
+        // Query para DocumentoResposta pendentes
+        $respostasQuery = DocumentoResposta::where('status', 'pendente')
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento', 'usuarioExterno']);
+        
+        // Filtrar por competência do usuário
+        if (!$usuario->isAdmin()) {
+            if ($usuario->isEstadual()) {
+                // Estadual - filtra por competência manual ou null
+                $docsQuery->whereHas('processo.estabelecimento', function($q) {
+                    $q->where('competencia_manual', 'estadual')
+                      ->orWhereNull('competencia_manual');
+                });
+                $respostasQuery->whereHas('documentoDigital.processo.estabelecimento', function($q) {
+                    $q->where('competencia_manual', 'estadual')
+                      ->orWhereNull('competencia_manual');
+                });
+            } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                $docsQuery->whereHas('processo.estabelecimento', function($q) use ($usuario) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                });
+                $respostasQuery->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($usuario) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                });
+            }
+        }
+        
+        // Filtro por estabelecimento
+        if ($request->filled('estabelecimento')) {
+            $termo = $request->estabelecimento;
+            $docsQuery->whereHas('processo.estabelecimento', function($q) use ($termo) {
+                $q->where('nome_fantasia', 'like', "%{$termo}%")
+                  ->orWhere('razao_social', 'like', "%{$termo}%")
+                  ->orWhere('cnpj', 'like', "%{$termo}%");
+            });
+            $respostasQuery->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($termo) {
+                $q->where('nome_fantasia', 'like', "%{$termo}%")
+                  ->orWhere('razao_social', 'like', "%{$termo}%")
+                  ->orWhere('cnpj', 'like', "%{$termo}%");
+            });
+        }
+        
+        $documentosPendentes = $docsQuery->orderBy('created_at', 'desc')->get();
+        $respostasPendentes = $respostasQuery->orderBy('created_at', 'desc')->get();
+        
+        // Filtrar por competência em memória (lógica complexa baseada em atividades)
+        if ($usuario->isEstadual()) {
+            $documentosPendentes = $documentosPendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
+            $respostasPendentes = $respostasPendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+        } elseif ($usuario->isMunicipal()) {
+            $documentosPendentes = $documentosPendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
+            $respostasPendentes = $respostasPendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+        }
+        
+        return view('processos.documentos-pendentes', compact('documentosPendentes', 'respostasPendentes'));
     }
 
     /**
@@ -341,7 +604,10 @@ class ProcessoController extends Controller
             ->orderBy('data_alerta', 'asc')
             ->get();
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas'));
+        // Busca documentos obrigatórios baseados nas atividades do estabelecimento
+        $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
+        
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios'));
     }
 
     /**
@@ -536,10 +802,19 @@ class ProcessoController extends Controller
     }
 
     /**
-     * Remove um processo
+     * Remove um processo e todos os arquivos vinculados
+     * APENAS ADMINISTRADOR pode excluir processos
      */
     public function destroy($estabelecimentoId, $processoId)
     {
+        // Verifica se o usuário é administrador
+        $usuario = auth('interno')->user();
+        if (!$usuario->isAdmin()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Apenas administradores podem excluir processos.');
+        }
+
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
         
@@ -547,11 +822,43 @@ class ProcessoController extends Controller
             ->findOrFail($processoId);
         
         $numeroProcesso = $processo->numero_processo;
+        
+        // Busca todos os documentos do processo
+        $documentos = ProcessoDocumento::where('processo_id', $processoId)->get();
+        
+        // Exclui os arquivos físicos do storage
+        foreach ($documentos as $documento) {
+            if ($documento->caminho) {
+                $caminhoCompleto = storage_path('app/' . $documento->caminho);
+                if (file_exists($caminhoCompleto)) {
+                    unlink($caminhoCompleto);
+                }
+            }
+        }
+        
+        // Remove o diretório do processo se existir
+        $diretorioProcesso = storage_path('app/processos/' . $processoId);
+        if (is_dir($diretorioProcesso)) {
+            // Remove arquivos restantes no diretório
+            $arquivos = glob($diretorioProcesso . '/*');
+            foreach ($arquivos as $arquivo) {
+                if (is_file($arquivo)) {
+                    unlink($arquivo);
+                }
+            }
+            // Remove o diretório
+            @rmdir($diretorioProcesso);
+        }
+        
+        // Exclui os registros de documentos do banco
+        ProcessoDocumento::where('processo_id', $processoId)->delete();
+        
+        // Exclui o processo
         $processo->delete();
         
         return redirect()
             ->route('admin.estabelecimentos.processos.index', $estabelecimentoId)
-            ->with('success', 'Processo ' . $numeroProcesso . ' removido com sucesso!');
+            ->with('success', 'Processo ' . $numeroProcesso . ' e todos os arquivos vinculados foram removidos com sucesso!');
     }
 
     /**
@@ -738,14 +1045,50 @@ class ProcessoController extends Controller
     }
 
     /**
-     * Remove arquivo do processo
+     * Remove arquivo do processo (requer senha de assinatura)
      */
-    public function deleteArquivo($estabelecimentoId, $processoId, $documentoId)
+    public function deleteArquivo(Request $request, $estabelecimentoId, $processoId, $documentoId)
     {
         $documento = ProcessoDocumento::where('processo_id', $processoId)
             ->findOrFail($documentoId);
         
+        $usuario = auth('interno')->user();
+        $processo = Processo::findOrFail($processoId);
+        
+        // Valida senha de assinatura
+        if (!$usuario->temSenhaAssinatura()) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Você precisa configurar sua senha de assinatura primeiro.'
+            ], 400);
+        }
+
+        $senhaAssinatura = $request->input('senha_assinatura');
+        
+        if (!$senhaAssinatura || !Hash::check($senhaAssinatura, $usuario->senha_assinatura_digital)) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Senha de assinatura incorreta.'
+            ], 400);
+        }
+        
         try {
+            $nomeArquivo = $documento->nome_original;
+            
+            // Registra no histórico antes de excluir
+            ProcessoEvento::create([
+                'processo_id' => $processo->id,
+                'usuario_interno_id' => $usuario->id,
+                'tipo_evento' => 'documento_excluido',
+                'titulo' => 'Arquivo Excluído',
+                'descricao' => $nomeArquivo,
+                'dados_adicionais' => [
+                    'nome_arquivo' => $nomeArquivo,
+                    'tipo_usuario' => $documento->tipo_usuario,
+                    'excluido_por' => $usuario->nome,
+                ]
+            ]);
+            
             // Remove arquivo físico
             $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
             if (file_exists($caminhoCompleto)) {
@@ -755,14 +1098,16 @@ class ProcessoController extends Controller
             // Remove registro do banco
             $documento->delete();
             
-            return redirect()
-                ->back()
-                ->with('success', 'Arquivo removido com sucesso!');
+            return response()->json([
+                'success' => true,
+                'message' => 'Arquivo removido com sucesso!'
+            ]);
                 
         } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Erro ao remover arquivo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao remover arquivo: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -809,6 +1154,26 @@ class ProcessoController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Documento rejeitado. O usuário externo será notificado.');
+    }
+
+    /**
+     * Revalida documento aprovado (volta para pendente)
+     */
+    public function revalidarDocumento($estabelecimentoId, $processoId, $documentoId)
+    {
+        $documento = ProcessoDocumento::where('processo_id', $processoId)
+            ->where('status_aprovacao', 'aprovado')
+            ->findOrFail($documentoId);
+        
+        $documento->update([
+            'status_aprovacao' => 'pendente',
+            'aprovado_por' => null,
+            'aprovado_em' => null,
+        ]);
+        
+        return redirect()
+            ->back()
+            ->with('success', 'Documento voltou para análise (pendente).');
     }
 
     /**
@@ -885,6 +1250,9 @@ class ProcessoController extends Controller
             ->findOrFail($respostaId);
 
         $resposta->aprovar(auth('interno')->id());
+        
+        // Registrar evento no histórico
+        ProcessoEvento::registrarRespostaAprovada($processo, $resposta);
 
         return redirect()
             ->back()
@@ -914,10 +1282,83 @@ class ProcessoController extends Controller
             ->findOrFail($respostaId);
 
         $resposta->rejeitar(auth('interno')->id(), $request->motivo_rejeicao);
+        
+        // Registrar evento no histórico
+        ProcessoEvento::registrarRespostaRejeitada($processo, $resposta, $request->motivo_rejeicao);
 
         return redirect()
             ->back()
             ->with('success', 'Resposta rejeitada. O estabelecimento será notificado.');
+    }
+
+    /**
+     * Exclui uma resposta a documento digital (requer senha de assinatura)
+     */
+    public function excluirRespostaDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->findOrFail($respostaId);
+
+        // Valida senha de assinatura
+        $usuario = auth('interno')->user();
+        
+        if (!$usuario->temSenhaAssinatura()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Você precisa configurar sua senha de assinatura primeiro.'
+            ], 400);
+        }
+
+        $senhaAssinatura = $request->input('senha_assinatura');
+        
+        if (!$senhaAssinatura || !\Hash::check($senhaAssinatura, $usuario->senha_assinatura_digital)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Senha de assinatura incorreta.'
+            ], 400);
+        }
+
+        $nomeArquivo = $resposta->nome_arquivo;
+
+        // Exclui o arquivo físico se existir
+        if ($resposta->caminho_arquivo) {
+            $caminhoCompleto = storage_path('app/' . $resposta->caminho_arquivo);
+            if (file_exists($caminhoCompleto)) {
+                unlink($caminhoCompleto);
+            }
+        }
+
+        // Registra no histórico antes de excluir
+        ProcessoEvento::create([
+            'processo_id' => $processo->id,
+            'usuario_interno_id' => $usuario->id,
+            'tipo_evento' => 'documento_excluido',
+            'titulo' => 'Resposta Excluída',
+            'descricao' => $nomeArquivo,
+            'dados_adicionais' => [
+                'nome_arquivo' => $nomeArquivo,
+                'documento_digital_id' => $documento->id,
+                'documento_nome' => $documento->nome ?? $documento->tipoDocumento->nome ?? 'N/D',
+                'excluido_por' => $usuario->nome,
+                'tipo' => 'resposta',
+            ]
+        ]);
+
+        $resposta->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Resposta '{$nomeArquivo}' excluída com sucesso."
+        ]);
     }
 
     /**
@@ -1036,12 +1477,23 @@ class ProcessoController extends Controller
 
             $statusAntigo = $processo->status;
 
-            // Atualizar processo
+            // Guardar setor/responsável atual antes de arquivar (para restaurar depois)
+            $setorAnterior = $processo->setor_atual;
+            $responsavelAnteriorId = $processo->responsavel_atual_id;
+
+            // Atualizar processo - limpa setor/responsável e guarda backup
             $processo->update([
                 'status' => 'arquivado',
                 'motivo_arquivamento' => $request->motivo_arquivamento,
                 'data_arquivamento' => now(),
                 'usuario_arquivamento_id' => Auth::guard('interno')->id(),
+                // Guarda backup do setor/responsável
+                'setor_antes_arquivar' => $setorAnterior,
+                'responsavel_antes_arquivar_id' => $responsavelAnteriorId,
+                // Limpa setor/responsável atual
+                'setor_atual' => null,
+                'responsavel_atual_id' => null,
+                'responsavel_desde' => null,
             ]);
 
             // ✅ REGISTRAR EVENTO NO HISTÓRICO
@@ -1071,9 +1523,20 @@ class ProcessoController extends Controller
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
 
-            // Atualizar processo
+            // Restaurar setor/responsável anterior (se existia)
+            $setorRestaurar = $processo->setor_antes_arquivar;
+            $responsavelRestaurarId = $processo->responsavel_antes_arquivar_id;
+
+            // Atualizar processo - restaura setor/responsável
             $processo->update([
                 'status' => 'aberto',
+                // Restaura setor/responsável
+                'setor_atual' => $setorRestaurar,
+                'responsavel_atual_id' => $responsavelRestaurarId,
+                'responsavel_desde' => $setorRestaurar || $responsavelRestaurarId ? now() : null,
+                // Limpa backup
+                'setor_antes_arquivar' => null,
+                'responsavel_antes_arquivar_id' => null,
             ]);
 
             // ✅ REGISTRAR EVENTO NO HISTÓRICO
@@ -1082,10 +1545,14 @@ class ProcessoController extends Controller
                 'usuario_interno_id' => Auth::guard('interno')->id(),
                 'tipo_evento' => 'processo_desarquivado',
                 'titulo' => 'Processo Desarquivado',
-                'descricao' => 'Processo foi desarquivado e reaberto',
+                'descricao' => 'Processo foi desarquivado e reaberto' . 
+                    ($setorRestaurar ? '. Restaurado para setor: ' . $setorRestaurar : '') .
+                    ($responsavelRestaurarId ? '. Responsável restaurado.' : ''),
                 'dados_adicionais' => [
                     'motivo_arquivamento_anterior' => $processo->motivo_arquivamento,
                     'data_arquivamento_anterior' => $processo->data_arquivamento?->toDateTimeString(),
+                    'setor_restaurado' => $setorRestaurar,
+                    'responsavel_restaurado_id' => $responsavelRestaurarId,
                 ],
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
@@ -1093,7 +1560,8 @@ class ProcessoController extends Controller
 
             return redirect()
                 ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
-                ->with('success', 'Processo desarquivado com sucesso!');
+                ->with('success', 'Processo desarquivado com sucesso!' . 
+                    ($setorRestaurar || $responsavelRestaurarId ? ' Setor/responsável anterior restaurado.' : ''));
 
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao desarquivar processo: ' . $e->getMessage());
@@ -1243,39 +1711,60 @@ class ProcessoController extends Controller
      */
     public function salvarAnotacoes(Request $request, $documentoId)
     {
-        $documento = ProcessoDocumento::findOrFail($documentoId);
-        $processo = $documento->processo;
-        $estabelecimento = $processo->estabelecimento;
-        
-        // Valida permissão de acesso
-        $this->validarPermissaoAcesso($estabelecimento);
-        
-        // Permitir array vazio para limpar anotações do usuário atual
-        $anotacoes = $request->input('anotacoes', []);
-        if (!is_array($anotacoes)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Formato inválido de anotações.'
-            ], 422);
-        }
-
-        // Se houver itens, validar o schema de cada anotação
-        if (!empty($anotacoes)) {
-            $request->validate([
-                'anotacoes.*.tipo' => 'required|string|in:highlight,text,drawing,area,comment',
-                'anotacoes.*.pagina' => 'required|integer|min:1',
-                'anotacoes.*.dados' => 'required|array',
-                'anotacoes.*.comentario' => 'nullable|string',
-            ]);
-        }
-
         try {
+            $documento = ProcessoDocumento::findOrFail($documentoId);
+            $processo = $documento->processo;
+            
+            if (!$processo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Processo não encontrado para este documento.'
+                ], 404);
+            }
+            
+            $estabelecimento = $processo->estabelecimento;
+            
+            if (!$estabelecimento) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Estabelecimento não encontrado para este processo.'
+                ], 404);
+            }
+            
+            // Valida permissão de acesso
+            $this->validarPermissaoAcesso($estabelecimento);
+            
+            // Permitir array vazio para limpar anotações do usuário atual
+            $anotacoes = $request->input('anotacoes', []);
+            if (!is_array($anotacoes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Formato inválido de anotações.'
+                ], 422);
+            }
+
+            // Se houver itens, validar o schema de cada anotação
+            if (!empty($anotacoes)) {
+                $request->validate([
+                    'anotacoes.*.tipo' => 'required|string|in:highlight,text,drawing,area,comment',
+                    'anotacoes.*.pagina' => 'required|integer|min:1',
+                    'anotacoes.*.dados' => 'required|array',
+                    'anotacoes.*.comentario' => 'nullable|string',
+                ]);
+            }
+
             $usuarioId = auth('interno')->id();
             
-            // Pega os IDs das anotações que vieram do frontend (que já existem no banco)
+            // Pega os IDs das anotações que vieram do banco (IDs inteiros pequenos, não timestamps)
+            // IDs do banco são inteiros sequenciais, IDs temporários do frontend são timestamps grandes
             $idsRecebidos = collect($anotacoes)
-                ->filter(fn($a) => isset($a['id']) && is_numeric($a['id']))
+                ->filter(function($a) {
+                    // Só considera como ID do banco se for inteiro e menor que 1000000000 (antes de 2001)
+                    // Timestamps JavaScript são maiores que 1000000000000 (13 dígitos)
+                    return isset($a['id']) && is_numeric($a['id']) && $a['id'] < 1000000000;
+                })
                 ->pluck('id')
+                ->map(fn($id) => (int) $id)
                 ->toArray();
             
             // Remove apenas as anotações do usuário atual que não estão mais na lista
@@ -1284,15 +1773,17 @@ class ProcessoController extends Controller
                 ->whereNotIn('id', $idsRecebidos)
                 ->delete();
 
-            // Salva novas anotações (apenas as que não têm ID ou são do usuário atual)
+            // Salva novas anotações (apenas as que não têm ID do banco)
             foreach ($anotacoes as $anotacao) {
-                // Se já tem ID e é de outro usuário, pula (não pode editar)
-                if (isset($anotacao['id']) && isset($anotacao['usuario_id']) && $anotacao['usuario_id'] != $usuarioId) {
+                // Se já tem ID do banco e é de outro usuário, pula (não pode editar)
+                if (isset($anotacao['id']) && $anotacao['id'] < 1000000000 && isset($anotacao['usuario_id']) && $anotacao['usuario_id'] != $usuarioId) {
                     continue;
                 }
                 
-                // Se não tem ID, é uma nova anotação
-                if (!isset($anotacao['id']) || !is_numeric($anotacao['id'])) {
+                // Se não tem ID ou é um ID temporário (timestamp), é uma nova anotação
+                $isNovaAnotacao = !isset($anotacao['id']) || $anotacao['id'] >= 1000000000;
+                
+                if ($isNovaAnotacao) {
                     \App\Models\ProcessoDocumentoAnotacao::create([
                         'processo_documento_id' => $documentoId,
                         'usuario_id' => $usuarioId,
@@ -1309,7 +1800,23 @@ class ProcessoController extends Controller
                 'message' => 'Anotações salvas com sucesso!'
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro de validação: ' . implode(', ', $e->validator->errors()->all())
+            ], 422);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getStatusCode());
         } catch (\Exception $e) {
+            \Log::error('Erro ao salvar anotações', [
+                'documento_id' => $documentoId,
+                'erro' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao salvar anotações: ' . $e->getMessage()
@@ -1330,6 +1837,7 @@ class ProcessoController extends Controller
             ->findOrFail($processoId);
         
         $usuarioLogado = auth('interno')->user();
+        $setorUsuarioLogado = $usuarioLogado->setor;
         
         // Determina se é competência estadual ou municipal baseado no tipo de processo
         $tipoProcesso = $processo->tipoProcesso;
@@ -1340,8 +1848,14 @@ class ProcessoController extends Controller
             ->orderBy('nome')
             ->get();
         
-        // Filtra setores por nível de acesso
-        $setoresDisponiveis = $setores->filter(function($setor) use ($isCompetenciaEstadual) {
+        // Filtra setores por nível de acesso E exclui o setor do usuário logado
+        // (para tramitar, o usuário não pode enviar para o próprio setor - deve usar "Designar Responsável")
+        $setoresDisponiveis = $setores->filter(function($setor) use ($isCompetenciaEstadual, $setorUsuarioLogado) {
+            // Exclui o setor do usuário logado
+            if ($setorUsuarioLogado && $setor->codigo === $setorUsuarioLogado) {
+                return false;
+            }
+            
             if (!$setor->niveis_acesso || count($setor->niveis_acesso) === 0) {
                 return true;
             }
@@ -1371,7 +1885,7 @@ class ProcessoController extends Controller
         $usuarios = $query->orderBy('nome')
             ->get(['id', 'nome', 'cargo', 'nivel_acesso', 'setor']);
         
-        // Agrupa usuários por setor
+        // Agrupa usuários por setor (apenas dos setores disponíveis para tramitação)
         $usuariosPorSetor = [];
         foreach ($setoresDisponiveis as $setor) {
             $usuariosDoSetor = $usuarios->where('setor', $setor->codigo)->values();
@@ -1384,22 +1898,33 @@ class ProcessoController extends Controller
             ];
         }
         
-        // Adiciona usuários sem setor
-        $usuariosSemSetor = $usuarios->whereNull('setor')->values();
-        if ($usuariosSemSetor->count() > 0) {
-            $usuariosPorSetor[] = [
-                'setor' => [
-                    'codigo' => null,
-                    'nome' => 'Sem Setor',
-                ],
-                'usuarios' => $usuariosSemSetor
-            ];
+        // Adiciona usuários sem setor (se o usuário logado não estiver sem setor)
+        if ($setorUsuarioLogado) {
+            $usuariosSemSetor = $usuarios->whereNull('setor')->values();
+            if ($usuariosSemSetor->count() > 0) {
+                $usuariosPorSetor[] = [
+                    'setor' => [
+                        'codigo' => null,
+                        'nome' => 'Sem Setor',
+                    ],
+                    'usuarios' => $usuariosSemSetor
+                ];
+            }
         }
         
+        // Mapeia setores para array simples com apenas codigo e nome
+        $setoresArray = $setoresDisponiveis->map(function($setor) {
+            return [
+                'codigo' => $setor->codigo,
+                'nome' => $setor->nome,
+            ];
+        })->values();
+        
         return response()->json([
-            'setores' => $setoresDisponiveis,
+            'setores' => $setoresArray,
             'usuariosPorSetor' => $usuariosPorSetor,
-            'isCompetenciaEstadual' => $isCompetenciaEstadual
+            'isCompetenciaEstadual' => $isCompetenciaEstadual,
+            'setorUsuarioLogado' => $setorUsuarioLogado
         ]);
     }
 
@@ -1420,11 +1945,13 @@ class ProcessoController extends Controller
             'usuarios_designados.*' => 'required|exists:usuarios_internos,id',
             'descricao_tarefa' => 'required|string|max:1000',
             'data_limite' => 'nullable|date|after_or_equal:today',
+            'definir_responsavel_atual' => 'nullable|boolean',
         ]);
         
         $designados = 0;
         $tipoProcesso = $processo->tipoProcesso;
         $isCompetenciaEstadual = $tipoProcesso && in_array($tipoProcesso->competencia, ['estadual', 'estadual_exclusivo']);
+        $ultimoDesignado = null;
         
         // Designação apenas por usuário
         foreach ($validated['usuarios_designados'] as $usuarioId) {
@@ -1448,6 +1975,19 @@ class ProcessoController extends Controller
                     'status' => 'pendente',
                 ]);
                 $designados++;
+                $ultimoDesignado = $usuarioDesignado;
+            }
+        }
+        
+        // Se marcou para definir como responsável atual ou se é o único designado
+        if ($designados > 0 && $ultimoDesignado) {
+            $definirResponsavel = $request->boolean('definir_responsavel_atual', $designados === 1);
+            
+            if ($definirResponsavel) {
+                $processo->atribuirPara(
+                    $ultimoDesignado->setor,
+                    $ultimoDesignado->id
+                );
             }
         }
         
@@ -1464,6 +2004,72 @@ class ProcessoController extends Controller
         return back()->withErrors([
             'usuarios_designados' => 'Nenhum responsável válido foi designado.'
         ]);
+    }
+
+    /**
+     * Atribui o processo a um setor e/ou responsável (passar processo)
+     */
+    public function atribuirProcesso(Request $request, $estabelecimentoId, $processoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+        
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $validated = $request->validate([
+            'setor_atual' => 'nullable|string|max:255',
+            'responsavel_atual_id' => 'nullable|exists:usuarios_internos,id',
+        ]);
+        
+        $setorAnterior = $processo->setor_atual;
+        $responsavelAnterior = $processo->responsavelAtual;
+        
+        // Busca o nome do setor se informado
+        $nomeSetorNovo = null;
+        if ($validated['setor_atual']) {
+            $tipoSetor = \App\Models\TipoSetor::where('codigo', $validated['setor_atual'])->first();
+            $nomeSetorNovo = $tipoSetor ? $tipoSetor->nome : $validated['setor_atual'];
+        }
+        
+        // Atualiza o processo
+        $processo->update([
+            'setor_atual' => $validated['setor_atual'] ?: null,
+            'responsavel_atual_id' => $validated['responsavel_atual_id'] ?: null,
+            'responsavel_desde' => now(),
+        ]);
+        
+        // Registra no histórico
+        $novoResponsavel = $validated['responsavel_atual_id'] ? UsuarioInterno::find($validated['responsavel_atual_id']) : null;
+        
+        $descricao = 'Processo atribuído';
+        if ($nomeSetorNovo) {
+            $descricao .= ' ao setor ' . $nomeSetorNovo;
+        }
+        if ($novoResponsavel) {
+            $descricao .= ($nomeSetorNovo ? ' - ' : ' a ') . $novoResponsavel->nome;
+        }
+        if (!$validated['setor_atual'] && !$novoResponsavel) {
+            $descricao = 'Atribuição do processo removida';
+        }
+        
+        ProcessoEvento::create([
+            'processo_id' => $processo->id,
+            'usuario_interno_id' => auth('interno')->id(),
+            'tipo_evento' => 'processo_atualizado',
+            'titulo' => 'Processo Atribuído',
+            'descricao' => $descricao,
+            'dados_adicionais' => [
+                'setor_anterior' => $setorAnterior,
+                'responsavel_anterior' => $responsavelAnterior ? $responsavelAnterior->nome : null,
+                'setor_novo' => $nomeSetorNovo,
+                'responsavel_novo' => $novoResponsavel ? $novoResponsavel->nome : null,
+            ],
+        ]);
+        
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Processo atribuído com sucesso!');
     }
 
     /**

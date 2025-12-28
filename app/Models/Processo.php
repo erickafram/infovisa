@@ -22,6 +22,11 @@ class Processo extends Model
         'numero_sequencial',
         'numero_processo',
         'status',
+        'setor_atual',
+        'responsavel_atual_id',
+        'responsavel_desde',
+        'setor_antes_arquivar',
+        'responsavel_antes_arquivar_id',
         'observacoes',
         'motivo_arquivamento',
         'data_arquivamento',
@@ -36,6 +41,7 @@ class Processo extends Model
         'numero_sequencial' => 'integer',
         'data_arquivamento' => 'datetime',
         'data_parada' => 'datetime',
+        'responsavel_desde' => 'datetime',
     ];
 
     /**
@@ -59,10 +65,6 @@ class Processo extends Model
     {
         return [
             'aberto' => 'Aberto',
-            'em_analise' => 'Em Análise',
-            'pendente' => 'Pendente',
-            'aprovado' => 'Aprovado',
-            'indeferido' => 'Indeferido',
             'parado' => 'Parado',
             'arquivado' => 'Arquivado',
         ];
@@ -70,13 +72,16 @@ class Processo extends Model
 
     /**
      * Gera o próximo número de processo para o ano atual
+     * IMPORTANTE: Esta função DEVE ser chamada dentro de uma DB::transaction()
      */
     public static function gerarNumeroProcesso(int $ano = null): array
     {
         $ano = $ano ?? date('Y');
         
         // Busca o último número sequencial do ano com lock para evitar duplicação
-        $ultimoProcesso = self::where('ano', $ano)
+        // O lockForUpdate() garante que nenhuma outra transação leia este registro até o commit
+        $ultimoProcesso = self::withTrashed()
+            ->where('ano', $ano)
             ->orderBy('numero_sequencial', 'desc')
             ->lockForUpdate()
             ->first();
@@ -85,6 +90,18 @@ class Processo extends Model
         
         // Formata com 5 dígitos: 2025/00001
         $numeroProcesso = sprintf('%d/%05d', $ano, $numeroSequencial);
+        
+        // Verifica se o número já existe (segurança extra)
+        $tentativas = 0;
+        while (self::withTrashed()->where('numero_processo', $numeroProcesso)->exists() && $tentativas < 100) {
+            $numeroSequencial++;
+            $numeroProcesso = sprintf('%d/%05d', $ano, $numeroSequencial);
+            $tentativas++;
+        }
+        
+        if ($tentativas >= 100) {
+            throw new \Exception('Não foi possível gerar um número de processo único após 100 tentativas.');
+        }
         
         return [
             'ano' => $ano,
@@ -107,6 +124,14 @@ class Processo extends Model
     public function usuario()
     {
         return $this->belongsTo(UsuarioInterno::class, 'usuario_id');
+    }
+
+    /**
+     * Relacionamento com responsável atual do processo
+     */
+    public function responsavelAtual()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'responsavel_atual_id');
     }
 
     /**
@@ -285,5 +310,84 @@ class Processo extends Model
     public function scopePorStatus($query, $status)
     {
         return $query->where('status', $status);
+    }
+
+    /**
+     * Scope para filtrar processos do setor do usuário
+     */
+    public function scopeDoMeuSetor($query, $setor)
+    {
+        return $query->where('setor_atual', $setor);
+    }
+
+    /**
+     * Scope para filtrar processos sob minha responsabilidade
+     */
+    public function scopeMeusProcessos($query, $usuarioId)
+    {
+        return $query->where('responsavel_atual_id', $usuarioId);
+    }
+
+    /**
+     * Atribui o processo a um setor e/ou responsável
+     */
+    public function atribuirPara($setor = null, $responsavelId = null): void
+    {
+        $this->update([
+            'setor_atual' => $setor,
+            'responsavel_atual_id' => $responsavelId,
+            'responsavel_desde' => now(),
+        ]);
+    }
+
+    /**
+     * Retorna texto formatado de quem está com o processo
+     */
+    public function getComQuemAttribute(): string
+    {
+        $partes = [];
+        
+        if ($this->setor_atual) {
+            $partes[] = $this->setor_atual_nome ?? $this->setor_atual;
+        }
+        
+        if ($this->responsavelAtual) {
+            $partes[] = $this->responsavelAtual->nome;
+        }
+        
+        if (empty($partes)) {
+            return 'Não atribuído';
+        }
+        
+        return implode(' - ', $partes);
+    }
+
+    /**
+     * Retorna o nome do setor atual (busca do TipoSetor)
+     */
+    public function getSetorAtualNomeAttribute(): ?string
+    {
+        if (!$this->setor_atual) {
+            return null;
+        }
+        
+        $tipoSetor = \App\Models\TipoSetor::where('codigo', $this->setor_atual)->first();
+        return $tipoSetor ? $tipoSetor->nome : $this->setor_atual;
+    }
+
+    /**
+     * Verifica se o processo está com determinado setor
+     */
+    public function estaComSetor($setor): bool
+    {
+        return $this->setor_atual === $setor;
+    }
+
+    /**
+     * Verifica se o processo está com determinado usuário
+     */
+    public function estaComUsuario($usuarioId): bool
+    {
+        return $this->responsavel_atual_id === $usuarioId;
     }
 }

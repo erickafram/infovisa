@@ -16,7 +16,7 @@
 <body class="bg-gray-50 font-sans antialiased">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16">
+        <nav class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 h-16">
             <div class="flex items-center justify-between h-full">
                 <!-- Logo -->
                 <a href="{{ route('home') }}" class="flex items-center flex-shrink-0 transition-opacity hover:opacity-80">
@@ -103,7 +103,7 @@
             </div>
 
             <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-500">
-                <p>&copy; {{ date('Y') }} InfoVISA. Todos os direitos reservados.</p>
+                <p>&copy; {{ date('Y') }} InfoVISA. Erick Vinicius - Versão 4.0</p>
             </div>
         </div>
     </footer>

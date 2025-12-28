@@ -267,42 +267,6 @@
                 </div>
             </div>
 
-            {{-- Meus Processos --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col">
-                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                         <h3 class="text-sm font-semibold text-gray-800">Processos Recentes</h3>
-                    </div>
-                    <a href="{{ route('company.processos.index') }}" class="text-[10px] font-bold text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded transition-colors uppercase tracking-wide">
-                        Ver todos
-                    </a>
-                </div>
-                <div class="divide-y divide-gray-50">
-                    @forelse($ultimosProcessos as $processo)
-                    <div class="group flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                        <div class="flex-1 min-w-0 pr-4">
-                            <h4 class="text-sm font-medium text-gray-900 truncate">
-                                {{ $processo->numero }}
-                            </h4>
-                            <p class="text-[10px] text-gray-500 mt-0.5">
-                                {{ $processo->tipoProcesso->nome ?? '-' }}
-                            </p>
-                        </div>
-                        <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded 
-                            @if($processo->status === 'concluido') bg-green-50 text-green-700
-                            @elseif($processo->status === 'em_andamento') bg-blue-50 text-blue-700
-                            @elseif($processo->status === 'arquivado') bg-gray-50 text-gray-600
-                            @else bg-gray-50 text-gray-600 @endif">
-                            {{ str_replace('_', ' ', ucfirst($processo->status)) }}
-                        </span>
-                    </div>
-                    @empty
-                     <div class="px-4 py-6 text-center text-xs text-gray-400">
-                        Nenhum processo recente.
-                    </div>
-                    @endforelse
-                </div>
-            </div>
         </div>
 
         {{-- SECTION 2: SIDEBAR (Compact Actions) --}}

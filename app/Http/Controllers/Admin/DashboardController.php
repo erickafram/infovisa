@@ -11,6 +11,8 @@ use App\Models\DocumentoAssinatura;
 use App\Models\DocumentoDigital;
 use App\Models\ProcessoDesignacao;
 use App\Models\OrdemServico;
+use App\Models\ProcessoDocumento;
+use App\Models\DocumentoResposta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -143,12 +145,59 @@ class DashboardController extends Controller
             })
             ->count();
 
+        // Buscar processos atribuídos ao usuário ou ao seu setor (tramitados)
+        $processos_atribuidos_query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
+            ->whereNotIn('status', ['arquivado', 'concluido']);
+        
+        // Filtra por responsável direto OU setor do usuário
+        $processos_atribuidos_query->where(function($q) use ($usuario) {
+            $q->where('responsavel_atual_id', $usuario->id);
+            if ($usuario->setor) {
+                $q->orWhere('setor_atual', $usuario->setor);
+            }
+        });
+        
+        // Filtrar por competência
+        if ($usuario->isEstadual()) {
+            $processos_atribuidos_query->whereHas('estabelecimento', function($q) {
+                $q->where('competencia_manual', 'estadual')
+                  ->orWhereNull('competencia_manual');
+            });
+        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+            $processos_atribuidos_query->whereHas('estabelecimento', function($q) use ($usuario) {
+                $q->where('municipio_id', $usuario->municipio_id);
+            });
+        }
+        
+        $processos_atribuidos = $processos_atribuidos_query
+            ->orderBy('responsavel_desde', 'desc')
+            ->take(10)
+            ->get();
+        
+        // Filtrar por competência em memória (lógica complexa)
+        if ($usuario->isEstadual()) {
+            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => $p->estabelecimento->isCompetenciaEstadual());
+        } elseif ($usuario->isMunicipal()) {
+            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => $p->estabelecimento->isCompetenciaMunicipal());
+        }
+        
+        $stats['processos_atribuidos'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
+            ->where(function($q) use ($usuario) {
+                $q->where('responsavel_atual_id', $usuario->id);
+                if ($usuario->setor) {
+                    $q->orWhere('setor_atual', $usuario->setor);
+                }
+            })
+            ->count();
+
         // Buscar documentos assinados pelo usuário que vencem em até 5 dias
+        // Exclui documentos que já foram marcados como "respondido" (prazo finalizado)
         $documentos_vencendo = DocumentoDigital::whereHas('assinaturas', function($query) {
                 $query->where('usuario_interno_id', Auth::guard('interno')->id())
                       ->where('status', 'assinado');
             })
             ->whereNotNull('data_vencimento')
+            ->whereNull('prazo_finalizado_em') // Exclui documentos já respondidos
             ->where('data_vencimento', '>=', now()->startOfDay())
             ->where('data_vencimento', '<=', now()->addDays(5)->endOfDay())
             ->with(['tipoDocumento', 'processo'])
@@ -157,17 +206,77 @@ class DashboardController extends Controller
             
         $stats['documentos_vencendo'] = $documentos_vencendo->count();
 
+        // Buscar documentos pendentes de aprovação enviados por empresas
+        // ProcessoDocumento: arquivos enviados diretamente no processo
+        $documentos_pendentes_aprovacao_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
+            ->where('tipo_usuario', 'externo')
+            ->with(['processo.estabelecimento', 'usuarioExterno']);
+        
+        // DocumentoResposta: respostas a documentos com prazo
+        $respostas_pendentes_aprovacao_query = DocumentoResposta::where('status', 'pendente')
+            ->with(['documentoDigital.processo.estabelecimento', 'usuarioExterno']);
+
+        // Filtrar por competência do usuário
+        if ($usuario->isAdmin()) {
+            // Admin vê todos
+        } elseif ($usuario->isEstadual()) {
+            // Estadual vê apenas de estabelecimentos de competência estadual
+            // Filtramos em memória pois a lógica de competência é complexa
+            $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) {
+                $q->where('competencia_manual', 'estadual')
+                  ->orWhereNull('competencia_manual');
+            });
+            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) {
+                $q->where('competencia_manual', 'estadual')
+                  ->orWhereNull('competencia_manual');
+            });
+        } elseif ($usuario->isMunicipal()) {
+            // Municipal vê apenas do seu município
+            $municipioId = $usuario->municipio_id;
+            $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) use ($municipioId) {
+                $q->where('municipio_id', $municipioId);
+            });
+            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($municipioId) {
+                $q->where('municipio_id', $municipioId);
+            });
+        }
+
+        $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao_query->orderBy('created_at', 'desc')->take(10)->get();
+        $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao_query->orderBy('created_at', 'desc')->take(10)->get();
+        
+        // Filtrar por competência em memória (lógica complexa baseada em atividades)
+        if ($usuario->isEstadual()) {
+            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
+            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+        } elseif ($usuario->isMunicipal()) {
+            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
+            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+        }
+        
+        $stats['documentos_pendentes_aprovacao'] = $documentos_pendentes_aprovacao->count();
+        $stats['respostas_pendentes_aprovacao'] = $respostas_pendentes_aprovacao->count();
+        $stats['total_pendentes_aprovacao'] = $stats['documentos_pendentes_aprovacao'] + $stats['respostas_pendentes_aprovacao'];
+
+        // Buscar atalhos rápidos do usuário
+        $atalhos_rapidos = \App\Models\AtalhoRapido::where('usuario_interno_id', Auth::guard('interno')->id())
+            ->orderBy('ordem')
+            ->get();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
             'usuarios_internos_recentes',
             'estabelecimentos_pendentes',
             'processos_acompanhados',
+            'processos_atribuidos',
             'documentos_pendentes_assinatura',
             'documentos_rascunho_pendentes',
             'processos_designados',
             'ordens_servico_andamento',
-            'documentos_vencendo'
+            'documentos_vencendo',
+            'documentos_pendentes_aprovacao',
+            'respostas_pendentes_aprovacao',
+            'atalhos_rapidos'
         ));
     }
 }

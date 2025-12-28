@@ -131,6 +131,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Atalhos Rápidos
+    Route::get('/atalhos-rapidos', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'index'])->name('atalhos-rapidos.index');
+    Route::post('/atalhos-rapidos', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'store'])->name('atalhos-rapidos.store');
+    Route::put('/atalhos-rapidos/{atalho}', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'update'])->name('atalhos-rapidos.update');
+    Route::delete('/atalhos-rapidos/{atalho}', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'destroy'])->name('atalhos-rapidos.destroy');
+    Route::post('/atalhos-rapidos/reorder', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'reorder'])->name('atalhos-rapidos.reorder');
+
     // Estabelecimentos
     Route::post('/estabelecimentos/verificar-duplicidade-publico', [EstabelecimentoController::class, 'verificarDuplicidadePublico'])->name('estabelecimentos.verificar-duplicidade-publico');
     Route::get('/estabelecimentos/pendentes', [EstabelecimentoController::class, 'pendentes'])->name('estabelecimentos.pendentes');
@@ -192,6 +199,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/assinatura/pendentes', [\App\Http\Controllers\AssinaturaDigitalController::class, 'documentosPendentes'])->name('assinatura.pendentes');
     Route::get('/assinatura/assinar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'assinar'])->name('assinatura.assinar');
     Route::post('/assinatura/processar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processar'])->name('assinatura.processar');
+    Route::post('/assinatura/processar-lote', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processarLote'])->name('assinatura.processar-lote');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');
     Route::get('/documentos/{id}/visualizar-pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'visualizarPdf'])->name('documentos.visualizar-pdf');
     Route::post('/documentos/{id}/assinar', [\App\Http\Controllers\DocumentoDigitalController::class, 'assinar'])->name('documentos.assinar');
@@ -213,6 +221,9 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
+    
+    // Documentos Pendentes de Aprovação
+    Route::get('/documentos-pendentes', [\App\Http\Controllers\ProcessoController::class, 'documentosPendentes'])->name('documentos-pendentes.index');
     
     // Processos por Estabelecimento
     Route::get('/estabelecimentos/{id}/processos', [\App\Http\Controllers\ProcessoController::class, 'index'])->name('estabelecimentos.processos.index');
@@ -236,12 +247,14 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}', [\App\Http\Controllers\ProcessoController::class, 'deleteArquivo'])->name('estabelecimentos.processos.deleteArquivo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarDocumento'])->name('estabelecimentos.processos.documento.aprovar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarDocumento'])->name('estabelecimentos.processos.documento.rejeitar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos/{documento}/revalidar', [\App\Http\Controllers\ProcessoController::class, 'revalidarDocumento'])->name('estabelecimentos.processos.documento.revalidar');
     
     // Respostas a documentos digitais (notificações, etc)
     Route::get('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/visualizar', [\App\Http\Controllers\ProcessoController::class, 'visualizarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.visualizar');
     Route::get('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/download', [\App\Http\Controllers\ProcessoController::class, 'downloadRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.download');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.aprovar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.rejeitar');
+    Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/excluir', [\App\Http\Controllers\ProcessoController::class, 'excluirRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.excluir');
     
     // Finalizar/Reabrir prazo de documentos digitais
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/finalizar-prazo', [\App\Http\Controllers\ProcessoController::class, 'finalizarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.finalizar-prazo');
@@ -254,6 +267,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Designação de Responsável
     Route::get('/estabelecimentos/{id}/processos/{processo}/usuarios-designacao', [\App\Http\Controllers\ProcessoController::class, 'buscarUsuariosParaDesignacao'])->name('estabelecimentos.processos.usuarios.designacao');
     Route::post('/estabelecimentos/{id}/processos/{processo}/designar', [\App\Http\Controllers\ProcessoController::class, 'designarResponsavel'])->name('estabelecimentos.processos.designar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/atribuir', [\App\Http\Controllers\ProcessoController::class, 'atribuirProcesso'])->name('estabelecimentos.processos.atribuir');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}', [\App\Http\Controllers\ProcessoController::class, 'atualizarDesignacao'])->name('estabelecimentos.processos.designacoes.atualizar');
     Route::put('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}/concluir', [\App\Http\Controllers\ProcessoController::class, 'concluirDesignacao'])->name('estabelecimentos.processos.designacoes.concluir');
     
@@ -453,6 +467,20 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::delete('/{categoriaPop}', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'destroy'])->name('destroy');
             Route::get('/listar', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'listar'])->name('listar');
         });
+
+        // Tipos de Documento Obrigatório (para listas de documentos por atividade)
+        Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
+
+        // Tipos de Serviço
+        Route::resource('tipos-servico', \App\Http\Controllers\Admin\TipoServicoController::class);
+
+        // Atividades
+        Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
+        Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
+
+        // Listas de Documentos por Atividade
+        Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
+        Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
     });
     
     // Assistente IA

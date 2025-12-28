@@ -152,26 +152,8 @@
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-bold text-gray-900 mb-1">Documentos POPS/IA</h3>
-                    <p class="text-xs text-gray-600">Gerencie documentos de procedimentos operacionais e integração com Assistente IA</p>
-                </div>
-            </div>
-        </a>
-
-        {{-- Categorias POPs --}}
-        <a href="{{ route('admin.configuracoes.categorias-pops.index') }}" 
-           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
-            <div class="flex items-start gap-3">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-bold text-gray-900 mb-1">Categorias POPs</h3>
-                    <p class="text-xs text-gray-600">Organize documentos POPs por categorias temáticas</p>
+                    <h3 class="text-base font-bold text-gray-900 mb-1">Documentos IA</h3>
+                    <p class="text-xs text-gray-600">Gerencie documentos POPs, categorias e integração com Assistente IA</p>
                 </div>
             </div>
         </a>
@@ -195,6 +177,36 @@
             </div>
         </a>
 
+    </div>
+
+    {{-- Seção: Lista de Documentos por Atividade --}}
+    <div class="mt-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            Documentação por Atividade
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {{-- Lista de Documentos por Atividade --}}
+            <a href="{{ route('admin.configuracoes.listas-documento.index') }}" 
+               class="block bg-gradient-to-br from-cyan-50 to-white rounded-xl shadow-sm border-2 border-cyan-300 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-base font-bold text-gray-900 mb-1">Lista de Documentos por Atividade</h3>
+                        <p class="text-xs text-gray-600">Configure documentos exigidos por tipo de processo, atividade e escopo (Estado/Município)</p>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 </div>
 @endsection

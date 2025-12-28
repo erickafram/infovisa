@@ -85,10 +85,18 @@ class OrdemServicoController extends Controller
 
     /**
      * Show the form for creating a new resource.
+     * APENAS Administrador, Gestor Estadual e Gestor Municipal podem criar OS
      */
     public function create()
     {
         $usuario = Auth::guard('interno')->user();
+        
+        // Verifica permissão: apenas Admin e Gestores podem criar OS
+        if (!$usuario->isAdmin() && !$usuario->isGestor()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Apenas Administradores e Gestores podem criar Ordens de Serviço.');
+        }
         
         // Busca estabelecimentos conforme competência
         $estabelecimentos = $this->getEstabelecimentosPorCompetencia($usuario);
@@ -112,10 +120,18 @@ class OrdemServicoController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * APENAS Administrador, Gestor Estadual e Gestor Municipal podem criar OS
      */
     public function store(Request $request)
     {
         $usuario = Auth::guard('interno')->user();
+        
+        // Verifica permissão: apenas Admin e Gestores podem criar OS
+        if (!$usuario->isAdmin() && !$usuario->isGestor()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Apenas Administradores e Gestores podem criar Ordens de Serviço.');
+        }
         
         // Validação condicional: processo é obrigatório se há estabelecimento
         $rules = [

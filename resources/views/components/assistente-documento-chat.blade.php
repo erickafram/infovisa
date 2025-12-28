@@ -286,8 +286,8 @@ function assistenteDocumento() {
                 // Busca documentos disponíveis do processo
                 this.buscarDocumentosDisponiveis();
                 
-                // Abre o chat automaticamente
-                this.chatAberto = true;
+                // NÃO abre o chat automaticamente - usuário deve clicar no botão Assistente
+                // this.chatAberto = true;
                 
                 // Limpa mensagens anteriores
                 this.mensagens = [];

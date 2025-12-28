@@ -13,10 +13,37 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ReceituarioController extends Controller
 {
     /**
+     * Verifica se o usuário tem permissão para acessar receituários
+     * Apenas Admin e Estadual podem acessar
+     */
+    private function verificarPermissao()
+    {
+        $usuario = auth('interno')->user();
+        
+        if (!$usuario) {
+            return redirect()->route('admin.login');
+        }
+        
+        // Apenas Admin e Estadual podem acessar
+        if (!$usuario->isAdmin() && !$usuario->isEstadual()) {
+            return redirect()
+                ->route('admin.dashboard')
+                ->with('error', 'Você não tem permissão para acessar o módulo de Receituários. Este módulo é exclusivo para usuários estaduais.');
+        }
+        
+        return null; // Tem permissão
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $query = Receituario::with(['municipio', 'processo']);
         
         // Filtros
@@ -48,6 +75,11 @@ class ReceituarioController extends Controller
      */
     public function create(Request $request)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $tipo = $request->get('tipo', 'medico');
         $municipios = Municipio::orderBy('nome')->get();
         
@@ -59,6 +91,11 @@ class ReceituarioController extends Controller
      */
     public function store(Request $request)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $rules = [
             'tipo' => 'required|in:medico,instituicao,secretaria,talidomida',
         ];
@@ -116,6 +153,11 @@ class ReceituarioController extends Controller
      */
     public function show($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::with(['municipio', 'processo', 'usuarioCriacao'])->findOrFail($id);
         
         return view('receituarios.show', compact('receituario'));
@@ -126,6 +168,11 @@ class ReceituarioController extends Controller
      */
     public function edit($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::findOrFail($id);
         $municipios = Municipio::orderBy('nome')->get();
         
@@ -137,6 +184,11 @@ class ReceituarioController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::findOrFail($id);
         
         $rules = [
@@ -178,6 +230,11 @@ class ReceituarioController extends Controller
      */
     public function destroy($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::findOrFail($id);
         $receituario->delete();
         
@@ -191,6 +248,11 @@ class ReceituarioController extends Controller
      */
     public function buscarCnpj(Request $request)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $cnpj = preg_replace('/[^0-9]/', '', $request->cnpj);
         
         try {
@@ -229,6 +291,11 @@ class ReceituarioController extends Controller
      */
     public function criarProcesso($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::findOrFail($id);
         
         if ($receituario->processo_id) {
@@ -250,6 +317,11 @@ class ReceituarioController extends Controller
      */
     public function pdfGerado($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::with(['municipio'])->findOrFail($id);
         
         return view('receituarios.pdf-gerado', compact('receituario'));
@@ -260,6 +332,11 @@ class ReceituarioController extends Controller
      */
     public function gerarPdf($id)
     {
+        // Verifica permissão
+        if ($redirect = $this->verificarPermissao()) {
+            return $redirect;
+        }
+        
         $receituario = Receituario::with(['municipio'])->findOrFail($id);
         
         // Define o template baseado no tipo

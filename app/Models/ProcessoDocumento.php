@@ -21,6 +21,7 @@ class ProcessoDocumento extends Model
         'extensao',
         'tamanho',
         'tipo_documento',
+        'tipo_documento_obrigatorio_id',
         'observacoes',
         'status_aprovacao',
         'status',

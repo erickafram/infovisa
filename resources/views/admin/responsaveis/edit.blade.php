@@ -4,7 +4,7 @@
 @section('page-title', 'Editar Responsável')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="mb-6 flex items-center gap-4">
         <a href="{{ route('admin.responsaveis.show', $responsavel->id) }}" 

@@ -170,25 +170,86 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-900">
-                Usuários Vinculados ({{ $estabelecimento->usuariosVinculados->count() }})
+                Usuários Vinculados ({{ $estabelecimento->usuariosVinculados->count() + ($criador && !$criadorVinculado ? 1 : 0) }})
             </h3>
         </div>
 
-        @if($estabelecimento->usuariosVinculados->count() > 0)
+        @if($estabelecimento->usuariosVinculados->count() > 0 || ($criador && !$criadorVinculado))
             <div class="divide-y divide-gray-200">
+                {{-- Mostra o criador primeiro (se não estiver na lista de vinculados) --}}
+                @if($criador && !$criadorVinculado)
+                <div class="p-6 hover:bg-gray-50 transition-colors bg-amber-50">
+                    <div class="flex items-start justify-between gap-4">
+                        {{-- Informações do Usuário Criador --}}
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <span class="text-amber-600 font-semibold text-sm">
+                                        {{ strtoupper(substr($criador->nome, 0, 2)) }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-semibold text-gray-900">{{ $criador->nome }}</h4>
+                                    <p class="text-sm text-gray-600">{{ $criador->email }}</p>
+                                </div>
+                            </div>
+
+                            <div class="ml-13 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Telefone:</span>
+                                    <p class="font-medium text-gray-900">{{ $criador->telefone_formatado ?? $criador->telefone ?? '-' }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Tipo de Vínculo:</span>
+                                    <p class="font-medium text-gray-900">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                                            Criador do Cadastro
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Cadastrado em:</span>
+                                    <p class="font-medium text-gray-900">{{ $estabelecimento->created_at->format('d/m/Y H:i') }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Sem ações para o criador --}}
+                        <div class="flex gap-2">
+                            <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-500 text-sm font-medium rounded cursor-not-allowed" title="O criador do cadastro não pode ser desvinculado">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                Protegido
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 @foreach($estabelecimento->usuariosVinculados as $usuario)
-                <div class="p-6 hover:bg-gray-50 transition-colors">
+                @php
+                    $isCriador = $usuario->id == $estabelecimento->usuario_externo_id;
+                @endphp
+                <div class="p-6 hover:bg-gray-50 transition-colors {{ $isCriador ? 'bg-amber-50' : '' }}">
                     <div class="flex items-start justify-between gap-4">
                         {{-- Informações do Usuário --}}
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-2">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <span class="text-blue-600 font-semibold text-sm">
+                                <div class="h-10 w-10 rounded-full {{ $isCriador ? 'bg-amber-100' : 'bg-blue-100' }} flex items-center justify-center">
+                                    <span class="{{ $isCriador ? 'text-amber-600' : 'text-blue-600' }} font-semibold text-sm">
                                         {{ strtoupper(substr($usuario->nome, 0, 2)) }}
                                     </span>
                                 </div>
                                 <div>
-                                    <h4 class="text-base font-semibold text-gray-900">{{ $usuario->nome }}</h4>
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        {{ $usuario->nome }}
+                                        @if($isCriador)
+                                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                                                Criador
+                                            </span>
+                                        @endif
+                                    </h4>
                                     <p class="text-sm text-gray-600">{{ $usuario->email }}</p>
                                 </div>
                             </div>
@@ -235,19 +296,28 @@
 
                         {{-- Ações --}}
                         <div class="flex gap-2">
-                            <form action="{{ route('company.estabelecimentos.usuarios.destroy', [$estabelecimento->id, $usuario->id]) }}" 
-                                  method="POST"
-                                  onsubmit="return confirm('Tem certeza que deseja desvincular este usuário?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="inline-flex items-center gap-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors">
+                            @if($isCriador)
+                                <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-500 text-sm font-medium rounded cursor-not-allowed" title="O criador do cadastro não pode ser desvinculado">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                     </svg>
-                                    Desvincular
-                                </button>
-                            </form>
+                                    Protegido
+                                </span>
+                            @else
+                                <form action="{{ route('company.estabelecimentos.usuarios.destroy', [$estabelecimento->id, $usuario->id]) }}" 
+                                      method="POST"
+                                      onsubmit="return confirm('Tem certeza que deseja desvincular este usuário?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Desvincular
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 </div>

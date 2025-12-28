@@ -112,6 +112,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">CEP <span class="text-red-500">*</span></label>
                     <input type="text" id="cep_display" value="{{ old('cep') }}" placeholder="00000-000" maxlength="9" required class="w-full px-3 py-2 border rounded-md">
                     <input type="hidden" id="cep" name="cep" value="{{ old('cep') }}">
+                    <p class="mt-1 text-xs text-gray-500">Digite o CEP e o endereço será preenchido automaticamente</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Endereço <span class="text-red-500">*</span></label>
@@ -119,7 +120,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Número <span class="text-red-500">*</span></label>
-                    <input type="text" name="numero" value="{{ old('numero') }}" required class="w-full px-3 py-2 border rounded-md uppercase">
+                    <input type="text" id="numero" name="numero" value="{{ old('numero') }}" required class="w-full px-3 py-2 border rounded-md uppercase">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
@@ -131,16 +132,28 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Cidade <span class="text-red-500">*</span></label>
-                    <select id="cidade" name="cidade" required class="w-full px-3 py-2 border rounded-md">
-                        <option value="">Selecione...</option>
-                        @foreach(['PALMAS', 'ARAGUAÍNA', 'GURUPI', 'PORTO NACIONAL', 'PARAÍSO DO TOCANTINS', 'COLINAS DO TOCANTINS', 'GUARAÍ', 'TOCANTINÓPOLIS', 'MIRACEMA DO TOCANTINS', 'ARAGUATINS'] as $cidade)
-                            <option value="{{ $cidade }}">{{ $cidade }}</option>
-                        @endforeach
-                    </select>
+                    <input type="text" id="cidade" name="cidade" value="{{ old('cidade') }}" readonly required class="w-full px-3 py-2 border rounded-md bg-gray-100 uppercase">
+                    <input type="hidden" id="codigo_municipio_ibge" name="codigo_municipio_ibge" value="{{ old('codigo_municipio_ibge') }}">
+                    <p id="cidade_info" class="mt-1 text-xs text-gray-500">A cidade será preenchida automaticamente pelo CEP</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">UF <span class="text-red-500">*</span></label>
-                    <input type="text" name="estado" value="TO" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100">
+                    <input type="text" id="estado" name="estado" value="{{ old('estado', 'TO') }}" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100">
+                </div>
+            </div>
+            
+            {{-- Alerta informativo sobre competência municipal --}}
+            <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-semibold text-blue-900">Competência Municipal</h4>
+                        <p class="text-xs text-blue-800 mt-1">
+                            Estabelecimentos de pessoa física são de competência municipal. O município será determinado automaticamente pelo CEP informado.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -162,9 +175,32 @@
 
         <div class="flex justify-between pt-6 pb-8">
             <a href="{{ route('admin.estabelecimentos.index') }}" class="px-6 py-2.5 border text-gray-700 rounded-md hover:bg-gray-50">Cancelar</a>
-            <button type="submit" class="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700">Cadastrar</button>
+            <button type="submit" id="btn_cadastrar" class="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700">Cadastrar</button>
         </div>
     </form>
+</div>
+
+{{-- Modal de Erro --}}
+<div id="modal_erro" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="bg-red-500 px-6 py-4 rounded-t-xl">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <h3 class="text-lg font-bold text-white">Campos Obrigatórios</h3>
+                </div>
+            </div>
+            <div class="px-6 py-4">
+                <p id="modal_erro_mensagem" class="text-gray-700"></p>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex justify-end">
+                <button type="button" onclick="fecharModalErro()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">Entendi</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -289,18 +325,95 @@ document.addEventListener('DOMContentLoaded', function() {
     cepDisplay.addEventListener('blur', function() {
         const cep = cepHidden.value; // Usa o valor sem máscara
         if (cep.length === 8) {
+            // Mostra loading
+            cepDisplay.classList.add('bg-gray-100');
+            
             fetch(`https://viacep.com.br/ws/${cep}/json/`)
                 .then(r => r.json())
                 .then(d => {
                     if (!d.erro) {
-                        document.getElementById('endereco').value = d.logradouro.toUpperCase();
-                        document.getElementById('bairro').value = d.bairro.toUpperCase();
+                        // Preenche os campos de endereço
+                        document.getElementById('endereco').value = d.logradouro ? d.logradouro.toUpperCase() : '';
+                        document.getElementById('bairro').value = d.bairro ? d.bairro.toUpperCase() : '';
                         
-                        // Seleciona a cidade (não desabilita para permitir envio)
-                        const cidadeSelect = document.getElementById('cidade');
-                        cidadeSelect.value = d.localidade.toUpperCase();
-                        cidadeSelect.classList.add('bg-gray-100');
+                        // Preenche a cidade (readonly)
+                        const cidadeInput = document.getElementById('cidade');
+                        cidadeInput.value = d.localidade ? d.localidade.toUpperCase() : '';
+                        
+                        // Preenche o estado
+                        const estadoInput = document.getElementById('estado');
+                        estadoInput.value = d.uf ? d.uf.toUpperCase() : 'TO';
+                        
+                        // Preenche o código IBGE do município (importante para vinculação)
+                        const codigoIbgeInput = document.getElementById('codigo_municipio_ibge');
+                        codigoIbgeInput.value = d.ibge || '';
+                        
+                        // Atualiza mensagem informativa
+                        const cidadeInfo = document.getElementById('cidade_info');
+                        if (cidadeInfo) {
+                            cidadeInfo.textContent = '✓ Cidade identificada pelo CEP';
+                            cidadeInfo.classList.remove('text-gray-500');
+                            cidadeInfo.classList.add('text-green-600');
+                        }
+                        
+                        // Foca no campo número
+                        setTimeout(() => {
+                            const numeroInput = document.getElementById('numero');
+                            if (numeroInput) {
+                                numeroInput.focus();
+                            }
+                        }, 100);
+                        
+                        // Validação para usuários municipais
+                        @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+                            const municipioUsuario = '{{ auth('interno')->user()->municipioRelacionado->nome ?? '' }}';
+                            
+                            // Função para remover acentos
+                            function removerAcentos(texto) {
+                                return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            }
+                            
+                            // Normaliza os nomes para comparação
+                            const cidadeEstabelecimento = removerAcentos(d.localidade.toUpperCase());
+                            const municipioUsuarioNormalizado = removerAcentos(municipioUsuario.toUpperCase());
+                            
+                            if (cidadeEstabelecimento !== municipioUsuarioNormalizado) {
+                                alert(`⚠️ ATENÇÃO!\n\nVocê só pode cadastrar estabelecimentos do município de ${municipioUsuario}.\n\nO CEP informado pertence a ${d.localidade}.\n\nPor favor, verifique o CEP.`);
+                                
+                                // Limpa os campos
+                                cidadeInput.value = '';
+                                codigoIbgeInput.value = '';
+                                document.getElementById('endereco').value = '';
+                                document.getElementById('bairro').value = '';
+                                cepDisplay.value = '';
+                                cepHidden.value = '';
+                                cepDisplay.focus();
+                                
+                                if (cidadeInfo) {
+                                    cidadeInfo.textContent = 'A cidade será preenchida automaticamente pelo CEP';
+                                    cidadeInfo.classList.remove('text-green-600');
+                                    cidadeInfo.classList.add('text-gray-500');
+                                }
+                            }
+                        @endif
+                    } else {
+                        alert('CEP não encontrado. Verifique o número informado.');
+                        
+                        // Atualiza mensagem informativa
+                        const cidadeInfo = document.getElementById('cidade_info');
+                        if (cidadeInfo) {
+                            cidadeInfo.textContent = '❌ CEP não encontrado';
+                            cidadeInfo.classList.remove('text-gray-500', 'text-green-600');
+                            cidadeInfo.classList.add('text-red-600');
+                        }
                     }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar CEP:', error);
+                    alert('Erro ao buscar CEP. Tente novamente.');
+                })
+                .finally(() => {
+                    cepDisplay.classList.remove('bg-gray-100');
                 });
         }
     });
@@ -416,6 +529,50 @@ document.addEventListener('DOMContentLoaded', function() {
         cnaes.splice(index, 1);
         atualizarLista();
     };
+    
+    // Validação do formulário antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        // Verifica se há pelo menos um CNAE adicionado
+        if (cnaes.length === 0) {
+            e.preventDefault();
+            mostrarModalErro('Você deve adicionar pelo menos uma Atividade Econômica (CNAE) antes de cadastrar o estabelecimento.');
+            
+            // Destaca a seção de CNAEs
+            const cnaeSection = document.getElementById('cnae_busca').closest('.bg-white');
+            if (cnaeSection) {
+                cnaeSection.classList.add('ring-2', 'ring-red-500');
+                cnaeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                setTimeout(() => {
+                    cnaeSection.classList.remove('ring-2', 'ring-red-500');
+                }, 3000);
+            }
+            
+            return false;
+        }
+        
+        // Verifica se a cidade foi preenchida (via CEP)
+        const cidade = document.getElementById('cidade').value;
+        if (!cidade) {
+            e.preventDefault();
+            mostrarModalErro('Você deve informar um CEP válido para identificar a cidade do estabelecimento.');
+            document.getElementById('cep_display').focus();
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Função para mostrar modal de erro
+    function mostrarModalErro(mensagem) {
+        document.getElementById('modal_erro_mensagem').textContent = mensagem;
+        document.getElementById('modal_erro').classList.remove('hidden');
+    }
 });
+
+// Função global para fechar modal
+function fecharModalErro() {
+    document.getElementById('modal_erro').classList.add('hidden');
+}
 </script>
 @endsection

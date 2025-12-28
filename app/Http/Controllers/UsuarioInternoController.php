@@ -9,11 +9,69 @@ use Illuminate\Http\Request;
 class UsuarioInternoController extends Controller
 {
     /**
+     * Retorna os níveis de acesso permitidos para o usuário logado criar/gerenciar
+     */
+    private function getNiveisPermitidos(): array
+    {
+        $usuarioLogado = auth('interno')->user();
+        
+        if ($usuarioLogado->isAdmin()) {
+            // Admin pode criar todos os níveis
+            return NivelAcesso::cases();
+        }
+        
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorEstadual) {
+            // Gestor Estadual pode criar: Gestor Estadual e Técnico Municipal
+            return [
+                NivelAcesso::GestorEstadual,
+                NivelAcesso::TecnicoMunicipal,
+            ];
+        }
+        
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal) {
+            // Gestor Municipal pode criar: Gestor Municipal e Técnico Municipal
+            return [
+                NivelAcesso::GestorMunicipal,
+                NivelAcesso::TecnicoMunicipal,
+            ];
+        }
+        
+        // Outros níveis não podem criar usuários
+        return [];
+    }
+
+    /**
+     * Verifica se o usuário logado pode gerenciar usuários internos
+     */
+    private function podeGerenciarUsuarios(): bool
+    {
+        $usuarioLogado = auth('interno')->user();
+        return $usuarioLogado->isAdmin() || $usuarioLogado->isGestor();
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para acessar esta área.');
+        }
+
+        $usuarioLogado = auth('interno')->user();
         $query = UsuarioInterno::query();
+
+        // Filtro por escopo do usuário logado
+        if (!$usuarioLogado->isAdmin()) {
+            $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
+            $query->whereIn('nivel_acesso', $niveisPermitidos);
+            
+            // Gestor Municipal só vê usuários do seu município
+            if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+                $query->where('municipio_id', $usuarioLogado->municipio_id);
+            }
+        }
 
         // Filtro por nome
         if ($request->filled('nome')) {
@@ -53,8 +111,11 @@ class UsuarioInternoController extends Controller
 
         // Paginação com relacionamento
         $usuarios = $query->with('municipioRelacionado')->paginate(15)->withQueryString();
+        
+        // Níveis permitidos para filtro
+        $niveisPermitidos = $this->getNiveisPermitidos();
 
-        return view('admin.usuarios-internos.index', compact('usuarios'));
+        return view('admin.usuarios-internos.index', compact('usuarios', 'niveisPermitidos'));
     }
 
     /**
@@ -62,6 +123,12 @@ class UsuarioInternoController extends Controller
      */
     public function create()
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para criar usuários.');
+        }
+
+        $usuarioLogado = auth('interno')->user();
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
         
         // Tenta buscar os tipos de setor, retorna coleção vazia se a tabela não existir
@@ -71,7 +138,16 @@ class UsuarioInternoController extends Controller
             $tipoSetores = collect([]);
         }
         
-        return view('admin.usuarios-internos.create', compact('municipios', 'tipoSetores'));
+        // Níveis de acesso permitidos para o usuário logado
+        $niveisPermitidos = $this->getNiveisPermitidos();
+        
+        // Se for Gestor Municipal, pré-seleciona o município
+        $municipioPreSelecionado = null;
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+            $municipioPreSelecionado = $usuarioLogado->municipio_id;
+        }
+        
+        return view('admin.usuarios-internos.create', compact('municipios', 'tipoSetores', 'niveisPermitidos', 'municipioPreSelecionado'));
     }
 
     /**
@@ -79,6 +155,14 @@ class UsuarioInternoController extends Controller
      */
     public function store(Request $request)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para criar usuários.');
+        }
+
+        $usuarioLogado = auth('interno')->user();
+        $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
+
         // Remove máscara do CPF e telefone antes de validar
         $request->merge([
             'cpf' => preg_replace('/[^0-9]/', '', $request->cpf),
@@ -93,7 +177,7 @@ class UsuarioInternoController extends Controller
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
             'setor' => 'nullable|string|max:100',
-            'nivel_acesso' => 'required|string',
+            'nivel_acesso' => ['required', 'string', 'in:' . implode(',', $niveisPermitidos)],
             'password' => 'required|string|min:8|confirmed',
             'ativo' => 'boolean',
         ];
@@ -111,7 +195,13 @@ class UsuarioInternoController extends Controller
             'telefone.max' => 'O telefone deve ter no máximo 11 dígitos',
             'municipio_id.required' => 'O município é obrigatório para usuários municipais',
             'municipio_id.exists' => 'Município inválido',
+            'nivel_acesso.in' => 'Você não tem permissão para criar usuários com este nível de acesso.',
         ]);
+
+        // Se for Gestor Municipal, força o município do usuário logado
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+            $validated['municipio_id'] = $usuarioLogado->municipio_id;
+        }
 
         $validated['password'] = bcrypt($validated['password']);
         $validated['ativo'] = $request->has('ativo');
@@ -127,6 +217,14 @@ class UsuarioInternoController extends Controller
      */
     public function show(UsuarioInterno $usuarioInterno)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para visualizar usuários.');
+        }
+
+        // Verifica se pode visualizar este usuário específico
+        $this->verificarPermissaoUsuario($usuarioInterno);
+
         $usuarioInterno->load('municipioRelacionado');
         return view('admin.usuarios-internos.show', compact('usuarioInterno'));
     }
@@ -136,6 +234,14 @@ class UsuarioInternoController extends Controller
      */
     public function edit(UsuarioInterno $usuarioInterno)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para editar usuários.');
+        }
+
+        // Verifica se pode editar este usuário específico
+        $this->verificarPermissaoUsuario($usuarioInterno);
+
         $municipios = \App\Models\Municipio::orderBy('nome')->get();
         
         // Tenta buscar os tipos de setor, retorna coleção vazia se a tabela não existir
@@ -145,7 +251,37 @@ class UsuarioInternoController extends Controller
             $tipoSetores = collect([]);
         }
         
-        return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios', 'tipoSetores'));
+        // Níveis de acesso permitidos para o usuário logado
+        $niveisPermitidos = $this->getNiveisPermitidos();
+        
+        return view('admin.usuarios-internos.edit', compact('usuarioInterno', 'municipios', 'tipoSetores', 'niveisPermitidos'));
+    }
+
+    /**
+     * Verifica se o usuário logado pode gerenciar o usuário especificado
+     */
+    private function verificarPermissaoUsuario(UsuarioInterno $usuarioInterno): void
+    {
+        $usuarioLogado = auth('interno')->user();
+        
+        // Admin pode tudo
+        if ($usuarioLogado->isAdmin()) {
+            return;
+        }
+        
+        $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
+        
+        // Verifica se o nível do usuário está nos permitidos
+        if (!in_array($usuarioInterno->nivel_acesso->value, $niveisPermitidos)) {
+            abort(403, 'Você não tem permissão para gerenciar este usuário.');
+        }
+        
+        // Gestor Municipal só pode gerenciar usuários do seu município
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+            if ($usuarioInterno->municipio_id !== $usuarioLogado->municipio_id) {
+                abort(403, 'Você só pode gerenciar usuários do seu município.');
+            }
+        }
     }
 
     /**
@@ -153,6 +289,17 @@ class UsuarioInternoController extends Controller
      */
     public function update(Request $request, UsuarioInterno $usuarioInterno)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para editar usuários.');
+        }
+
+        // Verifica se pode editar este usuário específico
+        $this->verificarPermissaoUsuario($usuarioInterno);
+
+        $usuarioLogado = auth('interno')->user();
+        $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
+
         // Remove máscara do CPF e telefone antes de validar
         $request->merge([
             'cpf' => preg_replace('/[^0-9]/', '', $request->cpf),
@@ -167,7 +314,7 @@ class UsuarioInternoController extends Controller
             'matricula' => 'nullable|string|max:50',
             'cargo' => 'nullable|string|max:100',
             'setor' => 'nullable|string|max:100',
-            'nivel_acesso' => 'required|string',
+            'nivel_acesso' => ['required', 'string', 'in:' . implode(',', $niveisPermitidos)],
             'password' => 'nullable|string|min:8|confirmed',
             'ativo' => 'boolean',
         ];
@@ -185,7 +332,13 @@ class UsuarioInternoController extends Controller
             'telefone.max' => 'O telefone deve ter no máximo 11 dígitos',
             'municipio_id.required' => 'O município é obrigatório para usuários municipais',
             'municipio_id.exists' => 'Município inválido',
+            'nivel_acesso.in' => 'Você não tem permissão para definir este nível de acesso.',
         ]);
+
+        // Se for Gestor Municipal, força o município do usuário logado
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+            $validated['municipio_id'] = $usuarioLogado->municipio_id;
+        }
 
         if ($request->filled('password')) {
             $validated['password'] = bcrypt($validated['password']);
@@ -206,6 +359,14 @@ class UsuarioInternoController extends Controller
      */
     public function destroy(UsuarioInterno $usuarioInterno)
     {
+        // Verifica permissão
+        if (!$this->podeGerenciarUsuarios()) {
+            abort(403, 'Você não tem permissão para excluir usuários.');
+        }
+
+        // Verifica se pode excluir este usuário específico
+        $this->verificarPermissaoUsuario($usuarioInterno);
+
         $usuarioInterno->delete();
 
         return redirect()->route('admin.usuarios-internos.index')

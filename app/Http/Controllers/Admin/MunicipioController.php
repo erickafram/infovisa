@@ -117,18 +117,27 @@ class MunicipioController extends Controller
     {
         $municipio = Municipio::with(['estabelecimentos', 'pactuacoes'])->findOrFail($id);
 
+        // Busca pactuações municipais (Tabela I - atividades de competência de TODOS os municípios)
+        // Essas pactuações não têm municipio_id porque são para todos os 139 municípios
+        $pactuacoesMunicipais = \App\Models\Pactuacao::where('tipo', 'municipal')
+            ->where('tabela', 'I')
+            ->where('ativo', true)
+            ->orderBy('cnae_codigo')
+            ->get();
+        
+        // Busca descentralizações (Tabela III - atividades estaduais delegadas ao município)
+        $descentralizacoes = $municipio->descentralizacoes();
+
         // Estatísticas do município
         $stats = [
             'estabelecimentos_total' => $municipio->estabelecimentos()->count(),
             'estabelecimentos_ativos' => $municipio->estabelecimentos()->where('ativo', true)->count(),
             'estabelecimentos_pendentes' => $municipio->estabelecimentos()->where('status', 'pendente')->count(),
-            'pactuacoes_municipais' => $municipio->pactuacoes()->where('tipo', 'municipal')->count(),
-            'pactuacoes_excecoes' => \App\Models\Pactuacao::where('tipo', 'estadual')
-                ->whereJsonContains('municipios_excecao_ids', $id)
-                ->count(),
+            'pactuacoes_municipais' => $pactuacoesMunicipais->count(),
+            'pactuacoes_excecoes' => $descentralizacoes->count(),
         ];
 
-        return view('admin.municipios.show', compact('municipio', 'stats'));
+        return view('admin.municipios.show', compact('municipio', 'stats', 'pactuacoesMunicipais', 'descentralizacoes'));
     }
 
     /**
@@ -194,6 +203,8 @@ class MunicipioController extends Controller
             'uf' => mb_strtoupper($request->uf),
             'slug' => Str::slug($request->nome),
             'ativo' => $request->has('ativo'),
+            'usa_infovisa' => $request->has('usa_infovisa'),
+            'data_adesao_infovisa' => $request->has('usa_infovisa') ? $request->data_adesao_infovisa : null,
         ];
 
         // Upload da nova logomarca (tem prioridade sobre remoção)

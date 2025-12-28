@@ -43,7 +43,7 @@
                                name="nome" 
                                value="{{ old('nome', $usuarioInterno->nome) }}"
                                required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nome') border-red-500 @enderror">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase @error('nome') border-red-500 @enderror">
                         @error('nome')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -120,7 +120,7 @@
                                name="matricula" 
                                value="{{ old('matricula', $usuarioInterno->matricula) }}"
                                maxlength="50"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('matricula') border-red-500 @enderror">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase @error('matricula') border-red-500 @enderror">
                         @error('matricula')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -136,7 +136,7 @@
                                name="cargo" 
                                value="{{ old('cargo', $usuarioInterno->cargo) }}"
                                maxlength="100"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('cargo') border-red-500 @enderror">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase @error('cargo') border-red-500 @enderror">
                         @error('cargo')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -152,7 +152,7 @@
                                 required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nivel_acesso') border-red-500 @enderror">
                             <option value="">Selecione um nível</option>
-                            @foreach(\App\Enums\NivelAcesso::cases() as $nivel)
+                            @foreach($niveisPermitidos as $nivel)
                                 <option value="{{ $nivel->value }}" 
                                         {{ old('nivel_acesso', $usuarioInterno->nivel_acesso->value) == $nivel->value ? 'selected' : '' }}>
                                     {{ $nivel->label() }}
@@ -295,6 +295,27 @@
 (function() {
     console.log('Script de edição de usuário interno iniciando...');
     
+    // Função para converter texto para maiúsculas
+    function toUpperCase(input) {
+        if (input) {
+            input.addEventListener('input', function(e) {
+                // Não converte se for campo de email
+                if (e.target.type !== 'email') {
+                    e.target.value = e.target.value.toUpperCase();
+                }
+            });
+        }
+    }
+    
+    // Aplicar uppercase nos campos de texto (exceto email)
+    const nomeInput = document.getElementById('nome');
+    const matriculaInput = document.getElementById('matricula');
+    const cargoInput = document.getElementById('cargo');
+    
+    toUpperCase(nomeInput);
+    toUpperCase(matriculaInput);
+    toUpperCase(cargoInput);
+    
     // Formatar CPF ao carregar
     const cpfInput = document.getElementById('cpf');
     if (cpfInput) {
@@ -339,6 +360,11 @@
     if (form) {
         form.addEventListener('submit', function(e) {
             console.log('Formulário de edição sendo enviado...');
+            
+            // Converte campos de texto para maiúsculas (exceto email)
+            if (nomeInput) nomeInput.value = nomeInput.value.toUpperCase();
+            if (matriculaInput) matriculaInput.value = matriculaInput.value.toUpperCase();
+            if (cargoInput) cargoInput.value = cargoInput.value.toUpperCase();
             
             // Remove máscara do CPF
             if (cpfInput) {

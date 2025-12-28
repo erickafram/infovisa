@@ -132,10 +132,19 @@
                         </div>
                         <div class="border-t border-gray-100 pt-2"></div>
                         @endif
-                        @if($ordemServico->municipio)
+                        @php
+                            // Prioriza o município do estabelecimento (via municipio_id), se existir
+                            $municipioExibir = null;
+                            if ($ordemServico->estabelecimento && $ordemServico->estabelecimento->municipio_id) {
+                                $municipioExibir = \App\Models\Municipio::find($ordemServico->estabelecimento->municipio_id);
+                            } elseif ($ordemServico->municipio_id) {
+                                $municipioExibir = $ordemServico->municipio;
+                            }
+                        @endphp
+                        @if($municipioExibir)
                         <div>
                             <label class="text-xs font-medium text-gray-500">Município</label>
-                            <p class="text-sm font-semibold text-gray-900">{{ $ordemServico->municipio->nome }}/{{ $ordemServico->municipio->uf }}</p>
+                            <p class="text-sm font-semibold text-gray-900">{{ $municipioExibir->nome }}/{{ $municipioExibir->uf }}</p>
                         </div>
                         @endif
                     </div>

@@ -42,6 +42,21 @@
                 <span class="px-4 py-2 rounded-lg {{ $municipio->ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                     {{ $municipio->ativo ? 'Ativo' : 'Inativo' }}
                 </span>
+                @if($municipio->usa_infovisa)
+                <span class="px-4 py-2 rounded-lg bg-blue-100 text-blue-800 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Usa InfoVISA
+                </span>
+                @else
+                <span class="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Não usa InfoVISA
+                </span>
+                @endif
             </div>
         </div>
 
@@ -174,29 +189,56 @@
     </div>
     @endif
 
-    {{-- Pactuações --}}
-    @if($municipio->pactuacoes()->count() > 0)
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Pactuações Municipais</h3>
+    {{-- Pactuações Municipais (Tabela I) --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="p-2 bg-blue-100 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Pactuações Municipais</h3>
+                <p class="text-xs text-gray-500">Tabela I - Atividades de competência dos 139 municípios do Tocantins</p>
+            </div>
+            <span class="ml-auto px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {{ $pactuacoesMunicipais->count() }} {{ $pactuacoesMunicipais->count() == 1 ? 'atividade' : 'atividades' }}
+            </span>
+        </div>
+        
+        @if($pactuacoesMunicipais->count() > 0)
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CNAE</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código CNAE</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risco</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($municipio->pactuacoes as $pactuacao)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    @foreach($pactuacoesMunicipais as $pactuacao)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-medium text-gray-900">
                             {{ $pactuacao->cnae_codigo }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
+                        <td class="px-4 py-3 text-sm text-gray-900">
                             {{ $pactuacao->cnae_descricao }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            @if($pactuacao->classificacao_risco)
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {{ $pactuacao->classificacao_risco == 'alto' ? 'bg-red-100 text-red-800' : '' }}
+                                {{ $pactuacao->classificacao_risco == 'medio' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                                {{ $pactuacao->classificacao_risco == 'baixo' ? 'bg-green-100 text-green-800' : '' }}">
+                                {{ ucfirst($pactuacao->classificacao_risco) }}
+                            </span>
+                            @else
+                            <span class="text-xs text-gray-400">-</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs rounded-full {{ $pactuacao->ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                                 {{ $pactuacao->ativo ? 'Ativo' : 'Inativo' }}
                             </span>
@@ -206,7 +248,83 @@
                 </tbody>
             </table>
         </div>
+        @else
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">Nenhuma pactuação municipal cadastrada</p>
+        </div>
+        @endif
     </div>
-    @endif
+
+    {{-- Descentralizações (Tabela III) --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="p-2 bg-orange-100 rounded-lg">
+                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Descentralizações</h3>
+                <p class="text-xs text-gray-500">Tabela III - Atividades estaduais delegadas ao município</p>
+            </div>
+            <span class="ml-auto px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                {{ $descentralizacoes->count() }} {{ $descentralizacoes->count() == 1 ? 'atividade' : 'atividades' }}
+            </span>
+        </div>
+        
+        @if($descentralizacoes->count() > 0)
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código CNAE</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risco</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach($descentralizacoes as $pactuacao)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-medium text-gray-900">
+                            {{ $pactuacao->cnae_codigo }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">
+                            {{ $pactuacao->cnae_descricao }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            @if($pactuacao->classificacao_risco)
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {{ $pactuacao->classificacao_risco == 'alto' ? 'bg-red-100 text-red-800' : '' }}
+                                {{ $pactuacao->classificacao_risco == 'medio' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                                {{ $pactuacao->classificacao_risco == 'baixo' ? 'bg-green-100 text-green-800' : '' }}">
+                                {{ ucfirst($pactuacao->classificacao_risco) }}
+                            </span>
+                            @else
+                            <span class="text-xs text-gray-400">-</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full {{ $pactuacao->ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                {{ $pactuacao->ativo ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">Nenhuma descentralização para este município</p>
+        </div>
+        @endif
+    </div>
 </div>
 @endsection

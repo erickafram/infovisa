@@ -7,8 +7,61 @@
 <div class="space-y-6">
     {{-- Cabeçalho --}}
     <div>
-        <p class="text-sm text-gray-500">Acompanhe os alertas criados pela vigilância sanitária para seus processos</p>
+        <p class="text-sm text-gray-500">Acompanhe os alertas e documentos pendentes dos seus processos</p>
     </div>
+
+    {{-- Documentos Pendentes de Visualização --}}
+    @if($documentosPendentes->count() > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+        <div class="px-4 py-3 border-b border-red-100 bg-red-50 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-red-800">Documentos Pendentes de Visualização</h3>
+                <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                    {{ $documentosPendentes->count() }}
+                </span>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100">
+            @foreach($documentosPendentes as $documento)
+            <div class="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $documento->tipoDocumento->nome ?? 'Documento' }}
+                            </p>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <span>Nº {{ $documento->numero_documento }}</span>
+                                <span>•</span>
+                                <span>{{ $documento->created_at->format('d/m/Y') }}</span>
+                                <span>•</span>
+                                <span class="truncate">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ route('company.processos.documento-digital.visualizar', [$documento->processo_id, $documento->id]) }}" 
+                       target="_blank"
+                       class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Visualizar
+                    </a>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- Estatísticas --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

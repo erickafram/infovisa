@@ -28,6 +28,13 @@
                 @endif
             @endif
         </div>
+        
+        @if(isset($processosComPendencias) && $processosComPendencias->count() > 0)
+        <a href="{{ route('admin.documentos-pendentes.index') }}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2">
+            <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+            {{ $processosComPendencias->count() }} Doc. Pendentes
+        </a>
+        @endif
     </div>
 
     <!-- Filtros -->
@@ -137,6 +144,41 @@
                         <option value="estabelecimento" {{ request('ordenacao') == 'estabelecimento' ? 'selected' : '' }}>Estabelecimento</option>
                     </select>
                 </div>
+
+                <!-- Filtro por Responsável -->
+                <div>
+                    <label for="responsavel" class="block text-sm font-medium text-gray-700 mb-1">
+                        Responsável/Setor
+                    </label>
+                    <select 
+                        id="responsavel" 
+                        name="responsavel"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                        <option value="">Todos</option>
+                        <option value="meus" {{ request('responsavel') == 'meus' ? 'selected' : '' }}>📌 Meus processos</option>
+                        @if(auth('interno')->user()->setor)
+                        <option value="meu_setor" {{ request('responsavel') == 'meu_setor' ? 'selected' : '' }}>🏢 Processos do meu setor</option>
+                        @endif
+                        <option value="nao_atribuido" {{ request('responsavel') == 'nao_atribuido' ? 'selected' : '' }}>⚠️ Não atribuídos</option>
+                    </select>
+                </div>
+
+                <!-- Filtro por Docs. Obrigatórios -->
+                <div>
+                    <label for="docs_obrigatorios" class="block text-sm font-medium text-gray-700 mb-1">
+                        Docs. Obrigatórios
+                    </label>
+                    <select 
+                        id="docs_obrigatorios" 
+                        name="docs_obrigatorios"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                        <option value="">Todos</option>
+                        <option value="completos" {{ request('docs_obrigatorios') == 'completos' ? 'selected' : '' }}>✅ Docs. Completos</option>
+                        <option value="pendentes" {{ request('docs_obrigatorios') == 'pendentes' ? 'selected' : '' }}>⏳ Docs. Pendentes</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Botões -->
@@ -188,10 +230,13 @@
                                 Status
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Data Criação
+                                Com (Setor/Responsável)
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Criado Por
+                                Docs. Licenciamento
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Data Criação
                             </th>
                         </tr>
                     </thead>
@@ -228,11 +273,64 @@
                                         {{ $processo->status_nome }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $processo->created_at->format('d/m/Y') }}
+                                <td class="px-6 py-4">
+                                    @if($processo->setor_atual || $processo->responsavel_atual_id)
+                                        <div class="flex flex-col gap-0.5">
+                                            @if($processo->setor_atual)
+                                                <span class="inline-flex items-center gap-1 text-xs font-medium text-cyan-700">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                                    </svg>
+                                                    {{ $processo->setor_atual_nome }}
+                                                </span>
+                                            @endif
+                                            @if($processo->responsavelAtual)
+                                                <span class="text-xs text-gray-600">
+                                                    {{ $processo->responsavelAtual->nome }}
+                                                </span>
+                                            @endif
+                                            @if($processo->responsavel_desde)
+                                                <span class="text-[10px] text-gray-400">
+                                                    desde {{ $processo->responsavel_desde->diffForHumans() }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-400 italic">Não atribuído</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if(isset($statusDocsObrigatorios[$processo->id]))
+                                        @php $docs = $statusDocsObrigatorios[$processo->id]; @endphp
+                                        <div class="flex flex-col gap-1">
+                                            @if($docs['completo'])
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                    {{ $docs['ok'] }}/{{ $docs['total'] }} OK
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+                                                    {{ $docs['ok'] }}/{{ $docs['total'] }}
+                                                    @if($docs['nao_enviado'] > 0)
+                                                        <span class="text-gray-500">({{ $docs['nao_enviado'] }} falta)</span>
+                                                    @endif
+                                                </span>
+                                            @endif
+                                            @if($docs['pendente'] > 0)
+                                                <span class="text-[10px] text-purple-600 font-medium">+{{ $docs['pendente'] }} pendente(s)</span>
+                                            @endif
+                                            @if($docs['rejeitado'] > 0)
+                                                <span class="text-[10px] text-red-600 font-medium">{{ $docs['rejeitado'] }} rejeitado(s)</span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-400">-</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $processo->usuario ? $processo->usuario->nome : 'Sistema' }}
+                                    {{ $processo->created_at->format('d/m/Y') }}
                                 </td>
                             </tr>
                         @endforeach

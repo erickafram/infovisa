@@ -15,13 +15,19 @@ class DocumentoPopController extends Controller
     /**
      * Lista todos os documentos POPs
      */
-    public function index()
+    public function index(Request $request)
     {
+        $tab = $request->get('tab', 'documentos');
+        
         $documentos = DocumentoPop::with(['criador', 'categorias'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
+        
+        $categorias = CategoriaPop::withCount('documentos')
+            ->ordenadas()
+            ->paginate(20, ['*'], 'categorias_page');
 
-        return view('admin.documentos-pops.index', compact('documentos'));
+        return view('admin.documentos-pops.index', compact('documentos', 'categorias', 'tab'));
     }
 
     /**

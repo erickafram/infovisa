@@ -95,6 +95,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">CEP <span class="text-red-500">*</span></label>
                     <input type="text" id="cep_display" value="{{ old('cep', $estabelecimento->cep_formatado) }}" placeholder="00000-000" maxlength="9" required class="w-full px-3 py-2 border rounded-md">
                     <input type="hidden" id="cep" name="cep" value="{{ old('cep', $estabelecimento->cep) }}">
+                    <p class="mt-1 text-xs text-gray-500">Digite o CEP para atualizar o endereço automaticamente</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Endereço <span class="text-red-500">*</span></label>
@@ -102,7 +103,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Número <span class="text-red-500">*</span></label>
-                    <input type="text" name="numero" value="{{ old('numero', $estabelecimento->numero) }}" required class="w-full px-3 py-2 border rounded-md uppercase">
+                    <input type="text" id="numero" name="numero" value="{{ old('numero', $estabelecimento->numero) }}" required class="w-full px-3 py-2 border rounded-md uppercase">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
@@ -114,19 +115,28 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Cidade <span class="text-red-500">*</span></label>
-                    <select id="cidade" name="cidade" required class="w-full px-3 py-2 border rounded-md">
-                        <option value="">Selecione...</option>
-                        @php
-                            $cidadesTO = ['PALMAS', 'ARAGUAÍNA', 'GURUPI', 'PORTO NACIONAL', 'PARAÍSO DO TOCANTINS', 'COLINAS DO TOCANTINS', 'GUARAÍ', 'TOCANTINÓPOLIS', 'MIRACEMA DO TOCANTINS', 'ARAGUATINS'];
-                        @endphp
-                        @foreach($cidadesTO as $cidade)
-                            <option value="{{ $cidade }}" {{ old('cidade', $estabelecimento->cidade) == $cidade ? 'selected' : '' }}>{{ $cidade }}</option>
-                        @endforeach
-                    </select>
+                    <input type="text" id="cidade" name="cidade" value="{{ old('cidade', $estabelecimento->cidade) }}" readonly required class="w-full px-3 py-2 border rounded-md bg-gray-100 uppercase">
+                    <input type="hidden" id="codigo_municipio_ibge" name="codigo_municipio_ibge" value="{{ old('codigo_municipio_ibge', $estabelecimento->codigo_municipio_ibge) }}">
+                    <p id="cidade_info" class="mt-1 text-xs text-gray-500">A cidade será atualizada automaticamente pelo CEP</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">UF <span class="text-red-500">*</span></label>
-                    <input type="text" name="estado" value="TO" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100">
+                    <input type="text" id="estado" name="estado" value="{{ old('estado', $estabelecimento->estado ?? 'TO') }}" readonly class="w-full px-3 py-2 border rounded-md bg-gray-100">
+                </div>
+            </div>
+            
+            {{-- Alerta informativo sobre competência municipal --}}
+            <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-semibold text-blue-900">Competência Municipal</h4>
+                        <p class="text-xs text-blue-800 mt-1">
+                            Estabelecimentos de pessoa física são de competência municipal. O município é determinado automaticamente pelo CEP informado.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -165,30 +175,94 @@ document.addEventListener('DOMContentLoaded', function() {
     cepDisplay.addEventListener('blur', function() {
         const cep = cepHidden.value; // Usa o valor sem máscara
         if (cep.length === 8) {
+            // Mostra loading
+            cepDisplay.classList.add('bg-gray-100');
+            
             fetch(`https://viacep.com.br/ws/${cep}/json/`)
                 .then(r => r.json())
                 .then(d => {
                     if (!d.erro) {
-                        document.getElementById('endereco').value = d.logradouro.toUpperCase();
-                        document.getElementById('bairro').value = d.bairro.toUpperCase();
+                        // Preenche os campos de endereço
+                        document.getElementById('endereco').value = d.logradouro ? d.logradouro.toUpperCase() : '';
+                        document.getElementById('bairro').value = d.bairro ? d.bairro.toUpperCase() : '';
                         
-                        // Seleciona a cidade e desabilita
-                        const cidadeSelect = document.getElementById('cidade');
-                        cidadeSelect.value = d.localidade.toUpperCase();
-                        cidadeSelect.disabled = true;
-                        cidadeSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+                        // Preenche a cidade (readonly)
+                        const cidadeInput = document.getElementById('cidade');
+                        cidadeInput.value = d.localidade ? d.localidade.toUpperCase() : '';
                         
-                        // Adiciona campo hidden para enviar o valor
-                        let hiddenCidade = document.getElementById('cidade_hidden');
-                        if (!hiddenCidade) {
-                            hiddenCidade = document.createElement('input');
-                            hiddenCidade.type = 'hidden';
-                            hiddenCidade.name = 'cidade';
-                            hiddenCidade.id = 'cidade_hidden';
-                            cidadeSelect.parentNode.appendChild(hiddenCidade);
+                        // Preenche o estado
+                        const estadoInput = document.getElementById('estado');
+                        estadoInput.value = d.uf ? d.uf.toUpperCase() : 'TO';
+                        
+                        // Preenche o código IBGE do município (importante para vinculação)
+                        const codigoIbgeInput = document.getElementById('codigo_municipio_ibge');
+                        codigoIbgeInput.value = d.ibge || '';
+                        
+                        // Atualiza mensagem informativa
+                        const cidadeInfo = document.getElementById('cidade_info');
+                        if (cidadeInfo) {
+                            cidadeInfo.textContent = '✓ Cidade atualizada pelo CEP';
+                            cidadeInfo.classList.remove('text-gray-500');
+                            cidadeInfo.classList.add('text-green-600');
                         }
-                        hiddenCidade.value = d.localidade.toUpperCase();
+                        
+                        // Foca no campo número
+                        setTimeout(() => {
+                            const numeroInput = document.getElementById('numero');
+                            if (numeroInput) {
+                                numeroInput.focus();
+                            }
+                        }, 100);
+                        
+                        // Validação para usuários municipais
+                        @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
+                            const municipioUsuario = '{{ auth('interno')->user()->municipioRelacionado->nome ?? '' }}';
+                            
+                            // Função para remover acentos
+                            function removerAcentos(texto) {
+                                return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            }
+                            
+                            // Normaliza os nomes para comparação
+                            const cidadeEstabelecimento = removerAcentos(d.localidade.toUpperCase());
+                            const municipioUsuarioNormalizado = removerAcentos(municipioUsuario.toUpperCase());
+                            
+                            if (cidadeEstabelecimento !== municipioUsuarioNormalizado) {
+                                alert(`⚠️ ATENÇÃO!\n\nVocê só pode editar estabelecimentos do município de ${municipioUsuario}.\n\nO CEP informado pertence a ${d.localidade}.\n\nPor favor, verifique o CEP.`);
+                                
+                                // Restaura os valores originais
+                                cidadeInput.value = '{{ $estabelecimento->cidade }}';
+                                codigoIbgeInput.value = '{{ $estabelecimento->codigo_municipio_ibge }}';
+                                document.getElementById('endereco').value = '{{ $estabelecimento->endereco }}';
+                                document.getElementById('bairro').value = '{{ $estabelecimento->bairro }}';
+                                cepDisplay.value = '{{ $estabelecimento->cep_formatado }}';
+                                cepHidden.value = '{{ $estabelecimento->cep }}';
+                                
+                                if (cidadeInfo) {
+                                    cidadeInfo.textContent = 'A cidade será atualizada automaticamente pelo CEP';
+                                    cidadeInfo.classList.remove('text-green-600');
+                                    cidadeInfo.classList.add('text-gray-500');
+                                }
+                            }
+                        @endif
+                    } else {
+                        alert('CEP não encontrado. Verifique o número informado.');
+                        
+                        // Atualiza mensagem informativa
+                        const cidadeInfo = document.getElementById('cidade_info');
+                        if (cidadeInfo) {
+                            cidadeInfo.textContent = '❌ CEP não encontrado';
+                            cidadeInfo.classList.remove('text-gray-500', 'text-green-600');
+                            cidadeInfo.classList.add('text-red-600');
+                        }
                     }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar CEP:', error);
+                    alert('Erro ao buscar CEP. Tente novamente.');
+                })
+                .finally(() => {
+                    cepDisplay.classList.remove('bg-gray-100');
                 });
         }
     });

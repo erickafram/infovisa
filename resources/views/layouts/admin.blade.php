@@ -73,7 +73,8 @@
                 </svg>
             </a>
 
-            <!-- 5.5 Receituários -->
+            <!-- 5.5 Receituários - Apenas Admin e Estadual -->
+            @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual())
             <a href="{{ route('admin.receituarios.index') }}"
                title="Receituários"
                class="group flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.receituarios.*') ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:scale-105' }}">
@@ -81,6 +82,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
             </a>
+            @endif
 
             @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual() || auth('interno')->user()->isMunicipal())
             <!-- 6. Ordens de Serviço -->
@@ -102,7 +104,7 @@
             </a>
             @endif
 
-            @if(auth('interno')->user()->isAdmin())
+            @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isGestor())
             <!-- 6. Usuários Internos -->
             <a href="{{ route('admin.usuarios-internos.index') }}" 
                title="Usuários Internos"
@@ -111,7 +113,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </a>
+            @endif
 
+            @if(auth('interno')->user()->isAdmin())
             <!-- 7. Usuários Externos -->
             <a href="{{ route('admin.usuarios-externos.index') }}" 
                title="Usuários Externos"

@@ -1,0 +1,97 @@
+@extends('layouts.admin')
+
+@section('title', 'Nova Atividade')
+@section('page-title', 'Nova Atividade')
+
+@section('content')
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ route('admin.configuracoes.atividades.index') }}" 
+           class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Voltar
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form action="{{ route('admin.configuracoes.atividades.store') }}" method="POST">
+            @csrf
+
+            <div class="space-y-5">
+                <div>
+                    <label for="tipo_servico_id" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Serviço *</label>
+                    <select name="tipo_servico_id" id="tipo_servico_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_servico_id') border-red-500 @enderror">
+                        <option value="">Selecione...</option>
+                        @foreach($tiposServico as $tipo)
+                        <option value="{{ $tipo->id }}" {{ old('tipo_servico_id') == $tipo->id ? 'selected' : '' }}>
+                            {{ $tipo->nome }}
+                        </option>
+                        @endforeach
+                    </select>
+                    @error('tipo_servico_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                    <input type="text" name="nome" id="nome" value="{{ old('nome') }}" required
+                           placeholder="Ex: Restaurante, Lanchonete, Bar"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('nome') border-red-500 @enderror">
+                    @error('nome')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="codigo_cnae" class="block text-sm font-medium text-gray-700 mb-1">Código CNAE</label>
+                    <input type="text" name="codigo_cnae" id="codigo_cnae" value="{{ old('codigo_cnae') }}"
+                           placeholder="Ex: 5611201"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('codigo_cnae') border-red-500 @enderror">
+                    <p class="mt-1 text-xs text-gray-500">Código CNAE relacionado a esta atividade (opcional)</p>
+                    @error('codigo_cnae')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea name="descricao" id="descricao" rows="3"
+                              placeholder="Descreva a atividade..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('descricao') border-red-500 @enderror">{{ old('descricao') }}</textarea>
+                    @error('descricao')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="ordem" class="block text-sm font-medium text-gray-700 mb-1">Ordem de Exibição</label>
+                    <input type="number" name="ordem" id="ordem" value="{{ old('ordem', 0) }}" min="0"
+                           class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-xs text-gray-500">Menor número aparece primeiro</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="ativo" id="ativo" value="1" {{ old('ativo', true) ? 'checked' : '' }}
+                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="ativo" class="text-sm text-gray-700">Ativo</label>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
+                <a href="{{ route('admin.configuracoes.atividades.index') }}" 
+                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

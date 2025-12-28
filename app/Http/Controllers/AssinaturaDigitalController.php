@@ -330,4 +330,94 @@ class AssinaturaDigitalController extends Controller
 
         return $nomeArquivo;
     }
+
+    /**
+     * Processa assinaturas em lote
+     */
+    public function processarLote(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        $request->validate([
+            'documentos' => 'required|array|min:1',
+            'documentos.*' => 'integer',
+            'senha_assinatura' => 'required',
+        ]);
+
+        // Verifica se a senha de assinatura está correta
+        if (!Hash::check($request->senha_assinatura, $usuario->senha_assinatura_digital)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Senha de assinatura incorreta'
+            ], 422);
+        }
+
+        $assinados = 0;
+        $erros = [];
+
+        foreach ($request->documentos as $documentoId) {
+            try {
+                $documento = DocumentoDigital::with('processo')->find($documentoId);
+                
+                if (!$documento) {
+                    $erros[] = "Documento #{$documentoId} não encontrado";
+                    continue;
+                }
+
+                $assinatura = DocumentoAssinatura::where('documento_digital_id', $documentoId)
+                    ->where('usuario_interno_id', $usuario->id)
+                    ->where('status', 'pendente')
+                    ->first();
+
+                if (!$assinatura) {
+                    $erros[] = "Documento #{$documentoId} não está pendente de assinatura";
+                    continue;
+                }
+
+                // Assina o documento
+                $assinatura->status = 'assinado';
+                $assinatura->assinado_em = now();
+                $assinatura->hash_assinatura = hash('sha256', $documento->id . $usuario->id . now());
+                $assinatura->save();
+
+                // Verifica se todos assinaram
+                $todasAssinaturas = DocumentoAssinatura::where('documento_digital_id', $documentoId)
+                    ->where('obrigatoria', true)
+                    ->get();
+
+                $todasAssinadas = $todasAssinaturas->every(function ($ass) {
+                    return $ass->status === 'assinado';
+                });
+
+                if ($todasAssinadas) {
+                    if (!$documento->codigo_autenticidade) {
+                        $documento->codigo_autenticidade = DocumentoDigital::gerarCodigoAutenticidade();
+                    }
+                    
+                    $documento->status = 'assinado';
+                    $documento->save();
+
+                    $this->gerarPdfComAssinaturas($documento);
+                }
+
+                $assinados++;
+            } catch (\Exception $e) {
+                $erros[] = "Erro ao assinar documento #{$documentoId}: " . $e->getMessage();
+            }
+        }
+
+        if ($assinados > 0) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$assinados} documento(s) assinado(s) com sucesso!",
+                'erros' => $erros
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'error' => 'Nenhum documento foi assinado',
+            'erros' => $erros
+        ], 422);
+    }
 }

@@ -153,18 +153,28 @@
         @if($estabelecimento->usuariosVinculados->count() > 0)
             <div class="divide-y divide-gray-200">
                 @foreach($estabelecimento->usuariosVinculados as $usuario)
-                <div class="p-6 hover:bg-gray-50 transition-colors">
+                @php
+                    $isCriador = $usuario->id == $estabelecimento->usuario_externo_id;
+                @endphp
+                <div class="p-6 hover:bg-gray-50 transition-colors {{ $isCriador ? 'bg-amber-50' : '' }}">
                     <div class="flex items-start justify-between gap-4">
                         {{-- Informações do Usuário --}}
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-2">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <span class="text-blue-600 font-semibold text-sm">
+                                <div class="h-10 w-10 rounded-full {{ $isCriador ? 'bg-amber-100' : 'bg-blue-100' }} flex items-center justify-center">
+                                    <span class="{{ $isCriador ? 'text-amber-600' : 'text-blue-600' }} font-semibold text-sm">
                                         {{ substr($usuario->nome, 0, 2) }}
                                     </span>
                                 </div>
                                 <div>
-                                    <h4 class="text-base font-semibold text-gray-900">{{ $usuario->nome }}</h4>
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        {{ $usuario->nome }}
+                                        @if($isCriador)
+                                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                                                Criador do Cadastro
+                                            </span>
+                                        @endif
+                                    </h4>
                                     <p class="text-sm text-gray-600">{{ $usuario->email }}</p>
                                 </div>
                             </div>
@@ -218,11 +228,11 @@
 
                             <form action="{{ route('admin.estabelecimentos.usuarios.desvincular', [$estabelecimento->id, $usuario->id]) }}" 
                                   method="POST"
-                                  onsubmit="return confirm('Tem certeza que deseja desvincular este usuário?');">
+                                  onsubmit="return confirm('{{ $isCriador ? 'ATENÇÃO: Este é o usuário que cadastrou o estabelecimento. Tem certeza que deseja desvinculá-lo?' : 'Tem certeza que deseja desvincular este usuário?' }}');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                        class="inline-flex items-center gap-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors">
+                                        class="inline-flex items-center gap-1 px-3 py-2 {{ $isCriador ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700' }} text-white text-sm font-medium rounded transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>

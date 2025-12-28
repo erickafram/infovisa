@@ -36,7 +36,7 @@
             <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400 rounded-full opacity-20 blur-3xl"></div>
         </div>
         
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm font-medium mb-4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +56,7 @@
     
     <!-- Tabs -->
     <div class="bg-white shadow-sm sticky top-16 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <nav class="flex gap-8" aria-label="Tabs">
                 <button 
                     @click="abaAtiva = 'fila'"
@@ -85,7 +85,7 @@
     </div>
 
     <!-- Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <!-- Aba: Consultar Processo -->
         <div x-show="abaAtiva === 'consultar'" x-transition>
