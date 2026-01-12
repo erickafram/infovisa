@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "start": "concurrently \"php artisan serve\" \"vite\" --names \"Laravel,Vite\" --prefix-colors \"green,blue\""
     },
     "devDependencies": {
         "alpinejs": "^3.15.0",
