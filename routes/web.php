@@ -131,6 +131,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Meu Perfil
+    Route::get('/perfil', [\App\Http\Controllers\PerfilController::class, 'index'])->name('perfil.index');
+    Route::put('/perfil/dados', [\App\Http\Controllers\PerfilController::class, 'updateDados'])->name('perfil.update-dados');
+    Route::put('/perfil/senha', [\App\Http\Controllers\PerfilController::class, 'updateSenha'])->name('perfil.update-senha');
+
     // Atalhos Rápidos
     Route::get('/atalhos-rapidos', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'index'])->name('atalhos-rapidos.index');
     Route::post('/atalhos-rapidos', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'store'])->name('atalhos-rapidos.store');
