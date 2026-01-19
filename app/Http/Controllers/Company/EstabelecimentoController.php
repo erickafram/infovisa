@@ -449,9 +449,36 @@ class EstabelecimentoController extends Controller
             $documentoPath = $request->file('documento_identificacao')->store('responsaveis/documentos', 'public');
         }
 
-        $responsavel = \App\Models\Responsavel::firstOrCreate(
-            ['cpf' => $validated['cpf']],
-            [
+        // Busca ou cria o responsável
+        $responsavel = \App\Models\Responsavel::where('cpf', $validated['cpf'])->first();
+        
+        if ($responsavel) {
+            // Atualiza dados se o responsável já existia
+            $updateData = [
+                'nome' => $validated['nome'],
+                'tipo' => $validated['tipo_vinculo'],
+                'email' => $validated['email'] ?? null,
+                'telefone' => $validated['telefone'] ?? null,
+            ];
+            
+            if (isset($validated['conselho'])) {
+                $updateData['conselho'] = $validated['conselho'];
+            }
+            if (isset($validated['numero_registro'])) {
+                $updateData['numero_registro_conselho'] = $validated['numero_registro'];
+            }
+            if ($carteirinhaPath) {
+                $updateData['carteirinha_conselho'] = $carteirinhaPath;
+            }
+            if ($documentoPath) {
+                $updateData['documento_identificacao'] = $documentoPath;
+            }
+            
+            $responsavel->update($updateData);
+        } else {
+            // Cria novo responsável
+            $responsavel = \App\Models\Responsavel::create([
+                'cpf' => $validated['cpf'],
                 'tipo' => $validated['tipo_vinculo'],
                 'nome' => $validated['nome'],
                 'email' => $validated['email'] ?? null,
@@ -460,19 +487,7 @@ class EstabelecimentoController extends Controller
                 'numero_registro_conselho' => $validated['numero_registro'] ?? null,
                 'carteirinha_conselho' => $carteirinhaPath,
                 'documento_identificacao' => $documentoPath,
-            ]
-        );
-
-        // Atualiza dados se o responsável já existia
-        if (!$responsavel->wasRecentlyCreated) {
-            $updateData = ['nome' => $validated['nome'], 'tipo' => $validated['tipo_vinculo']];
-            if (isset($validated['email'])) $updateData['email'] = $validated['email'];
-            if (isset($validated['telefone'])) $updateData['telefone'] = $validated['telefone'];
-            if (isset($validated['conselho'])) $updateData['conselho'] = $validated['conselho'];
-            if (isset($validated['numero_registro'])) $updateData['numero_registro_conselho'] = $validated['numero_registro'];
-            if ($carteirinhaPath) $updateData['carteirinha_conselho'] = $carteirinhaPath;
-            if ($documentoPath) $updateData['documento_identificacao'] = $documentoPath;
-            $responsavel->update($updateData);
+            ]);
         }
 
         // Verifica se já existe vínculo com este tipo

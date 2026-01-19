@@ -80,6 +80,10 @@
         </div>
     @endif
 
+    https://sistemas.saude.to.gov.br/infovisacore/
+    CPF: 808.019.191-34
+    Senha: @InfoVisa123
+
     {{-- Card Superior: Dados do Estabelecimento e Processo --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

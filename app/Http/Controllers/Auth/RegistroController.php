@@ -32,6 +32,9 @@ class RegistroController extends Controller
             $dados['cpf'] = preg_replace('/\D/', '', $dados['cpf']);
             $dados['telefone'] = preg_replace('/\D/', '', $dados['telefone']);
             
+            // Converte nome para maiúsculas
+            $dados['nome'] = mb_strtoupper($dados['nome'], 'UTF-8');
+            
             // Registra o aceite dos termos
             $dados['aceite_termos_em'] = now();
             $dados['ip_aceite_termos'] = $request->ip();

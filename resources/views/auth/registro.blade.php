@@ -6,6 +6,7 @@
 <div x-data="{
     cpf: '',
     telefone: '',
+    nome: '{{ old('nome') }}',
     formatCpf() {
         let value = this.cpf.replace(/\D/g, '');
         if (value.length <= 11) {
@@ -25,6 +26,9 @@
             }
             this.telefone = value;
         }
+    },
+    toUpperCase() {
+        this.nome = this.nome.toUpperCase();
     }
 }" style="width: 900px; margin: 0 auto;">
     <!-- Card de Cadastro -->
@@ -61,10 +65,12 @@
                     type="text" 
                     id="nome" 
                     name="nome" 
-                    value="{{ old('nome') }}"
+                    x-model="nome"
+                    @input="toUpperCase()"
                     required
-                    class="w-full px-4 py-2.5 border-2 @error('nome') border-red-300 @else border-gray-300 @enderror rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    placeholder="Digite seu nome completo"
+                    class="w-full px-4 py-2.5 border-2 @error('nome') border-red-300 @else border-gray-300 @enderror rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition uppercase"
+                    placeholder="DIGITE SEU NOME COMPLETO"
+                    style="text-transform: uppercase;"
                 >
                 @error('nome')
                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>

@@ -69,3 +69,8 @@ php artisan db:seed --class=EstabelecimentoSeeder
 
 -- RODAR TODOS OS SEEDERS DE UMA VEZ
 php artisan db:seed
+
+
+
+para servidor da visa
+php artisan serve --port=8001
