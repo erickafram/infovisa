@@ -74,3 +74,19 @@ php artisan db:seed
 
 para servidor da visa
 php artisan serve --port=8001
+
+
+
+
+
+
+SERVIDOR INFOVISA
+git pull origin main
+composer install --no-dev --optimize-autoloader
+php artisan migrate
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+sudo systemctl restart httpd
+sudo systemctl restart php-fpm

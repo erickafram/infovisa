@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // MySQL: Modificar a coluna ENUM
-        \DB::statement("ALTER TABLE tipo_acoes MODIFY COLUMN competencia ENUM('estadual', 'municipal', 'ambos') NOT NULL");
+        // PostgreSQL: Adicionar novo valor ao ENUM
+        \DB::statement("ALTER TYPE competencia_enum ADD VALUE IF NOT EXISTS 'ambos'");
     }
 
     /**
@@ -20,6 +20,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        \DB::statement("ALTER TABLE tipo_acoes MODIFY COLUMN competencia ENUM('estadual', 'municipal') NOT NULL");
+        // PostgreSQL: Não é possível remover valores de ENUM diretamente
+        // Seria necessário recriar o tipo e a coluna
+        \DB::statement("-- Rollback não implementado para PostgreSQL ENUM");
     }
 };
