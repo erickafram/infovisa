@@ -16,6 +16,9 @@ class RegistroController extends Controller
      */
     public function showRegistroForm()
     {
+        // Temporariamente desabilitado
+        abort(404, 'Cadastro temporariamente desabilitado.');
+        
         $vinculos = VinculoEstabelecimento::toArray();
         
         return view('auth.registro', compact('vinculos'));
@@ -26,6 +29,9 @@ class RegistroController extends Controller
      */
     public function registro(RegistroUsuarioExternoRequest $request)
     {
+        // Temporariamente desabilitado
+        abort(404, 'Cadastro temporariamente desabilitado.');
+        
         try {
             // Remove máscaras para salvar no banco
             $dados = $request->validated();

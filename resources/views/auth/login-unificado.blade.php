@@ -112,12 +112,13 @@
             </form>
 
             {{-- Link para cadastro --}}
-            <div class="mt-6 text-center">
+             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
-                    Não tem uma conta? 
+                    {{-- Não tem uma conta? 
                     <a href="{{ route('registro') }}" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
                         Cadastre-se aqui
-                    </a>
+                    </a> --}}
+                    Cadastro temporariamente desabilitado.
                 </p>
             </div>
         </div>

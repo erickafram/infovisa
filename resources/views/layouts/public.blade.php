@@ -45,9 +45,9 @@
                         <a href="{{ route('login') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600 px-3 py-2 transition-colors">
                             Entrar
                         </a>
-                        <a href="{{ route('registro') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md">
+                        {{-- <a href="{{ route('registro') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md">
                             Cadastre-se
-                        </a>
+                        </a> --}}
                     @endauth
                 </div>
             </div>
