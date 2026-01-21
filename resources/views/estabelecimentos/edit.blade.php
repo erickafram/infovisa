@@ -347,7 +347,7 @@ function estabelecimentoEdit() {
             try {
                 const cnpj = '{{ $estabelecimento->cnpj }}';
                 
-                const response = await fetch('/api/consultar-cnpj', {
+                const response = await fetch('{{ url("/api/consultar-cnpj") }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

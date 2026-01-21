@@ -1074,7 +1074,7 @@ function pactuacaoManager() {
 
         abrirModalEditarCompleto(id) {
             // Buscar dados da pactuação via AJAX
-            fetch(`/admin/configuracoes/pactuacao/${id}`)
+            fetch(`{{ url("/admin/configuracoes/pactuacao") }}/${id}`)
                 .then(response => response.json())
                 .then(data => {
                     this.editarId = id;
