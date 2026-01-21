@@ -1337,6 +1337,10 @@ function estabelecimentoForm() {
             this.mensagem = '';
 
             try {
+                // Debug: vamos ver o que está sendo enviado
+                console.log('CNPJ sendo enviado:', this.cnpjBusca);
+                console.log('Tamanho do CNPJ:', this.cnpjBusca.length);
+                
                  const response = await fetch('{{ url("/api/consultar-cnpj") }}', {
                      method: 'POST',
                      headers: {
@@ -1348,7 +1352,9 @@ function estabelecimentoForm() {
                      })
                  });
 
+                console.log('Status da resposta:', response.status);
                 const result = await response.json();
+                console.log('Resultado:', result);
 
                 if (response.ok && result.success) {
                     this.preencherDados(result.data);

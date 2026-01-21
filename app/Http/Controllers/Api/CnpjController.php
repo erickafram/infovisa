@@ -25,6 +25,11 @@ class CnpjController extends Controller
     public function consultar(Request $request): JsonResponse
     {
         try {
+            \Log::info('=== CONSULTA CNPJ INICIADA ===', [
+                'request_data' => $request->all(),
+                'cnpj_recebido' => $request->input('cnpj')
+            ]);
+
             $request->validate([
                 'cnpj' => 'required|string|min:14|max:18'
             ]);
@@ -34,8 +39,15 @@ class CnpjController extends Controller
             // Remove formatação
             $cnpjLimpo = preg_replace('/[^0-9]/', '', $cnpj);
             
+            \Log::info('CNPJ após limpeza', [
+                'cnpj_original' => $cnpj,
+                'cnpj_limpo' => $cnpjLimpo,
+                'tamanho' => strlen($cnpjLimpo)
+            ]);
+            
             // Valida CNPJ
             if (!CnpjService::validarCnpj($cnpjLimpo)) {
+                \Log::warning('CNPJ inválido', ['cnpj' => $cnpjLimpo]);
                 return response()->json([
                     'success' => false,
                     'message' => 'CNPJ inválido'

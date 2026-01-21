@@ -65,22 +65,7 @@
                         Verificar Documento
                     </a>
                 </div>
-                
-                <!-- Stats -->
-                <div class="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">100%</div>
-                        <div class="text-sm text-gray-600">Digital</div>
-                    </div>
-                    <div class="text-center border-x border-gray-200">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">24/7</div>
-                        <div class="text-sm text-gray-600">Disponível</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">0</div>
-                        <div class="text-sm text-gray-600">Burocracia</div>
-                    </div>
-                </div>
+
             </div>
         </div>
     </section>
