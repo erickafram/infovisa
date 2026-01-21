@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registrar alias para middleware customizado
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin.gestor.estadual' => \App\Http\Middleware\EnsureUserIsAdminOrGestorEstadual::class,
         ]);
         
         // Configurar redirect para usuários não autenticados

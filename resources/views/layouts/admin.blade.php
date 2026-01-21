@@ -158,9 +158,9 @@
             </a>
             @endif
 
-            <!-- 9. Configurações (Apenas Administradores) -->
-            @if(auth('interno')->user()->isAdmin())
-            <a href="{{ route('admin.configuracoes.index') }}" 
+            <!-- 9. Configurações (Administradores e Gestor Estadual) -->
+            @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->nivel_acesso->value === 'gestor_estadual')
+            <a href="{{ route('admin.configuracoes.index') }}"
                title="Configurações"
                class="group flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.configuracoes.*') ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:scale-105' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

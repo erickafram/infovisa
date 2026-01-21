@@ -383,38 +383,22 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         'usuarios-externos' => 'usuarioExterno'
     ]);
 
-    // Configurações - RESTRITO A ADMINISTRADORES
-    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin')->group(function () {
+    // Configurações - Acesso para ADMINISTRADORES e GESTOR ESTADUAL (rotas específicas)
+    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin.gestor.estadual')->group(function () {
         // Página principal de configurações
         Route::get('/', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])->name('index');
         
-        // Tipos de Processo
-        Route::resource('tipos-processo', \App\Http\Controllers\TipoProcessoController::class)->parameters([
-            'tipos-processo' => 'tipoProcesso'
-        ]);
-        
-        // Tipos de Documento
+        // Tipos de Documento - Admin e Gestor Estadual
         Route::resource('tipos-documento', \App\Http\Controllers\TipoDocumentoController::class)->parameters([
             'tipos-documento' => 'tipoDocumento'
         ]);
         
-        // Modelos de Documentos
+        // Modelos de Documentos - Admin e Gestor Estadual
         Route::resource('modelos-documento', \App\Http\Controllers\ModeloDocumentoController::class)->parameters([
             'modelos-documento' => 'modeloDocumento'
         ]);
         
-        // Tipos de Ações
-        Route::resource('tipo-acoes', \App\Http\Controllers\Admin\TipoAcaoController::class)->parameters([
-            'tipo-acoes' => 'tipoAcao'
-        ]);
-        
-        // Tipos de Setor
-        Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([
-            'tipo-setores' => 'tipoSetor'
-        ]);
-        Route::post('tipo-setores/{tipoSetor}/toggle-status', [\App\Http\Controllers\Admin\TipoSetorController::class, 'toggleStatus'])->name('tipo-setores.toggle-status');
-        
-        // Pactuação (Competências Municipais e Estaduais)
+        // Pactuação (Competências Municipais e Estaduais) - Admin e Gestor Estadual
         Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');
             Route::get('buscar-cnaes', [\App\Http\Controllers\Admin\PactuacaoController::class, 'buscarCnaes'])->name('buscar-cnaes');
@@ -429,8 +413,27 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::post('{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
             Route::delete('{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
         });
+    });
+    
+    // Configurações - RESTRITO APENAS A ADMINISTRADORES
+    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin')->group(function () {
+        // Tipos de Processo - Apenas Admin
+        Route::resource('tipos-processo', \App\Http\Controllers\TipoProcessoController::class)->parameters([
+            'tipos-processo' => 'tipoProcesso'
+        ]);
         
-        // Municípios
+        // Tipos de Ações - Apenas Admin
+        Route::resource('tipo-acoes', \App\Http\Controllers\Admin\TipoAcaoController::class)->parameters([
+            'tipo-acoes' => 'tipoAcao'
+        ]);
+        
+        // Tipos de Setor - Apenas Admin
+        Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([
+            'tipo-setores' => 'tipoSetor'
+        ]);
+        Route::post('tipo-setores/{tipoSetor}/toggle-status', [\App\Http\Controllers\Admin\TipoSetorController::class, 'toggleStatus'])->name('tipo-setores.toggle-status');
+        
+        // Municípios - Apenas Admin
         Route::prefix('municipios')->name('municipios.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\MunicipioController::class, 'create'])->name('create');
@@ -443,13 +446,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::get('/buscar', [\App\Http\Controllers\Admin\MunicipioController::class, 'buscar'])->name('buscar');
         });
         
-        // Configurações do Sistema
+        // Configurações do Sistema - Apenas Admin
         Route::prefix('sistema')->name('sistema.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'index'])->name('index');
             Route::put('/', [\App\Http\Controllers\Admin\ConfiguracaoSistemaController::class, 'update'])->name('update');
         });
         
-        // Documentos POPs/IA
+        // Documentos POPs/IA - Apenas Admin
         Route::prefix('documentos-pops')->name('documentos-pops.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'create'])->name('create');
@@ -462,7 +465,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::post('/{documentoPop}/reindexar', [\App\Http\Controllers\Admin\DocumentoPopController::class, 'reindexar'])->name('reindexar');
         });
         
-        // Categorias de POPs
+        // Categorias de POPs - Apenas Admin
         Route::prefix('categorias-pops')->name('categorias-pops.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'create'])->name('create');
@@ -473,17 +476,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::get('/listar', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'listar'])->name('listar');
         });
 
-        // Tipos de Documento Obrigatório (para listas de documentos por atividade)
+        // Tipos de Documento Obrigatório (para listas de documentos por atividade) - Apenas Admin
         Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
 
-        // Tipos de Serviço
+        // Tipos de Serviço - Apenas Admin
         Route::resource('tipos-servico', \App\Http\Controllers\Admin\TipoServicoController::class);
 
-        // Atividades
+        // Atividades - Apenas Admin
         Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
         Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
 
-        // Listas de Documentos por Atividade
+        // Listas de Documentos por Atividade - Apenas Admin
         Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
         Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
     });

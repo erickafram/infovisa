@@ -3,6 +3,12 @@
 @section('title', 'Configurações')
 @section('page-title', 'Configurações do Sistema')
 
+@php
+    $user = auth('interno')->user();
+    $isAdmin = $user->isAdmin();
+    $isGestorEstadual = $user->nivel_acesso->value === 'gestor_estadual';
+@endphp
+
 @section('content')
 <div class="max-w-8xl mx-auto">
     <div class="mb-6">
@@ -12,7 +18,8 @@
     {{-- Grid de Cards de Configurações --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {{-- Tipos de Processo --}}
+        @if($isAdmin)
+        {{-- Tipos de Processo - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.tipos-processo.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -29,8 +36,10 @@
                 </div>
             </div>
         </a>
+        @endif
 
-        {{-- Tipos de Documento --}}
+        @if($isAdmin || $isGestorEstadual)
+        {{-- Tipos de Documento - Admin e Gestor Estadual --}}
         <a href="{{ route('admin.configuracoes.tipos-documento.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -48,7 +57,7 @@
             </div>
         </a>
 
-        {{-- Modelos de Documentos --}}
+        {{-- Modelos de Documentos - Admin e Gestor Estadual --}}
         <a href="{{ route('admin.configuracoes.modelos-documento.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -65,8 +74,10 @@
                 </div>
             </div>
         </a>
+        @endif
 
-        {{-- Tipos de Ações --}}
+        @if($isAdmin)
+        {{-- Tipos de Ações - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.tipo-acoes.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -84,7 +95,7 @@
             </div>
         </a>
 
-        {{-- Tipos de Setor --}}
+        {{-- Tipos de Setor - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.tipo-setores.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -101,8 +112,10 @@
                 </div>
             </div>
         </a>
+        @endif
 
-        {{-- Pactuação --}}
+        @if($isAdmin || $isGestorEstadual)
+        {{-- Pactuação - Admin e Gestor Estadual --}}
         <a href="{{ route('admin.configuracoes.pactuacao.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -119,8 +132,10 @@
                 </div>
             </div>
         </a>
+        @endif
 
-        {{-- Municípios --}}
+        @if($isAdmin)
+        {{-- Municípios - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.municipios.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -139,7 +154,7 @@
             </div>
         </a>
 
-        {{-- Documentos POPS/IA --}}
+        {{-- Documentos POPS/IA - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.documentos-pops.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -158,7 +173,7 @@
             </div>
         </a>
 
-        {{-- Configurações do Sistema --}}
+        {{-- Configurações do Sistema - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.sistema.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -176,10 +191,12 @@
                 </div>
             </div>
         </a>
+        @endif
 
     </div>
 
-    {{-- Seção: Lista de Documentos por Atividade --}}
+    @if($isAdmin)
+    {{-- Seção: Lista de Documentos por Atividade - Apenas Admin --}}
     <div class="mt-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,5 +225,6 @@
             </a>
         </div>
     </div>
+    @endif
 </div>
 @endsection
