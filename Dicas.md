@@ -103,3 +103,9 @@ php artisan cache:clear && php artisan config:clear && php artisan route:clear &
 sudo php artisan config:cache && sudo chown apache:apache bootstrap/cache/config.php
 sudo chown -R apache:apache /var/www/html/infovisa/ && sudo chmod -R 775 /var/www/html/infovisa/storage/ /var/www/html/infovisa/bootstrap/cache/
 sudo systemctl restart httpd php-fpm
+
+
+-- SUBIR PARA GIT
+git add .
+git commit -m "Implementação de questionários dinâmicos e override de competência"
+git push -u origin main

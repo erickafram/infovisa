@@ -4,7 +4,7 @@
 @section('page-title', 'Meu Perfil')
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-8xl mx-auto space-y-6">
     {{-- Header --}}
     <div class="flex items-center gap-4">
         <div class="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
