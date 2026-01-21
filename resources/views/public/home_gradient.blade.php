@@ -41,10 +41,6 @@
                     </span>
                 </h1>
                 
-                <!-- Subtitle -->
-                <p class="text-base md:text-lg text-blue-50 mb-2 max-w-3xl mx-auto leading-relaxed">
-                    Sistema de Vigilância Sanitária Municipal
-                </p>
                 <p class="text-sm text-blue-100 mb-8 max-w-2xl mx-auto">
                     Consulte processos e verifique documentos com segurança e transparência
                 </p>
