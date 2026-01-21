@@ -1290,7 +1290,7 @@ function estabelecimentoForm() {
             
             // Consulta API para verificar competência
             try {
-                const response = await fetch('/api/verificar-competencia', {
+                const response = await fetch('{{ url('/api/verificar-competencia') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1420,7 +1420,7 @@ function estabelecimentoForm() {
 
         async verificarCnpjExistente(cnpj, apiSource = 'API', tipoSetor = 'privado') {
             try {
-                const response = await fetch(`/api/verificar-cnpj/${cnpj}`, {
+                const response = await fetch(`{{ url('/api/verificar-cnpj') }}/${cnpj}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json'

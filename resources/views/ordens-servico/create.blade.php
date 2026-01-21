@@ -456,7 +456,7 @@
 
         $('#estabelecimento_id').select2({
             ajax: {
-                url: '/admin/ordens-servico/api/buscar-estabelecimentos',
+                url: '{{ url('/admin/ordens-servico/api/buscar-estabelecimentos') }}',
                 dataType: 'json',
                 delay: 250,
                 data: (params) => ({ q: params.term, page: params.page || 1 }),
@@ -650,7 +650,7 @@
                 submitButton.disabled = false; return;
             }
 
-            fetch(`/admin/ordens-servico/api/processos-estabelecimento/${estId}`)
+            fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/${estId}`)
                 .then(r => r.json())
                 .then(data => {
                     if(data.success && data.processos.length > 0) {

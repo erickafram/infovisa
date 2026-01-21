@@ -276,7 +276,7 @@ function atividadesForm() {
             console.log('📝 Respostas:', respostasSalvas);
             
             try {
-                const response = await fetch('/api/verificar-competencia', {
+                const response = await fetch('{{ url('/api/verificar-competencia') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

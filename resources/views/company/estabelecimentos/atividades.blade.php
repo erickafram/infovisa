@@ -273,7 +273,7 @@ function atividadesForm() {
             const respostasSalvas = @json($estabelecimento->respostas_questionario ?? []);
             
             try {
-                const response = await fetch('/api/verificar-competencia', {
+                const response = await fetch('{{ url('/api/verificar-competencia') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
