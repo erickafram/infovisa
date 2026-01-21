@@ -22,14 +22,21 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $request->validate([
+            'cpf' => ['required', 'string'],
             'password' => ['required'],
         ], [
-            'email.required' => 'O campo e-mail é obrigatório.',
-            'email.email' => 'Digite um e-mail válido.',
+            'cpf.required' => 'O campo CPF é obrigatório.',
             'password.required' => 'O campo senha é obrigatório.',
         ]);
+
+        // Remove formatação do CPF (pontos e traços)
+        $cpf = preg_replace('/[^0-9]/', '', $request->cpf);
+        
+        $credentials = [
+            'cpf' => $cpf,
+            'password' => $request->password,
+        ];
 
         $remember = $request->boolean('remember');
 
@@ -47,7 +54,7 @@ class LoginController extends Controller
 
         // Se ambos falharem, retorna erro
         throw ValidationException::withMessages([
-            'email' => 'As credenciais fornecidas não correspondem aos nossos registros ou o usuário está inativo.',
+            'cpf' => 'As credenciais fornecidas não correspondem aos nossos registros ou o usuário está inativo.',
         ]);
     }
 

@@ -50,20 +50,22 @@
             <form method="POST" action="{{ route('login.submit') }}">
                 @csrf
 
-                {{-- E-mail --}}
+                {{-- CPF --}}
                 <div class="mb-3">
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                        E-mail
+                    <label for="cpf" class="block text-sm font-medium text-gray-700 mb-1">
+                        CPF
                     </label>
                     <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        value="{{ old('email') }}"
+                        type="text" 
+                        id="cpf" 
+                        name="cpf" 
+                        value="{{ old('cpf') }}"
                         required
                         autofocus
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('email') border-red-300 @enderror"
-                        placeholder="seu.email@exemplo.com"
+                        maxlength="14"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('cpf') border-red-300 @enderror"
+                        placeholder="000.000.000-00"
+                        oninput="formatCPF(this)"
                     >
                 </div>
 
@@ -134,4 +136,20 @@
         </div>
     </div>
 </div>
+
+<script>
+function formatCPF(input) {
+    // Remove tudo que não é dígito
+    let value = input.value.replace(/\D/g, '');
+    
+    // Aplica a máscara do CPF
+    if (value.length <= 11) {
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    
+    input.value = value;
+}
+</script>
 @endsection

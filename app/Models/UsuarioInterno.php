@@ -61,6 +61,14 @@ class UsuarioInterno extends Authenticatable
     ];
 
     /**
+     * Get the name of the unique identifier for the user.
+     */
+    public function getAuthIdentifierName()
+    {
+        return 'cpf';
+    }
+
+    /**
      * Relacionamento com município
      */
     public function municipioRelacionado()

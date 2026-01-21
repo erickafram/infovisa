@@ -57,6 +57,14 @@ class UsuarioExterno extends Authenticatable
     }
 
     /**
+     * Get the name of the unique identifier for the user.
+     */
+    public function getAuthIdentifierName()
+    {
+        return 'cpf';
+    }
+
+    /**
      * Acessor para formatar o CPF
      */
     public function getCpfFormatadoAttribute(): string
