@@ -24,11 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Força HTTPS e domínio correto
-        if (config('app.env') === 'production') {
-            URL::forceScheme('https');
-            URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
-        }
+        // Força HTTPS e domínio correto sempre (não só em production)
+        URL::forceScheme('https');
+        URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
         
         // Configura tamanho padrão de strings para MySQL
         Schema::defaultStringLength(191);

@@ -81,6 +81,9 @@ php artisan serve --port=8001
 
 
 SERVIDOR INFOVISA
+sudo chown -R $USER:$USER /var/www/html/infovisa/
+sudo chmod -R 755 /var/www/html/infovisa/
+sudo chown -R $USER:$USER .git/
 git pull origin main
 composer install --no-dev --optimize-autoloader
 php artisan migrate
@@ -90,3 +93,13 @@ php artisan route:clear
 php artisan view:clear
 sudo systemctl restart httpd
 sudo systemctl restart php-fpm
+
+SE DER ERRO TENTE ESSE
+sudo chown -R $USER:$USER /var/www/html/infovisa/ .git/
+git pull origin main
+php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs
+php artisan migrate --force
+php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan view:clear
+sudo php artisan config:cache && sudo chown apache:apache bootstrap/cache/config.php
+sudo chown -R apache:apache /var/www/html/infovisa/ && sudo chmod -R 775 /var/www/html/infovisa/storage/ /var/www/html/infovisa/bootstrap/cache/
+sudo systemctl restart httpd php-fpm
