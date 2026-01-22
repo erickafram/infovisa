@@ -417,6 +417,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Listas de Documentos por Atividade - Admin e Gestor Estadual
         Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
         Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
+        
+        // Atividades - Admin e Gestor Estadual (necessário para Lista de Documentos)
+        Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
+        Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
+        
+        // Tipos de Documento Obrigatório - Admin e Gestor Estadual (necessário para Lista de Documentos)
+        Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
     });
     
     // Configurações - RESTRITO APENAS A ADMINISTRADORES
@@ -480,15 +487,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::get('/listar', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'listar'])->name('listar');
         });
 
-        // Tipos de Documento Obrigatório (para listas de documentos por atividade) - Apenas Admin
-        Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
-
         // Tipos de Serviço - Apenas Admin
         Route::resource('tipos-servico', \App\Http\Controllers\Admin\TipoServicoController::class);
-
-        // Atividades - Apenas Admin
-        Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
-        Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
     });
     
     // Assistente IA
