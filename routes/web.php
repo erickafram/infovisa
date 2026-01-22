@@ -540,6 +540,9 @@ Route::post('/api/consultar-cnpj', [App\Http\Controllers\Api\CnpjController::cla
 Route::get('/api/verificar-cnpj/{cnpj}', [App\Http\Controllers\Api\CnpjController::class, 'verificarExistente'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/verificar-competencia', [App\Http\Controllers\Api\CnpjController::class, 'verificarCompetencia'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
+// EXEMPLO: Rota para testar documentos aplicáveis a um estabelecimento
+Route::get('/api/estabelecimentos/{id}/documentos-aplicaveis', [App\Http\Controllers\EstabelecimentoController::class, 'buscarDocumentosAplicaveis'])->name('estabelecimentos.documentos-aplicaveis');
+
 // ROTA DE TESTE - DEBUG DE AUTENTICAÇÃO (REMOVER EM PRODUÇÃO)
 Route::get('/test-auth-debug', function () {
     return response()->json([

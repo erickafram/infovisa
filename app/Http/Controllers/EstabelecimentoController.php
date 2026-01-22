@@ -1295,4 +1295,54 @@ class EstabelecimentoController extends Controller
             ];
         }));
     }
+
+    /**
+     * EXEMPLO: Busca documentos aplicáveis para um estabelecimento
+     * Demonstra como usar a nova funcionalidade de documentos comuns
+     */
+    public function buscarDocumentosAplicaveis(string $id)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Busca todos os documentos aplicáveis (listas específicas + documentos comuns)
+        $documentos = \App\Models\ListaDocumento::buscarTodosDocumentosParaEstabelecimento($estabelecimento);
+        
+        return response()->json([
+            'estabelecimento' => [
+                'id' => $estabelecimento->id,
+                'nome' => $estabelecimento->nome_fantasia ?? $estabelecimento->razao_social,
+                'tipo_setor' => $estabelecimento->tipo_setor,
+                'municipio' => $estabelecimento->municipio,
+            ],
+            'escopo_competencia' => $documentos['escopo_competencia'],
+            'listas_especificas' => $documentos['listas']->map(function($lista) {
+                return [
+                    'id' => $lista->id,
+                    'nome' => $lista->nome,
+                    'escopo' => $lista->escopo,
+                    'documentos' => $lista->tiposDocumentoObrigatorio->map(function($doc) use ($estabelecimento) {
+                        return [
+                            'id' => $doc->id,
+                            'nome' => $doc->nome,
+                            'descricao' => $doc->descricao,
+                            'obrigatorio' => $doc->pivot->obrigatorio,
+                            'observacao' => $doc->pivot->observacao,
+                        ];
+                    })
+                ];
+            }),
+            'documentos_comuns' => $documentos['documentos_comuns']->map(function($doc) use ($estabelecimento) {
+                return [
+                    'id' => $doc->id,
+                    'nome' => $doc->nome,
+                    'descricao' => $doc->descricao,
+                    'escopo_competencia' => $doc->escopo_competencia_label,
+                    'tipo_setor' => $doc->tipo_setor_label,
+                    'prazo_validade_dias' => $doc->prazo_validade_dias,
+                    'observacao' => $doc->getObservacaoParaTipoSetor($estabelecimento->tipo_setor ?? 'privado'),
+                    'aplica_ao_estabelecimento' => $doc->aplicaAoTipoSetor($estabelecimento->tipo_setor ?? 'privado'),
+                ];
+            })
+        ]);
+    }
 }

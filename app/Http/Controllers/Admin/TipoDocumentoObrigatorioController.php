@@ -24,6 +24,18 @@ class TipoDocumentoObrigatorioController extends Controller
             $query->where('ativo', $request->status === 'ativo');
         }
 
+        if ($request->filled('documento_comum')) {
+            $query->where('documento_comum', $request->documento_comum === '1');
+        }
+
+        if ($request->filled('escopo_competencia')) {
+            $query->where('escopo_competencia', $request->escopo_competencia);
+        }
+
+        if ($request->filled('tipo_setor')) {
+            $query->where('tipo_setor', $request->tipo_setor);
+        }
+
         $tipos = $query->ordenado()->paginate(20)->withQueryString();
 
         return view('configuracoes.tipos-documento-obrigatorio.index', compact('tipos'));
@@ -41,9 +53,16 @@ class TipoDocumentoObrigatorioController extends Controller
             'descricao' => 'nullable|string',
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
+            'documento_comum' => 'boolean',
+            'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
+            'tipo_setor' => 'required|string|in:todos,publico,privado',
+            'observacao_publica' => 'nullable|string',
+            'observacao_privada' => 'nullable|string',
+            'prazo_validade_dias' => 'nullable|integer|min:1',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
+        $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
 
         TipoDocumentoObrigatorio::create($validated);
@@ -67,9 +86,16 @@ class TipoDocumentoObrigatorioController extends Controller
             'descricao' => 'nullable|string',
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
+            'documento_comum' => 'boolean',
+            'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
+            'tipo_setor' => 'required|string|in:todos,publico,privado',
+            'observacao_publica' => 'nullable|string',
+            'observacao_privada' => 'nullable|string',
+            'prazo_validade_dias' => 'nullable|integer|min:1',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
+        $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
 
         $tipos_documento_obrigatorio->update($validated);

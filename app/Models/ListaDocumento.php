@@ -198,4 +198,56 @@ class ListaDocumento extends Model
 
         return $query->get();
     }
+
+    /**
+     * Busca todos os documentos aplicáveis para um estabelecimento
+     * Inclui documentos das listas específicas + documentos comuns
+     */
+    public static function buscarTodosDocumentosParaEstabelecimento(Estabelecimento $estabelecimento)
+    {
+        // Busca listas específicas
+        $listas = self::buscarParaEstabelecimento($estabelecimento);
+        
+        // Determina o escopo de competência baseado nas atividades
+        $escopoCompetencia = self::determinarEscopoCompetencia($estabelecimento);
+        
+        // Busca documentos comuns aplicáveis
+        $documentosComuns = TipoDocumentoObrigatorio::buscarDocumentosComuns(
+            $escopoCompetencia, 
+            $estabelecimento->tipo_setor ?? 'privado'
+        );
+
+        return [
+            'listas' => $listas,
+            'documentos_comuns' => $documentosComuns,
+            'escopo_competencia' => $escopoCompetencia
+        ];
+    }
+
+    /**
+     * Determina o escopo de competência baseado nas atividades do estabelecimento
+     */
+    public static function determinarEscopoCompetencia(Estabelecimento $estabelecimento): string
+    {
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+        
+        if (empty($atividadesExercidas)) {
+            return 'municipal'; // Default
+        }
+
+        // Verifica se alguma atividade é de competência estadual
+        foreach ($atividadesExercidas as $atividade) {
+            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            if ($codigo) {
+                $codigoLimpo = preg_replace('/[^0-9]/', '', $codigo);
+                
+                // Usa a lógica da Pactuacao para verificar se é estadual
+                if (\App\Models\Pactuacao::isAtividadeEstadual($codigoLimpo, $estabelecimento->municipio)) {
+                    return 'estadual';
+                }
+            }
+        }
+
+        return 'municipal';
+    }
 }
