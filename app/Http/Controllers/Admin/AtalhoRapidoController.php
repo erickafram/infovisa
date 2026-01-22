@@ -11,7 +11,7 @@ class AtalhoRapidoController extends Controller
 {
     public function index()
     {
-        $atalhos = AtalhoRapido::where('usuario_interno_id', Auth::guard('interno')->id())
+        $atalhos = AtalhoRapido::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->orderBy('ordem')
             ->get();
 
@@ -27,7 +27,7 @@ class AtalhoRapidoController extends Controller
             'cor' => 'nullable|string|max:20',
         ]);
 
-        $userId = Auth::guard('interno')->id();
+        $userId = Auth::guard('interno')->user()->id;
         
         // Pegar a maior ordem atual
         $maxOrdem = AtalhoRapido::where('usuario_interno_id', $userId)->max('ordem') ?? 0;
@@ -51,7 +51,7 @@ class AtalhoRapidoController extends Controller
     public function update(Request $request, AtalhoRapido $atalho)
     {
         // Verificar se pertence ao usuário
-        if ($atalho->usuario_interno_id !== Auth::guard('interno')->id()) {
+        if ($atalho->usuario_interno_id !== Auth::guard('interno')->user()->id) {
             return response()->json(['error' => 'Não autorizado'], 403);
         }
 
@@ -79,7 +79,7 @@ class AtalhoRapidoController extends Controller
     public function destroy(AtalhoRapido $atalho)
     {
         // Verificar se pertence ao usuário
-        if ($atalho->usuario_interno_id !== Auth::guard('interno')->id()) {
+        if ($atalho->usuario_interno_id !== Auth::guard('interno')->user()->id) {
             return response()->json(['error' => 'Não autorizado'], 403);
         }
 
@@ -98,7 +98,7 @@ class AtalhoRapidoController extends Controller
             'atalhos.*' => 'integer|exists:atalhos_rapidos,id',
         ]);
 
-        $userId = Auth::guard('interno')->id();
+        $userId = Auth::guard('interno')->user()->id;
 
         foreach ($request->atalhos as $ordem => $id) {
             AtalhoRapido::where('id', $id)

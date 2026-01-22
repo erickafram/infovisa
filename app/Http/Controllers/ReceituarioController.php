@@ -137,7 +137,7 @@ class ReceituarioController extends Controller
             });
         }
         
-        $validated['usuario_criacao_id'] = Auth::guard('interno')->id();
+        $validated['usuario_criacao_id'] = Auth::guard('interno')->user()->id;
         $validated['status'] = 'pendente';
         
         $receituario = Receituario::create($validated);
@@ -216,7 +216,7 @@ class ReceituarioController extends Controller
             });
         }
         
-        $validated['usuario_atualizacao_id'] = Auth::guard('interno')->id();
+        $validated['usuario_atualizacao_id'] = Auth::guard('interno')->user()->id;
         
         $receituario->update($validated);
         

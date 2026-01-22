@@ -4,7 +4,7 @@
 @section('page-title', 'Nova Atividade')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="mb-6">
         <a href="{{ route('admin.configuracoes.atividades.index') }}" 
            class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800">

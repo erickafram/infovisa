@@ -135,18 +135,27 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Documentos Exigidos *</h3>
             <p class="text-xs text-gray-500 mb-4">Selecione os documentos que serão exigidos e defina se são obrigatórios ou opcionais</p>
+            <p class="text-xs text-blue-600 mb-4">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Documentos comuns (aplicados automaticamente a todos os serviços) não aparecem nesta lista.
+            </p>
             
             @if($tiposDocumento->isEmpty())
             <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p class="text-sm text-yellow-800">Nenhum tipo de documento cadastrado. <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.create') }}" class="underline">Cadastre primeiro</a>.</p>
+                <p class="text-sm text-yellow-800">Nenhum tipo de documento específico cadastrado. <a href="{{ route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-documento']) }}" class="underline">Cadastre primeiro</a>.</p>
             </div>
             @else
             <div class="space-y-3">
-                @foreach($tiposDocumento as $index => $doc)
-                <div class="border border-gray-200 rounded-lg p-4" x-data="{ selecionado: {{ in_array($doc->id, old('documentos', [])) ? 'true' : 'false' }} }">
+                @foreach($tiposDocumento as $doc)
+                <div class="border border-gray-200 rounded-lg p-4" x-data="{ selecionado: {{ in_array($doc->id, old('documentos_selecionados', [])) ? 'true' : 'false' }} }">
                     <div class="flex items-start gap-3">
                         <input type="checkbox" 
                                x-model="selecionado"
+                               name="documentos_selecionados[]"
+                               value="{{ $doc->id }}"
+                               {{ in_array($doc->id, old('documentos_selecionados', [])) ? 'checked' : '' }}
                                @change="if(!selecionado) { $refs.obrigatorio_{{ $doc->id }}.checked = true; $refs.observacao_{{ $doc->id }}.value = ''; }"
                                class="w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                         <div class="flex-1">
@@ -154,13 +163,13 @@
                                 <span class="text-sm font-medium text-gray-900">{{ $doc->nome }}</span>
                                 <div class="flex items-center gap-4" x-show="selecionado">
                                     <label class="flex items-center gap-2">
-                                        <input type="radio" name="documentos[{{ $index }}][obrigatorio]" value="1" checked
+                                        <input type="radio" name="documento_{{ $doc->id }}_obrigatorio" value="1" checked
                                                x-ref="obrigatorio_{{ $doc->id }}"
                                                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                                         <span class="text-xs text-gray-600">Obrigatório</span>
                                     </label>
                                     <label class="flex items-center gap-2">
-                                        <input type="radio" name="documentos[{{ $index }}][obrigatorio]" value="0"
+                                        <input type="radio" name="documento_{{ $doc->id }}_obrigatorio" value="0"
                                                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                                         <span class="text-xs text-gray-600">Opcional</span>
                                     </label>
@@ -170,9 +179,9 @@
                             <p class="text-xs text-gray-500 mt-1">{{ $doc->descricao }}</p>
                             @endif
                             <div x-show="selecionado" x-transition class="mt-2">
-                                <input type="hidden" name="documentos[{{ $index }}][id]" value="{{ $doc->id }}" x-bind:disabled="!selecionado">
-                                <input type="text" name="documentos[{{ $index }}][observacao]" 
+                                <input type="text" name="documento_{{ $doc->id }}_observacao" 
                                        x-ref="observacao_{{ $doc->id }}"
+                                       value="{{ old('documento_'.$doc->id.'_observacao') }}"
                                        placeholder="Observação específica para este documento (opcional)"
                                        class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
@@ -201,8 +210,51 @@
 <script>
 function listaDocumentoForm() {
     return {
-        escopo: '{{ old('escopo', 'estadual') }}'
+        escopo: '{{ old('escopo', 'estadual') }}',
+        
+        // Debug function to check form data before submit
+        debugForm() {
+            const form = document.querySelector('form');
+            const formData = new FormData(form);
+            
+            console.log('=== FORM DEBUG ===');
+            console.log('Documentos selecionados:', formData.getAll('documentos_selecionados[]'));
+            console.log('Atividades:', formData.getAll('atividades[]'));
+            console.log('Todos os dados:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, ':', value);
+            }
+            console.log('==================');
+        }
     }
 }
+
+// Add form submit debugging
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const formData = new FormData(form);
+            const documentos = formData.getAll('documentos_selecionados[]');
+            const atividades = formData.getAll('atividades[]');
+            
+            console.log('Form submitting with:');
+            console.log('Documentos:', documentos);
+            console.log('Atividades:', atividades);
+            
+            if (documentos.length === 0) {
+                alert('ERRO: Nenhum documento selecionado!');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (atividades.length === 0) {
+                alert('ERRO: Nenhuma atividade selecionada!');
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
 </script>
 @endsection

@@ -481,7 +481,7 @@ class ProcessoController extends Controller
                 // Cria o processo
                 return Processo::create([
                     'estabelecimento_id' => $estabelecimento->id,
-                    'usuario_id' => Auth::guard('interno')->id(),
+                    'usuario_id' => Auth::guard('interno')->user()->id,
                     'tipo' => $validated['tipo'],
                     'ano' => $numeroData['ano'],
                     'numero_sequencial' => $numeroData['numero_sequencial'],
@@ -757,7 +757,7 @@ class ProcessoController extends Controller
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
-        $usuarioId = Auth::guard('interno')->id();
+        $usuarioId = Auth::guard('interno')->user()->id;
         
         $acompanhamento = ProcessoAcompanhamento::where('processo_id', $processoId)
             ->where('usuario_interno_id', $usuarioId)
@@ -1486,7 +1486,7 @@ class ProcessoController extends Controller
                 'status' => 'arquivado',
                 'motivo_arquivamento' => $request->motivo_arquivamento,
                 'data_arquivamento' => now(),
-                'usuario_arquivamento_id' => Auth::guard('interno')->id(),
+                'usuario_arquivamento_id' => Auth::guard('interno')->user()->id,
                 // Guarda backup do setor/responsável
                 'setor_antes_arquivar' => $setorAnterior,
                 'responsavel_antes_arquivar_id' => $responsavelAnteriorId,
@@ -1542,7 +1542,7 @@ class ProcessoController extends Controller
             // ✅ REGISTRAR EVENTO NO HISTÓRICO
             \App\Models\ProcessoEvento::create([
                 'processo_id' => $processo->id,
-                'usuario_interno_id' => Auth::guard('interno')->id(),
+                'usuario_interno_id' => Auth::guard('interno')->user()->id,
                 'tipo_evento' => 'processo_desarquivado',
                 'titulo' => 'Processo Desarquivado',
                 'descricao' => 'Processo foi desarquivado e reaberto' . 
@@ -1592,7 +1592,7 @@ class ProcessoController extends Controller
                 'status' => 'parado',
                 'motivo_parada' => $request->motivo_parada,
                 'data_parada' => now(),
-                'usuario_parada_id' => Auth::guard('interno')->id(),
+                'usuario_parada_id' => Auth::guard('interno')->user()->id,
             ]);
 
             // ✅ REGISTRAR EVENTO NO HISTÓRICO

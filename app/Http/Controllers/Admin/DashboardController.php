@@ -69,7 +69,7 @@ class DashboardController extends Controller
 
         // Buscar processos que o usuário está acompanhando
         $processos_acompanhados = Processo::whereHas('acompanhamentos', function($query) {
-                $query->where('usuario_interno_id', Auth::guard('interno')->id());
+                $query->where('usuario_interno_id', Auth::guard('interno')->user()->id);
             })
             ->with(['estabelecimento', 'usuario'])
             ->orderBy('updated_at', 'desc')
@@ -77,7 +77,7 @@ class DashboardController extends Controller
             ->get();
 
         // Buscar documentos pendentes de assinatura do usuário (excluindo rascunhos)
-        $documentos_pendentes_assinatura = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->id())
+        $documentos_pendentes_assinatura = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->where('status', 'pendente')
             ->whereHas('documentoDigital', function($query) {
                 $query->where('status', '!=', 'rascunho');
@@ -87,7 +87,7 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $stats['documentos_pendentes_assinatura'] = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->id())
+        $stats['documentos_pendentes_assinatura'] = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->where('status', 'pendente')
             ->whereHas('documentoDigital', function($query) {
                 $query->where('status', '!=', 'rascunho');
@@ -95,7 +95,7 @@ class DashboardController extends Controller
             ->count();
 
         // Buscar documentos em rascunho que têm o usuário como assinante
-        $documentos_rascunho_pendentes = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->id())
+        $documentos_rascunho_pendentes = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->where('status', 'pendente')
             ->whereHas('documentoDigital', function($query) {
                 $query->where('status', 'rascunho');
@@ -105,7 +105,7 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $stats['documentos_rascunho_pendentes'] = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->id())
+        $stats['documentos_rascunho_pendentes'] = DocumentoAssinatura::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->where('status', 'pendente')
             ->whereHas('documentoDigital', function($query) {
                 $query->where('status', 'rascunho');
@@ -114,14 +114,14 @@ class DashboardController extends Controller
 
         // Buscar processos designados DIRETAMENTE para o usuário (pendentes e em andamento)
         // Exclui designações apenas por setor
-        $processos_designados = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
+        $processos_designados = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->user()->id)
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->with(['processo.estabelecimento', 'usuarioDesignador'])
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();
 
-        $stats['processos_designados_pendentes'] = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->id())
+        $stats['processos_designados_pendentes'] = ProcessoDesignacao::where('usuario_designado_id', Auth::guard('interno')->user()->id)
             ->whereIn('status', ['pendente', 'em_andamento'])
             ->count();
 
@@ -193,7 +193,7 @@ class DashboardController extends Controller
         // Buscar documentos assinados pelo usuário que vencem em até 5 dias
         // Exclui documentos que já foram marcados como "respondido" (prazo finalizado)
         $documentos_vencendo = DocumentoDigital::whereHas('assinaturas', function($query) {
-                $query->where('usuario_interno_id', Auth::guard('interno')->id())
+                $query->where('usuario_interno_id', Auth::guard('interno')->user()->id)
                       ->where('status', 'assinado');
             })
             ->whereNotNull('data_vencimento')
@@ -258,7 +258,7 @@ class DashboardController extends Controller
         $stats['total_pendentes_aprovacao'] = $stats['documentos_pendentes_aprovacao'] + $stats['respostas_pendentes_aprovacao'];
 
         // Buscar atalhos rápidos do usuário
-        $atalhos_rapidos = \App\Models\AtalhoRapido::where('usuario_interno_id', Auth::guard('interno')->id())
+        $atalhos_rapidos = \App\Models\AtalhoRapido::where('usuario_interno_id', Auth::guard('interno')->user()->id)
             ->orderBy('ordem')
             ->get();
 

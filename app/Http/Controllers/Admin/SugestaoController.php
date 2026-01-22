@@ -34,7 +34,7 @@ class SugestaoController extends Controller
 
         // Filtro por minhas sugestões
         if ($request->boolean('minhas')) {
-            $query->where('usuario_interno_id', Auth::guard('interno')->id());
+            $query->where('usuario_interno_id', Auth::guard('interno')->user()->id);
         }
 
         $sugestoes = $query->paginate(20);
@@ -69,7 +69,7 @@ class SugestaoController extends Controller
         ]);
 
         $sugestao = Sugestao::create([
-            'usuario_interno_id' => Auth::guard('interno')->id(),
+            'usuario_interno_id' => Auth::guard('interno')->user()->id,
             'pagina_url' => $request->pagina_url,
             'titulo' => $request->titulo,
             'descricao' => $request->descricao,

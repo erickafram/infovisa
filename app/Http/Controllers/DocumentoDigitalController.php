@@ -263,7 +263,7 @@ class DocumentoDigitalController extends Controller
             $documento = DocumentoDigital::create([
                 'tipo_documento_id' => $request->tipo_documento_id,
                 'processo_id' => $request->processo_id,
-                'usuario_criador_id' => Auth::guard('interno')->id(),
+                'usuario_criador_id' => Auth::guard('interno')->user()->id,
                 'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
                 'nome' => $tipoDocumento->nome, // Nome do tipo de documento
                 'conteudo' => $request->conteudo,
@@ -288,7 +288,7 @@ class DocumentoDigitalController extends Controller
 
             // Salva a primeira versão do documento
             $documento->salvarVersao(
-                Auth::guard('interno')->id(),
+                Auth::guard('interno')->user()->id,
                 $request->conteudo,
                 null
             );
@@ -429,7 +429,7 @@ class DocumentoDigitalController extends Controller
             // SEMPRE salva nova versão quando salvar como rascunho
             // Isso garante que cada salvamento seja registrado no histórico
             $documento->salvarVersao(
-                Auth::guard('interno')->id(),
+                Auth::guard('interno')->user()->id,
                 $request->conteudo,
                 null
             );
@@ -599,7 +599,7 @@ class DocumentoDigitalController extends Controller
     public function assinar(Request $request, $id)
     {
         $documento = DocumentoDigital::findOrFail($id);
-        $usuarioId = Auth::guard('interno')->id();
+        $usuarioId = Auth::guard('interno')->user()->id;
 
         $assinatura = DocumentoAssinatura::where('documento_digital_id', $id)
             ->where('usuario_interno_id', $usuarioId)
@@ -690,7 +690,7 @@ class DocumentoDigitalController extends Controller
                 // Cria registro no banco
                 \App\Models\ProcessoDocumento::create([
                     'processo_id' => $processoId,
-                    'usuario_id' => Auth::guard('interno')->id(),
+                    'usuario_id' => Auth::guard('interno')->user()->id,
                     'tipo_usuario' => 'interno',
                     'nome_arquivo' => $nomeArquivoSalvo,
                     'nome_original' => $nomeArquivo,

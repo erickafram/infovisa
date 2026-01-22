@@ -126,18 +126,50 @@
         {{-- Documentos Obrigatórios --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Documentos Exigidos *</h3>
+            <p class="text-xs text-gray-500 mb-4">Selecione os documentos que serão exigidos e defina se são obrigatórios ou opcionais</p>
+            <p class="text-xs text-blue-600 mb-4">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Documentos comuns (aplicados automaticamente a todos os serviços) não aparecem nesta lista.
+            </p>
             
             @php
                 $documentosSelecionados = $lista->tiposDocumentoObrigatorio->keyBy('id');
+                $documentosArray = [];
+                $indexCounter = 0;
+                
+                // Primeiro, adiciona os documentos já selecionados
+                foreach($lista->tiposDocumentoObrigatorio as $docSelecionado) {
+                    $documentosArray[] = [
+                        'id' => $docSelecionado->id,
+                        'obrigatorio' => $docSelecionado->pivot->obrigatorio,
+                        'observacao' => $docSelecionado->pivot->observacao,
+                        'selected' => true,
+                        'index' => $indexCounter++
+                    ];
+                }
+                
+                // Depois, adiciona os documentos não selecionados
+                foreach($tiposDocumento as $doc) {
+                    if (!$documentosSelecionados->has($doc->id)) {
+                        $documentosArray[] = [
+                            'id' => $doc->id,
+                            'obrigatorio' => true,
+                            'observacao' => '',
+                            'selected' => false,
+                            'index' => $indexCounter++
+                        ];
+                    }
+                }
             @endphp
             
-            <div class="space-y-3">
-                @foreach($tiposDocumento as $index => $doc)
+            <div class="space-y-3" x-data="{ documentosData: {{ json_encode($documentosArray) }} }">
+                @foreach($tiposDocumento as $doc)
                 @php
-                    $docSelecionado = $documentosSelecionados->get($doc->id);
-                    $isSelected = $docSelecionado !== null;
-                    $isObrigatorio = $docSelecionado ? $docSelecionado->pivot->obrigatorio : true;
-                    $observacao = $docSelecionado ? $docSelecionado->pivot->observacao : '';
+                    $docData = collect($documentosArray)->firstWhere('id', $doc->id);
+                    $isSelected = $docData['selected'];
+                    $docIndex = $docData['index'];
                 @endphp
                 <div class="border border-gray-200 rounded-lg p-4" x-data="{ selecionado: {{ $isSelected ? 'true' : 'false' }} }">
                     <div class="flex items-start gap-3">
@@ -149,14 +181,16 @@
                                 <span class="text-sm font-medium text-gray-900">{{ $doc->nome }}</span>
                                 <div class="flex items-center gap-4" x-show="selecionado">
                                     <label class="flex items-center gap-2">
-                                        <input type="radio" name="documentos[{{ $index }}][obrigatorio]" value="1" 
-                                               {{ $isObrigatorio ? 'checked' : '' }}
+                                        <input type="radio" name="documentos[{{ $docIndex }}][obrigatorio]" value="1" 
+                                               {{ $docData['obrigatorio'] ? 'checked' : '' }}
+                                               x-bind:disabled="!selecionado"
                                                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                                         <span class="text-xs text-gray-600">Obrigatório</span>
                                     </label>
                                     <label class="flex items-center gap-2">
-                                        <input type="radio" name="documentos[{{ $index }}][obrigatorio]" value="0"
-                                               {{ !$isObrigatorio ? 'checked' : '' }}
+                                        <input type="radio" name="documentos[{{ $docIndex }}][obrigatorio]" value="0"
+                                               {{ !$docData['obrigatorio'] ? 'checked' : '' }}
+                                               x-bind:disabled="!selecionado"
                                                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                                         <span class="text-xs text-gray-600">Opcional</span>
                                     </label>
@@ -166,9 +200,10 @@
                             <p class="text-xs text-gray-500 mt-1">{{ $doc->descricao }}</p>
                             @endif
                             <div x-show="selecionado" x-transition class="mt-2">
-                                <input type="hidden" name="documentos[{{ $index }}][id]" value="{{ $doc->id }}" x-bind:disabled="!selecionado">
-                                <input type="text" name="documentos[{{ $index }}][observacao]" 
-                                       value="{{ $observacao }}"
+                                <input type="hidden" name="documentos[{{ $docIndex }}][id]" value="{{ $doc->id }}" x-bind:disabled="!selecionado">
+                                <input type="text" name="documentos[{{ $docIndex }}][observacao]" 
+                                       value="{{ $docData['observacao'] }}"
+                                       x-bind:disabled="!selecionado"
                                        placeholder="Observação específica para este documento (opcional)"
                                        class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
@@ -199,5 +234,54 @@ function listaDocumentoForm() {
         escopo: '{{ old('escopo', $lista->escopo) }}'
     }
 }
+
+// Add form submit debugging for edit form
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const formData = new FormData(form);
+            const documentos = [];
+            const atividades = formData.getAll('atividades[]');
+            
+            // Collect documentos data
+            let index = 0;
+            while (formData.has(`documentos[${index}][id]`)) {
+                const docId = formData.get(`documentos[${index}][id]`);
+                const obrigatorio = formData.get(`documentos[${index}][obrigatorio]`);
+                const observacao = formData.get(`documentos[${index}][observacao]`);
+                
+                if (docId) {
+                    documentos.push({
+                        id: docId,
+                        obrigatorio: obrigatorio,
+                        observacao: observacao
+                    });
+                }
+                index++;
+            }
+            
+            console.log('=== EDIT FORM DEBUG ===');
+            console.log('Form submitting with:');
+            console.log('Documentos:', documentos);
+            console.log('Atividades:', atividades);
+            console.log('Total documentos:', documentos.length);
+            console.log('Total atividades:', atividades.length);
+            console.log('=======================');
+            
+            if (documentos.length === 0) {
+                alert('ERRO: Nenhum documento selecionado!');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (atividades.length === 0) {
+                alert('ERRO: Nenhuma atividade selecionada!');
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
 </script>
 @endsection

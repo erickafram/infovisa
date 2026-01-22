@@ -105,7 +105,13 @@ class ListaDocumentoController extends Controller
     public function create()
     {
         $tiposServico = TipoServico::ativos()->with('atividadesAtivas')->ordenado()->get();
-        $tiposDocumento = TipoDocumentoObrigatorio::ativos()->ordenado()->get();
+        
+        // Excluir documentos comuns da seleção - eles são aplicados automaticamente
+        $tiposDocumento = TipoDocumentoObrigatorio::ativos()
+            ->where('documento_comum', false)
+            ->ordenado()
+            ->get();
+            
         $tiposProcesso = TipoProcesso::where('ativo', true)->orderBy('nome')->get();
         $municipios = Municipio::orderBy('nome')->get();
 
@@ -114,6 +120,13 @@ class ListaDocumentoController extends Controller
 
     public function store(Request $request)
     {
+        // Debug: Log the incoming request data
+        \Log::info('Lista Documento Store Request', [
+            'all_data' => $request->all(),
+            'documentos_selecionados' => $request->input('documentos_selecionados'),
+            'atividades' => $request->input('atividades'),
+        ]);
+
         $validated = $request->validate([
             'tipo_processo_id' => 'required|exists:tipo_processos,id',
             'nome' => 'required|string|max:255',
@@ -123,14 +136,17 @@ class ListaDocumentoController extends Controller
             'ativo' => 'boolean',
             'atividades' => 'required|array|min:1',
             'atividades.*' => 'exists:atividades,id',
-            'documentos' => 'required|array|min:1',
-            'documentos.*.id' => 'required|exists:tipos_documento_obrigatorio,id',
-            'documentos.*.obrigatorio' => 'boolean',
-            'documentos.*.observacao' => 'nullable|string',
+            'documentos_selecionados' => 'required|array|min:1',
+            'documentos_selecionados.*' => 'exists:tipos_documento_obrigatorio,id',
+        ], [
+            'documentos_selecionados.required' => 'Selecione pelo menos um documento.',
+            'documentos_selecionados.min' => 'Selecione pelo menos um documento.',
+            'atividades.required' => 'Selecione pelo menos uma atividade.',
+            'atividades.min' => 'Selecione pelo menos uma atividade.',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
-        $validated['criado_por'] = Auth::guard('interno')->id();
+        $validated['criado_por'] = Auth::guard('interno')->user()->id; // Usar ->user()->id em vez de ->id()
 
         if ($validated['escopo'] === 'estadual') {
             $validated['municipio_id'] = null;
@@ -153,10 +169,13 @@ class ListaDocumentoController extends Controller
 
             // Vincula documentos com pivot data
             $documentosData = [];
-            foreach ($validated['documentos'] as $index => $doc) {
-                $documentosData[$doc['id']] = [
-                    'obrigatorio' => $doc['obrigatorio'] ?? true,
-                    'observacao' => $doc['observacao'] ?? null,
+            foreach ($validated['documentos_selecionados'] as $index => $docId) {
+                $obrigatorio = $request->input("documento_{$docId}_obrigatorio", 1);
+                $observacao = $request->input("documento_{$docId}_observacao");
+                
+                $documentosData[$docId] = [
+                    'obrigatorio' => (bool) $obrigatorio,
+                    'observacao' => $observacao,
                     'ordem' => $index,
                 ];
             }
@@ -169,6 +188,10 @@ class ListaDocumentoController extends Controller
                 ->with('success', 'Lista de documentos criada com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Erro ao criar lista de documentos', [
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
             return back()->withInput()->with('error', 'Erro ao criar lista: ' . $e->getMessage());
         }
     }
@@ -193,7 +216,13 @@ class ListaDocumentoController extends Controller
         $listas_documento->load(['atividades', 'tiposDocumentoObrigatorio']);
         
         $tiposServico = TipoServico::ativos()->with('atividadesAtivas')->ordenado()->get();
-        $tiposDocumento = TipoDocumentoObrigatorio::ativos()->ordenado()->get();
+        
+        // Excluir documentos comuns da seleção - eles são aplicados automaticamente
+        $tiposDocumento = TipoDocumentoObrigatorio::ativos()
+            ->where('documento_comum', false)
+            ->ordenado()
+            ->get();
+            
         $tiposProcesso = TipoProcesso::where('ativo', true)->orderBy('nome')->get();
         $municipios = Municipio::orderBy('nome')->get();
 
@@ -208,6 +237,14 @@ class ListaDocumentoController extends Controller
 
     public function update(Request $request, ListaDocumento $listas_documento)
     {
+        // Debug: Log the incoming request data
+        \Log::info('Lista Documento Update Request', [
+            'lista_id' => $listas_documento->id,
+            'all_data' => $request->all(),
+            'documentos' => $request->input('documentos'),
+            'atividades' => $request->input('atividades'),
+        ]);
+
         $validated = $request->validate([
             'tipo_processo_id' => 'required|exists:tipo_processos,id',
             'nome' => 'required|string|max:255',
@@ -221,6 +258,11 @@ class ListaDocumentoController extends Controller
             'documentos.*.id' => 'required|exists:tipos_documento_obrigatorio,id',
             'documentos.*.obrigatorio' => 'boolean',
             'documentos.*.observacao' => 'nullable|string',
+        ], [
+            'documentos.required' => 'Selecione pelo menos um documento.',
+            'documentos.min' => 'Selecione pelo menos um documento.',
+            'atividades.required' => 'Selecione pelo menos uma atividade.',
+            'atividades.min' => 'Selecione pelo menos uma atividade.',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
@@ -283,7 +325,7 @@ class ListaDocumentoController extends Controller
         try {
             $novaLista = $listas_documento->replicate();
             $novaLista->nome = $listas_documento->nome . ' (Cópia)';
-            $novaLista->criado_por = Auth::guard('interno')->id();
+            $novaLista->criado_por = Auth::guard('interno')->user()->id;
             $novaLista->save();
 
             // Copia atividades
