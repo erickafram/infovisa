@@ -4,7 +4,7 @@
 @section('page-title', 'Novo Tipo de Documento Obrigatório')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="mb-6">
         <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.index') }}" 
            class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800">
@@ -51,6 +51,70 @@
                     <input type="checkbox" name="ativo" id="ativo" value="1" {{ old('ativo', true) ? 'checked' : '' }}
                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                     <label for="ativo" class="text-sm text-gray-700">Ativo</label>
+                </div>
+
+                {{-- Seção: Documento Comum --}}
+                <div class="border-t border-gray-200 pt-5">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Configurações de Documento Comum</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <input type="checkbox" name="documento_comum" id="documento_comum" value="1" {{ old('documento_comum') ? 'checked' : '' }}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5">
+                            <div>
+                                <label for="documento_comum" class="text-sm font-medium text-gray-700">Documento Comum a Todos os Serviços</label>
+                                <p class="text-xs text-gray-500 mt-1">Se marcado, este documento será obrigatório para TODOS os serviços do escopo selecionado, sem precisar vincular a atividades específicas.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="escopo_competencia" class="block text-sm font-medium text-gray-700 mb-1">Escopo de Competência</label>
+                                <select name="escopo_competencia" id="escopo_competencia"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="todos" {{ old('escopo_competencia', 'todos') === 'todos' ? 'selected' : '' }}>Todos (Estadual + Municipal)</option>
+                                    <option value="estadual" {{ old('escopo_competencia') === 'estadual' ? 'selected' : '' }}>Apenas Estadual</option>
+                                    <option value="municipal" {{ old('escopo_competencia') === 'municipal' ? 'selected' : '' }}>Apenas Municipal</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Define se aplica a processos estaduais, municipais ou ambos</p>
+                            </div>
+
+                            <div>
+                                <label for="tipo_setor" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Setor</label>
+                                <select name="tipo_setor" id="tipo_setor"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="todos" {{ old('tipo_setor', 'todos') === 'todos' ? 'selected' : '' }}>Todos (Público + Privado)</option>
+                                    <option value="publico" {{ old('tipo_setor') === 'publico' ? 'selected' : '' }}>Apenas Público</option>
+                                    <option value="privado" {{ old('tipo_setor') === 'privado' ? 'selected' : '' }}>Apenas Privado</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Define se aplica a estabelecimentos públicos, privados ou ambos</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="prazo_validade_dias" class="block text-sm font-medium text-gray-700 mb-1">Prazo de Validade (dias)</label>
+                            <input type="number" name="prazo_validade_dias" id="prazo_validade_dias" value="{{ old('prazo_validade_dias') }}" min="1"
+                                   placeholder="Ex: 30 para CNPJ"
+                                   class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Opcional. Ex: CNPJ com data de impressão de até 30 dias</p>
+                        </div>
+
+                        <div>
+                            <label for="observacao_publica" class="block text-sm font-medium text-gray-700 mb-1">Observação para Estabelecimentos Públicos</label>
+                            <textarea name="observacao_publica" id="observacao_publica" rows="2"
+                                      placeholder="Ex: Isento para estabelecimentos públicos"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ old('observacao_publica') }}</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Observação específica mostrada para estabelecimentos públicos</p>
+                        </div>
+
+                        <div>
+                            <label for="observacao_privada" class="block text-sm font-medium text-gray-700 mb-1">Observação para Estabelecimentos Privados</label>
+                            <textarea name="observacao_privada" id="observacao_privada" rows="2"
+                                      placeholder="Ex: Apenas para empresas privadas"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ old('observacao_privada') }}</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Observação específica mostrada para estabelecimentos privados</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

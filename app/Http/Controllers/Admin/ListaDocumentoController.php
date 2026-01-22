@@ -48,7 +48,33 @@ class ListaDocumentoController extends Controller
         $listas = $queryListas->orderBy('nome')->paginate(15)->withQueryString();
 
         // Tipos de Documento Obrigatório
-        $tiposDocumento = TipoDocumentoObrigatorio::ordenado()->get();
+        $queryTiposDocumento = TipoDocumentoObrigatorio::query();
+
+        if ($request->filled('busca') && $request->tab === 'tipos-documento') {
+            $busca = $request->busca;
+            $queryTiposDocumento->where(function($q) use ($busca) {
+                $q->where('nome', 'ilike', "%{$busca}%")
+                  ->orWhere('descricao', 'ilike', "%{$busca}%");
+            });
+        }
+
+        if ($request->filled('status') && $request->tab === 'tipos-documento') {
+            $queryTiposDocumento->where('ativo', $request->status === 'ativo');
+        }
+
+        if ($request->filled('documento_comum') && $request->tab === 'tipos-documento') {
+            $queryTiposDocumento->where('documento_comum', $request->documento_comum === '1');
+        }
+
+        if ($request->filled('escopo_competencia') && $request->tab === 'tipos-documento') {
+            $queryTiposDocumento->where('escopo_competencia', $request->escopo_competencia);
+        }
+
+        if ($request->filled('tipo_setor') && $request->tab === 'tipos-documento') {
+            $queryTiposDocumento->where('tipo_setor', $request->tipo_setor);
+        }
+
+        $tiposDocumento = $queryTiposDocumento->ordenado()->paginate(15)->withQueryString();
 
         // Tipos de Serviço com contagem de atividades
         $tiposServico = TipoServico::withCount('atividades')->ordenado()->get();

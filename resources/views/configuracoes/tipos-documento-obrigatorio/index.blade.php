@@ -34,10 +34,33 @@
                     <option value="inativo" {{ request('status') === 'inativo' ? 'selected' : '' }}>Inativos</option>
                 </select>
             </div>
+            <div class="w-40">
+                <select name="documento_comum" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos os tipos</option>
+                    <option value="1" {{ request('documento_comum') === '1' ? 'selected' : '' }}>Documentos Comuns</option>
+                    <option value="0" {{ request('documento_comum') === '0' ? 'selected' : '' }}>Documentos Específicos</option>
+                </select>
+            </div>
+            <div class="w-40">
+                <select name="escopo_competencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos os escopos</option>
+                    <option value="estadual" {{ request('escopo_competencia') === 'estadual' ? 'selected' : '' }}>Estadual</option>
+                    <option value="municipal" {{ request('escopo_competencia') === 'municipal' ? 'selected' : '' }}>Municipal</option>
+                    <option value="todos" {{ request('escopo_competencia') === 'todos' ? 'selected' : '' }}>Todos</option>
+                </select>
+            </div>
+            <div class="w-40">
+                <select name="tipo_setor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos os setores</option>
+                    <option value="publico" {{ request('tipo_setor') === 'publico' ? 'selected' : '' }}>Público</option>
+                    <option value="privado" {{ request('tipo_setor') === 'privado' ? 'selected' : '' }}>Privado</option>
+                    <option value="todos" {{ request('tipo_setor') === 'todos' ? 'selected' : '' }}>Todos</option>
+                </select>
+            </div>
             <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
                 Filtrar
             </button>
-            @if(request()->hasAny(['busca', 'status']))
+            @if(request()->hasAny(['busca', 'status', 'documento_comum', 'escopo_competencia', 'tipo_setor']))
             <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.index') }}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
                 Limpar
             </a>
@@ -73,6 +96,9 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome</th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Descrição</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Tipo</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Escopo</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Setor</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Ordem</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
@@ -82,10 +108,44 @@
                 @foreach($tipos as $tipo)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3">
-                        <span class="text-sm font-medium text-gray-900">{{ $tipo->nome }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-gray-900">{{ $tipo->nome }}</span>
+                            @if($tipo->prazo_validade_dias)
+                            <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded" title="Validade: {{ $tipo->prazo_validade_dias }} dias">
+                                {{ $tipo->prazo_validade_dias }}d
+                            </span>
+                            @endif
+                        </div>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="text-sm text-gray-600">{{ Str::limit($tipo->descricao, 60) ?: '-' }}</span>
+                        <span class="text-sm text-gray-600">{{ Str::limit($tipo->descricao, 50) ?: '-' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        @if($tipo->documento_comum)
+                        <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full" title="Documento comum a todos os serviços">
+                            Comum
+                        </span>
+                        @else
+                        <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full" title="Documento específico por atividade">
+                            Específico
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full
+                            @if($tipo->escopo_competencia === 'estadual') bg-blue-100 text-blue-800
+                            @elseif($tipo->escopo_competencia === 'municipal') bg-green-100 text-green-800
+                            @else bg-gray-100 text-gray-600 @endif">
+                            {{ $tipo->escopo_competencia_label }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full
+                            @if($tipo->tipo_setor === 'publico') bg-indigo-100 text-indigo-800
+                            @elseif($tipo->tipo_setor === 'privado') bg-orange-100 text-orange-800
+                            @else bg-gray-100 text-gray-600 @endif">
+                            {{ $tipo->tipo_setor_label }}
+                        </span>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="text-sm text-gray-600">{{ $tipo->ordem }}</span>

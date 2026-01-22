@@ -417,6 +417,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Listas de Documentos por Atividade - Admin e Gestor Estadual
         Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
         Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
+
+        // Tipos de Documento Obrigatório (integrado na página de listas-documento) - Admin e Gestor Estadual
+        // As rotas de tipos-documento-obrigatorio agora são acessadas via aba na página listas-documento
+        Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
         
         // Tipos de Documento Obrigatório (para listas de documentos por atividade) - Admin e Gestor Estadual
         Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
