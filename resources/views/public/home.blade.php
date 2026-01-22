@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'InfoVISA - Sistema de Vigilância Sanitária Municipal')
+@section('title', 'InfoVISA - Sistema de Vigilância Sanitária')
 
 @section('content')
 <div x-data="{ 

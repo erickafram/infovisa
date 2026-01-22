@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema de Vigilância Sanitária Municipal - Consulte processos e verifique documentos">
-    <title>@yield('title', 'InfoVISA - Sistema de Vigilância Sanitária Municipal')</title>
+    <meta name="description" content="Sistema de Vigilância Sanitária - Consulte processos e verifique documentos">
+    <title>@yield('title', 'InfoVISA - Sistema de Vigilância Sanitária')</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

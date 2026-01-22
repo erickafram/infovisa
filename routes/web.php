@@ -413,6 +413,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::post('{id}/remover-excecao', [\App\Http\Controllers\Admin\PactuacaoController::class, 'removerExcecao'])->name('remover-excecao');
             Route::delete('{id}', [\App\Http\Controllers\Admin\PactuacaoController::class, 'destroy'])->name('destroy');
         });
+        
+        // Listas de Documentos por Atividade - Admin e Gestor Estadual
+        Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
+        Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
     });
     
     // Configurações - RESTRITO APENAS A ADMINISTRADORES
@@ -485,10 +489,6 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Atividades - Apenas Admin
         Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
         Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
-
-        // Listas de Documentos por Atividade - Apenas Admin
-        Route::resource('listas-documento', \App\Http\Controllers\Admin\ListaDocumentoController::class);
-        Route::post('listas-documento/{listas_documento}/duplicate', [\App\Http\Controllers\Admin\ListaDocumentoController::class, 'duplicate'])->name('listas-documento.duplicate');
     });
     
     // Assistente IA

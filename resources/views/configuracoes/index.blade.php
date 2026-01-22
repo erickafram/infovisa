@@ -195,8 +195,8 @@
 
     </div>
 
-    @if($isAdmin)
-    {{-- Seção: Lista de Documentos por Atividade - Apenas Admin --}}
+    @if($isAdmin || $isGestorEstadual)
+    {{-- Seção: Lista de Documentos por Atividade - Admin e Gestor Estadual --}}
     <div class="mt-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
