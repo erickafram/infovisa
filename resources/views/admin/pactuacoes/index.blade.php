@@ -743,23 +743,32 @@
                                         <p class="text-sm">Nenhum CNAE adicionado ainda</p>
                                     </div>
                                     
-                                    <div x-show="atividadesParaCadastro.length > 0" class="space-y-2 max-h-64 overflow-y-auto">
+                                    <div x-show="atividadesParaCadastro.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
                                         <template x-for="(atividade, index) in atividadesParaCadastro" :key="index">
-                                            <div class="flex items-start gap-3 p-2 bg-white border border-gray-200 rounded-lg">
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2 mb-1">
-                                                        <span class="font-mono text-sm font-semibold text-gray-900" x-text="atividade.codigo"></span>
-                                                        <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full" x-text="atividade.status || 'Novo'"></span>
+                                            <div class="p-3 bg-white border border-gray-200 rounded-lg">
+                                                <div class="flex items-start gap-3 mb-2">
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center gap-2 mb-2">
+                                                            <span class="font-mono text-sm font-semibold text-gray-900" x-text="atividade.codigo"></span>
+                                                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full" x-text="atividade.status || 'Novo'"></span>
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-gray-600 mb-1">Descrição da Atividade:</label>
+                                                            <textarea 
+                                                                x-model="atividade.descricao"
+                                                                rows="2"
+                                                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                                placeholder="Digite ou edite a descrição da atividade"></textarea>
+                                                        </div>
                                                     </div>
-                                                    <p class="text-sm text-gray-700" x-text="atividade.descricao"></p>
+                                                    <button type="button" 
+                                                            @click="removerAtividade(index)"
+                                                            class="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
                                                 </div>
-                                                <button type="button" 
-                                                        @click="removerAtividade(index)"
-                                                        class="text-red-500 hover:text-red-700 p-1">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                    </svg>
-                                                </button>
                                             </div>
                                         </template>
                                     </div>
