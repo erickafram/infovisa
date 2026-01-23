@@ -243,11 +243,19 @@ class PactuacaoController extends Controller
         $termoLimpo = preg_replace('/[^0-9]/', '', $termo);
         
         try {
-            // Busca na API do IBGE
+            // Busca na API do IBGE usando cURL
             $url = "https://servicodados.ibge.gov.br/api/v2/cnae/classes/{$termoLimpo}";
-            $response = @file_get_contents($url);
             
-            if ($response) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 200 && $response) {
                 $data = json_decode($response, true);
                 
                 if (isset($data[0])) {
