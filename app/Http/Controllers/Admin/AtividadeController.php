@@ -94,8 +94,8 @@ class AtividadeController extends Controller
         }
 
         $redirect = $request->header('referer') && str_contains($request->header('referer'), 'listas-documento')
-            ? redirect()->route('admin.configuracoes.listas-documento.index', ['tab' => 'atividades'])
-            : redirect()->route('admin.configuracoes.atividades.index');
+            ? redirect()->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
+            : redirect()->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico']);
 
         return $redirect->with('success', "{$count} atividade(s) criada(s) com sucesso!");
     }
@@ -123,7 +123,7 @@ class AtividadeController extends Controller
         $atividade->update($validated);
 
         return redirect()
-            ->route('admin.configuracoes.atividades.index')
+            ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
             ->with('success', 'Atividade atualizada com sucesso!');
     }
 
@@ -132,14 +132,14 @@ class AtividadeController extends Controller
         // Verifica se está vinculada a alguma lista
         if ($atividade->listasDocumento()->exists()) {
             return redirect()
-                ->route('admin.configuracoes.atividades.index')
+                ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
                 ->with('error', 'Esta atividade está vinculada a listas de documentos e não pode ser excluída.');
         }
 
         $atividade->delete();
 
         return redirect()
-            ->route('admin.configuracoes.atividades.index')
+            ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
             ->with('success', 'Atividade excluída com sucesso!');
     }
 }

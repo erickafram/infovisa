@@ -116,11 +116,10 @@
             {{-- Link para cadastro --}}
              <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
-                    {{-- Não tem uma conta? 
-                    <a href="{{ route('registro') }}" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                    Não tem uma conta? 
+                    <button type="button" onclick="verificarCPFCadastro()" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors cursor-pointer">
                         Cadastre-se aqui
-                    </a> --}}
-                    Cadastro temporariamente desabilitado.
+                    </button>
                 </p>
             </div>
         </div>
@@ -133,6 +132,53 @@
                 </svg>
                 Voltar para página inicial
             </a>
+        </div>
+    </div>
+</div>
+
+{{-- Modal de Verificação de CPF --}}
+<div id="modalVerificacaoCPF" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Verificação de Cadastro</h3>
+            <p class="text-sm text-gray-600">Digite seu CPF para verificar se você está habilitado para cadastro</p>
+        </div>
+
+        <div class="mb-6">
+            <label for="cpf_verificacao" class="block text-sm font-medium text-gray-700 mb-2">
+                CPF
+            </label>
+            <input 
+                type="text" 
+                id="cpf_verificacao" 
+                maxlength="14"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="000.000.000-00"
+                oninput="formatCPF(this)"
+            >
+            <p id="mensagemVerificacao" class="mt-2 text-sm hidden"></p>
+        </div>
+
+        <div class="flex gap-3">
+            <button 
+                type="button"
+                onclick="fecharModal()"
+                class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+                Cancelar
+            </button>
+            <button 
+                type="button"
+                onclick="verificarCPF()"
+                class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+                Verificar
+            </button>
         </div>
     </div>
 </div>
@@ -151,5 +197,56 @@ function formatCPF(input) {
     
     input.value = value;
 }
+
+function verificarCPFCadastro() {
+    document.getElementById('modalVerificacaoCPF').classList.remove('hidden');
+    document.getElementById('cpf_verificacao').focus();
+}
+
+function fecharModal() {
+    document.getElementById('modalVerificacaoCPF').classList.add('hidden');
+    document.getElementById('cpf_verificacao').value = '';
+    document.getElementById('mensagemVerificacao').classList.add('hidden');
+}
+
+function verificarCPF() {
+    const cpfInput = document.getElementById('cpf_verificacao');
+    const cpf = cpfInput.value.replace(/\D/g, '');
+    const mensagem = document.getElementById('mensagemVerificacao');
+    
+    if (!cpf || cpf.length !== 11) {
+        mensagem.textContent = 'Por favor, digite um CPF válido.';
+        mensagem.className = 'mt-2 text-sm text-red-600';
+        mensagem.classList.remove('hidden');
+        return;
+    }
+    
+    // CPF autorizado: 017.588.481-11
+    if (cpf === '01758848111') {
+        mensagem.textContent = '✓ CPF habilitado para cadastro! Redirecionando...';
+        mensagem.className = 'mt-2 text-sm text-green-600 font-semibold';
+        mensagem.classList.remove('hidden');
+        
+        setTimeout(() => {
+            window.location.href = '{{ route("registro") }}?cpf=' + cpfInput.value;
+        }, 1500);
+    } else {
+        mensagem.textContent = '✗ Cadastro temporariamente desabilitado. Este CPF não está autorizado para cadastro no momento.';
+        mensagem.className = 'mt-2 text-sm text-red-600';
+        mensagem.classList.remove('hidden');
+    }
+}
+
+// Permitir verificar com Enter
+document.addEventListener('DOMContentLoaded', function() {
+    const cpfInput = document.getElementById('cpf_verificacao');
+    if (cpfInput) {
+        cpfInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verificarCPF();
+            }
+        });
+    }
+});
 </script>
 @endsection

@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="mb-6">
-        <a href="{{ route('admin.configuracoes.tipos-servico.index') }}" 
+        <a href="{{ route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico']) }}" 
            class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -54,7 +54,7 @@
             </div>
 
             <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
-                <a href="{{ route('admin.configuracoes.tipos-servico.index') }}" 
+                <a href="{{ route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico']) }}" 
                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                     Cancelar
                 </a>

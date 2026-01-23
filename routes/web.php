@@ -422,8 +422,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // As rotas de tipos-documento-obrigatorio agora são acessadas via aba na página listas-documento
         Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
         
-        // Tipos de Documento Obrigatório (para listas de documentos por atividade) - Admin e Gestor Estadual
-        Route::resource('tipos-documento-obrigatorio', \App\Http\Controllers\Admin\TipoDocumentoObrigatorioController::class);
+        // Nova estrutura: Documentos por Atividade (simplificada) - Admin e Gestor Estadual
+        Route::prefix('atividade-documento')->name('atividade-documento.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'index'])->name('index');
+            Route::get('{atividade}', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'show'])->name('show');
+            Route::put('{atividade}', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'update'])->name('update');
+            Route::post('{atividade}/adicionar', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'adicionarDocumento'])->name('adicionar');
+            Route::delete('{atividade}/remover/{documento}', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'removerDocumento'])->name('remover');
+            Route::post('{atividade}/copiar', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'copiarDocumentos'])->name('copiar');
+            Route::post('aplicar-lote', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'aplicarEmLote'])->name('aplicar-lote');
+            Route::get('{atividade}/documentos', [\App\Http\Controllers\Admin\AtividadeDocumentoController::class, 'getDocumentos'])->name('get-documentos');
+        });
 
         // Tipos de Serviço - Admin e Gestor Estadual
         Route::resource('tipos-servico', \App\Http\Controllers\Admin\TipoServicoController::class);

@@ -62,8 +62,21 @@ class UsuarioInterno extends Authenticatable
 
     /**
      * Get the name of the unique identifier for the user.
+     * 
+     * Este método define qual campo é usado como identificador único
+     * para autenticação (login), mas o ID do usuário continua sendo 'id'
      */
     public function getAuthIdentifierName()
+    {
+        return 'id'; // Mantém 'id' como identificador
+    }
+
+    /**
+     * Get the name of the password field for authentication.
+     * 
+     * Define que o campo 'cpf' será usado como username no login
+     */
+    public function username()
     {
         return 'cpf';
     }

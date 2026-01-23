@@ -49,7 +49,7 @@ class TipoServicoController extends Controller
         TipoServico::create($validated);
 
         return redirect()
-            ->route('admin.configuracoes.tipos-servico.index')
+            ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
             ->with('success', 'Tipo de serviço criado com sucesso!');
     }
 
@@ -75,7 +75,7 @@ class TipoServicoController extends Controller
         $tipos_servico->update($validated);
 
         return redirect()
-            ->route('admin.configuracoes.tipos-servico.index')
+            ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
             ->with('success', 'Tipo de serviço atualizado com sucesso!');
     }
 
@@ -84,14 +84,14 @@ class TipoServicoController extends Controller
         // Verifica se tem atividades vinculadas
         if ($tipos_servico->atividades()->exists()) {
             return redirect()
-                ->route('admin.configuracoes.tipos-servico.index')
+                ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
                 ->with('error', 'Este tipo de serviço possui atividades vinculadas e não pode ser excluído.');
         }
 
         $tipos_servico->delete();
 
         return redirect()
-            ->route('admin.configuracoes.tipos-servico.index')
+            ->route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico'])
             ->with('success', 'Tipo de serviço excluído com sucesso!');
     }
 }

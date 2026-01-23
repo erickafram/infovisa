@@ -1,45 +1,31 @@
-@extends('layouts.admin')
-
-@section('title', 'Editar Atividade')
-@section('page-title', 'Editar Atividade')
-
-@section('content')
-<div class="max-w-4xl mx-auto">
-    <div class="mb-6">
-        <a href="{{ route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico']) }}" 
-           class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Voltar
-        </a>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-data="editarAtividade()">
-        <form action="{{ route('admin.configuracoes.atividades.update', $atividade) }}" method="POST">
-            @csrf
-            @method('PUT')
-
-            <div class="space-y-5">
-                {{-- Tipo de Serviço --}}
-                <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                    <label for="tipo_servico_id" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Serviço *</label>
-                    <select name="tipo_servico_id" id="tipo_servico_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 @error('tipo_servico_id') border-red-500 @enderror">
-                        <option value="">Selecione o tipo de serviço...</option>
-                        @foreach($tiposServico as $tipo)
-                        <option value="{{ $tipo->id }}" {{ old('tipo_servico_id', $atividade->tipo_servico_id) == $tipo->id ? 'selected' : '' }}>
-                            {{ $tipo->nome }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('tipo_servico_id')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+{{-- Modal Importar CNAEs para um Tipo de Serviço específico --}}
+<div x-data="modalImportarCnaes{{ $tipoServico->id }}()" 
+     @open-modal-atividade-{{ $tipoServico->id }}.window="open = true"
+     x-show="open" 
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             class="fixed inset-0 bg-black/50" @click="open = false"></div>
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             class="relative bg-white rounded-xl shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Adicionar Atividades: {{ $tipoServico->nome }}</h3>
+                <button @click="open = false; resetar()" class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <form action="{{ route('admin.configuracoes.atividades.store-multiple') }}" method="POST">
+                @csrf
+                
+                <input type="hidden" name="tipo_servico_id" value="{{ $tipoServico->id }}">
 
                 {{-- Campo para digitar CNAEs --}}
-                <div>
+                <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Digite os códigos CNAE</label>
                     <div class="flex gap-2">
                         <input type="text" 
@@ -64,7 +50,7 @@
                 </div>
 
                 {{-- Importar múltiplos de uma vez --}}
-                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Ou cole vários CNAEs de uma vez</label>
                     <textarea x-model="inputMultiplos"
                               rows="3"
@@ -79,27 +65,15 @@
                 </div>
 
                 {{-- Erro --}}
-                <div x-show="erro" x-transition class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div x-show="erro" x-transition class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p class="text-sm text-red-700" x-text="erro"></p>
                 </div>
 
-                {{-- CNAE Atual (se existir) --}}
-                @if($atividade->codigo_cnae)
-                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p class="text-xs font-medium text-blue-800 mb-2">CNAE Atual:</p>
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-mono font-bold rounded">{{ $atividade->codigo_cnae }}</span>
-                        <span class="text-sm text-gray-700">{{ $atividade->nome }}</span>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Adicione novos CNAEs acima para substituir ou complementar</p>
-                </div>
-                @endif
-
                 {{-- Lista de CNAEs adicionados --}}
-                <div>
+                <div class="mb-4">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-sm font-medium text-gray-700">
-                            Atividades a serem salvas (<span x-text="atividades.length"></span>)
+                            Atividades a serem cadastradas (<span x-text="atividades.length"></span>)
                         </label>
                         <button type="button" 
                                 x-show="atividades.length > 0"
@@ -116,8 +90,9 @@
                     <div x-show="atividades.length > 0" class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
                         <template x-for="(atividade, index) in atividades" :key="index">
                             <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                                <input type="hidden" :name="'codigo_cnae'" :value="atividade.codigo">
-                                <input type="hidden" :name="'nome'" :value="atividade.descricao">
+                                <input type="hidden" :name="'atividades[' + index + '][nome]'" :value="atividade.descricao">
+                                <input type="hidden" :name="'atividades[' + index + '][codigo_cnae]'" :value="atividade.codigo">
+                                <input type="hidden" :name="'atividades[' + index + '][descricao]'" value="">
                                 
                                 <span class="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-mono font-bold rounded" x-text="atividade.codigo"></span>
                                 <span class="flex-1 text-sm text-gray-700" x-text="atividade.descricao"></span>
@@ -132,61 +107,32 @@
                         </template>
                     </div>
                 </div>
-
-                {{-- Campos adicionais (só aparecem se houver 1 CNAE) --}}
-                <div x-show="atividades.length === 1">
-                    <div class="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p class="text-xs font-medium text-gray-600">Campos opcionais (apenas para 1 atividade):</p>
-                        
-                        <div>
-                            <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                            <textarea name="descricao" id="descricao" rows="2"
-                                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ old('descricao', $atividade->descricao) }}</textarea>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="ordem" class="block text-sm font-medium text-gray-700 mb-1">Ordem</label>
-                                <input type="number" name="ordem" id="ordem" value="{{ old('ordem', $atividade->ordem) }}" min="0"
-                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500">Menor número aparece primeiro</p>
-                            </div>
-
-                            <div class="flex items-center">
-                                <input type="checkbox" name="ativo" id="ativo" value="1" {{ old('ativo', $atividade->ativo) ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                <label for="ativo" class="ml-2 text-sm text-gray-700">Ativo</label>
-                            </div>
-                        </div>
-                    </div>
+                
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="open = false; resetar()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            :disabled="atividades.length === 0"
+                            class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Salvar <span x-text="atividades.length"></span> Atividade(s)
+                    </button>
                 </div>
-            </div>
-
-            <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
-                <a href="{{ route('admin.configuracoes.listas-documento.index', ['tab' => 'tipos-servico']) }}" 
-                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    Cancelar
-                </a>
-                <button type="submit" 
-                        :disabled="atividades.length === 0"
-                        class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    Salvar <span x-text="atividades.length"></span> Atividade(s)
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
 <script>
-function editarAtividade() {
+function modalImportarCnaes{{ $tipoServico->id }}() {
     return {
+        open: false,
         inputCnae: '',
         inputMultiplos: '',
         atividades: [],
         buscando: false,
         erro: '',
         
-        // Normaliza o código CNAE para o formato padrão (só números)
         normalizarCnae(codigo) {
             return String(codigo).replace(/[^0-9]/g, '');
         },
@@ -199,7 +145,6 @@ function editarAtividade() {
             }
             
             try {
-                // Busca na API do IBGE
                 const response = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/${codigoNormalizado}`);
                 
                 if (response.ok) {
@@ -212,7 +157,6 @@ function editarAtividade() {
                     }
                 }
                 
-                // Se não encontrar na API, tenta buscar como classe
                 const responseClasse = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/classes/${codigoNormalizado.slice(0,5)}`);
                 if (responseClasse.ok) {
                     const dataClasse = await responseClasse.json();
@@ -239,7 +183,6 @@ function editarAtividade() {
             
             const codigoNormalizado = this.normalizarCnae(this.inputCnae);
             
-            // Verifica se já foi adicionado
             if (this.atividades.some(a => a.codigo === codigoNormalizado)) {
                 this.erro = 'Este CNAE já foi adicionado';
                 this.buscando = false;
@@ -264,7 +207,6 @@ function editarAtividade() {
             this.erro = '';
             this.buscando = true;
             
-            // Extrai todos os códigos do texto
             const codigos = this.inputMultiplos
                 .split(/[\s,;\n]+/)
                 .map(c => this.normalizarCnae(c))
@@ -280,7 +222,6 @@ function editarAtividade() {
             let naoEncontrados = [];
             
             for (const codigo of codigos) {
-                // Pula se já existe
                 if (this.atividades.some(a => a.codigo === codigo)) {
                     continue;
                 }
@@ -301,8 +242,14 @@ function editarAtividade() {
             
             this.inputMultiplos = '';
             this.buscando = false;
+        },
+        
+        resetar() {
+            this.inputCnae = '';
+            this.inputMultiplos = '';
+            this.atividades = [];
+            this.erro = '';
         }
     }
 }
 </script>
-@endsection

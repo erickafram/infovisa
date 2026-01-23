@@ -14,14 +14,30 @@ class RegistroController extends Controller
     /**
      * Exibe o formulário de registro
      */
-    public function showRegistroForm()
+    public function showRegistroForm(Request $request)
     {
-        // Temporariamente desabilitado
-        abort(404, 'Cadastro temporariamente desabilitado.');
+        // CPF autorizado para testes
+        $cpfAutorizado = '01758848111'; // 017.588.481-11 sem formatação
+        
+        // Verifica se o CPF foi fornecido via query string
+        $cpfFornecido = $request->query('cpf');
+        
+        if ($cpfFornecido) {
+            // Remove formatação do CPF fornecido
+            $cpfLimpo = preg_replace('/\D/', '', $cpfFornecido);
+            
+            // Se o CPF não for o autorizado, bloqueia
+            if ($cpfLimpo !== $cpfAutorizado) {
+                abort(403, 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
+            }
+        } else {
+            // Se não forneceu CPF, bloqueia
+            abort(403, 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
+        }
         
         $vinculos = VinculoEstabelecimento::toArray();
         
-        return view('auth.registro', compact('vinculos'));
+        return view('auth.registro', compact('vinculos', 'cpfFornecido'));
     }
 
     /**
@@ -29,8 +45,18 @@ class RegistroController extends Controller
      */
     public function registro(RegistroUsuarioExternoRequest $request)
     {
-        // Temporariamente desabilitado
-        abort(404, 'Cadastro temporariamente desabilitado.');
+        // CPF autorizado para testes
+        $cpfAutorizado = '01758848111'; // 017.588.481-11 sem formatação
+        
+        // Remove formatação do CPF fornecido
+        $cpfFornecido = preg_replace('/\D/', '', $request->input('cpf'));
+        
+        // Valida se é o CPF autorizado
+        if ($cpfFornecido !== $cpfAutorizado) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
+        }
         
         try {
             // Remove máscaras para salvar no banco

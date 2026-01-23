@@ -119,6 +119,31 @@ class ProcessoController extends Controller
                 ];
             });
 
+        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO
+        $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
+            ->where('documento_comum', true)
+            ->ordenado()
+            ->get();
+        
+        foreach ($documentosComuns as $doc) {
+            $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+            $statusEnvio = $infoEnviado['status'] ?? null;
+            $jaEnviado = in_array($statusEnvio, ['pendente', 'aprovado']);
+            
+            $documentos->push([
+                'id' => $doc->id,
+                'nome' => $doc->nome,
+                'descricao' => $doc->descricao,
+                'obrigatorio' => true, // Documentos comuns são sempre obrigatórios
+                'observacao' => null,
+                'lista_nome' => 'Documentos Comuns',
+                'ja_enviado' => $jaEnviado,
+                'status_envio' => $statusEnvio,
+                'documento_comum' => true, // Flag para identificar
+            ]);
+        }
+
+        // ADICIONA DOCUMENTOS ESPECÍFICOS DAS LISTAS
         foreach ($listas as $lista) {
             foreach ($lista->tiposDocumentoObrigatorio as $doc) {
                 // Evita duplicatas pelo ID do tipo de documento
@@ -139,6 +164,7 @@ class ProcessoController extends Controller
                         'lista_nome' => $lista->nome,
                         'ja_enviado' => $jaEnviado,
                         'status_envio' => $statusEnvio,
+                        'documento_comum' => false,
                     ]);
                 } else {
                     // Se já existe, verifica se deve ser obrigatório (se qualquer lista marcar como obrigatório)
@@ -152,10 +178,11 @@ class ProcessoController extends Controller
             }
         }
 
-        // Ordena: obrigatórios primeiro, depois por nome
+        // Ordena: documentos comuns primeiro, depois obrigatórios, depois por nome
         return $documentos->sortBy([
-            ['obrigatorio', 'desc'],
-            ['nome', 'asc'],
+            ['documento_comum', 'desc'], // Comuns primeiro
+            ['obrigatorio', 'desc'],      // Depois obrigatórios
+            ['nome', 'asc'],              // Por fim, ordem alfabética
         ])->values();
     }
 

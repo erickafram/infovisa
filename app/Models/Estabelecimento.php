@@ -865,4 +865,108 @@ class Estabelecimento extends Model
         };
     }
 
+    /**
+     * Retorna os códigos CNAE do estabelecimento (atividades exercidas)
+     * Alias para getTodasAtividades() para compatibilidade
+     * 
+     * @return array
+     */
+    public function getCnaes(): array
+    {
+        return $this->getTodasAtividades();
+    }
+
+    /**
+     * Retorna o escopo de competência do estabelecimento
+     * 
+     * @return string 'estadual' ou 'municipal'
+     */
+    public function getEscopoCompetencia(): string
+    {
+        return $this->isCompetenciaEstadual() ? 'estadual' : 'municipal';
+    }
+
+    /**
+     * Retorna o label do escopo de competência
+     * 
+     * @return string
+     */
+    public function getEscopoCompetenciaLabelAttribute(): string
+    {
+        return $this->isCompetenciaEstadual() ? 'Estadual' : 'Municipal';
+    }
+
+    /**
+     * Retorna a cor do badge do escopo de competência
+     * 
+     * @return string
+     */
+    public function getEscopoCompetenciaCorAttribute(): string
+    {
+        return $this->isCompetenciaEstadual() 
+            ? 'bg-blue-100 text-blue-800' 
+            : 'bg-green-100 text-green-800';
+    }
+
+    /**
+     * Retorna o label do tipo de setor
+     * 
+     * @return string
+     */
+    public function getTipoSetorLabelAttribute(): string
+    {
+        $tipoSetor = $this->tipo_setor ?? 'privado';
+        
+        if ($tipoSetor instanceof TipoSetor) {
+            return $tipoSetor->label();
+        }
+        
+        return match($tipoSetor) {
+            'publico' => 'Público',
+            'privado' => 'Privado',
+            default => 'Privado',
+        };
+    }
+
+    /**
+     * Retorna a cor do badge do tipo de setor
+     * 
+     * @return string
+     */
+    public function getTipoSetorCorAttribute(): string
+    {
+        $tipoSetor = $this->tipo_setor ?? 'privado';
+        
+        if ($tipoSetor instanceof TipoSetor) {
+            $tipoSetor = $tipoSetor->value;
+        }
+        
+        return match($tipoSetor) {
+            'publico' => 'bg-indigo-100 text-indigo-800',
+            'privado' => 'bg-orange-100 text-orange-800',
+            default => 'bg-orange-100 text-orange-800',
+        };
+    }
+
+    /**
+     * Busca todos os documentos obrigatórios para este estabelecimento
+     * com deduplicação automática baseado nas atividades exercidas
+     * 
+     * @return \Illuminate\Support\Collection
+     */
+    public function getDocumentosObrigatorios(): \Illuminate\Support\Collection
+    {
+        return TipoDocumentoObrigatorio::getDocumentosParaEstabelecimento($this);
+    }
+
+    /**
+     * Busca documentos obrigatórios agrupados por categoria
+     * 
+     * @return array
+     */
+    public function getDocumentosObrigatoriosAgrupados(): array
+    {
+        return TipoDocumentoObrigatorio::getDocumentosAgrupadosParaEstabelecimento($this);
+    }
+
 }

@@ -89,36 +89,53 @@
             </div>
         </div>
 
-        {{-- Atividades --}}
+        {{-- Tipos de Serviço --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Atividades Vinculadas *</h3>
+            <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Tipos de Serviço Vinculados *</h3>
+            <p class="text-xs text-gray-500 mb-4">Selecione os tipos de serviço que exigirão esta lista de documentos. Todas as atividades (CNAEs) dentro do tipo selecionado serão incluídas automaticamente.</p>
             
             @php
-                $atividadesSelecionadas = old('atividades', $lista->atividades->pluck('id')->toArray());
+                // Pega os tipos de serviço que têm atividades vinculadas a esta lista
+                $tiposServicoSelecionados = old('tipos_servico', 
+                    $lista->atividades->pluck('tipo_servico_id')->unique()->toArray()
+                );
             @endphp
             
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @foreach($tiposServico as $tipoServico)
-                @if($tipoServico->atividadesAtivas->isNotEmpty())
-                <div class="border border-gray-200 rounded-lg p-4">
-                    <h4 class="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                        {{ $tipoServico->nome }}
-                    </h4>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        @foreach($tipoServico->atividadesAtivas as $atividade)
-                        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                            <input type="checkbox" name="atividades[]" value="{{ $atividade->id }}"
-                                   {{ in_array($atividade->id, $atividadesSelecionadas) ? 'checked' : '' }}
-                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <span class="text-sm text-gray-700">{{ $atividade->nome }}</span>
-                        </label>
-                        @endforeach
+                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="tipos_servico[]" value="{{ $tipoServico->id }}"
+                           {{ in_array($tipoServico->id, $tiposServicoSelecionados) ? 'checked' : '' }}
+                           class="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            <span class="text-sm font-medium text-gray-900">{{ $tipoServico->nome }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">
+                                {{ $tipoServico->atividades_count ?? $tipoServico->atividades->count() }} atividades
+                            </span>
+                        </div>
+                        @if($tipoServico->descricao)
+                        <p class="text-xs text-gray-500 mt-1">{{ $tipoServico->descricao }}</p>
+                        @endif
+                        @if($tipoServico->atividades->isNotEmpty())
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            @foreach($tipoServico->atividades->take(3) as $atividade)
+                            <span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                                {{ $atividade->codigo_cnae ?: Str::limit($atividade->nome, 20) }}
+                            </span>
+                            @endforeach
+                            @if($tipoServico->atividades->count() > 3)
+                            <span class="px-1.5 py-0.5 text-xs text-gray-400">
+                                +{{ $tipoServico->atividades->count() - 3 }} mais
+                            </span>
+                            @endif
+                        </div>
+                        @endif
                     </div>
-                </div>
-                @endif
+                </label>
                 @endforeach
             </div>
         </div>
@@ -126,13 +143,33 @@
         {{-- Documentos Obrigatórios --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Documentos Exigidos *</h3>
-            <p class="text-xs text-gray-500 mb-4">Selecione os documentos que serão exigidos e defina se são obrigatórios ou opcionais</p>
-            <p class="text-xs text-blue-600 mb-4">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Documentos comuns (aplicados automaticamente a todos os serviços) não aparecem nesta lista.
-            </p>
+            
+            {{-- Documentos Comuns (Informativo) --}}
+            @if($documentosComuns->isNotEmpty())
+            <div class="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                <div class="flex items-start gap-3 mb-3">
+                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-green-900 mb-1">Documentos Comuns ({{ $documentosComuns->count() }})</h4>
+                        <p class="text-xs text-green-800">Estes documentos são obrigatórios para todos os serviços e aplicados automaticamente.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    @foreach($documentosComuns as $doc)
+                    <div class="flex items-center gap-2 text-xs text-green-800 bg-green-100 px-2 py-1.5 rounded">
+                        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span class="truncate">{{ $doc->nome }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+            
+            <p class="text-xs text-gray-500 mb-4">Selecione os documentos <strong>específicos</strong> que serão exigidos e defina se são obrigatórios ou opcionais</p>
             
             @php
                 $documentosSelecionados = $lista->tiposDocumentoObrigatorio->keyBy('id');

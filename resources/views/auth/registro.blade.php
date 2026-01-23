@@ -4,7 +4,7 @@
 
 @section('content')
 <div x-data="{
-    cpf: '',
+    cpf: '{{ request('cpf', old('cpf')) }}',
     telefone: '',
     nome: '{{ old('nome') }}',
     formatCpf() {
@@ -34,10 +34,25 @@
     <!-- Card de Cadastro -->
     <div class="bg-white rounded-xl shadow-lg p-8">
         <!-- Header -->
-        <div class="text-center mb-8">
+        <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-900 mb-2">Criar Conta</h1>
             <p class="text-gray-600">Preencha seus dados para se cadastrar</p>
         </div>
+
+        <!-- Mensagem de CPF Habilitado -->
+        @if(request('cpf'))
+        <div class="mb-6 bg-green-50 border-2 border-green-300 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-semibold text-green-900 mb-1">✓ CPF Habilitado para Cadastro</h3>
+                    <p class="text-sm text-green-800">Seu CPF está autorizado para realizar o cadastro. Complete as informações abaixo para criar sua conta.</p>
+                </div>
+            </div>
+        </div>
+        @endif
 
         <!-- Alerts -->
         @if (session('success'))

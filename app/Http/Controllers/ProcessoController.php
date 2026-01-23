@@ -88,10 +88,6 @@ class ProcessoController extends Controller
 
         $listas = $query->get();
 
-        if ($listas->isEmpty()) {
-            return collect();
-        }
-
         // Consolida os documentos de todas as listas aplicáveis
         $documentos = collect();
         
@@ -108,6 +104,30 @@ class ProcessoController extends Controller
                 ];
             });
         
+        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO
+        $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
+            ->where('documento_comum', true)
+            ->ordenado()
+            ->get();
+        
+        foreach ($documentosComuns as $doc) {
+            $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+            
+            $documentos->push([
+                'id' => $doc->id,
+                'nome' => $doc->nome,
+                'descricao' => $doc->descricao,
+                'obrigatorio' => true, // Documentos comuns são sempre obrigatórios
+                'ordem' => 0, // Ordem 0 para aparecer primeiro
+                'observacao' => null,
+                'lista_nome' => 'Documentos Comuns',
+                'status' => $infoEnviado['status'] ?? null,
+                'documento_enviado' => $infoEnviado['documento'] ?? null,
+                'documento_comum' => true, // Flag para identificar
+            ]);
+        }
+        
+        // ADICIONA DOCUMENTOS ESPECÍFICOS DAS LISTAS
         foreach ($listas as $lista) {
             foreach ($lista->tiposDocumentoObrigatorio as $doc) {
                 // Evita duplicatas pelo ID do tipo de documento
@@ -124,6 +144,7 @@ class ProcessoController extends Controller
                         'lista_nome' => $lista->nome,
                         'status' => $infoEnviado['status'] ?? null,
                         'documento_enviado' => $infoEnviado['documento'] ?? null,
+                        'documento_comum' => false,
                     ]);
                 } else {
                     // Se já existe, verifica se deve ser obrigatório
@@ -137,10 +158,11 @@ class ProcessoController extends Controller
             }
         }
         
-        // Ordena: obrigatórios primeiro, depois por nome
+        // Ordena: documentos comuns primeiro, depois obrigatórios, depois por nome
         return $documentos->sortBy([
-            ['obrigatorio', 'desc'],
-            ['nome', 'asc'],
+            ['documento_comum', 'desc'], // Comuns primeiro
+            ['obrigatorio', 'desc'],      // Depois obrigatórios
+            ['nome', 'asc'],              // Por fim, alfabética
         ])->values();
     }
 

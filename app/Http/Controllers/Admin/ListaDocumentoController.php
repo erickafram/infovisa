@@ -106,16 +106,22 @@ class ListaDocumentoController extends Controller
     {
         $tiposServico = TipoServico::ativos()->with('atividadesAtivas')->ordenado()->get();
         
-        // Excluir documentos comuns da seleção - eles são aplicados automaticamente
+        // Documentos específicos (podem ser selecionados)
         $tiposDocumento = TipoDocumentoObrigatorio::ativos()
             ->where('documento_comum', false)
+            ->ordenado()
+            ->get();
+        
+        // Documentos comuns (apenas para visualização/informação)
+        $documentosComuns = TipoDocumentoObrigatorio::ativos()
+            ->where('documento_comum', true)
             ->ordenado()
             ->get();
             
         $tiposProcesso = TipoProcesso::where('ativo', true)->orderBy('nome')->get();
         $municipios = Municipio::orderBy('nome')->get();
 
-        return view('configuracoes.listas-documento.create', compact('tiposServico', 'tiposDocumento', 'tiposProcesso', 'municipios'));
+        return view('configuracoes.listas-documento.create', compact('tiposServico', 'tiposDocumento', 'documentosComuns', 'tiposProcesso', 'municipios'));
     }
 
     public function store(Request $request)
@@ -124,7 +130,7 @@ class ListaDocumentoController extends Controller
         \Log::info('Lista Documento Store Request', [
             'all_data' => $request->all(),
             'documentos_selecionados' => $request->input('documentos_selecionados'),
-            'atividades' => $request->input('atividades'),
+            'tipos_servico' => $request->input('tipos_servico'),
         ]);
 
         $validated = $request->validate([
@@ -134,19 +140,19 @@ class ListaDocumentoController extends Controller
             'escopo' => 'required|in:estadual,municipal',
             'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
-            'atividades' => 'required|array|min:1',
-            'atividades.*' => 'exists:atividades,id',
+            'tipos_servico' => 'required|array|min:1',
+            'tipos_servico.*' => 'exists:tipos_servico,id',
             'documentos_selecionados' => 'required|array|min:1',
             'documentos_selecionados.*' => 'exists:tipos_documento_obrigatorio,id',
         ], [
             'documentos_selecionados.required' => 'Selecione pelo menos um documento.',
             'documentos_selecionados.min' => 'Selecione pelo menos um documento.',
-            'atividades.required' => 'Selecione pelo menos uma atividade.',
-            'atividades.min' => 'Selecione pelo menos uma atividade.',
+            'tipos_servico.required' => 'Selecione pelo menos um tipo de serviço.',
+            'tipos_servico.min' => 'Selecione pelo menos um tipo de serviço.',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
-        $validated['criado_por'] = Auth::guard('interno')->user()->id; // Usar ->user()->id em vez de ->id()
+        $validated['criado_por'] = Auth::guard('interno')->user()->id;
 
         if ($validated['escopo'] === 'estadual') {
             $validated['municipio_id'] = null;
@@ -164,8 +170,15 @@ class ListaDocumentoController extends Controller
                 'criado_por' => $validated['criado_por'],
             ]);
 
+            // Busca todas as atividades dos tipos de serviço selecionados
+            $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $validated['tipos_servico'])
+                ->pluck('id')
+                ->toArray();
+
             // Vincula atividades
-            $lista->atividades()->attach($validated['atividades']);
+            if (!empty($atividadesIds)) {
+                $lista->atividades()->attach($atividadesIds);
+            }
 
             // Vincula documentos com pivot data
             $documentosData = [];
@@ -217,9 +230,15 @@ class ListaDocumentoController extends Controller
         
         $tiposServico = TipoServico::ativos()->with('atividadesAtivas')->ordenado()->get();
         
-        // Excluir documentos comuns da seleção - eles são aplicados automaticamente
+        // Documentos específicos (podem ser selecionados)
         $tiposDocumento = TipoDocumentoObrigatorio::ativos()
             ->where('documento_comum', false)
+            ->ordenado()
+            ->get();
+        
+        // Documentos comuns (apenas para visualização/informação)
+        $documentosComuns = TipoDocumentoObrigatorio::ativos()
+            ->where('documento_comum', true)
             ->ordenado()
             ->get();
             
@@ -230,6 +249,7 @@ class ListaDocumentoController extends Controller
             'lista' => $listas_documento,
             'tiposServico' => $tiposServico,
             'tiposDocumento' => $tiposDocumento,
+            'documentosComuns' => $documentosComuns,
             'tiposProcesso' => $tiposProcesso,
             'municipios' => $municipios,
         ]);
@@ -242,7 +262,7 @@ class ListaDocumentoController extends Controller
             'lista_id' => $listas_documento->id,
             'all_data' => $request->all(),
             'documentos' => $request->input('documentos'),
-            'atividades' => $request->input('atividades'),
+            'tipos_servico' => $request->input('tipos_servico'),
         ]);
 
         $validated = $request->validate([
@@ -252,8 +272,8 @@ class ListaDocumentoController extends Controller
             'escopo' => 'required|in:estadual,municipal',
             'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
-            'atividades' => 'required|array|min:1',
-            'atividades.*' => 'exists:atividades,id',
+            'tipos_servico' => 'required|array|min:1',
+            'tipos_servico.*' => 'exists:tipos_servico,id',
             'documentos' => 'required|array|min:1',
             'documentos.*.id' => 'required|exists:tipos_documento_obrigatorio,id',
             'documentos.*.obrigatorio' => 'boolean',
@@ -261,8 +281,8 @@ class ListaDocumentoController extends Controller
         ], [
             'documentos.required' => 'Selecione pelo menos um documento.',
             'documentos.min' => 'Selecione pelo menos um documento.',
-            'atividades.required' => 'Selecione pelo menos uma atividade.',
-            'atividades.min' => 'Selecione pelo menos uma atividade.',
+            'tipos_servico.required' => 'Selecione pelo menos um tipo de serviço.',
+            'tipos_servico.min' => 'Selecione pelo menos um tipo de serviço.',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
@@ -282,8 +302,13 @@ class ListaDocumentoController extends Controller
                 'ativo' => $validated['ativo'],
             ]);
 
+            // Busca todas as atividades dos tipos de serviço selecionados
+            $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $validated['tipos_servico'])
+                ->pluck('id')
+                ->toArray();
+
             // Atualiza atividades
-            $listas_documento->atividades()->sync($validated['atividades']);
+            $listas_documento->atividades()->sync($atividadesIds);
 
             // Atualiza documentos
             $documentosData = [];
