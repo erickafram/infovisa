@@ -1212,11 +1212,14 @@ function pactuacaoManager() {
 
             try {
                 const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${id}`, {
-                    method: 'DELETE',
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    }
+                    },
+                    body: JSON.stringify({
+                        _method: 'DELETE'
+                    })
                 });
 
                 const responseText = await response.text();
