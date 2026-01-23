@@ -242,6 +242,8 @@ class PactuacaoController extends Controller
         // Remove caracteres não numéricos
         $termoLimpo = preg_replace('/[^0-9]/', '', $termo);
         
+        \Log::info('Buscando CNAE', ['termo' => $termo, 'termo_limpo' => $termoLimpo]);
+        
         try {
             // Busca na API do IBGE usando cURL
             $url = "https://servicodados.ibge.gov.br/api/v2/cnae/classes/{$termoLimpo}";
@@ -253,13 +255,22 @@ class PactuacaoController extends Controller
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
             curl_close($ch);
+            
+            \Log::info('Resposta API IBGE', [
+                'url' => $url,
+                'http_code' => $httpCode,
+                'curl_error' => $curlError,
+                'response_length' => strlen($response)
+            ]);
             
             if ($httpCode === 200 && $response) {
                 $data = json_decode($response, true);
                 
                 if (isset($data[0])) {
                     $cnae = $data[0];
+                    \Log::info('CNAE encontrado na API IBGE', ['cnae' => $cnae]);
                     return response()->json([
                         [
                             'codigo' => $cnae['id'] ?? $termoLimpo,
@@ -280,28 +291,31 @@ class PactuacaoController extends Controller
                 ->limit(20)
                 ->get();
             
+            \Log::info('CNAEs encontrados nos estabelecimentos', ['count' => $cnaes->count()]);
+            
             if ($cnaes->isNotEmpty()) {
                 return response()->json($cnaes);
             }
             
-            // Se não encontrou em lugar nenhum, retorna vazio
-            return response()->json([]);
+            // Se não encontrou em lugar nenhum, retorna o código com descrição genérica
+            \Log::info('CNAE não encontrado, retornando descrição genérica');
+            return response()->json([
+                [
+                    'codigo' => $termoLimpo,
+                    'descricao' => "CNAE {$termoLimpo} - Descrição não disponível (adicione manualmente)"
+                ]
+            ]);
             
         } catch (\Exception $e) {
             \Log::error('Erro ao buscar CNAE: ' . $e->getMessage());
             
-            // Em caso de erro, tenta buscar nos estabelecimentos
-            $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
-                ->whereNotNull('cnae_fiscal')
-                ->where(function($q) use ($termo) {
-                    $q->where('cnae_fiscal', 'like', "%{$termo}%")
-                      ->orWhere('cnae_fiscal_descricao', 'like', "%{$termo}%");
-                })
-                ->distinct()
-                ->limit(20)
-                ->get();
-            
-            return response()->json($cnaes);
+            // Em caso de erro, retorna o código com descrição genérica
+            return response()->json([
+                [
+                    'codigo' => $termoLimpo,
+                    'descricao' => "CNAE {$termoLimpo} - Descrição não disponível (adicione manualmente)"
+                ]
+            ]);
         }
     }
     
