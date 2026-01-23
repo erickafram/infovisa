@@ -235,18 +235,66 @@ class PactuacaoController extends Controller
     {
         $termo = $request->get('termo', '');
         
-        // Busca CNAEs únicos de todos os estabelecimentos
-        $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
-            ->whereNotNull('cnae_fiscal')
-            ->where(function($q) use ($termo) {
-                $q->where('cnae_fiscal', 'like', "%{$termo}%")
-                  ->orWhere('cnae_fiscal_descricao', 'like', "%{$termo}%");
-            })
-            ->distinct()
-            ->limit(20)
-            ->get();
+        if (empty($termo)) {
+            return response()->json([]);
+        }
         
-        return response()->json($cnaes);
+        // Remove caracteres não numéricos
+        $termoLimpo = preg_replace('/[^0-9]/', '', $termo);
+        
+        try {
+            // Busca na API do IBGE
+            $url = "https://servicodados.ibge.gov.br/api/v2/cnae/classes/{$termoLimpo}";
+            $response = @file_get_contents($url);
+            
+            if ($response) {
+                $data = json_decode($response, true);
+                
+                if (isset($data[0])) {
+                    $cnae = $data[0];
+                    return response()->json([
+                        [
+                            'codigo' => $cnae['id'] ?? $termoLimpo,
+                            'descricao' => $cnae['descricao'] ?? 'Descrição não encontrada'
+                        ]
+                    ]);
+                }
+            }
+            
+            // Se não encontrou na API, busca nos estabelecimentos cadastrados
+            $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
+                ->whereNotNull('cnae_fiscal')
+                ->where(function($q) use ($termo) {
+                    $q->where('cnae_fiscal', 'like', "%{$termo}%")
+                      ->orWhere('cnae_fiscal_descricao', 'like', "%{$termo}%");
+                })
+                ->distinct()
+                ->limit(20)
+                ->get();
+            
+            if ($cnaes->isNotEmpty()) {
+                return response()->json($cnaes);
+            }
+            
+            // Se não encontrou em lugar nenhum, retorna vazio
+            return response()->json([]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao buscar CNAE: ' . $e->getMessage());
+            
+            // Em caso de erro, tenta buscar nos estabelecimentos
+            $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
+                ->whereNotNull('cnae_fiscal')
+                ->where(function($q) use ($termo) {
+                    $q->where('cnae_fiscal', 'like', "%{$termo}%")
+                      ->orWhere('cnae_fiscal_descricao', 'like', "%{$termo}%");
+                })
+                ->distinct()
+                ->limit(20)
+                ->get();
+            
+            return response()->json($cnaes);
+        }
     }
     
     /**
