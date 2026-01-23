@@ -235,7 +235,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button @click="abrirModalEditar({{ $pactuacao->id }}, '{{ addslashes($pactuacao->observacao ?? '') }}')" 
+                                    <button @click="abrirModalEditarCompleto({{ $pactuacao->id }})" 
                                             class="text-gray-600 hover:text-gray-900 mr-3">
                                         Editar
                                     </button>
