@@ -686,14 +686,32 @@
                                     Adicionar Atividades: <span x-text="tabelaSelecionada ? 'Tabela ' + tabelaSelecionada : 'Selecione a tabela'"></span>
                                 </label>
                                 
-                                {{-- Campo de entrada para CNAE --}}
+                                {{-- Campo de entrada para CNAE com autocomplete --}}
                                 <div class="flex gap-2 mb-3">
-                                    <div class="flex-1">
+                                    <div class="flex-1 relative">
                                         <input type="text" 
                                                x-model="cnaeInput" 
+                                               @input="buscarCnaeAutocomplete()"
                                                @keyup.enter="adicionarCnae()"
+                                               @keydown.down.prevent="navegarSugestoes(1)"
+                                               @keydown.up.prevent="navegarSugestoes(-1)"
+                                               @blur="setTimeout(() => sugestoesCnae = [], 200)"
                                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                               placeholder="Digite o código CNAE e pressione Enter ou clique em Adicionar">
+                                               placeholder="Digite o CNAE (ex: 4711-3/02 ou 4711302)">
+                                        
+                                        {{-- Dropdown de sugestões --}}
+                                        <div x-show="sugestoesCnae.length > 0" 
+                                             x-cloak
+                                             class="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
+                                            <template x-for="(sugestao, idx) in sugestoesCnae" :key="idx">
+                                                <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-0"
+                                                     :class="{ 'bg-blue-50': idx === indiceSugestaoSelecionada }"
+                                                     @click="selecionarSugestao(sugestao)">
+                                                    <div class="font-mono font-semibold text-gray-900" x-text="sugestao.codigo"></div>
+                                                    <div class="text-xs text-gray-600 mt-0.5 line-clamp-2" x-text="sugestao.descricao"></div>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
                                     <button type="button" 
                                             @click="adicionarCnae()"
@@ -703,7 +721,7 @@
                                 </div>
                                 
                                 <p class="text-xs text-gray-500 mb-3">
-                                    Digite o código CNAE e pressione Enter ou clique em Adicionar. O sistema buscará automaticamente a descrição.
+                                    💡 Digite o CNAE com ou sem formatação (4711-3/02 ou 4711302). O sistema busca automaticamente a descrição.
                                 </p>
                                 
                                 {{-- Área para colar múltiplos CNAEs --}}
@@ -950,6 +968,11 @@ function pactuacaoManager() {
         atividadesParaCadastro: [],
         buscandoCnae: false,
         
+        // Autocomplete de CNAE
+        sugestoesCnae: [],
+        indiceSugestaoSelecionada: -1,
+        timeoutAutocomplete: null,
+        
         // Edição
         editarId: null,
         editarObservacao: '',
@@ -986,16 +1009,88 @@ function pactuacaoManager() {
                 !this.municipiosSelecionados.includes(m.nome)
             );
         },
+        
+        // Normaliza CNAE removendo pontos, hífens, barras e espaços
+        normalizarCnae(cnae) {
+            return cnae.replace(/[.\-\s\/]/g, '');
+        },
+        
+        // Busca sugestões de CNAE enquanto digita (autocomplete)
+        async buscarCnaeAutocomplete() {
+            clearTimeout(this.timeoutAutocomplete);
+            
+            const termo = this.cnaeInput.trim();
+            if (termo.length < 4) {
+                this.sugestoesCnae = [];
+                return;
+            }
+            
+            this.timeoutAutocomplete = setTimeout(async () => {
+                try {
+                    const cnaeNormalizado = this.normalizarCnae(termo);
+                    const url = `{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${encodeURIComponent(cnaeNormalizado)}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    this.sugestoesCnae = data.slice(0, 5); // Limita a 5 sugestões
+                    this.indiceSugestaoSelecionada = -1;
+                } catch (error) {
+                    console.error('Erro ao buscar sugestões:', error);
+                    this.sugestoesCnae = [];
+                }
+            }, 300);
+        },
+        
+        // Navega pelas sugestões com teclado (setas)
+        navegarSugestoes(direcao) {
+            if (this.sugestoesCnae.length === 0) return;
+            
+            this.indiceSugestaoSelecionada += direcao;
+            
+            if (this.indiceSugestaoSelecionada < 0) {
+                this.indiceSugestaoSelecionada = this.sugestoesCnae.length - 1;
+            } else if (this.indiceSugestaoSelecionada >= this.sugestoesCnae.length) {
+                this.indiceSugestaoSelecionada = 0;
+            }
+        },
+        
+        // Seleciona uma sugestão do autocomplete
+        selecionarSugestao(sugestao) {
+            const cnaeNormalizado = this.normalizarCnae(sugestao.codigo);
+            
+            // Verifica se já foi adicionado
+            if (this.atividadesParaCadastro.find(a => this.normalizarCnae(a.codigo) === cnaeNormalizado)) {
+                alert('Este CNAE já foi adicionado à lista');
+                this.cnaeInput = '';
+                this.sugestoesCnae = [];
+                return;
+            }
+            
+            // Adiciona à lista
+            this.atividadesParaCadastro.push({
+                codigo: cnaeNormalizado,
+                descricao: sugestao.descricao,
+                status: 'Encontrado'
+            });
+            
+            this.cnaeInput = '';
+            this.sugestoesCnae = [];
+        },
 
         // Funções para gerenciar CNAEs
         async adicionarCnae() {
-            const codigo = this.cnaeInput.trim();
+            let codigo = this.cnaeInput.trim();
             if (!codigo) return;
             
+            // Normaliza o CNAE (remove pontos, hífens, barras, espaços)
+            codigo = this.normalizarCnae(codigo);
+            
             // Verifica se já foi adicionado
-            if (this.atividadesParaCadastro.find(a => a.codigo === codigo)) {
+            if (this.atividadesParaCadastro.find(a => this.normalizarCnae(a.codigo) === codigo)) {
                 alert('Este CNAE já foi adicionado à lista');
                 this.cnaeInput = '';
+                this.sugestoesCnae = [];
                 return;
             }
             
@@ -1048,9 +1143,9 @@ function pactuacaoManager() {
             const texto = this.cnaesTextoMultiplo.trim();
             if (!texto) return;
             
-            // Separa por vírgula, quebra de linha ou espaço
+            // Separa por vírgula, quebra de linha ou espaço e normaliza cada CNAE
             const cnaes = texto.split(/[,\n\s]+/)
-                .map(c => c.trim())
+                .map(c => this.normalizarCnae(c.trim()))
                 .filter(c => c && c.length > 0);
             
             if (cnaes.length === 0) {
@@ -1062,7 +1157,7 @@ function pactuacaoManager() {
             
             for (const codigo of cnaes) {
                 // Pula se já foi adicionado
-                if (this.atividadesParaCadastro.find(a => a.codigo === codigo)) {
+                if (this.atividadesParaCadastro.find(a => this.normalizarCnae(a.codigo) === codigo)) {
                     continue;
                 }
                 

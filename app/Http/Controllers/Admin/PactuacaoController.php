@@ -239,20 +239,20 @@ class PactuacaoController extends Controller
             return response()->json([]);
         }
         
-        // Remove caracteres não numéricos
+        // Remove TODOS os caracteres não numéricos (aceita com ou sem formatação)
         $termoLimpo = preg_replace('/[^0-9]/', '', $termo);
         
-        \Log::info('Buscando CNAE', ['termo' => $termo, 'termo_limpo' => $termoLimpo]);
+        \Log::info('Buscando CNAE', ['termo_original' => $termo, 'termo_limpo' => $termoLimpo]);
         
         try {
-            // Tenta BrasilAPI primeiro (CNAEs de 7 dígitos)
+            // API OFICIAL DO IBGE - Subclasses (7 dígitos)
             if (strlen($termoLimpo) === 7) {
-                $url = "https://brasilapi.com.br/api/cnae/v1/{$termoLimpo}";
+                $url = "https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/{$termoLimpo}";
                 
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $url);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
                 $response = curl_exec($ch);
@@ -262,11 +262,16 @@ class PactuacaoController extends Controller
                 if ($httpCode === 200 && $response) {
                     $data = json_decode($response, true);
                     
-                    if (isset($data['descricao'])) {
-                        \Log::info('CNAE encontrado na BrasilAPI', ['cnae' => $data]);
+                    // Se retornou um array, pega o primeiro
+                    if (is_array($data) && !isset($data['id'])) {
+                        $data = $data[0] ?? null;
+                    }
+                    
+                    if ($data && isset($data['id']) && isset($data['descricao'])) {
+                        \Log::info('CNAE encontrado na API IBGE (subclasse)', ['cnae' => $data]);
                         return response()->json([
                             [
-                                'codigo' => $data['codigo'] ?? $termoLimpo,
+                                'codigo' => $termoLimpo,
                                 'descricao' => $data['descricao']
                             ]
                         ]);
@@ -274,46 +279,46 @@ class PactuacaoController extends Controller
                 }
             }
             
-            // Tenta API da Receita Federal (CNAEs detalhados)
-            $url = "https://www.receitaws.com.br/v1/cnae/{$termoLimpo}";
-            
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            \Log::info('Resposta ReceitaWS', [
-                'url' => $url,
-                'http_code' => $httpCode,
-                'response_length' => strlen($response)
-            ]);
-            
-            if ($httpCode === 200 && $response) {
-                $data = json_decode($response, true);
+            // API OFICIAL DO IBGE - Classes (5 dígitos)
+            if (strlen($termoLimpo) === 5) {
+                $url = "https://servicodados.ibge.gov.br/api/v2/cnae/classes/{$termoLimpo}";
                 
-                if (isset($data['descricao']) || isset($data['text'])) {
-                    $descricao = $data['descricao'] ?? $data['text'] ?? '';
-                    \Log::info('CNAE encontrado na ReceitaWS', ['cnae' => $data]);
-                    return response()->json([
-                        [
-                            'codigo' => $data['codigo'] ?? $termoLimpo,
-                            'descricao' => $descricao
-                        ]
-                    ]);
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode === 200 && $response) {
+                    $data = json_decode($response, true);
+                    
+                    // Se retornou um array, pega o primeiro
+                    if (is_array($data) && !isset($data['id'])) {
+                        $data = $data[0] ?? null;
+                    }
+                    
+                    if ($data && isset($data['id']) && isset($data['descricao'])) {
+                        \Log::info('CNAE encontrado na API IBGE (classe)', ['cnae' => $data]);
+                        return response()->json([
+                            [
+                                'codigo' => $termoLimpo,
+                                'descricao' => $data['descricao']
+                            ]
+                        ]);
+                    }
                 }
             }
             
-            // Se não encontrou nas APIs, busca nos estabelecimentos cadastrados
+            // Se não encontrou nas APIs do IBGE, busca nos estabelecimentos cadastrados
             $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
                 ->whereNotNull('cnae_fiscal')
-                ->where(function($q) use ($termo) {
-                    $q->where('cnae_fiscal', 'like', "%{$termo}%")
-                      ->orWhere('cnae_fiscal_descricao', 'like', "%{$termo}%");
+                ->where(function($q) use ($termoLimpo) {
+                    $q->where('cnae_fiscal', 'like', "%{$termoLimpo}%")
+                      ->orWhere('cnae_fiscal_descricao', 'like', "%{$termoLimpo}%");
                 })
                 ->distinct()
                 ->limit(20)
