@@ -265,6 +265,13 @@
                     <h3 class="text-lg font-semibold text-gray-900">Tabela II - Atividades Estaduais Exclusivas</h3>
                     <p class="text-sm text-gray-600 mt-1">Atividades que são SEMPRE de competência estadual (não descentralizadas)</p>
                 </div>
+                <button @click="modalAdicionar = true; tipoModal = 'estadual'; tabelaSelecionada = 'II'; municipioModal = null"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Adicionar Atividade
+                </button>
             </div>
 
             @if($tabelaII->isEmpty())
@@ -325,6 +332,13 @@
                     <h3 class="text-lg font-semibold text-gray-900">Tabela III - Atividades de Alto Risco Pactuadas</h3>
                     <p class="text-sm text-gray-600 mt-1">Atividades estaduais descentralizadas para municípios específicos</p>
                 </div>
+                <button @click="modalAdicionar = true; tipoModal = 'estadual'; tabelaSelecionada = 'III'; municipioModal = null"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Adicionar Atividade
+                </button>
             </div>
 
             @if($tabelaIII->isEmpty())
@@ -393,6 +407,13 @@
                     <h3 class="text-lg font-semibold text-gray-900">Tabela IV - Atividades com Questionário</h3>
                     <p class="text-sm text-gray-600 mt-1">Competência definida por questionário (Estadual ou Municipal)</p>
                 </div>
+                <button @click="modalAdicionar = true; tipoModal = 'estadual'; tabelaSelecionada = 'IV'; municipioModal = null"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Adicionar Atividade
+                </button>
             </div>
 
             @if($tabelaIV->isEmpty())
@@ -455,6 +476,13 @@
                     <h3 class="text-lg font-semibold text-gray-900">Tabela V - Definir se é Sujeito à VISA</h3>
                     <p class="text-sm text-gray-600 mt-1">Questionário define se a atividade é sujeita à vigilância sanitária</p>
                 </div>
+                <button @click="modalAdicionar = true; tipoModal = 'estadual'; tabelaSelecionada = 'V'; municipioModal = null"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Adicionar Atividade
+                </button>
             </div>
 
             @if($tabelaV->isEmpty())

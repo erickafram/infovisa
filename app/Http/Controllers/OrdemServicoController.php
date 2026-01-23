@@ -139,8 +139,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
-            'tecnicos_ids' => 'required|array|min:1',
-            'tecnicos_ids.*' => 'exists:usuarios_internos,id',
+            'atividades_tecnicos' => 'required|json',
             'observacoes' => 'nullable|string',
             'data_inicio' => 'required|date|after_or_equal:today',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
@@ -156,6 +155,8 @@ class OrdemServicoController extends Controller
         
         $messages = [
             'processo_id.required' => 'Selecione um processo vinculado ao estabelecimento.',
+            'atividades_tecnicos.required' => 'Atribua técnicos para todas as atividades selecionadas.',
+            'atividades_tecnicos.json' => 'Estrutura de técnicos por atividade inválida.',
             'data_inicio.required' => 'Informe a data de início da ordem de serviço.',
             'data_inicio.after_or_equal' => 'A data de início deve ser hoje ou uma data futura.',
             'data_fim.required' => 'Informe a data de término da ordem de serviço.',
@@ -163,6 +164,35 @@ class OrdemServicoController extends Controller
         ];
 
         $validated = $request->validate($rules, $messages);
+        
+        // Processa e valida a estrutura de atividades com técnicos
+        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'], true);
+        
+        if (!is_array($atividadesTecnicos) || empty($atividadesTecnicos)) {
+            return back()->withErrors(['atividades_tecnicos' => 'Atribua técnicos para todas as atividades selecionadas.'])->withInput();
+        }
+        
+        // Valida se todos os técnicos existem e têm permissão
+        $tecnicosIds = [];
+        foreach ($atividadesTecnicos as $atividade) {
+            if (!isset($atividade['tecnicos']) || !is_array($atividade['tecnicos'])) {
+                return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos inválida.'])->withInput();
+            }
+            $tecnicosIds = array_merge($tecnicosIds, $atividade['tecnicos']);
+        }
+        
+        $tecnicosIds = array_unique($tecnicosIds);
+        $tecnicosValidos = $this->getTecnicosPorCompetencia($usuario)->pluck('id')->toArray();
+        
+        foreach ($tecnicosIds as $tecnicoId) {
+            if (!in_array($tecnicoId, $tecnicosValidos)) {
+                return back()->withErrors(['atividades_tecnicos' => 'Um ou mais técnicos selecionados não são válidos para sua competência.'])->withInput();
+            }
+        }
+        
+        // Mantém compatibilidade com campo antigo tecnicos_ids
+        $validated['tecnicos_ids'] = $tecnicosIds;
+        $validated['atividades_tecnicos'] = $atividadesTecnicos;
         
         // Upload do documento se fornecido
         if ($request->hasFile('documento_anexo')) {
@@ -307,8 +337,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
-            'tecnicos_ids' => 'required|array|min:1',
-            'tecnicos_ids.*' => 'exists:usuarios_internos,id',
+            'atividades_tecnicos' => 'required|json',
             'observacoes' => 'nullable|string',
             'data_inicio' => 'required|date|after_or_equal:today',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
@@ -322,6 +351,35 @@ class OrdemServicoController extends Controller
         }
         
         $validated = $request->validate($rules);
+        
+        // Processa e valida a estrutura de atividades com técnicos
+        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'], true);
+        
+        if (!is_array($atividadesTecnicos) || empty($atividadesTecnicos)) {
+            return back()->withErrors(['atividades_tecnicos' => 'Atribua técnicos para todas as atividades selecionadas.'])->withInput();
+        }
+        
+        // Valida se todos os técnicos existem e têm permissão
+        $tecnicosIds = [];
+        foreach ($atividadesTecnicos as $atividade) {
+            if (!isset($atividade['tecnicos']) || !is_array($atividade['tecnicos'])) {
+                return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos inválida.'])->withInput();
+            }
+            $tecnicosIds = array_merge($tecnicosIds, $atividade['tecnicos']);
+        }
+        
+        $tecnicosIds = array_unique($tecnicosIds);
+        $tecnicosValidos = $this->getTecnicosPorCompetencia($usuario)->pluck('id')->toArray();
+        
+        foreach ($tecnicosIds as $tecnicoId) {
+            if (!in_array($tecnicoId, $tecnicosValidos)) {
+                return back()->withErrors(['atividades_tecnicos' => 'Um ou mais técnicos selecionados não são válidos para sua competência.'])->withInput();
+            }
+        }
+        
+        // Mantém compatibilidade com campo antigo tecnicos_ids
+        $validated['tecnicos_ids'] = $tecnicosIds;
+        $validated['atividades_tecnicos'] = $atividadesTecnicos;
         
         // Valida se o estabelecimento pertence ao município do usuário (se municipal)
         if (!empty($validated['estabelecimento_id']) && $usuario->isMunicipal()) {

@@ -148,22 +148,30 @@
                             @enderror
                         </div>
 
-                        {{-- Técnicos Responsáveis - Botão para abrir modal --}}
+                        {{-- Atribuição de Técnicos por Atividade --}}
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">
-                                Técnicos Responsáveis <span class="text-red-500">*</span>
+                                Atribuição de Técnicos por Atividade <span class="text-red-500">*</span>
                             </label>
-                            <button type="button" onclick="abrirModalTecnicos()" 
-                                    class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-blue-400 transition-all text-left">
-                                <span id="tecnicos-display" class="text-gray-500">Clique para selecionar técnicos...</span>
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </button>
-                            <div id="tecnicos-tags" class="flex flex-wrap gap-2 mt-2"></div>
-                            {{-- Hidden inputs para enviar os valores --}}
-                            <div id="tecnicos-hidden-inputs"></div>
-                            @error('tecnicos_ids')
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div class="text-sm text-blue-800">
+                                        <p class="font-medium">Nova estrutura de atribuição</p>
+                                        <p class="mt-1">Primeiro selecione as atividades acima, depois atribua técnicos específicos para cada atividade selecionada.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="atividades-tecnicos-container" class="space-y-4">
+                                <p class="text-gray-500 text-sm italic">Selecione primeiro os tipos de ação para configurar os técnicos.</p>
+                            </div>
+                            
+                            {{-- Hidden inputs para enviar a estrutura --}}
+                            <div id="atividades-tecnicos-hidden-inputs"></div>
+                            @error('atividades_tecnicos')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -219,48 +227,54 @@
                     </div>
                 </div>
 
-                {{-- Modal Técnicos --}}
-                <div id="modal-tecnicos" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                {{-- Modal Técnicos por Atividade --}}
+                <div id="modal-tecnicos-atividade" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="fecharModalTecnicos()"></div>
-                        <div class="relative bg-white rounded-xl shadow-xl transform transition-all sm:max-w-lg sm:w-full mx-auto">
+                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="fecharModalTecnicosAtividade()"></div>
+                        <div class="relative bg-white rounded-xl shadow-xl transform transition-all sm:max-w-2xl sm:w-full mx-auto">
                             <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <h3 class="text-lg font-bold text-gray-900">Selecionar Técnicos Responsáveis</h3>
-                                <button type="button" onclick="fecharModalTecnicos()" class="text-gray-400 hover:text-gray-600">
+                                <h3 class="text-lg font-bold text-gray-900" id="modal-atividade-titulo">Atribuir Técnicos</h3>
+                                <button type="button" onclick="fecharModalTecnicosAtividade()" class="text-gray-400 hover:text-gray-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
                                 </button>
                             </div>
-                            {{-- Campo de Pesquisa --}}
-                            <div class="px-6 py-3 border-b border-gray-100 bg-gray-50">
-                                <div class="relative">
-                                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                    </svg>
-                                    <input type="text" id="pesquisa-tecnicos" placeholder="Pesquisar técnico por nome..." 
-                                           class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           onkeyup="filtrarTecnicos()">
-                                </div>
-                            </div>
-                            <div class="px-6 py-4 max-h-72 overflow-y-auto" id="lista-tecnicos">
-                                <div class="space-y-2">
-                                    @foreach($tecnicos as $tecnico)
-                                    <label class="tecnico-item flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors border border-transparent hover:border-blue-200" data-nome="{{ strtolower($tecnico->nome) }}">
-                                        <input type="checkbox" class="tecnico-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                                               value="{{ $tecnico->id }}" data-label="{{ $tecnico->nome }}"
-                                               {{ in_array($tecnico->id, old('tecnicos_ids', [])) ? 'checked' : '' }}>
-                                        <span class="ml-3 text-sm text-gray-700">{{ $tecnico->nome }}</span>
+                            
+                            <div class="px-6 py-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Técnico Responsável <span class="text-red-500">*</span>
                                     </label>
-                                    @endforeach
+                                    <select id="responsavel-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">Selecione o responsável...</option>
+                                        @foreach($tecnicos as $tecnico)
+                                        <option value="{{ $tecnico->id }}">{{ $tecnico->nome }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                                <p id="sem-resultados-tecnicos" class="hidden text-center text-gray-500 py-4">Nenhum técnico encontrado</p>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Técnicos Adicionais <span class="text-gray-500">(Opcional)</span>
+                                    </label>
+                                    <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                                        @foreach($tecnicos as $tecnico)
+                                        <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                                            <input type="checkbox" class="tecnico-adicional-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                                                   value="{{ $tecnico->id }}" data-nome="{{ $tecnico->nome }}">
+                                            <span class="ml-3 text-sm text-gray-700">{{ $tecnico->nome }}</span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
+                            
                             <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-                                <button type="button" onclick="fecharModalTecnicos()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <button type="button" onclick="fecharModalTecnicosAtividade()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                                     Cancelar
                                 </button>
-                                <button type="button" onclick="confirmarTecnicos()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                <button type="button" onclick="confirmarTecnicosAtividade()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                                     Confirmar
                                 </button>
                             </div>
@@ -468,6 +482,11 @@
             width: '100%'
         });
 
+        // Variáveis globais para controle
+        let atividadesSelecionadas = [];
+        let atividadesTecnicos = {};
+        let atividadeAtualModal = null;
+
         // Funções para Modal de Tipos de Ação
         window.abrirModalTiposAcao = function() {
             document.getElementById('modal-tipos-acao').classList.remove('hidden');
@@ -487,6 +506,7 @@
             
             tagsContainer.innerHTML = '';
             hiddenContainer.innerHTML = '';
+            atividadesSelecionadas = [];
             
             if (checkboxes.length === 0) {
                 display.textContent = 'Clique para selecionar tipos de ação...';
@@ -498,83 +518,168 @@
                 display.classList.add('text-gray-700');
                 
                 checkboxes.forEach(cb => {
+                    const atividadeId = cb.value;
+                    const atividadeNome = cb.dataset.label;
+                    
+                    atividadesSelecionadas.push({
+                        id: atividadeId,
+                        nome: atividadeNome
+                    });
+                    
                     // Tag visual
                     const tag = document.createElement('span');
                     tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full';
-                    tag.innerHTML = cb.dataset.label + '<button type="button" onclick="removerTipoAcao(' + cb.value + ')" class="hover:text-blue-900"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+                    tag.innerHTML = atividadeNome + '<button type="button" onclick="removerTipoAcao(' + atividadeId + ')" class="hover:text-blue-900"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
                     tagsContainer.appendChild(tag);
                     
                     // Hidden input
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'tipos_acao_ids[]';
-                    input.value = cb.value;
+                    input.value = atividadeId;
                     hiddenContainer.appendChild(input);
                 });
             }
             
+            // Atualiza a interface de técnicos por atividade
+            atualizarInterfaceTecnicos();
             fecharModalTiposAcao();
         };
 
         window.removerTipoAcao = function(id) {
             const checkbox = document.querySelector('.tipo-acao-checkbox[value="' + id + '"]');
             if (checkbox) checkbox.checked = false;
+            
+            // Remove da estrutura de técnicos
+            delete atividadesTecnicos[id];
+            
             confirmarTiposAcao();
         };
 
-        // Funções para Modal de Técnicos
-        window.abrirModalTecnicos = function() {
-            document.getElementById('modal-tecnicos').classList.remove('hidden');
+        // Função para atualizar a interface de técnicos por atividade
+        function atualizarInterfaceTecnicos() {
+            const container = document.getElementById('atividades-tecnicos-container');
+            
+            if (atividadesSelecionadas.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm italic">Selecione primeiro os tipos de ação para configurar os técnicos.</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            atividadesSelecionadas.forEach(atividade => {
+                const atividadeDiv = document.createElement('div');
+                atividadeDiv.className = 'border border-gray-200 rounded-lg p-4 bg-gray-50';
+                
+                const tecnicosAtribuidos = atividadesTecnicos[atividade.id] || { responsavel: null, tecnicos: [] };
+                const responsavelNome = tecnicosAtribuidos.responsavel ? 
+                    document.querySelector(`option[value="${tecnicosAtribuidos.responsavel}"]`)?.textContent || 'Técnico não encontrado' : 
+                    'Não definido';
+                
+                const tecnicosAdicionais = tecnicosAtribuidos.tecnicos.length > 0 ? 
+                    tecnicosAtribuidos.tecnicos.map(id => {
+                        const option = document.querySelector(`option[value="${id}"]`);
+                        return option ? option.textContent : 'Técnico não encontrado';
+                    }).join(', ') : 'Nenhum';
+                
+                atividadeDiv.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium text-gray-900">${atividade.nome}</h4>
+                        <button type="button" onclick="abrirModalTecnicosAtividade(${atividade.id}, '${atividade.nome}')" 
+                                class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">
+                            ${tecnicosAtribuidos.responsavel ? 'Editar' : 'Atribuir'} Técnicos
+                        </button>
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><span class="font-medium">Responsável:</span> ${responsavelNome}</p>
+                        <p><span class="font-medium">Técnicos adicionais:</span> ${tecnicosAdicionais}</p>
+                    </div>
+                `;
+                
+                container.appendChild(atividadeDiv);
+            });
+            
+            // Atualiza os hidden inputs
+            atualizarHiddenInputsTecnicos();
+        }
+
+        // Funções para Modal de Técnicos por Atividade
+        window.abrirModalTecnicosAtividade = function(atividadeId, atividadeNome) {
+            atividadeAtualModal = atividadeId;
+            document.getElementById('modal-atividade-titulo').textContent = `Atribuir Técnicos - ${atividadeNome}`;
+            
+            // Carrega dados existentes
+            const tecnicosAtribuidos = atividadesTecnicos[atividadeId] || { responsavel: null, tecnicos: [] };
+            
+            // Define responsável
+            document.getElementById('responsavel-select').value = tecnicosAtribuidos.responsavel || '';
+            
+            // Define técnicos adicionais
+            document.querySelectorAll('.tecnico-adicional-checkbox').forEach(cb => {
+                cb.checked = tecnicosAtribuidos.tecnicos.includes(parseInt(cb.value));
+            });
+            
+            document.getElementById('modal-tecnicos-atividade').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         };
 
-        window.fecharModalTecnicos = function() {
-            document.getElementById('modal-tecnicos').classList.add('hidden');
+        window.fecharModalTecnicosAtividade = function() {
+            document.getElementById('modal-tecnicos-atividade').classList.add('hidden');
             document.body.style.overflow = '';
+            atividadeAtualModal = null;
         };
 
-        window.confirmarTecnicos = function() {
-            const checkboxes = document.querySelectorAll('.tecnico-checkbox:checked');
-            const tagsContainer = document.getElementById('tecnicos-tags');
-            const hiddenContainer = document.getElementById('tecnicos-hidden-inputs');
-            const display = document.getElementById('tecnicos-display');
+        window.confirmarTecnicosAtividade = function() {
+            if (!atividadeAtualModal) return;
             
-            tagsContainer.innerHTML = '';
-            hiddenContainer.innerHTML = '';
-            
-            if (checkboxes.length === 0) {
-                display.textContent = 'Clique para selecionar técnicos...';
-                display.classList.add('text-gray-500');
-                display.classList.remove('text-gray-700');
-            } else {
-                display.textContent = checkboxes.length + ' técnico(s) selecionado(s)';
-                display.classList.remove('text-gray-500');
-                display.classList.add('text-gray-700');
-                
-                checkboxes.forEach(cb => {
-                    // Tag visual
-                    const tag = document.createElement('span');
-                    tag.className = 'inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full';
-                    tag.innerHTML = cb.dataset.label + '<button type="button" onclick="removerTecnico(' + cb.value + ')" class="hover:text-green-900"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
-                    tagsContainer.appendChild(tag);
-                    
-                    // Hidden input
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'tecnicos_ids[]';
-                    input.value = cb.value;
-                    hiddenContainer.appendChild(input);
-                });
+            const responsavelId = document.getElementById('responsavel-select').value;
+            if (!responsavelId) {
+                alert('Selecione um técnico responsável.');
+                return;
             }
             
-            fecharModalTecnicos();
+            const tecnicosAdicionais = Array.from(document.querySelectorAll('.tecnico-adicional-checkbox:checked'))
+                .map(cb => parseInt(cb.value))
+                .filter(id => id !== parseInt(responsavelId)); // Remove o responsável dos adicionais
+            
+            // Salva na estrutura
+            atividadesTecnicos[atividadeAtualModal] = {
+                responsavel: parseInt(responsavelId),
+                tecnicos: [parseInt(responsavelId), ...tecnicosAdicionais] // Responsável sempre está incluído
+            };
+            
+            // Atualiza interface
+            atualizarInterfaceTecnicos();
+            fecharModalTecnicosAtividade();
         };
 
-        window.removerTecnico = function(id) {
-            const checkbox = document.querySelector('.tecnico-checkbox[value="' + id + '"]');
-            if (checkbox) checkbox.checked = false;
-            confirmarTecnicos();
-        };
+        // Função para atualizar os hidden inputs da estrutura de técnicos
+        function atualizarHiddenInputsTecnicos() {
+            const container = document.getElementById('atividades-tecnicos-hidden-inputs');
+            container.innerHTML = '';
+            
+            // Cria a estrutura atividades_tecnicos
+            const estrutura = atividadesSelecionadas.map(atividade => {
+                const tecnicosAtribuidos = atividadesTecnicos[atividade.id];
+                if (!tecnicosAtribuidos || !tecnicosAtribuidos.responsavel) {
+                    return null; // Pula atividades sem técnicos atribuídos
+                }
+                
+                return {
+                    tipo_acao_id: parseInt(atividade.id),
+                    tecnicos: tecnicosAtribuidos.tecnicos,
+                    responsavel_id: tecnicosAtribuidos.responsavel,
+                    status: 'pendente'
+                };
+            }).filter(item => item !== null);
+            
+            // Cria hidden input com JSON
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'atividades_tecnicos';
+            input.value = JSON.stringify(estrutura);
+            container.appendChild(input);
+        }
 
         // Funções de Filtro/Pesquisa
         window.filtrarTiposAcao = function() {
@@ -595,24 +700,6 @@
             document.getElementById('sem-resultados-tipos').classList.toggle('hidden', encontrados > 0);
         };
 
-        window.filtrarTecnicos = function() {
-            const termo = document.getElementById('pesquisa-tecnicos').value.toLowerCase();
-            const items = document.querySelectorAll('.tecnico-item');
-            let encontrados = 0;
-            
-            items.forEach(item => {
-                const nome = item.dataset.nome;
-                if (nome.includes(termo)) {
-                    item.style.display = 'flex';
-                    encontrados++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            document.getElementById('sem-resultados-tecnicos').classList.toggle('hidden', encontrados > 0);
-        };
-
         // Limpar pesquisa ao abrir modal
         const originalAbrirTiposAcao = window.abrirModalTiposAcao;
         window.abrirModalTiposAcao = function() {
@@ -621,16 +708,8 @@
             originalAbrirTiposAcao();
         };
 
-        const originalAbrirTecnicos = window.abrirModalTecnicos;
-        window.abrirModalTecnicos = function() {
-            document.getElementById('pesquisa-tecnicos').value = '';
-            filtrarTecnicos();
-            originalAbrirTecnicos();
-        };
-
         // Inicializar com valores old() se existirem
         confirmarTiposAcao();
-        confirmarTecnicos();
 
         // Logic for fetching Processos
         const processoSelect = document.getElementById('processo_id');
@@ -678,10 +757,30 @@
         });
 
         document.querySelector('form').addEventListener('submit', function(e) {
+            // Validação de estabelecimento e processo
             if(comEstabelecimentoRadio.checked && estabelecimentoSelect.value && !processoSelect.value) {
                 e.preventDefault();
                 alert('Selecione um processo vinculado.');
                 processoSelect.focus();
+                return;
+            }
+            
+            // Validação de técnicos por atividade
+            if (atividadesSelecionadas.length > 0) {
+                let atividadesSemTecnicos = [];
+                
+                atividadesSelecionadas.forEach(atividade => {
+                    const tecnicosAtribuidos = atividadesTecnicos[atividade.id];
+                    if (!tecnicosAtribuidos || !tecnicosAtribuidos.responsavel) {
+                        atividadesSemTecnicos.push(atividade.nome);
+                    }
+                });
+                
+                if (atividadesSemTecnicos.length > 0) {
+                    e.preventDefault();
+                    alert('As seguintes atividades não possuem técnicos atribuídos:\n\n' + atividadesSemTecnicos.join('\n') + '\n\nAtribua técnicos para todas as atividades antes de continuar.');
+                    return;
+                }
             }
         });
     });

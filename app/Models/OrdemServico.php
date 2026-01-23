@@ -16,8 +16,9 @@ class OrdemServico extends Model
         'estabelecimento_id',
         'processo_id',
         'tipos_acao_ids',
+        'atividades_tecnicos', // Nova estrutura
         'acoes_executadas_ids',
-        'tecnicos_ids',
+        'tecnicos_ids', // Manter por compatibilidade, mas será depreciado
         'municipio_id',
         'observacoes',
         'documento_anexo_path',
@@ -45,6 +46,7 @@ class OrdemServico extends Model
         'finalizada_em' => 'datetime',
         'cancelada_em' => 'datetime',
         'tipos_acao_ids' => 'array',
+        'atividades_tecnicos' => 'array', // Nova estrutura
         'acoes_executadas_ids' => 'array',
         'tecnicos_ids' => 'array',
     ];
@@ -253,5 +255,116 @@ class OrdemServico extends Model
         $color = $colors[$this->competencia] ?? 'bg-gray-100 text-gray-800';
         
         return "<span class='px-2 py-1 text-xs font-medium rounded {$color}'>{$this->competencia_label}</span>";
+    }
+
+    /**
+     * Retorna todos os técnicos envolvidos na OS (nova estrutura)
+     */
+    public function getTodosTenicosAttribute()
+    {
+        if (!$this->atividades_tecnicos) {
+            return collect([]);
+        }
+
+        $tecnicosIds = [];
+        foreach ($this->atividades_tecnicos as $atividade) {
+            if (isset($atividade['tecnicos']) && is_array($atividade['tecnicos'])) {
+                $tecnicosIds = array_merge($tecnicosIds, $atividade['tecnicos']);
+            }
+        }
+
+        $tecnicosIds = array_unique($tecnicosIds);
+        return UsuarioInterno::whereIn('id', $tecnicosIds)->get();
+    }
+
+    /**
+     * Verifica se um técnico está atribuído a alguma atividade
+     */
+    public function tecnicoEstaAtribuido($tecnicoId)
+    {
+        if (!$this->atividades_tecnicos) {
+            return false;
+        }
+
+        foreach ($this->atividades_tecnicos as $atividade) {
+            if (isset($atividade['tecnicos']) && in_array($tecnicoId, $atividade['tecnicos'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Retorna as atividades pendentes para um técnico
+     */
+    public function getAtividadesPendentesParaTecnico($tecnicoId)
+    {
+        if (!$this->atividades_tecnicos) {
+            return collect([]);
+        }
+
+        $atividadesPendentes = [];
+        foreach ($this->atividades_tecnicos as $atividade) {
+            if (isset($atividade['tecnicos']) && 
+                in_array($tecnicoId, $atividade['tecnicos']) && 
+                ($atividade['status'] ?? 'pendente') !== 'finalizada') {
+                $atividadesPendentes[] = $atividade;
+            }
+        }
+
+        return collect($atividadesPendentes);
+    }
+
+    /**
+     * Verifica se todas as atividades foram finalizadas
+     */
+    public function todasAtividadesFinalizadas()
+    {
+        if (!$this->atividades_tecnicos) {
+            return false;
+        }
+
+        foreach ($this->atividades_tecnicos as $atividade) {
+            if (($atividade['status'] ?? 'pendente') !== 'finalizada') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Finaliza uma atividade específica para um técnico
+     */
+    public function finalizarAtividade($tipoAcaoId, $tecnicoId, $observacoes = null)
+    {
+        $atividades = $this->atividades_tecnicos ?? [];
+        
+        foreach ($atividades as $index => $atividade) {
+            if ($atividade['tipo_acao_id'] == $tipoAcaoId && 
+                isset($atividade['tecnicos']) && 
+                in_array($tecnicoId, $atividade['tecnicos'])) {
+                
+                $atividades[$index]['status'] = 'finalizada';
+                $atividades[$index]['finalizada_por'] = $tecnicoId;
+                $atividades[$index]['finalizada_em'] = now()->toISOString();
+                if ($observacoes) {
+                    $atividades[$index]['observacoes'] = $observacoes;
+                }
+                break;
+            }
+        }
+
+        $this->update(['atividades_tecnicos' => $atividades]);
+
+        // Se todas as atividades foram finalizadas, finaliza a OS
+        if ($this->todasAtividadesFinalizadas()) {
+            $this->update([
+                'status' => 'finalizada',
+                'data_conclusao' => now(),
+                'finalizada_em' => now(),
+            ]);
+        }
     }
 }
