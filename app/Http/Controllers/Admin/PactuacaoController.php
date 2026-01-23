@@ -245,20 +245,21 @@ class PactuacaoController extends Controller
         \Log::info('Buscando CNAE', ['termo' => $termo, 'termo_limpo' => $termoLimpo]);
         
         try {
-            // Busca na API do IBGE usando cURL
-            $url = "https://servicodados.ibge.gov.br/api/v2/cnae/classes/{$termoLimpo}";
+            // Busca na API pública de CNAEs (ReceitaWS)
+            $url = "https://brasilapi.com.br/api/cnae/v1/{$termoLimpo}";
             
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
             curl_close($ch);
             
-            \Log::info('Resposta API IBGE', [
+            \Log::info('Resposta BrasilAPI', [
                 'url' => $url,
                 'http_code' => $httpCode,
                 'curl_error' => $curlError,
@@ -268,13 +269,12 @@ class PactuacaoController extends Controller
             if ($httpCode === 200 && $response) {
                 $data = json_decode($response, true);
                 
-                if (isset($data[0])) {
-                    $cnae = $data[0];
-                    \Log::info('CNAE encontrado na API IBGE', ['cnae' => $cnae]);
+                if (isset($data['descricao'])) {
+                    \Log::info('CNAE encontrado na BrasilAPI', ['cnae' => $data]);
                     return response()->json([
                         [
-                            'codigo' => $cnae['id'] ?? $termoLimpo,
-                            'descricao' => $cnae['descricao'] ?? 'Descrição não encontrada'
+                            'codigo' => $data['codigo'] ?? $termoLimpo,
+                            'descricao' => $data['descricao']
                         ]
                     ]);
                 }
