@@ -245,42 +245,70 @@ class PactuacaoController extends Controller
         \Log::info('Buscando CNAE', ['termo' => $termo, 'termo_limpo' => $termoLimpo]);
         
         try {
-            // Busca na API pública de CNAEs (ReceitaWS)
-            $url = "https://brasilapi.com.br/api/cnae/v1/{$termoLimpo}";
+            // Tenta BrasilAPI primeiro (CNAEs de 7 dígitos)
+            if (strlen($termoLimpo) === 7) {
+                $url = "https://brasilapi.com.br/api/cnae/v1/{$termoLimpo}";
+                
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode === 200 && $response) {
+                    $data = json_decode($response, true);
+                    
+                    if (isset($data['descricao'])) {
+                        \Log::info('CNAE encontrado na BrasilAPI', ['cnae' => $data]);
+                        return response()->json([
+                            [
+                                'codigo' => $data['codigo'] ?? $termoLimpo,
+                                'descricao' => $data['descricao']
+                            ]
+                        ]);
+                    }
+                }
+            }
+            
+            // Tenta API da Receita Federal (CNAEs detalhados)
+            $url = "https://www.receitaws.com.br/v1/cnae/{$termoLimpo}";
             
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
             curl_close($ch);
             
-            \Log::info('Resposta BrasilAPI', [
+            \Log::info('Resposta ReceitaWS', [
                 'url' => $url,
                 'http_code' => $httpCode,
-                'curl_error' => $curlError,
                 'response_length' => strlen($response)
             ]);
             
             if ($httpCode === 200 && $response) {
                 $data = json_decode($response, true);
                 
-                if (isset($data['descricao'])) {
-                    \Log::info('CNAE encontrado na BrasilAPI', ['cnae' => $data]);
+                if (isset($data['descricao']) || isset($data['text'])) {
+                    $descricao = $data['descricao'] ?? $data['text'] ?? '';
+                    \Log::info('CNAE encontrado na ReceitaWS', ['cnae' => $data]);
                     return response()->json([
                         [
                             'codigo' => $data['codigo'] ?? $termoLimpo,
-                            'descricao' => $data['descricao']
+                            'descricao' => $descricao
                         ]
                     ]);
                 }
             }
             
-            // Se não encontrou na API, busca nos estabelecimentos cadastrados
+            // Se não encontrou nas APIs, busca nos estabelecimentos cadastrados
             $cnaes = Estabelecimento::select('cnae_fiscal as codigo', 'cnae_fiscal_descricao as descricao')
                 ->whereNotNull('cnae_fiscal')
                 ->where(function($q) use ($termo) {
