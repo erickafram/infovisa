@@ -994,8 +994,13 @@ function pactuacaoManager() {
             
             try {
                 // Busca a descrição do CNAE
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${encodeURIComponent(codigo)}`);
+                const url = `{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${encodeURIComponent(codigo)}`;
+                console.log('Buscando CNAE:', url);
+                
+                const response = await fetch(url);
                 const data = await response.json();
+                
+                console.log('Resposta buscar-cnaes:', data);
                 
                 let descricao = `Atividade ${codigo}`;
                 let status = 'Novo';
@@ -1110,26 +1115,47 @@ function pactuacaoManager() {
                     municipiosExcecao = this.municipiosSelecionados;
                 }
 
-                // Envia todas as atividades de uma vez
-                const response = await fetch('{{ route('admin.configuracoes.pactuacao.store-multiple') }}', {
-                    method: 'POST',
+                // Verifica se é edição ou criação
+                let url, method;
+                if (this.editarId) {
+                    // Modo edição - atualizar registro existente
+                    url = `{{ url('admin/configuracoes/pactuacao') }}/${this.editarId}`;
+                    method = 'POST'; // Usamos POST com _method PUT
+                } else {
+                    // Modo criação - criar novos registros
+                    url = '{{ route('admin.configuracoes.pactuacao.store-multiple') }}';
+                    method = 'POST';
+                }
+
+                const bodyData = {
+                    tipo: this.tipoModal,
+                    municipio: this.municipioModal,
+                    tabela: this.tabelaSelecionada,
+                    classificacao_risco: this.classificacaoRisco,
+                    pergunta: (this.perguntaQuestionario && this.perguntaQuestionario.trim) ? this.perguntaQuestionario.trim() : null,
+                    municipios_excecao: municipiosExcecao,
+                    observacao: (this.observacaoTexto && this.observacaoTexto.trim) ? this.observacaoTexto.trim() : null
+                };
+
+                // Se for edição, adiciona _method PUT
+                if (this.editarId) {
+                    bodyData._method = 'PUT';
+                } else {
+                    // Se for criação, adiciona as atividades
+                    bodyData.atividades = this.atividadesParaCadastro.map(a => ({
+                        codigo: a.codigo,
+                        descricao: a.descricao
+                    }));
+                }
+
+                // Envia a requisição
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({
-                        tipo: this.tipoModal,
-                        municipio: this.municipioModal,
-                        tabela: this.tabelaSelecionada,
-                        classificacao_risco: this.classificacaoRisco,
-                        pergunta: (this.perguntaQuestionario && this.perguntaQuestionario.trim) ? this.perguntaQuestionario.trim() : null,
-                        atividades: this.atividadesParaCadastro.map(a => ({
-                            codigo: a.codigo,
-                            descricao: a.descricao
-                        })),
-                        municipios_excecao: municipiosExcecao,
-                        observacao: (this.observacaoTexto && this.observacaoTexto.trim) ? this.observacaoTexto.trim() : null
-                    })
+                    body: JSON.stringify(bodyData)
                 });
 
                 // Debug: ver o que o servidor retornou
@@ -1163,6 +1189,7 @@ function pactuacaoManager() {
 
         fecharModal() {
             this.modalAdicionar = false;
+            this.editarId = null;
             this.cnaeInput = '';
             this.cnaesTextoMultiplo = '';
             this.atividadesParaCadastro = [];

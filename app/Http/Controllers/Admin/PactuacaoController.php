@@ -323,12 +323,28 @@ class PactuacaoController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
+            'tabela' => 'nullable|in:I,II,III,IV,V',
+            'classificacao_risco' => 'nullable|in:baixo,medio,alto',
+            'pergunta' => 'nullable|string',
             'observacao' => 'nullable|string',
             'municipios_excecao' => 'nullable|array',
         ]);
         
         try {
             $pactuacao = Pactuacao::findOrFail($id);
+            
+            // Atualiza todos os campos se fornecidos
+            if ($request->has('tabela')) {
+                $pactuacao->tabela = $request->tabela;
+            }
+            
+            if ($request->has('classificacao_risco')) {
+                $pactuacao->classificacao_risco = $request->classificacao_risco;
+            }
+            
+            if ($request->has('pergunta')) {
+                $pactuacao->pergunta = $request->pergunta;
+            }
             
             if ($request->has('observacao')) {
                 $pactuacao->observacao = $request->observacao;
