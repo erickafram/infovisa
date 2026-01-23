@@ -1177,7 +1177,7 @@ function pactuacaoManager() {
             if (!confirm('Deseja alterar o status desta atividade?')) return;
 
             try {
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${id}/toggle`, {
+                const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${id}/toggle`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1185,7 +1185,15 @@ function pactuacaoManager() {
                     }
                 });
 
-                const data = await response.json();
+                const responseText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Erro ao fazer parse:', e);
+                    alert('Erro no servidor ao alterar status');
+                    return;
+                }
                 
                 if (data.success) {
                     alert(data.message);
@@ -1195,7 +1203,7 @@ function pactuacaoManager() {
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                alert('Erro ao alterar status');
+                alert('Erro ao alterar status: ' + error.message);
             }
         },
 
@@ -1203,7 +1211,7 @@ function pactuacaoManager() {
             if (!confirm('Deseja realmente remover esta atividade?')) return;
 
             try {
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${id}`, {
+                const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${id}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1211,7 +1219,17 @@ function pactuacaoManager() {
                     }
                 });
 
-                const data = await response.json();
+                const responseText = await response.text();
+                console.log('Resposta remover:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Erro ao fazer parse:', e);
+                    alert('Erro no servidor ao remover');
+                    return;
+                }
                 
                 if (data.success) {
                     alert(data.message);
@@ -1221,7 +1239,7 @@ function pactuacaoManager() {
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                alert('Erro ao remover atividade');
+                alert('Erro ao remover atividade: ' + error.message);
             }
         },
 
@@ -1241,7 +1259,7 @@ function pactuacaoManager() {
             this.processando = true;
 
             try {
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${this.excecaoId}/adicionar-excecao`, {
+                const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${this.excecaoId}/adicionar-excecao`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1272,7 +1290,7 @@ function pactuacaoManager() {
             if (!confirm(`Deseja remover ${municipio} das exceções?`)) return;
 
             try {
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${id}/remover-excecao`, {
+                const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${id}/remover-excecao`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1335,7 +1353,7 @@ function pactuacaoManager() {
             this.processando = true;
 
             try {
-                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/${this.editarId}`, {
+                const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/${this.editarId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1375,7 +1393,7 @@ function pactuacaoManager() {
             
             this.timeoutPesquisa = setTimeout(async () => {
                 try {
-                    const response = await fetch(`{{ route('admin.configuracoes.pactuacao.index') }}/pesquisar?termo=${encodeURIComponent(this.termoPesquisa)}`);
+                    const response = await fetch(`{{ url('admin/configuracoes/pactuacao') }}/pesquisar?termo=${encodeURIComponent(this.termoPesquisa)}`);
                     const data = await response.json();
                     this.resultadosPesquisa = data;
                 } catch (error) {
