@@ -129,9 +129,17 @@ class PactuacaoController extends Controller
      */
     public function storeMultiple(Request $request)
     {
+        // Debug: log dos dados recebidos
+        \Log::info('storeMultiple chamado', [
+            'dados' => $request->all()
+        ]);
+        
         $request->validate([
             'tipo' => 'required|in:municipal,estadual',
-            'municipio' => 'required_if:tipo,municipal',
+            'municipio' => 'nullable|string',
+            'tabela' => 'required|in:I,II,III,IV,V',
+            'classificacao_risco' => 'required|in:baixo,medio,alto',
+            'pergunta' => 'nullable|string',
             'atividades' => 'required|array',
             'atividades.*.codigo' => 'required|string',
             'atividades.*.descricao' => 'required|string',
@@ -151,6 +159,9 @@ class PactuacaoController extends Controller
                     ],
                     [
                         'cnae_descricao' => $atividade['descricao'],
+                        'tabela' => $request->tabela,
+                        'classificacao_risco' => $request->classificacao_risco,
+                        'pergunta' => $request->pergunta,
                         'municipios_excecao' => $request->tipo === 'estadual' ? $request->municipios_excecao : null,
                         'observacao' => $request->observacao,
                         'ativo' => true,

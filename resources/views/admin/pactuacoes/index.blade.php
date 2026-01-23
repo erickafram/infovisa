@@ -544,7 +544,6 @@
                  x-transition:leave="ease-in duration-200"
                  x-transition:leave-start="opacity-100"
                  x-transition:leave-end="opacity-0"
-                 @click="modalAdicionar = false"
                  class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
 
             <div x-show="modalAdicionar"
@@ -554,14 +553,14 @@
                  x-transition:leave="ease-in duration-200"
                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                 class="inline-block w-full max-w-7xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
                 
                 <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-base font-semibold text-white">
                             <span x-text="tipoModal === 'estadual' ? 'Competência Estadual' : municipioModal"></span>
                         </h3>
-                        <button @click="modalAdicionar = false" class="text-white hover:text-gray-200">
+                        <button @click="fecharModal()" class="text-white hover:text-gray-200">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -569,133 +568,217 @@
                     </div>
                 </div>
 
-                <form @submit.prevent="adicionarAtividades" class="p-4">
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Tabela *
-                        </label>
-                        <select x-model="tabelaSelecionada" 
-                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                required>
-                            <option value="">Selecione a tabela</option>
-                            <option value="I">Tabela I - Municipal (139 municípios)</option>
-                            <option value="II">Tabela II - Estadual Exclusiva</option>
-                            <option value="III">Tabela III - Alto Risco Pactuado</option>
-                            <option value="IV">Tabela IV - Com Questionário (Estadual/Municipal)</option>
-                            <option value="V">Tabela V - Definir se é VISA</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Códigos CNAE *
-                            <span class="text-xs text-gray-500">(separados por vírgula)</span>
-                        </label>
-                        <textarea 
-                            x-model="cnaesTexto" 
-                            rows="3"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ex: 4711-3/01, 4712-1/00, 4713-0/02"
-                            required></textarea>
-                        <p class="mt-1 text-xs text-gray-500">
-                            Digite os códigos CNAE separados por vírgula. As descrições serão buscadas automaticamente.
-                        </p>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Classificação de Risco *
-                        </label>
-                        <select x-model="classificacaoRisco" 
-                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                required>
-                            <option value="">Selecione o risco</option>
-                            <option value="baixo">Baixo</option>
-                            <option value="medio">Médio</option>
-                            <option value="alto">Alto</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3" x-show="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Pergunta do Questionário *
-                        </label>
-                        <textarea 
-                            x-model="perguntaQuestionario" 
-                            rows="2"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ex: O resultado do exercício da atividade será diferente de produto artesanal?"
-                            :required="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'"></textarea>
-                        <p class="mt-1 text-xs text-gray-500">
-                            <span x-show="tabelaSelecionada === 'IV'">Resposta SIM = Estadual | NÃO = Municipal</span>
-                            <span x-show="tabelaSelecionada === 'V'">Resposta SIM = Sujeito à VISA | NÃO = Não sujeito</span>
-                        </p>
-                    </div>
-                    
-                    <div class="mb-3" x-show="tabelaSelecionada === 'III' || tabelaSelecionada === 'IV'">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Municípios Descentralizados (Exceções)
-                        </label>
+                <form @submit.prevent="adicionarAtividades" class="p-6">
+                    {{-- Layout em duas colunas --}}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         
-                        <div class="relative" @click.away="dropdownAberto = false">
-                            <div class="border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 cursor-text min-h-[42px] bg-white" 
-                                 @click="dropdownAberto = true; $nextTick(() => $refs.inputBusca.focus())">
-                                <template x-for="mun in municipiosSelecionados" :key="mun">
-                                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-                                        <span x-text="mun"></span>
-                                        <button type="button" @click.stop="removerMunicipio(mun)" class="hover:text-blue-900 font-bold px-1">×</button>
-                                    </span>
-                                </template>
-                                <input type="text" 
-                                       x-ref="inputBusca"
-                                       x-model="buscaMunicipio" 
-                                       @focus="dropdownAberto = true"
-                                       class="outline-none text-sm flex-1 min-w-[120px] border-none focus:ring-0 p-0" 
-                                       placeholder="Buscar município...">
+                        {{-- Coluna Esquerda: Configurações --}}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Tabela *
+                                </label>
+                                <select x-model="tabelaSelecionada" 
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        required>
+                                    <option value="">Selecione a tabela</option>
+                                    <option value="I">Tabela I - Municipal (139 municípios)</option>
+                                    <option value="II">Tabela II - Estadual Exclusiva</option>
+                                    <option value="III">Tabela III - Alto Risco Pactuado</option>
+                                    <option value="IV">Tabela IV - Com Questionário (Estadual/Municipal)</option>
+                                    <option value="V">Tabela V - Definir se é VISA</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Classificação de Risco *
+                                </label>
+                                <select x-model="classificacaoRisco" 
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        required>
+                                    <option value="">Selecione o risco</option>
+                                    <option value="baixo">Baixo</option>
+                                    <option value="medio">Médio</option>
+                                    <option value="alto">Alto</option>
+                                </select>
+                            </div>
+
+                            <div x-show="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Pergunta do Questionário *
+                                </label>
+                                <textarea 
+                                    x-model="perguntaQuestionario" 
+                                    rows="3"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Ex: O resultado do exercício da atividade será diferente de produto artesanal?"
+                                    :required="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'"></textarea>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <span x-show="tabelaSelecionada === 'IV'">Resposta SIM = Estadual | NÃO = Municipal</span>
+                                    <span x-show="tabelaSelecionada === 'V'">Resposta SIM = Sujeito à VISA | NÃO = Não sujeito</span>
+                                </p>
                             </div>
                             
-                            <div x-show="dropdownAberto && municipiosFiltrados().length > 0" 
-                                 class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
-                                <template x-for="mun in municipiosFiltrados()" :key="mun.id">
-                                    <div class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700" 
-                                         @click="adicionarMunicipio(mun.nome)">
-                                        <span x-text="mun.nome"></span>
+                            <div x-show="tabelaSelecionada === 'III' || tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <span x-show="tabelaSelecionada === 'III'">Municípios Descentralizados (Exceções)</span>
+                                    <span x-show="tabelaSelecionada === 'IV'">Municípios Descentralizados (se SIM)</span>
+                                    <span x-show="tabelaSelecionada === 'V'">Municípios Descentralizados (se SIM e VISA)</span>
+                                </label>
+                                
+                                <div class="relative" @click.away="dropdownAberto = false">
+                                    <div class="border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 cursor-text min-h-[42px] bg-white" 
+                                         @click="dropdownAberto = true; $nextTick(() => $refs.inputBusca.focus())">
+                                        <template x-for="mun in municipiosSelecionados" :key="mun">
+                                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                                                <span x-text="mun"></span>
+                                                <button type="button" @click.stop="removerMunicipio(mun)" class="hover:text-blue-900 font-bold px-1">×</button>
+                                            </span>
+                                        </template>
+                                        <input type="text" 
+                                               x-ref="inputBusca"
+                                               x-model="buscaMunicipio" 
+                                               @focus="dropdownAberto = true"
+                                               class="outline-none text-sm flex-1 min-w-[120px] border-none focus:ring-0 p-0" 
+                                               placeholder="Buscar município...">
                                     </div>
-                                </template>
+                                    
+                                    <div x-show="dropdownAberto && municipiosFiltrados().length > 0" 
+                                         class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
+                                        <template x-for="mun in municipiosFiltrados()" :key="mun.id">
+                                            <div class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700" 
+                                                 @click="adicionarMunicipio(mun.nome)">
+                                                <span x-text="mun.nome"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div x-show="dropdownAberto && municipiosFiltrados().length === 0 && buscaMunicipio.length > 0" 
+                                         class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm text-gray-500 mt-1">
+                                        Nenhum município encontrado
+                                    </div>
+                                </div>
+                                
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <span x-show="tabelaSelecionada === 'III'">Municípios que receberam descentralização para fiscalizar esta atividade.</span>
+                                    <span x-show="tabelaSelecionada === 'IV'">Municípios descentralizados (se resposta for SIM).</span>
+                                    <span x-show="tabelaSelecionada === 'V'">Municípios descentralizados (se resposta for SIM e sujeito à VISA).</span>
+                                </p>
                             </div>
-                            <div x-show="dropdownAberto && municipiosFiltrados().length === 0 && buscaMunicipio.length > 0" 
-                                 class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm text-gray-500 mt-1">
-                                Nenhum município encontrado
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Observações
+                                    <span class="text-xs text-gray-500">(opcional)</span>
+                                </label>
+                                <textarea 
+                                    x-model="observacaoTexto" 
+                                    rows="3"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Ex: Aplica-se apenas se não for produto artesanal"></textarea>
                             </div>
                         </div>
                         
-                        <p class="mt-1 text-xs text-gray-500">
-                            Municípios que receberam descentralização para fiscalizar esta atividade.
-                        </p>
+                        {{-- Coluna Direita: Adicionar CNAEs --}}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Adicionar Atividades: <span x-text="tabelaSelecionada ? 'Tabela ' + tabelaSelecionada : 'Selecione a tabela'"></span>
+                                </label>
+                                
+                                {{-- Campo de entrada para CNAE --}}
+                                <div class="flex gap-2 mb-3">
+                                    <div class="flex-1">
+                                        <input type="text" 
+                                               x-model="cnaeInput" 
+                                               @keyup.enter="adicionarCnae()"
+                                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               placeholder="Digite o código CNAE e pressione Enter ou clique em Adicionar">
+                                    </div>
+                                    <button type="button" 
+                                            @click="adicionarCnae()"
+                                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                        Adicionar
+                                    </button>
+                                </div>
+                                
+                                <p class="text-xs text-gray-500 mb-3">
+                                    Digite o código CNAE e pressione Enter ou clique em Adicionar. O sistema buscará automaticamente a descrição.
+                                </p>
+                                
+                                {{-- Área para colar múltiplos CNAEs --}}
+                                <div class="mb-3">
+                                    <div class="flex gap-2">
+                                        <textarea 
+                                            x-model="cnaesTextoMultiplo" 
+                                            rows="2"
+                                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Ou cole vários CNAEs de uma vez (separados por vírgula, quebra de linha ou espaço)"></textarea>
+                                        <button type="button" 
+                                                @click="importarCnaesMultiplos()"
+                                                class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+                                            Importar Todos
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {{-- Lista de atividades adicionadas --}}
+                                <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 min-h-[300px]">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="text-sm font-medium text-gray-700">
+                                            Atividades a serem cadastradas (<span x-text="atividadesParaCadastro.length"></span>)
+                                        </h4>
+                                        <button type="button" 
+                                                @click="limparTodasAtividades()"
+                                                x-show="atividadesParaCadastro.length > 0"
+                                                class="text-xs text-red-600 hover:text-red-800">
+                                            Limpar Todas
+                                        </button>
+                                    </div>
+                                    
+                                    <div x-show="atividadesParaCadastro.length === 0" class="text-center py-8 text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <p class="text-sm">Nenhum CNAE adicionado ainda</p>
+                                    </div>
+                                    
+                                    <div x-show="atividadesParaCadastro.length > 0" class="space-y-2 max-h-64 overflow-y-auto">
+                                        <template x-for="(atividade, index) in atividadesParaCadastro" :key="index">
+                                            <div class="flex items-start gap-3 p-2 bg-white border border-gray-200 rounded-lg">
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span class="font-mono text-sm font-semibold text-gray-900" x-text="atividade.codigo"></span>
+                                                        <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full" x-text="atividade.status || 'Novo'"></span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-700" x-text="atividade.descricao"></p>
+                                                </div>
+                                                <button type="button" 
+                                                        @click="removerAtividade(index)"
+                                                        class="text-red-500 hover:text-red-700 p-1">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Observações
-                            <span class="text-xs text-gray-500">(opcional)</span>
-                        </label>
-                        <textarea 
-                            x-model="observacaoTexto" 
-                            rows="2"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ex: Aplica-se apenas se não for produto artesanal"></textarea>
-                    </div>
-
-                    <div class="flex justify-end gap-2 mt-4">
+                    {{-- Botões --}}
+                    <div class="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
                         <button type="button" 
-                                @click="modalAdicionar = false"
-                                class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                @click="fecharModal()"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit"
-                                :disabled="processando"
-                                class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                            <span x-show="!processando">Adicionar</span>
+                                :disabled="processando || atividadesParaCadastro.length === 0"
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                            <span x-show="!processando">Salvar <span x-text="atividadesParaCadastro.length"></span> Atividade<span x-show="atividadesParaCadastro.length !== 1">s</span></span>
                             <span x-show="processando">Processando...</span>
                         </button>
                     </div>
@@ -711,11 +794,10 @@
          style="display: none;">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div x-show="modalExcecao"
-                 @click="modalExcecao = false"
                  class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
 
             <div x-show="modalExcecao"
-                 class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
+                 class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
                 
                 <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
                     <div class="flex items-center justify-between">
@@ -777,11 +859,10 @@
          style="display: none;">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div x-show="modalEditar"
-                 @click="modalEditar = false"
                  class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
 
             <div x-show="modalEditar"
-                 class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
+                 class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl z-10">
                 
                 <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
                     <div class="flex items-center justify-between">
@@ -831,29 +912,43 @@
 <script>
 function pactuacaoManager() {
     return {
+        // Dados básicos
         todosMunicipios: @json($todosMunicipios),
-        municipiosSelecionados: [],
-        buscaMunicipio: '',
-        dropdownAberto: false,
         
+        // Estado da interface
         abaAtiva: 'tabela-i',
         modalAdicionar: false,
         modalExcecao: false,
         modalEditar: false,
+        processando: false,
+        
+        // Dados do formulário
         tipoModal: 'estadual',
         municipioModal: null,
         tabelaSelecionada: '',
         classificacaoRisco: '',
         perguntaQuestionario: '',
-        cnaesTexto: '',
-        // municipiosExcecaoTexto removido
         observacaoTexto: '',
+        
+        // Municípios
+        municipiosSelecionados: [],
+        buscaMunicipio: '',
+        dropdownAberto: false,
+        
+        // CNAEs - nova lógica
+        cnaeInput: '',
+        cnaesTextoMultiplo: '',
+        atividadesParaCadastro: [],
+        buscandoCnae: false,
+        
+        // Edição
+        editarId: null,
+        editarObservacao: '',
+        
+        // Exceções
         excecaoId: null,
         excecaoCnae: '',
         excecaoMunicipio: '',
-        editarId: null,
-        editarObservacao: '',
-        processando: false,
         
         // Pesquisa
         termoPesquisa: '',
@@ -883,55 +978,132 @@ function pactuacaoManager() {
             );
         },
 
+        // Funções para gerenciar CNAEs
+        async adicionarCnae() {
+            const codigo = this.cnaeInput.trim();
+            if (!codigo) return;
+            
+            // Verifica se já foi adicionado
+            if (this.atividadesParaCadastro.find(a => a.codigo === codigo)) {
+                alert('Este CNAE já foi adicionado à lista');
+                this.cnaeInput = '';
+                return;
+            }
+            
+            this.buscandoCnae = true;
+            
+            try {
+                // Busca a descrição do CNAE
+                const response = await fetch(`{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${encodeURIComponent(codigo)}`);
+                const data = await response.json();
+                
+                let descricao = `Atividade ${codigo}`;
+                let status = 'Novo';
+                
+                if (data.length > 0) {
+                    // Procura correspondência exata primeiro
+                    const match = data.find(d => d.codigo === codigo) || data[0];
+                    descricao = match.descricao;
+                    status = 'Encontrado';
+                }
+                
+                // Adiciona à lista
+                this.atividadesParaCadastro.push({
+                    codigo: codigo,
+                    descricao: descricao,
+                    status: status
+                });
+                
+                this.cnaeInput = '';
+                
+            } catch (error) {
+                console.error(`Erro ao buscar CNAE ${codigo}:`, error);
+                // Adiciona mesmo com erro
+                this.atividadesParaCadastro.push({
+                    codigo: codigo,
+                    descricao: `Atividade ${codigo}`,
+                    status: 'Erro na busca'
+                });
+                this.cnaeInput = '';
+            } finally {
+                this.buscandoCnae = false;
+            }
+        },
+
+        async importarCnaesMultiplos() {
+            const texto = this.cnaesTextoMultiplo.trim();
+            if (!texto) return;
+            
+            // Separa por vírgula, quebra de linha ou espaço
+            const cnaes = texto.split(/[,\n\s]+/)
+                .map(c => c.trim())
+                .filter(c => c && c.length > 0);
+            
+            if (cnaes.length === 0) {
+                alert('Nenhum código CNAE válido encontrado');
+                return;
+            }
+            
+            this.buscandoCnae = true;
+            
+            for (const codigo of cnaes) {
+                // Pula se já foi adicionado
+                if (this.atividadesParaCadastro.find(a => a.codigo === codigo)) {
+                    continue;
+                }
+                
+                try {
+                    const response = await fetch(`{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${encodeURIComponent(codigo)}`);
+                    const data = await response.json();
+                    
+                    let descricao = `Atividade ${codigo}`;
+                    let status = 'Novo';
+                    
+                    if (data.length > 0) {
+                        const match = data.find(d => d.codigo === codigo) || data[0];
+                        descricao = match.descricao;
+                        status = 'Encontrado';
+                    }
+                    
+                    this.atividadesParaCadastro.push({
+                        codigo: codigo,
+                        descricao: descricao,
+                        status: status
+                    });
+                    
+                } catch (error) {
+                    console.error(`Erro ao buscar CNAE ${codigo}:`, error);
+                    this.atividadesParaCadastro.push({
+                        codigo: codigo,
+                        descricao: `Atividade ${codigo}`,
+                        status: 'Erro na busca'
+                    });
+                }
+            }
+            
+            this.cnaesTextoMultiplo = '';
+            this.buscandoCnae = false;
+        },
+
+        removerAtividade(index) {
+            this.atividadesParaCadastro.splice(index, 1);
+        },
+
+        limparTodasAtividades() {
+            if (confirm('Deseja remover todas as atividades da lista?')) {
+                this.atividadesParaCadastro = [];
+            }
+        },
+
         async adicionarAtividades() {
-            if (!this.cnaesTexto.trim()) {
-                alert('Digite pelo menos um código CNAE');
+            if (this.atividadesParaCadastro.length === 0) {
+                alert('Adicione pelo menos uma atividade à lista');
                 return;
             }
 
             this.processando = true;
 
             try {
-                // Separa os CNAEs por vírgula e limpa espaços
-                const cnaes = this.cnaesTexto.split(',').map(c => c.trim()).filter(c => c);
-                
-                if (cnaes.length === 0) {
-                    alert('Nenhum código CNAE válido encontrado');
-                    this.processando = false;
-                    return;
-                }
-
-                // Busca as descrições dos CNAEs
-                const atividades = [];
-                for (const cnae of cnaes) {
-                    // Busca a descrição do CNAE
-                    try {
-                        const response = await fetch(`{{ route('admin.configuracoes.pactuacao.buscar-cnaes') }}?termo=${cnae}`);
-                        const data = await response.json();
-                        
-                        if (data.length > 0) {
-                            // Pega a primeira correspondência exata ou mais próxima
-                            const match = data.find(d => d.codigo === cnae) || data[0];
-                            atividades.push({
-                                codigo: cnae,
-                                descricao: match.descricao
-                            });
-                        } else {
-                            // Se não encontrar, usa o código como descrição
-                            atividades.push({
-                                codigo: cnae,
-                                descricao: `Atividade ${cnae}`
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Erro ao buscar CNAE ${cnae}:`, error);
-                        atividades.push({
-                            codigo: cnae,
-                            descricao: `Atividade ${cnae}`
-                        });
-                    }
-                }
-
                 // Prepara municípios de exceção se for estadual
                 let municipiosExcecao = null;
                 if (this.tipoModal === 'estadual' && this.municipiosSelecionados.length > 0) {
@@ -948,26 +1120,57 @@ function pactuacaoManager() {
                     body: JSON.stringify({
                         tipo: this.tipoModal,
                         municipio: this.municipioModal,
-                        atividades: atividades,
+                        tabela: this.tabelaSelecionada,
+                        classificacao_risco: this.classificacaoRisco,
+                        pergunta: (this.perguntaQuestionario && this.perguntaQuestionario.trim) ? this.perguntaQuestionario.trim() : null,
+                        atividades: this.atividadesParaCadastro.map(a => ({
+                            codigo: a.codigo,
+                            descricao: a.descricao
+                        })),
                         municipios_excecao: municipiosExcecao,
-                        observacao: this.observacaoTexto.trim() || null
+                        observacao: (this.observacaoTexto && this.observacaoTexto.trim) ? this.observacaoTexto.trim() : null
                     })
                 });
 
-                const data = await response.json();
+                // Debug: ver o que o servidor retornou
+                const responseText = await response.text();
+                console.log('Resposta do servidor:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Erro ao fazer parse do JSON:', e);
+                    console.error('Resposta recebida:', responseText.substring(0, 500));
+                    alert('Erro no servidor. Verifique o console para mais detalhes.');
+                    return;
+                }
                 
                 if (data.success) {
                     alert(data.message);
+                    this.fecharModal();
                     window.location.reload();
                 } else {
                     alert(data.message);
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                alert('Erro ao adicionar atividades');
+                alert('Erro ao adicionar atividades: ' + error.message);
             } finally {
                 this.processando = false;
             }
+        },
+
+        fecharModal() {
+            this.modalAdicionar = false;
+            this.cnaeInput = '';
+            this.cnaesTextoMultiplo = '';
+            this.atividadesParaCadastro = [];
+            this.tabelaSelecionada = '';
+            this.classificacaoRisco = '';
+            this.perguntaQuestionario = '';
+            this.municipiosSelecionados = [];
+            this.observacaoTexto = '';
         },
 
         async toggleStatus(id) {
@@ -1107,12 +1310,19 @@ function pactuacaoManager() {
                 .then(data => {
                     this.editarId = id;
                     this.tabelaSelecionada = data.tabela;
-                    this.cnaesTexto = data.cnae_codigo;
                     this.classificacaoRisco = data.classificacao_risco;
                     this.perguntaQuestionario = data.pergunta || '';
                     // Preencher municípios selecionados (array)
                     this.municipiosSelecionados = data.municipios_excecao || [];
                     this.observacaoTexto = data.observacao || '';
+                    
+                    // Adiciona a atividade atual à lista
+                    this.atividadesParaCadastro = [{
+                        codigo: data.cnae_codigo,
+                        descricao: data.cnae_descricao,
+                        status: 'Existente'
+                    }];
+                    
                     this.modalAdicionar = true; // Reusar o mesmo modal
                 })
                 .catch(error => {
