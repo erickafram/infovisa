@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TipoAcao;
+use App\Models\SubAcao;
 use Illuminate\Http\Request;
 
 class TipoAcaoController extends Controller
@@ -13,7 +14,7 @@ class TipoAcaoController extends Controller
      */
     public function index(Request $request)
     {
-        $query = TipoAcao::query();
+        $query = TipoAcao::withCount('subAcoesAtivas');
 
         // Filtro por competência
         if ($request->filled('competencia')) {
@@ -82,10 +83,20 @@ class TipoAcaoController extends Controller
     }
 
     /**
+     * Display the specified resource with subactions.
+     */
+    public function show(TipoAcao $tipoAcao)
+    {
+        $tipoAcao->load('subAcoes');
+        return view('admin.tipo-acoes.show', compact('tipoAcao'));
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit(TipoAcao $tipoAcao)
     {
+        $tipoAcao->load('subAcoes');
         return view('admin.tipo-acoes.edit', compact('tipoAcao'));
     }
 
@@ -135,5 +146,95 @@ class TipoAcaoController extends Controller
                 ->route('admin.configuracoes.tipo-acoes.index')
                 ->with('error', 'Erro ao excluir Tipo de Ação. Pode estar vinculado a outros registros.');
         }
+    }
+
+    /**
+     * Store a new subaction for a TipoAcao.
+     */
+    public function storeSubAcao(Request $request, TipoAcao $tipoAcao)
+    {
+        $validated = $request->validate([
+            'descricao' => 'required|string|max:255',
+            'codigo_procedimento' => 'nullable|string|max:255',
+            'ordem' => 'nullable|integer|min:0',
+            'ativo' => 'boolean',
+        ], [
+            'descricao.required' => 'A descrição da subação é obrigatória.',
+        ]);
+
+        $validated['tipo_acao_id'] = $tipoAcao->id;
+        $validated['ativo'] = $request->has('ativo') || !$request->has('_method');
+        $validated['ordem'] = $validated['ordem'] ?? ($tipoAcao->subAcoes()->max('ordem') + 1);
+
+        SubAcao::create($validated);
+
+        return redirect()
+            ->route('admin.configuracoes.tipo-acoes.edit', $tipoAcao)
+            ->with('success', 'Subação cadastrada com sucesso!');
+    }
+
+    /**
+     * Update a subaction.
+     */
+    public function updateSubAcao(Request $request, TipoAcao $tipoAcao, SubAcao $subAcao)
+    {
+        // Verifica se a subação pertence à ação
+        if ($subAcao->tipo_acao_id !== $tipoAcao->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'descricao' => 'required|string|max:255',
+            'codigo_procedimento' => 'nullable|string|max:255',
+            'ordem' => 'nullable|integer|min:0',
+            'ativo' => 'boolean',
+        ], [
+            'descricao.required' => 'A descrição da subação é obrigatória.',
+        ]);
+
+        $validated['ativo'] = $request->has('ativo');
+
+        $subAcao->update($validated);
+
+        return redirect()
+            ->route('admin.configuracoes.tipo-acoes.edit', $tipoAcao)
+            ->with('success', 'Subação atualizada com sucesso!');
+    }
+
+    /**
+     * Delete a subaction.
+     */
+    public function destroySubAcao(TipoAcao $tipoAcao, SubAcao $subAcao)
+    {
+        // Verifica se a subação pertence à ação
+        if ($subAcao->tipo_acao_id !== $tipoAcao->id) {
+            abort(404);
+        }
+
+        try {
+            $subAcao->delete();
+            
+            return redirect()
+                ->route('admin.configuracoes.tipo-acoes.edit', $tipoAcao)
+                ->with('success', 'Subação excluída com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.configuracoes.tipo-acoes.edit', $tipoAcao)
+                ->with('error', 'Erro ao excluir subação.');
+        }
+    }
+
+    /**
+     * API: Retorna subações de uma ação
+     */
+    public function getSubAcoes(TipoAcao $tipoAcao)
+    {
+        $subAcoes = $tipoAcao->subAcoesAtivas()->get(['id', 'descricao', 'codigo_procedimento']);
+        
+        return response()->json([
+            'success' => true,
+            'sub_acoes' => $subAcoes,
+            'tem_sub_acoes' => $subAcoes->count() > 0
+        ]);
     }
 }

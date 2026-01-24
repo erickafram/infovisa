@@ -44,10 +44,10 @@
                     </svg>
                     Processos Sanitários
                 </div>
-                <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
                     Consulte & Acompanhe
                 </h1>
-                <p class="text-lg text-purple-100 max-w-2xl mx-auto">
+                <p class="text-base text-purple-100 max-w-2xl mx-auto">
                     Veja a fila de processos em tempo real ou consulte pelo CNPJ
                 </p>
             </div>
@@ -96,15 +96,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Consultar Processo</h2>
-                    <p class="text-sm text-gray-600">Digite o CNPJ para ver todos os processos do estabelecimento</p>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Consultar Processo</h2>
+                    <p class="text-xs text-gray-600">Digite o CNPJ para ver todos os processos do estabelecimento</p>
                 </div>
                 
                 <div class="bg-gradient-to-br from-gray-50 to-purple-50 rounded-2xl shadow-xl border border-gray-200 p-8">
                     <form action="{{ route('consultar.processo') }}" method="POST" class="space-y-5">
                         @csrf
                         <div>
-                            <label for="cnpj" class="block text-sm font-semibold text-gray-900 mb-2">
+                            <label for="cnpj" class="block text-xs font-semibold text-gray-900 mb-2">
                                 CNPJ da Empresa
                             </label>
                             <input 
@@ -116,7 +116,7 @@
                                 placeholder="00.000.000/0000-00"
                                 maxlength="18"
                                 required
-                                class="w-full px-4 py-3 text-base font-mono border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all"
+                                class="w-full px-4 py-3 text-sm font-mono border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-all"
                             >
                             <p class="mt-2 text-xs text-gray-600 flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@
                             </p>
                         </div>
 
-                        <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3.5 px-4 rounded-xl text-base font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
@@ -143,7 +143,7 @@
             <!-- Filtros de Status -->
             <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <h4 class="text-sm font-bold text-gray-900 flex items-center gap-2">
                         <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
                         </svg>
@@ -227,10 +227,10 @@
                     <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="text-lg font-bold text-white">
+                                <h3 class="text-base font-bold text-white">
                                     {{ $fila['tipo'] }}
                                 </h3>
-                                <p class="text-sm text-purple-100 mt-1">
+                                <p class="text-xs text-purple-100 mt-1">
                                     {{ count($fila['processos']) }} processo(s) em fila
                                 </p>
                             </div>
@@ -287,10 +287,10 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-gray-900">{{ $processo['numero_processo'] }}</span>
+                                        <span class="text-xs font-medium text-gray-900">{{ $processo['numero_processo'] }}</span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="text-sm text-gray-700">{{ $processo['estabelecimento'] }}</span>
+                                        <span class="text-xs text-gray-700">{{ $processo['estabelecimento'] }}</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @php
@@ -313,11 +313,11 @@
                                             {{ $statusLabels[$processo['status']] ?? ucfirst($processo['status']) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                                         {{ $processo['data_abertura'] }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm font-medium text-gray-900">
+                                        <span class="text-xs font-medium text-gray-900">
                                             {{ $processo['tempo_formatado'] }}
                                         </span>
                                     </td>
@@ -344,7 +344,7 @@
 
             <!-- Legenda de Status -->
             <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-sm font-semibold text-gray-900 mb-4">Legenda de Status</h3>
+                <h3 class="text-xs font-semibold text-gray-900 mb-4">Legenda de Status</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                     <div class="flex items-center gap-2">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">
@@ -382,8 +382,8 @@
         @else
             <!-- Empty State -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum processo na fila</h3>
-                <p class="text-sm text-gray-600 max-w-md mx-auto mb-6">
+                <h3 class="text-base font-semibold text-gray-900 mb-2">Nenhum processo na fila</h3>
+                <p class="text-xs text-gray-600 max-w-md mx-auto mb-6">
                     Não há processos em andamento no momento. Processos aparecerão aqui quando forem criados e estiverem com status de aberto, em análise, pendente ou parado.
                 </p>
                 <a href="{{ route('home') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">

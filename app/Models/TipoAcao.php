@@ -25,6 +25,30 @@ class TipoAcao extends Model
     ];
 
     /**
+     * Relacionamento com SubAcoes
+     */
+    public function subAcoes()
+    {
+        return $this->hasMany(SubAcao::class)->orderBy('ordem')->orderBy('descricao');
+    }
+
+    /**
+     * Relacionamento com SubAcoes ativas
+     */
+    public function subAcoesAtivas()
+    {
+        return $this->hasMany(SubAcao::class)->where('ativo', true)->orderBy('ordem')->orderBy('descricao');
+    }
+
+    /**
+     * Verifica se a ação tem subações
+     */
+    public function temSubAcoes()
+    {
+        return $this->subAcoesAtivas()->count() > 0;
+    }
+
+    /**
      * Scope para buscar apenas ações ativas
      */
     public function scopeAtivo($query)

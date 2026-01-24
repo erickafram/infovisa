@@ -101,8 +101,8 @@ class OrdemServicoController extends Controller
         // Busca estabelecimentos conforme competência
         $estabelecimentos = $this->getEstabelecimentosPorCompetencia($usuario);
         
-        // Busca tipos de ação ativos
-        $tiposAcao = TipoAcao::ativo()->orderBy('descricao')->get();
+        // Busca tipos de ação ativos com subações
+        $tiposAcao = TipoAcao::ativo()->with('subAcoesAtivas')->orderBy('descricao')->get();
         
         // Busca técnicos conforme competência
         $tecnicos = $this->getTecnicosPorCompetencia($usuario);
@@ -297,8 +297,8 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
         }
         
-        // Busca tipos de ação ativos
-        $tiposAcao = TipoAcao::ativo()->orderBy('descricao')->get();
+        // Busca tipos de ação ativos com subações
+        $tiposAcao = TipoAcao::ativo()->with('subAcoesAtivas')->orderBy('descricao')->get();
         
         // Busca técnicos conforme competência
         $tecnicos = $this->getTecnicosPorCompetencia($usuario);
@@ -895,6 +895,16 @@ class OrdemServicoController extends Controller
                 ->with('error', 'Apenas ordens de serviço finalizadas podem ser reiniciadas.');
         }
         
+        // Reseta o status de todas as atividades para pendente
+        $atividades = $ordemServico->atividades_tecnicos ?? [];
+        foreach ($atividades as $index => $atividade) {
+            $atividades[$index]['status'] = 'pendente';
+            $atividades[$index]['status_execucao'] = null;
+            $atividades[$index]['finalizada_por'] = null;
+            $atividades[$index]['finalizada_em'] = null;
+            $atividades[$index]['observacoes_finalizacao'] = null;
+        }
+        
         // Reinicia a OS
         $ordemServico->update([
             'status' => 'em_andamento',
@@ -903,6 +913,7 @@ class OrdemServicoController extends Controller
             'finalizada_por' => null,
             'finalizada_em' => null,
             'data_conclusao' => null,
+            'atividades_tecnicos' => $atividades, // Reseta as atividades
         ]);
         
         // Cria notificação para os técnicos
@@ -911,7 +922,7 @@ class OrdemServicoController extends Controller
                 'usuario_interno_id' => $tecnicoId,
                 'tipo' => 'ordem_servico_reiniciada',
                 'titulo' => 'OS #' . $ordemServico->numero . ' Reiniciada',
-                'mensagem' => 'A OS #' . $ordemServico->numero . ' foi reiniciada por ' . $usuario->nome . ' e voltou ao status "Em Andamento".',
+                'mensagem' => 'A OS #' . $ordemServico->numero . ' foi reiniciada por ' . $usuario->nome . '. Todas as atividades voltaram ao status "Pendente".',
                 'link' => route('admin.ordens-servico.show', $ordemServico),
                 'ordem_servico_id' => $ordemServico->id,
                 'prioridade' => 'alta',
@@ -919,7 +930,7 @@ class OrdemServicoController extends Controller
         }
         
         return redirect()->route('admin.ordens-servico.show', $ordemServico)
-            ->with('success', 'Ordem de Serviço reiniciada com sucesso! Status alterado para "Em Andamento".');
+            ->with('success', 'Ordem de Serviço reiniciada com sucesso! Todas as atividades voltaram ao status "Pendente".');
     }
 
     /**
@@ -1044,5 +1055,175 @@ class OrdemServicoController extends Controller
                 'error' => 'Erro ao buscar processos'
             ], 500);
         }
+    }
+
+    /**
+     * Finalizar uma atividade específica do técnico
+     * A OS só será finalizada quando TODAS as atividades forem concluídas
+     */
+    public function finalizarAtividade(Request $request, OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Valida os dados
+        $validated = $request->validate([
+            'atividade_index' => 'required|integer|min:0',
+            'status_execucao' => 'required|in:concluido,parcial,nao_concluido',
+            'observacoes' => 'required|string|min:10|max:1000',
+            'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+        ], [
+            'atividade_index.required' => 'Índice da atividade é obrigatório.',
+            'status_execucao.required' => 'Selecione o status da execução.',
+            'status_execucao.in' => 'Status de execução inválido.',
+            'observacoes.required' => 'Informe as observações da atividade.',
+            'observacoes.min' => 'As observações devem ter no mínimo 10 caracteres.',
+        ]);
+        
+        $atividadeIndex = $validated['atividade_index'];
+        $atividades = $ordemServico->atividades_tecnicos ?? [];
+        
+        // Verifica se o índice é válido
+        if (!isset($atividades[$atividadeIndex])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Atividade não encontrada.'
+            ], 404);
+        }
+        
+        $atividade = $atividades[$atividadeIndex];
+        
+        // Verifica se o técnico está atribuído a esta atividade
+        $tecnicosAtividade = $atividade['tecnicos'] ?? [];
+        if (!in_array($usuario->id, $tecnicosAtividade)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Você não está atribuído a esta atividade.'
+            ], 403);
+        }
+        
+        // Verifica se a atividade já foi finalizada
+        if (($atividade['status'] ?? 'pendente') === 'finalizada') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta atividade já foi finalizada.'
+            ], 400);
+        }
+        
+        // Atualiza o status da atividade
+        $atividades[$atividadeIndex]['status'] = 'finalizada';
+        $atividades[$atividadeIndex]['status_execucao'] = $validated['status_execucao'];
+        $atividades[$atividadeIndex]['finalizada_por'] = $usuario->id;
+        $atividades[$atividadeIndex]['finalizada_em'] = now()->toISOString();
+        $atividades[$atividadeIndex]['observacoes_finalizacao'] = $validated['observacoes'];
+        
+        // Dados para atualizar na OS
+        $dadosOS = ['atividades_tecnicos' => $atividades];
+        
+        // Se foi informado um estabelecimento e a OS não tem, vincula
+        if (!empty($validated['estabelecimento_id']) && !$ordemServico->estabelecimento_id) {
+            $dadosOS['estabelecimento_id'] = $validated['estabelecimento_id'];
+        }
+        
+        // Salva as atividades atualizadas
+        $ordemServico->update($dadosOS);
+        
+        // Verifica se TODAS as atividades foram finalizadas
+        $todasFinalizadas = true;
+        foreach ($atividades as $atv) {
+            if (($atv['status'] ?? 'pendente') !== 'finalizada') {
+                $todasFinalizadas = false;
+                break;
+            }
+        }
+        
+        // Se todas as atividades foram finalizadas, finaliza a OS automaticamente
+        if ($todasFinalizadas) {
+            // Determina o status geral baseado nas atividades
+            $statusGeral = 'sim';
+            foreach ($atividades as $atv) {
+                if (($atv['status_execucao'] ?? 'concluido') === 'nao_concluido') {
+                    $statusGeral = 'nao';
+                    break;
+                } elseif (($atv['status_execucao'] ?? 'concluido') === 'parcial') {
+                    $statusGeral = 'parcial';
+                }
+            }
+            
+            $ordemServico->update([
+                'status' => 'finalizada',
+                'data_conclusao' => now(),
+                'finalizada_em' => now(),
+                'atividades_realizadas' => $statusGeral,
+                'observacoes_finalizacao' => 'Ordem de Serviço finalizada automaticamente após conclusão de todas as atividades.',
+            ]);
+            
+            // Cria notificação para gestores
+            $this->criarNotificacaoFinalizacao($ordemServico, $usuario);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Atividade finalizada! A Ordem de Serviço foi encerrada automaticamente pois todas as atividades foram concluídas.',
+                'os_finalizada' => true,
+                'atividade_nome' => $atividade['nome_atividade'] ?? 'Atividade'
+            ]);
+        }
+        
+        // Conta quantas atividades ainda estão pendentes
+        $pendentes = 0;
+        foreach ($atividades as $atv) {
+            if (($atv['status'] ?? 'pendente') !== 'finalizada') {
+                $pendentes++;
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Atividade finalizada com sucesso!',
+            'os_finalizada' => false,
+            'atividade_nome' => $atividade['nome_atividade'] ?? 'Atividade',
+            'atividades_pendentes' => $pendentes
+        ]);
+    }
+
+    /**
+     * Retorna as atividades do técnico logado para uma OS
+     */
+    public function getMinhasAtividades(OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        $atividades = $ordemServico->atividades_tecnicos ?? [];
+        
+        $minhasAtividades = [];
+        
+        foreach ($atividades as $index => $atividade) {
+            $tecnicosAtividade = $atividade['tecnicos'] ?? [];
+            
+            // Verifica se o técnico está atribuído a esta atividade
+            if (in_array($usuario->id, $tecnicosAtividade)) {
+                $responsavelId = $atividade['responsavel_id'] ?? null;
+                $responsavel = $responsavelId ? UsuarioInterno::find($responsavelId) : null;
+                
+                $minhasAtividades[] = [
+                    'index' => $index,
+                    'tipo_acao_id' => $atividade['tipo_acao_id'] ?? null,
+                    'sub_acao_id' => $atividade['sub_acao_id'] ?? null,
+                    'nome_atividade' => $atividade['nome_atividade'] ?? 'Atividade',
+                    'status' => $atividade['status'] ?? 'pendente',
+                    'responsavel_id' => $responsavelId,
+                    'responsavel_nome' => $responsavel ? $responsavel->nome : null,
+                    'sou_responsavel' => $responsavelId == $usuario->id,
+                    'finalizada_em' => $atividade['finalizada_em'] ?? null,
+                    'observacoes_finalizacao' => $atividade['observacoes_finalizacao'] ?? null,
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'atividades' => $minhasAtividades,
+            'total' => count($minhasAtividades),
+            'pendentes' => count(array_filter($minhasAtividades, fn($a) => $a['status'] !== 'finalizada')),
+            'finalizadas' => count(array_filter($minhasAtividades, fn($a) => $a['status'] === 'finalizada')),
+        ]);
     }
 }

@@ -101,6 +101,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Subações</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Competência</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SIA</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -115,6 +116,15 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-600 font-mono">{{ $acao->codigo_procedimento }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            @if($acao->sub_acoes_ativas_count > 0)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ $acao->sub_acoes_ativas_count }} subação(ões)
+                                </span>
+                            @else
+                                <span class="text-xs text-gray-400">-</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4">
                             {!! $acao->competencia_badge !!}

@@ -76,18 +76,6 @@
                             </div>
                             @endif
                         @else
-                            {{-- Botão Finalizar OS (apenas para técnicos atribuídos) --}}
-                            @if($isTecnicoAtribuido)
-                            <button type="button" 
-                                    onclick="abrirModalFinalizarOS()"
-                                    class="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Finalizar OS
-                            </button>
-                            @endif
-                            
                             {{-- Botão Editar --}}
                             <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
@@ -403,7 +391,132 @@
                 </div>
             </div>
 
-            {{-- Técnicos Responsáveis --}}
+            {{-- Atividades por Técnico (Nova Seção) --}}
+            @if($ordemServico->atividades_tecnicos && count($ordemServico->atividades_tecnicos) > 0)
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        Atividades por Técnico
+                    </h2>
+                    @php
+                        $totalAtividades = count($ordemServico->atividades_tecnicos);
+                        $atividadesFinalizadas = collect($ordemServico->atividades_tecnicos)->filter(fn($a) => ($a['status'] ?? 'pendente') === 'finalizada')->count();
+                    @endphp
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                            {{ $atividadesFinalizadas }}/{{ $totalAtividades }} concluídas
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-5 space-y-4">
+                    @foreach($ordemServico->atividades_tecnicos as $index => $atividade)
+                        @php
+                            $statusAtividade = $atividade['status'] ?? 'pendente';
+                            $responsavelId = $atividade['responsavel_id'] ?? null;
+                            $responsavel = $responsavelId ? \App\Models\UsuarioInterno::find($responsavelId) : null;
+                            $tecnicosIds = $atividade['tecnicos'] ?? [];
+                            $tecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosIds)->get();
+                            $finalizadaPor = isset($atividade['finalizada_por']) ? \App\Models\UsuarioInterno::find($atividade['finalizada_por']) : null;
+                            $finalizadaEm = isset($atividade['finalizada_em']) ? \Carbon\Carbon::parse($atividade['finalizada_em']) : null;
+                            $usuarioLogadoAtribuido = in_array(auth('interno')->id(), $tecnicosIds);
+                        @endphp
+                        
+                        <div class="border rounded-xl overflow-hidden {{ $statusAtividade === 'finalizada' ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-white' }}">
+                            {{-- Header da Atividade --}}
+                            <div class="px-4 py-3 flex items-center justify-between {{ $statusAtividade === 'finalizada' ? 'bg-green-100/50' : 'bg-gray-50' }}">
+                                <div class="flex items-center gap-3">
+                                    @if($statusAtividade === 'finalizada')
+                                        <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">{{ $atividade['nome_atividade'] ?? 'Atividade' }}</h4>
+                                        @if($statusAtividade === 'finalizada' && $finalizadaEm)
+                                            <p class="text-xs text-green-700">
+                                                Finalizada em {{ $finalizadaEm->format('d/m/Y H:i') }}
+                                                @if($finalizadaPor) por {{ $finalizadaPor->nome }} @endif
+                                            </p>
+                                        @else
+                                            <p class="text-xs text-amber-700">Pendente</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                {{-- Botão Finalizar (apenas para técnicos atribuídos e se não finalizada) --}}
+                                @if($statusAtividade !== 'finalizada' && $usuarioLogadoAtribuido && $ordemServico->status === 'em_andamento')
+                                    <button type="button" 
+                                            onclick="abrirModalFinalizarAtividade({{ $index }}, '{{ addslashes($atividade['nome_atividade'] ?? 'Atividade') }}')"
+                                            class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Finalizar Atividade
+                                    </button>
+                                @elseif($statusAtividade === 'finalizada')
+                                    @php
+                                        $statusExecucao = $atividade['status_execucao'] ?? 'concluido';
+                                        $statusLabel = match($statusExecucao) {
+                                            'concluido' => '✓ Concluída',
+                                            'parcial' => '⚠ Parcial',
+                                            'nao_concluido' => '✗ Não concluída',
+                                            default => '✓ Concluída'
+                                        };
+                                        $statusClass = match($statusExecucao) {
+                                            'concluido' => 'text-green-700 bg-green-100',
+                                            'parcial' => 'text-yellow-700 bg-yellow-100',
+                                            'nao_concluido' => 'text-red-700 bg-red-100',
+                                            default => 'text-green-700 bg-green-100'
+                                        };
+                                    @endphp
+                                    <span class="px-3 py-1.5 text-xs font-medium {{ $statusClass }} rounded-lg">
+                                        {{ $statusLabel }}
+                                    </span>
+                                @endif
+                            </div>
+                            
+                            {{-- Técnicos da Atividade --}}
+                            <div class="px-4 py-3">
+                                <p class="text-xs font-medium text-gray-500 mb-2">Técnicos atribuídos:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($tecnicos as $tecnico)
+                                        <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs {{ $tecnico->id == $responsavelId ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-gray-100 text-gray-700' }}">
+                                            <div class="w-5 h-5 rounded-full {{ $tecnico->id == $responsavelId ? 'bg-indigo-600' : 'bg-gray-500' }} flex items-center justify-center">
+                                                <span class="text-white font-bold text-[10px]">{{ strtoupper(substr($tecnico->nome, 0, 1)) }}</span>
+                                            </div>
+                                            <span class="font-medium">{{ $tecnico->nome }}</span>
+                                            @if($tecnico->id == $responsavelId)
+                                                <span class="text-[10px] bg-indigo-200 px-1 rounded">Responsável</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                                
+                                {{-- Observações da finalização --}}
+                                @if($statusAtividade === 'finalizada' && !empty($atividade['observacoes_finalizacao']))
+                                    <div class="mt-3 p-2 bg-green-50 rounded-lg border border-green-200">
+                                        <p class="text-xs font-medium text-green-800 mb-1">Observações:</p>
+                                        <p class="text-xs text-green-700">{{ $atividade['observacoes_finalizacao'] }}</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @else
+            {{-- Técnicos Responsáveis (fallback para OSs antigas sem atividades_tecnicos) --}}
             <div class="bg-white rounded-lg border border-gray-200">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="text-base font-semibold text-gray-900">Técnicos Responsáveis</h2>
@@ -432,6 +545,7 @@
                     @endif
                 </div>
             </div>
+            @endif
 
             {{-- Documento Anexo --}}
             @if($ordemServico->documento_anexo_path)
@@ -535,79 +649,10 @@
 
 @push('scripts')
 <script>
-
-    // Função para abrir modal de finalizar OS
-    function abrirModalFinalizarOS() {
-        document.getElementById('modalFinalizarOS').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // Função para fechar modal
-    function fecharModalFinalizarOS() {
-        document.getElementById('modalFinalizarOS').classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    }
-
-    // Função para mostrar/ocultar seleção de ações executadas
-    function toggleAcoesExecutadas(status) {
-        const divAcoesExecutadas = document.getElementById('divAcoesExecutadas');
-        const checkboxes = document.querySelectorAll('input[name="acoes_executadas_ids[]"]');
-        
-        if (status === 'sim') {
-            // Concluído com sucesso: marca todas as ações automaticamente
-            divAcoesExecutadas.classList.add('hidden');
-            checkboxes.forEach(cb => cb.checked = true);
-        } else if (status === 'parcial') {
-            // Concluído parcialmente: exibe lista para seleção manual
-            divAcoesExecutadas.classList.remove('hidden');
-            checkboxes.forEach(cb => cb.checked = false);
-        } else if (status === 'nao') {
-            // Não concluído: desmarca todas as ações
-            divAcoesExecutadas.classList.add('hidden');
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-    }
-
-    // Função para finalizar OS
-    async function finalizarOS() {
-        const form = document.getElementById('formFinalizarOS');
-        const formData = new FormData(form);
-        const btnFinalizar = document.getElementById('btnFinalizar');
-        
-        // Desabilita botão
-        btnFinalizar.disabled = true;
-        btnFinalizar.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Finalizando...';
-
-        try {
-            const response = await fetch('{{ route("admin.ordens-servico.finalizar", $ordemServico) }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Sucesso
-                alert('✅ ' + data.message);
-                window.location.reload();
-            } else {
-                // Erro
-                alert('❌ ' + (data.message || 'Erro ao finalizar OS'));
-                btnFinalizar.disabled = false;
-                btnFinalizar.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Confirmar Finalização';
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            alert('❌ Erro ao finalizar OS. Tente novamente.');
-            btnFinalizar.disabled = false;
-            btnFinalizar.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Confirmar Finalização';
-        }
-    }
-
+    // ========================================
+    // Funções para Cancelar OS
+    // ========================================
+    
     // Função para abrir modal de cancelar OS
     function abrirModalCancelarOS() {
         const modal = document.getElementById('modalCancelarOS');
@@ -666,6 +711,111 @@
             helpElement.textContent = `Faltam ${minLength - length} caracteres`;
             btnConfirmar.disabled = true;
         }
+    }
+
+    // ========================================
+    // Funções para Finalizar Atividade Individual
+    // ========================================
+    
+    // Função para abrir modal de finalizar atividade
+    function abrirModalFinalizarAtividade(index, nomeAtividade) {
+        document.getElementById('atividadeIndex').value = index;
+        document.getElementById('nomeAtividadeModal').textContent = nomeAtividade;
+        document.getElementById('observacoes_atividade').value = '';
+        
+        // Limpa seleção de status
+        const radios = document.querySelectorAll('input[name="status_execucao"]');
+        radios.forEach(radio => radio.checked = false);
+        
+        // Limpa seleção de estabelecimento se existir
+        const selectEstab = document.getElementById('estabelecimento_id_atividade');
+        if (selectEstab) selectEstab.value = '';
+        
+        document.getElementById('modalFinalizarAtividade').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Função para fechar modal de finalizar atividade
+    function fecharModalFinalizarAtividade() {
+        document.getElementById('modalFinalizarAtividade').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Função para confirmar finalização da atividade
+    async function confirmarFinalizarAtividade() {
+        const index = document.getElementById('atividadeIndex').value;
+        const observacoes = document.getElementById('observacoes_atividade').value;
+        const btnFinalizar = document.getElementById('btnFinalizarAtividade');
+        
+        // Valida status de execução
+        const statusSelecionado = document.querySelector('input[name="status_execucao"]:checked');
+        if (!statusSelecionado) {
+            alert('⚠️ Selecione o status da execução.');
+            return;
+        }
+        
+        // Valida observações
+        if (!observacoes || observacoes.trim().length < 10) {
+            alert('⚠️ Informe as observações (mínimo 10 caracteres).');
+            return;
+        }
+        
+        // Pega estabelecimento se existir
+        const selectEstab = document.getElementById('estabelecimento_id_atividade');
+        const estabelecimentoId = selectEstab ? selectEstab.value : null;
+        
+        // Desabilita botão e mostra loading
+        btnFinalizar.disabled = true;
+        btnFinalizar.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Finalizando...';
+
+        try {
+            const response = await fetch('{{ route("admin.ordens-servico.finalizar-atividade", $ordemServico) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    atividade_index: index,
+                    status_execucao: statusSelecionado.value,
+                    observacoes: observacoes,
+                    estabelecimento_id: estabelecimentoId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Sucesso
+                fecharModalFinalizarAtividade();
+                
+                // Mostra mensagem de sucesso
+                if (data.os_finalizada) {
+                    alert('✅ ' + data.message + '\n\n🎉 Todas as atividades foram concluídas! A OS foi finalizada automaticamente.');
+                } else {
+                    alert('✅ ' + data.message);
+                }
+                
+                // Recarrega a página para atualizar o status
+                window.location.reload();
+            } else {
+                // Erro
+                alert('❌ ' + (data.message || 'Erro ao finalizar atividade'));
+                resetarBotaoFinalizarAtividade();
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('❌ Erro ao finalizar atividade. Tente novamente.');
+            resetarBotaoFinalizarAtividade();
+        }
+    }
+
+    // Função auxiliar para resetar o botão
+    function resetarBotaoFinalizarAtividade() {
+        const btnFinalizar = document.getElementById('btnFinalizarAtividade');
+        btnFinalizar.disabled = false;
+        btnFinalizar.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar';
     }
 </script>
 @endpush
@@ -744,8 +894,8 @@
     </div>
 </div>
 
-{{-- Modal Finalizar OS - Design Moderno e Clean --}}
-<div id="modalFinalizarOS" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+{{-- Modal Finalizar Atividade Individual --}}
+<div id="modalFinalizarAtividade" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {{-- Header Clean --}}
         <div class="sticky top-0 bg-white px-8 py-6 border-b border-gray-100">
@@ -755,10 +905,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900">Finalizar Ordem de Serviço</h3>
-                <p class="text-sm text-gray-500 mt-1">Confirme a conclusão das atividades</p>
+                <h3 class="text-xl font-semibold text-gray-900">Finalizar Atividade</h3>
+                <p id="nomeAtividadeModal" class="text-sm text-gray-500 mt-1"></p>
             </div>
-            <button type="button" onclick="fecharModalFinalizarOS()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <button type="button" onclick="fecharModalFinalizarAtividade()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -766,16 +916,17 @@
         </div>
 
         {{-- Form Clean --}}
-        <form id="formFinalizarOS" class="px-8 py-6 space-y-6">
+        <form id="formFinalizarAtividade" class="px-8 py-6 space-y-6">
+            <input type="hidden" id="atividadeIndex" name="atividade_index" value="">
             
             @if(!$ordemServico->estabelecimento_id)
             {{-- Campo de Estabelecimento (apenas se não vinculado) --}}
             <div>
-                <label for="estabelecimento_id_finalizar" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="estabelecimento_id_atividade" class="block text-sm font-medium text-gray-700 mb-2">
                     Estabelecimento <span class="text-gray-400 text-xs">(opcional)</span>
                 </label>
                 <select name="estabelecimento_id" 
-                        id="estabelecimento_id_finalizar"
+                        id="estabelecimento_id_atividade"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
                     <option value="">Não vincular</option>
                     @php
@@ -807,61 +958,53 @@
                 </label>
                 <div class="space-y-2.5">
                     <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition-all group">
-                        <input type="radio" name="atividades_realizadas" value="sim" required class="w-4 h-4 text-green-600 focus:ring-green-500" onchange="toggleAcoesExecutadas('sim')">
+                        <input type="radio" name="status_execucao" value="concluido" required class="w-4 h-4 text-green-600 focus:ring-green-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Concluído com sucesso</span>
                     </label>
                     <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 hover:bg-yellow-50/50 transition-all group">
-                        <input type="radio" name="atividades_realizadas" value="parcial" required class="w-4 h-4 text-yellow-600 focus:ring-yellow-500" onchange="toggleAcoesExecutadas('parcial')">
+                        <input type="radio" name="status_execucao" value="parcial" required class="w-4 h-4 text-yellow-600 focus:ring-yellow-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Concluído parcialmente</span>
                     </label>
                     <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-red-300 hover:bg-red-50/50 transition-all group">
-                        <input type="radio" name="atividades_realizadas" value="nao" required class="w-4 h-4 text-red-600 focus:ring-red-500" onchange="toggleAcoesExecutadas('nao')">
+                        <input type="radio" name="status_execucao" value="nao_concluido" required class="w-4 h-4 text-red-600 focus:ring-red-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Não concluído</span>
                     </label>
                 </div>
             </div>
 
-            {{-- Seleção de Ações Executadas (aparece apenas quando status = parcial) --}}
-            <div id="divAcoesExecutadas" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-3">
-                    Selecione as ações que foram executadas <span class="text-red-500">*</span>
-                </label>
-                <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                    @foreach($ordemServico->tiposAcao() as $acao)
-                    <label class="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded cursor-pointer transition-colors">
-                        <input type="checkbox" name="acoes_executadas_ids[]" value="{{ $acao->id }}" class="w-4 h-4 text-green-600 focus:ring-green-500 rounded">
-                        <span class="text-sm text-gray-700">{{ $acao->descricao }}</span>
-                    </label>
-                    @endforeach
-                </div>
-                <p class="mt-1.5 text-xs text-gray-400">Marque apenas as ações que foram efetivamente concluídas</p>
-            </div>
-
             {{-- Observações --}}
             <div>
-                <label for="observacoes_finalizacao" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="observacoes_atividade" class="block text-sm font-medium text-gray-700 mb-2">
                     Observações <span class="text-red-500">*</span>
                 </label>
                 <textarea 
-                    id="observacoes_finalizacao" 
-                    name="observacoes_finalizacao" 
+                    id="observacoes_atividade" 
+                    name="observacoes" 
                     rows="4" 
                     required
                     class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none transition-all"
-                    placeholder="Descreva como foi a execução..."></textarea>
-                <p class="mt-1.5 text-xs text-gray-400">Mínimo de 20 caracteres</p>
+                    placeholder="Descreva como foi a execução desta atividade..."></textarea>
+                <p class="mt-1.5 text-xs text-gray-400">Mínimo de 10 caracteres</p>
+            </div>
+
+            {{-- Aviso --}}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p class="text-xs text-blue-800">
+                    <strong>💡 Informação:</strong> Ao finalizar sua atividade, ela será marcada como concluída. 
+                    A OS será automaticamente finalizada quando todas as atividades forem concluídas por seus respectivos técnicos.
+                </p>
             </div>
 
             {{-- Botões Centralizados --}}
-            <div class="flex items-center justify-center gap-3 pt-6">
+            <div class="flex items-center justify-center gap-3 pt-4">
                 <button type="button" 
-                        onclick="fecharModalFinalizarOS()"
+                        onclick="fecharModalFinalizarAtividade()"
                         class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
                     Cancelar
                 </button>
                 <button type="button" 
-                        id="btnFinalizar"
-                        onclick="finalizarOS()"
+                        id="btnFinalizarAtividade"
+                        onclick="confirmarFinalizarAtividade()"
                         class="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm hover:shadow transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>

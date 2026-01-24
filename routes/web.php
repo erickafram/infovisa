@@ -337,6 +337,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         [\App\Http\Controllers\OrdemServicoController::class, 'finalizar']
     )->name('ordens-servico.finalizar');
     
+    // Finalizar Atividade Individual (técnico finaliza apenas sua atividade)
+    Route::post('ordens-servico/{ordemServico}/finalizar-atividade', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'finalizarAtividade']
+    )->name('ordens-servico.finalizar-atividade');
+    
+    // Obter minhas atividades na OS
+    Route::get('ordens-servico/{ordemServico}/minhas-atividades', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'getMinhasAtividades']
+    )->name('ordens-servico.minhas-atividades');
+    
     // Reiniciar OS
     Route::post('ordens-servico/{ordemServico}/reiniciar', 
         [\App\Http\Controllers\OrdemServicoController::class, 'reiniciar']
@@ -453,6 +463,16 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         Route::resource('tipo-acoes', \App\Http\Controllers\Admin\TipoAcaoController::class)->parameters([
             'tipo-acoes' => 'tipoAcao'
         ]);
+        
+        // Subações - rotas aninhadas
+        Route::prefix('tipo-acoes/{tipoAcao}/sub-acoes')->name('tipo-acoes.sub-acoes.')->group(function () {
+            Route::post('/', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'storeSubAcao'])->name('store');
+            Route::put('/{subAcao}', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'updateSubAcao'])->name('update');
+            Route::delete('/{subAcao}', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'destroySubAcao'])->name('destroy');
+        });
+        
+        // API: Buscar subações de uma ação
+        Route::get('tipo-acoes/{tipoAcao}/sub-acoes/json', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'getSubAcoes'])->name('tipo-acoes.sub-acoes.json');
         
         // Tipos de Setor - Apenas Admin
         Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([
