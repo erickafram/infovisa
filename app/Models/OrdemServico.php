@@ -167,37 +167,46 @@ class OrdemServico extends Model
     /**
      * Gera número único para a OS no formato 000013.2025
      * O sequencial continua mesmo quando o ano muda
+     * Usa advisory lock do PostgreSQL para evitar duplicação em requisições concorrentes
+     * Considera TODOS os registros (incluindo soft deleted) para evitar conflitos
      */
     public static function gerarNumero()
     {
-        $ano = date('Y');
-        
-        // Busca o maior número sequencial existente (apenas números no formato correto 000000.YYYY)
-        $maiorNumero = self::whereRaw("numero ~ '^[0-9]{6}\\.[0-9]{4}$'")
-            ->selectRaw('MAX(CAST(SPLIT_PART(numero, \'.\', 1) AS INTEGER)) as max_sequencial')
-            ->value('max_sequencial');
-        
-        if ($maiorNumero) {
-            $sequencial = $maiorNumero + 1;
-        } else {
-            $sequencial = 1;
-        }
-        
-        $numeroGerado = str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
-        
-        // Verifica se o número já existe (segurança adicional com lock)
-        $tentativas = 0;
-        while (self::where('numero', $numeroGerado)->exists() && $tentativas < 100) {
-            $sequencial++;
+        return \DB::transaction(function () {
+            // Usa advisory lock para garantir exclusividade na geração do número
+            \DB::statement('SELECT pg_advisory_xact_lock(12345)');
+            
+            $ano = date('Y');
+            
+            // Busca o maior número sequencial existente - INCLUINDO registros deletados
+            // Usa query raw para ignorar o soft delete
+            $maiorNumero = \DB::table('ordens_servico')
+                ->whereRaw("numero ~ '^[0-9]{6}\\.[0-9]{4}$'")
+                ->selectRaw('MAX(CAST(SPLIT_PART(numero, \'.\', 1) AS INTEGER)) as max_sequencial')
+                ->value('max_sequencial');
+            
+            if ($maiorNumero) {
+                $sequencial = $maiorNumero + 1;
+            } else {
+                $sequencial = 1;
+            }
+            
             $numeroGerado = str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
-            $tentativas++;
-        }
-        
-        if ($tentativas >= 100) {
-            throw new \Exception('Não foi possível gerar um número único para a Ordem de Serviço após 100 tentativas.');
-        }
-        
-        return $numeroGerado;
+            
+            // Verifica se o número já existe (incluindo deletados)
+            $tentativas = 0;
+            while (\DB::table('ordens_servico')->where('numero', $numeroGerado)->exists() && $tentativas < 100) {
+                $sequencial++;
+                $numeroGerado = str_pad($sequencial, 6, '0', STR_PAD_LEFT) . '.' . $ano;
+                $tentativas++;
+            }
+            
+            if ($tentativas >= 100) {
+                throw new \Exception('Não foi possível gerar um número único para a Ordem de Serviço após 100 tentativas.');
+            }
+            
+            return $numeroGerado;
+        });
     }
 
     /**

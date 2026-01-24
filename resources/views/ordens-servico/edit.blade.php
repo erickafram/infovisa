@@ -313,6 +313,17 @@
                                         <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">{{ $tipoAcao->subAcoesAtivas->count() }} subações</span>
                                     </div>
                                     <div class="pl-4 space-y-2 border-l-3 border-indigo-300">
+                                        {{-- Opção para selecionar APENAS a ação principal --}}
+                                        <label class="flex items-center p-2.5 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer border border-blue-200 hover:border-blue-300 transition-all group">
+                                            <input type="checkbox" class="tipo-acao-checkbox-edit rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" 
+                                                   value="{{ $tipoAcao->id }}" 
+                                                   data-label="{{ $tipoAcao->descricao }}"
+                                                   data-acao-label="{{ $tipoAcao->descricao }}"
+                                                   data-is-acao-principal="true">
+                                            <span class="ml-3 text-sm text-blue-700 group-hover:text-blue-800 transition-colors font-medium">{{ $tipoAcao->descricao }}</span>
+                                            <span class="ml-auto text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full">Ação Principal</span>
+                                        </label>
+                                        {{-- Subações --}}
                                         @foreach($tipoAcao->subAcoesAtivas as $subAcao)
                                         <label class="flex items-center p-2.5 bg-white rounded-lg hover:bg-indigo-50 cursor-pointer border border-transparent hover:border-indigo-200 transition-all group">
                                             <input type="checkbox" class="tipo-acao-checkbox-edit rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4" 
@@ -611,12 +622,14 @@
             checkboxes.forEach(cb => {
                 const tipoAcaoId = parseInt(cb.value);
                 const subAcaoId = cb.dataset.subAcaoId;
+                const isAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
                 const label = cb.dataset.subAcaoLabel || cb.dataset.label;
                 
                 atividadesSelecionadasEdit.push({
                     id: tipoAcaoId,
                     nome: label,
-                    subAcaoId: subAcaoId ? parseInt(subAcaoId) : null
+                    subAcaoId: subAcaoId ? parseInt(subAcaoId) : null,
+                    isAcaoPrincipal: isAcaoPrincipal || !subAcaoId
                 });
             });
             
@@ -652,12 +665,15 @@
             badgesContainer.classList.remove('hidden');
             
             atividadesSelecionadasEdit.forEach(atividade => {
-                // Cria badge
+                // Cria badge - cor diferente para ação principal vs subação
                 const badge = document.createElement('span');
-                badge.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full';
+                const isSubAcao = atividade.subAcaoId && !atividade.isAcaoPrincipal;
+                const badgeClass = isSubAcao ? 'bg-indigo-100 text-indigo-800' : 'bg-blue-100 text-blue-800';
+                badge.className = `inline-flex items-center gap-1 px-2 py-1 ${badgeClass} text-xs font-medium rounded-full`;
                 badge.innerHTML = `
                     ${atividade.nome}
-                    <button type="button" onclick="removerTipoAcaoEdit(${atividade.id}, ${atividade.subAcaoId || 'null'})" class="text-blue-600 hover:text-blue-800">
+                    ${atividade.isAcaoPrincipal ? '<span class="text-xs opacity-70">(Principal)</span>' : ''}
+                    <button type="button" onclick="removerTipoAcaoEdit(${atividade.id}, ${atividade.subAcaoId || 'null'}, ${atividade.isAcaoPrincipal || false})" class="text-current hover:opacity-70">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -674,9 +690,12 @@
             });
         }
 
-        window.removerTipoAcaoEdit = function(tipoAcaoId, subAcaoId) {
+        window.removerTipoAcaoEdit = function(tipoAcaoId, subAcaoId, isAcaoPrincipal) {
             // Remove da lista
             atividadesSelecionadasEdit = atividadesSelecionadasEdit.filter(a => {
+                if (isAcaoPrincipal) {
+                    return !(a.id === tipoAcaoId && a.isAcaoPrincipal);
+                }
                 if (subAcaoId) {
                     return !(a.id === tipoAcaoId && a.subAcaoId === subAcaoId);
                 }
@@ -686,11 +705,14 @@
             // Desmarca checkbox
             const checkboxes = document.querySelectorAll(`.tipo-acao-checkbox-edit[value="${tipoAcaoId}"]`);
             checkboxes.forEach(cb => {
-                if (subAcaoId) {
-                    if (cb.dataset.subAcaoId == subAcaoId) {
-                        cb.checked = false;
-                    }
-                } else if (!cb.dataset.subAcaoId) {
+                const cbIsAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
+                const cbSubAcaoId = cb.dataset.subAcaoId;
+                
+                if (isAcaoPrincipal && cbIsAcaoPrincipal) {
+                    cb.checked = false;
+                } else if (subAcaoId && cbSubAcaoId == subAcaoId) {
+                    cb.checked = false;
+                } else if (!isAcaoPrincipal && !subAcaoId && !cbSubAcaoId && !cbIsAcaoPrincipal) {
                     cb.checked = false;
                 }
             });
@@ -717,7 +739,8 @@
                         atividadesSelecionadasEdit.push({
                             id: atividade.tipo_acao_id,
                             nome: nomeAtividade,
-                            subAcaoId: atividade.sub_acao_id || null
+                            subAcaoId: atividade.sub_acao_id || null,
+                            isAcaoPrincipal: !atividade.sub_acao_id
                         });
                         
                         atividadesTecnicosEdit[atividade.tipo_acao_id] = {
@@ -729,12 +752,18 @@
                         const checkboxes = document.querySelectorAll(`.tipo-acao-checkbox-edit[value="${atividade.tipo_acao_id}"]`);
                         checkboxes.forEach(cb => {
                             const subAcaoId = cb.dataset.subAcaoId;
+                            const isAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
+                            
                             if (atividade.sub_acao_id) {
+                                // Se tem subação, marca a subação correspondente
                                 if (subAcaoId == atividade.sub_acao_id) {
                                     cb.checked = true;
                                 }
-                            } else if (!subAcaoId) {
-                                cb.checked = true;
+                            } else {
+                                // Se não tem subação, marca a ação principal
+                                if (isAcaoPrincipal || !subAcaoId) {
+                                    cb.checked = true;
+                                }
                             }
                         });
                     }
@@ -747,7 +776,8 @@
                     if (tiposAcaoDisponiveis[tipoAcaoId]) {
                         atividadesSelecionadasEdit.push({
                             id: tipoAcaoId,
-                            nome: tiposAcaoDisponiveis[tipoAcaoId].descricao
+                            nome: tiposAcaoDisponiveis[tipoAcaoId].descricao,
+                            isAcaoPrincipal: true
                         });
                         
                         atividadesTecnicosEdit[tipoAcaoId] = {
@@ -755,9 +785,15 @@
                             tecnicos: osTecnicosIds || []
                         };
                         
-                        // Marca o checkbox
-                        const checkbox = document.querySelector(`.tipo-acao-checkbox-edit[value="${tipoAcaoId}"]`);
-                        if (checkbox) checkbox.checked = true;
+                        // Marca o checkbox - prioriza ação principal se existir
+                        const checkboxPrincipal = document.querySelector(`.tipo-acao-checkbox-edit[value="${tipoAcaoId}"][data-is-acao-principal="true"]`);
+                        const checkboxSimples = document.querySelector(`.tipo-acao-checkbox-edit[value="${tipoAcaoId}"]:not([data-sub-acao-id])`);
+                        
+                        if (checkboxPrincipal) {
+                            checkboxPrincipal.checked = true;
+                        } else if (checkboxSimples) {
+                            checkboxSimples.checked = true;
+                        }
                     }
                 });
             }
@@ -795,9 +831,19 @@
                         return option ? option.textContent : 'Técnico não encontrado';
                     }).join(', ') : 'Nenhum';
                 
+                // Se tem subação, mostra a subação como título principal; se é ação principal, mostra badge
+                let tituloAtividade;
+                if (atividade.subAcaoId && !atividade.isAcaoPrincipal) {
+                    tituloAtividade = `<span class="text-indigo-600">${atividade.nome}</span>`;
+                } else if (atividade.isAcaoPrincipal) {
+                    tituloAtividade = `${atividade.nome} <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">Principal</span>`;
+                } else {
+                    tituloAtividade = atividade.nome;
+                }
+                
                 atividadeDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-medium text-gray-900">${atividade.nome}</h4>
+                        <h4 class="font-medium text-gray-900">${tituloAtividade}</h4>
                         <button type="button" onclick="abrirModalTecnicosAtividadeEdit(${atividade.id}, '${atividade.nome}')" 
                                 class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">
                             ${tecnicosAtribuidos.responsavel ? 'Editar' : 'Atribuir'} Técnicos
@@ -880,6 +926,8 @@
                 
                 return {
                     tipo_acao_id: parseInt(atividade.id),
+                    sub_acao_id: atividade.subAcaoId ? parseInt(atividade.subAcaoId) : null,
+                    nome_atividade: atividade.nome,
                     tecnicos: tecnicosAtribuidos.tecnicos,
                     responsavel_id: tecnicosAtribuidos.responsavel,
                     status: 'pendente'

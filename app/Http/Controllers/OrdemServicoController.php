@@ -252,11 +252,14 @@ class OrdemServicoController extends Controller
         }
         
         // Gera número da OS e define data de abertura automática
-        $validated['numero'] = OrdemServico::gerarNumero();
-        $validated['data_abertura'] = now()->format('Y-m-d');
-        $validated['status'] = 'em_andamento';
-        
-        $ordemServico = OrdemServico::create($validated);
+        // Usa transação para garantir atomicidade na geração do número
+        $ordemServico = \DB::transaction(function () use ($validated) {
+            $validated['numero'] = OrdemServico::gerarNumero();
+            $validated['data_abertura'] = now()->format('Y-m-d');
+            $validated['status'] = 'em_andamento';
+            
+            return OrdemServico::create($validated);
+        });
         
         return redirect()->route('admin.ordens-servico.index')
             ->with('success', "Ordem de Serviço {$ordemServico->numero} criada com sucesso!");

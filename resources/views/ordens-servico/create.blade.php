@@ -256,6 +256,17 @@
                                                     <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">{{ $tipoAcao->subAcoesAtivas->count() }} subações</span>
                                                 </div>
                                                 <div class="pl-4 space-y-2 border-l-3 border-indigo-300">
+                                                    {{-- Opção para selecionar APENAS a ação principal --}}
+                                                    <label class="flex items-center p-2.5 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer border border-blue-200 hover:border-blue-300 transition-all group">
+                                                        <input type="checkbox" class="tipo-acao-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" 
+                                                               value="{{ $tipoAcao->id }}" 
+                                                               data-label="{{ $tipoAcao->descricao }}"
+                                                               data-acao-label="{{ $tipoAcao->descricao }}"
+                                                               data-is-acao-principal="true">
+                                                        <span class="ml-3 text-sm text-blue-700 group-hover:text-blue-800 transition-colors font-medium">{{ $tipoAcao->descricao }}</span>
+                                                        <span class="ml-auto text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full">Ação Principal</span>
+                                                    </label>
+                                                    {{-- Subações --}}
                                                     @foreach($tipoAcao->subAcoesAtivas as $subAcao)
                                                     <label class="flex items-center p-2.5 bg-white rounded-lg hover:bg-indigo-50 cursor-pointer border border-transparent hover:border-indigo-200 transition-all group">
                                                         <input type="checkbox" class="tipo-acao-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4" 
@@ -858,26 +869,29 @@
                     const subAcaoId = cb.dataset.subAcaoId || null;
                     const subAcaoLabel = cb.dataset.subAcaoLabel || null;
                     const acaoLabel = cb.dataset.acaoLabel || cb.dataset.label;
+                    const isAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
                     
                     // Se tem subação, usa o label da subação; senão, usa o label da ação
                     const displayLabel = subAcaoLabel || cb.dataset.label;
                     
-                    // Cria um ID único para a atividade (ação + subação se existir)
-                    const atividadeUniqueId = subAcaoId ? `${tipoAcaoId}_${subAcaoId}` : tipoAcaoId;
+                    // Cria um ID único para a atividade (ação + subação se existir, ou ação_principal)
+                    const atividadeUniqueId = isAcaoPrincipal ? `${tipoAcaoId}_principal` : (subAcaoId ? `${tipoAcaoId}_${subAcaoId}` : tipoAcaoId);
                     
                     atividadesSelecionadas.push({
                         id: atividadeUniqueId,
                         tipo_acao_id: tipoAcaoId,
                         sub_acao_id: subAcaoId,
                         nome: displayLabel,
-                        acao_nome: acaoLabel
+                        acao_nome: acaoLabel,
+                        is_acao_principal: isAcaoPrincipal
                     });
                     
-                    // Tag visual - mostra subação se existir, senão mostra ação
+                    // Tag visual - cor diferente para ação principal vs subação
                     const tag = document.createElement('span');
-                    const tagClass = subAcaoId ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700';
+                    const tagClass = subAcaoId && !isAcaoPrincipal ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700';
+                    const principalLabel = isAcaoPrincipal ? ' <span class="text-xs opacity-70">(Principal)</span>' : '';
                     tag.className = `inline-flex items-center gap-1 px-2 py-1 ${tagClass} text-xs font-medium rounded-full`;
-                    tag.innerHTML = displayLabel + '<button type="button" onclick="removerTipoAcao(\'' + atividadeUniqueId + '\')" class="hover:opacity-70"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+                    tag.innerHTML = displayLabel + principalLabel + '<button type="button" onclick="removerTipoAcao(\'' + atividadeUniqueId + '\')" class="hover:opacity-70"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
                     tagsContainer.appendChild(tag);
                     
                     // Hidden input para tipo_acao_id
@@ -895,16 +909,24 @@
         };
 
         window.removerTipoAcao = function(id) {
-            // ID pode ser "tipoAcaoId" ou "tipoAcaoId_subAcaoId"
+            // ID pode ser "tipoAcaoId", "tipoAcaoId_subAcaoId" ou "tipoAcaoId_principal"
             const parts = String(id).split('_');
             const tipoAcaoId = parts[0];
-            const subAcaoId = parts[1] || null;
+            const secondPart = parts[1] || null;
+            const isAcaoPrincipal = secondPart === 'principal';
+            const subAcaoId = isAcaoPrincipal ? null : secondPart;
             
             // Encontra o checkbox correto
             const checkboxes = document.querySelectorAll('.tipo-acao-checkbox[value="' + tipoAcaoId + '"]');
             checkboxes.forEach(cb => {
                 const cbSubAcaoId = cb.dataset.subAcaoId || null;
-                if (cbSubAcaoId === subAcaoId) {
+                const cbIsAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
+                
+                if (isAcaoPrincipal && cbIsAcaoPrincipal) {
+                    cb.checked = false;
+                } else if (subAcaoId && cbSubAcaoId === subAcaoId) {
+                    cb.checked = false;
+                } else if (!isAcaoPrincipal && !subAcaoId && !cbSubAcaoId && !cbIsAcaoPrincipal) {
                     cb.checked = false;
                 }
             });
@@ -943,10 +965,15 @@
                             return cb ? cb.dataset.nome : 'Técnico não encontrado';
                         }).join(', ') : 'Nenhum';
                 
-                // Se tem subação, mostra a subação como título principal
-                const tituloAtividade = atividade.sub_acao_id ? 
-                    `<span class="text-indigo-600">${atividade.nome}</span> <span class="text-xs text-gray-500">(${atividade.acao_nome})</span>` :
-                    atividade.nome;
+                // Se tem subação, mostra a subação como título principal; se é ação principal, mostra badge
+                let tituloAtividade;
+                if (atividade.sub_acao_id && !atividade.is_acao_principal) {
+                    tituloAtividade = `<span class="text-indigo-600">${atividade.nome}</span> <span class="text-xs text-gray-500">(${atividade.acao_nome})</span>`;
+                } else if (atividade.is_acao_principal) {
+                    tituloAtividade = `${atividade.nome} <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">Principal</span>`;
+                } else {
+                    tituloAtividade = atividade.nome;
+                }
                 
                 atividadeDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
