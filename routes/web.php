@@ -130,6 +130,8 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
 Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/tarefas', [DashboardController::class, 'tarefasPaginadas'])->name('dashboard.tarefas');
+    Route::get('/dashboard/processos-atribuidos', [DashboardController::class, 'processosAtribuidosPaginados'])->name('dashboard.processos-atribuidos');
 
     // Meu Perfil
     Route::get('/perfil', [\App\Http\Controllers\PerfilController::class, 'index'])->name('perfil.index');
