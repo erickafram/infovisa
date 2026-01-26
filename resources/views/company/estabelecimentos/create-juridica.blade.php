@@ -480,9 +480,56 @@
                         </template>
                     </div>
 
+                    {{-- Indicador de Competência --}}
+                    <div x-show="atividadesExercidas.length > 0 || atividadePrincipalMarcada" class="mt-4">
+                        {{-- Alerta Estadual --}}
+                        <div x-show="competenciaEstadual" class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h4 class="text-lg font-bold text-purple-900">🏛️ Competência ESTADUAL</h4>
+                                    <p class="text-sm text-purple-800 mt-1">
+                                        Com base nas atividades selecionadas, este estabelecimento será fiscalizado pela 
+                                        <strong>Vigilância Sanitária Estadual</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Alerta Municipal --}}
+                        <div x-show="!competenciaEstadual" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h4 class="text-lg font-bold text-blue-900">🏠 Competência MUNICIPAL</h4>
+                                    <p class="text-sm text-blue-800 mt-1">
+                                        Com base nas atividades selecionadas, este estabelecimento será fiscalizado pela 
+                                        <strong>Vigilância Sanitária Municipal de <span x-text="dados.cidade || 'seu município'"></span></strong>.
+                                    </p>
+                                    <p class="text-xs text-blue-700 mt-2">
+                                        Atividades de baixa e média complexidade com atuação local.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Atividades Exercidas (hidden) --}}
                     <input type="hidden" name="atividades_exercidas" :value="JSON.stringify(getAtividadesExercidas())">
                     <input type="hidden" name="respostas_questionario" :value="JSON.stringify(respostasQuestionario)">
+                    <input type="hidden" name="competencia_estadual" :value="competenciaEstadual ? '1' : '0'">
 
                     {{-- Botões de Navegação --}}
                     <div class="flex justify-between pt-4 border-t border-gray-200">
@@ -592,6 +639,7 @@ function estabelecimentoFormCompany() {
         atividadePrincipalMarcada: false,
         questionarios: [],
         respostasQuestionario: {},
+        competenciaEstadual: false,
         modalErro: {
             visivel: false,
             mensagens: []
@@ -621,6 +669,79 @@ function estabelecimentoFormCompany() {
             telefone: '',
             email: '',
             tipo_setor: 'privado'
+        },
+
+        init() {
+            // Watchers para verificar competência quando atividades mudarem
+            this.$watch('atividadesExercidas', () => {
+                this.verificarCompetencia();
+                this.buscarQuestionarios();
+            });
+            this.$watch('atividadePrincipalMarcada', () => {
+                this.verificarCompetencia();
+                this.buscarQuestionarios();
+            });
+            // Recalcula competência quando as respostas mudam
+            this.$watch('respostasQuestionario', () => {
+                this.verificarCompetencia();
+            }, { deep: true });
+        },
+
+        async verificarCompetencia() {
+            const atividades = [];
+            
+            // Adiciona CNAE principal se marcado
+            if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
+                atividades.push(this.dados.cnae_fiscal);
+            }
+            
+            // Adiciona atividades secundárias selecionadas
+            this.atividadesExercidas.forEach(codigo => {
+                atividades.push(codigo);
+            });
+            
+            console.log('🔍 Verificando competência:', {
+                atividadePrincipalMarcada: this.atividadePrincipalMarcada,
+                cnae_fiscal: this.dados.cnae_fiscal,
+                atividadesExercidas: this.atividadesExercidas,
+                atividades: atividades,
+                municipio: this.dados.cidade,
+                respostas: JSON.parse(JSON.stringify(this.respostasQuestionario))
+            });
+            
+            if (atividades.length === 0) {
+                this.competenciaEstadual = false;
+                return;
+            }
+            
+            // Consulta API para verificar competência
+            try {
+                const response = await fetch('{{ url('/api/verificar-competencia') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        atividades: atividades,
+                        municipio: this.dados.cidade,
+                        respostas_questionario: this.respostasQuestionario
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('✅ Resultado da API:', result);
+                
+                this.competenciaEstadual = result.competencia === 'estadual';
+                
+                console.log('📊 Competência definida:', {
+                    competenciaEstadual: this.competenciaEstadual,
+                    resultado: result.competencia
+                });
+            } catch (error) {
+                console.error('❌ Erro ao verificar competência:', error);
+                this.competenciaEstadual = false;
+            }
         },
 
         formatarCnpj() {

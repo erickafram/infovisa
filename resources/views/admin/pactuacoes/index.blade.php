@@ -627,6 +627,30 @@
                                     <span x-show="tabelaSelecionada === 'V'">Municípios Descentralizados (se SIM e VISA)</span>
                                 </label>
                                 
+                                {{-- Botões de ação rápida --}}
+                                <div class="flex gap-2 mb-2">
+                                    <button type="button" 
+                                            @click="selecionarTodosMunicipios()"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Selecionar Todos (139)
+                                    </button>
+                                    <button type="button" 
+                                            @click="limparMunicipios()"
+                                            x-show="municipiosSelecionados.length > 0"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Limpar Seleção
+                                    </button>
+                                    <span x-show="municipiosSelecionados.length > 0" class="text-xs text-gray-500 self-center ml-auto">
+                                        <span x-text="municipiosSelecionados.length"></span> selecionado(s)
+                                    </span>
+                                </div>
+                                
                                 <div class="relative" @click.away="dropdownAberto = false">
                                     <div class="border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 cursor-text min-h-[42px] bg-white" 
                                          @click="dropdownAberto = true; $nextTick(() => $refs.inputBusca.focus())">
@@ -1000,6 +1024,18 @@ function pactuacaoManager() {
 
         removerMunicipio(nome) {
             this.municipiosSelecionados = this.municipiosSelecionados.filter(m => m !== nome);
+        },
+        
+        selecionarTodosMunicipios() {
+            // Adiciona todos os municípios à lista de selecionados
+            this.municipiosSelecionados = this.todosMunicipios.map(m => m.nome).sort();
+            this.buscaMunicipio = '';
+            this.dropdownAberto = false;
+        },
+        
+        limparMunicipios() {
+            this.municipiosSelecionados = [];
+            this.buscaMunicipio = '';
         },
         
         municipiosFiltrados() {

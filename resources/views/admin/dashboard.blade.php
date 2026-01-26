@@ -229,7 +229,7 @@
             @if(count($estabelecimentos_pendentes ?? []) > 0)
             <div class="bg-white rounded border border-gray-200">
                 <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                    <span class="text-sm font-semibold text-gray-700">Novos Cadastros</span>
+                    <span class="text-sm font-semibold text-gray-700">Últimos Estabelecimentos com Cadastros Pendentes</span>
                     <span class="text-xs px-1.5 py-0.5 bg-cyan-100 text-cyan-700 rounded">{{ count($estabelecimentos_pendentes) }}</span>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[100px] overflow-y-auto">

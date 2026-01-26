@@ -102,6 +102,7 @@ php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs
 php artisan migrate --force
 php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan view:clear
 sudo php artisan config:cache && sudo chown apache:apache bootstrap/cache/config.php
+npm run build
 sudo chown -R apache:apache /var/www/html/infovisa/ && sudo chmod -R 775 /var/www/html/infovisa/storage/ /var/www/html/infovisa/bootstrap/cache/
 sudo systemctl restart httpd php-fpm
 

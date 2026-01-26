@@ -15,7 +15,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Diretório do projeto
-PROJECT_DIR="/var/www/html/infovisacore"
+PROJECT_DIR="/var/www/html/infovisa"
 
 echo -e "${YELLOW}1. Navegando para o diretório do projeto...${NC}"
 cd $PROJECT_DIR || exit
@@ -48,7 +48,11 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}5. Instalando dependências do Node.js...${NC}"
+echo -e "${YELLOW}5. Ajustando permissões temporariamente para build do frontend...${NC}"
+sudo chown -R $USER:$USER $PROJECT_DIR/node_modules $PROJECT_DIR/public 2>/dev/null || true
+echo -e "${GREEN}✓ Permissões ajustadas${NC}"
+
+echo -e "${YELLOW}6. Instalando dependências do Node.js...${NC}"
 npm install
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Dependências do Node.js instaladas${NC}"
@@ -57,7 +61,7 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}6. Compilando assets do frontend (Vite)...${NC}"
+echo -e "${YELLOW}7. Compilando assets do frontend (Vite)...${NC}"
 npm run build
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Assets compilados com sucesso${NC}"
@@ -66,7 +70,7 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}7. Executando migrations...${NC}"
+echo -e "${YELLOW}8. Executando migrations...${NC}"
 php artisan migrate --force
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Migrations executadas${NC}"
@@ -75,24 +79,24 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}8. Limpando caches...${NC}"
+echo -e "${YELLOW}9. Limpando caches...${NC}"
 php artisan config:clear
 php artisan route:clear
 php artisan cache:clear
 php artisan view:clear
 echo -e "${GREEN}✓ Caches limpos${NC}"
 
-echo -e "${YELLOW}9. Cacheando configurações...${NC}"
+echo -e "${YELLOW}10. Cacheando configurações...${NC}"
 php artisan config:cache
 php artisan route:cache
 echo -e "${GREEN}✓ Configurações cacheadas${NC}"
 
-echo -e "${YELLOW}10. Ajustando permissões...${NC}"
-sudo chown -R apache:apache storage bootstrap/cache
-sudo chmod -R 775 storage bootstrap/cache
+echo -e "${YELLOW}11. Ajustando permissões finais para Apache...${NC}"
+sudo chown -R apache:apache $PROJECT_DIR
+sudo chmod -R 775 $PROJECT_DIR/storage $PROJECT_DIR/bootstrap/cache
 echo -e "${GREEN}✓ Permissões ajustadas${NC}"
 
-echo -e "${YELLOW}11. Reiniciando serviços...${NC}"
+echo -e "${YELLOW}12. Reiniciando serviços...${NC}"
 sudo systemctl restart php-fpm
 sudo systemctl restart httpd
 echo -e "${GREEN}✓ Serviços reiniciados${NC}"
@@ -103,7 +107,7 @@ echo "  Deploy concluído com sucesso!"
 echo "==========================================${NC}"
 echo ""
 echo "Próximos passos:"
-echo "1. Acesse: https://sistemas.saude.to.gov.br/infovisacore/admin/configuracoes/pactuacao"
+echo "1. Acesse: https://sistemas.saude.to.gov.br/infovisa"
 echo "2. Teste as funcionalidades"
 echo "3. Se houver problemas, restaure o backup: $BACKUP_FILE"
 echo ""
