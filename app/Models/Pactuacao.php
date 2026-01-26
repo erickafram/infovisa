@@ -20,8 +20,15 @@ class Pactuacao extends Model
         'ativo',
         'tabela',
         'requer_questionario',
+        'tipo_questionario',
         'pergunta',
-        'classificacao_risco'
+        'pergunta2',
+        'tipo_pergunta2',
+        'classificacao_risco',
+        'risco_sim',
+        'risco_nao',
+        'competencia_base',
+        'municipios_excecao_hospitalar'
     ];
     
     protected $casts = [
@@ -29,6 +36,7 @@ class Pactuacao extends Model
         'requer_questionario' => 'boolean',
         'municipios_excecao' => 'array',
         'municipios_excecao_ids' => 'array',
+        'municipios_excecao_hospitalar' => 'array',
     ];
     
     /**
@@ -208,5 +216,322 @@ class Pactuacao extends Model
         $this->save();
         
         return $this;
+    }
+    
+    /**
+     * Verifica competência e risco de forma avançada
+     * Considera todos os cenários de pactuação
+     * 
+     * @param string $cnaeCodigo Código CNAE
+     * @param string|null $municipio Nome do município
+     * @param string|null $resposta1 Resposta da primeira pergunta (sim/nao)
+     * @param string|null $resposta2 Resposta da segunda pergunta (sim/nao) - para localização hospitalar
+     * @return array ['competencia' => 'estadual'|'municipal'|'nao_sujeito_visa', 'risco' => 'baixo'|'medio'|'alto', 'detalhes' => [...]]
+     */
+    public static function verificarCompetenciaAvancada($cnaeCodigo, $municipio = null, $resposta1 = null, $resposta2 = null)
+    {
+        // Normaliza o código CNAE
+        $cnaeCodigo = preg_replace('/[^0-9]/', '', $cnaeCodigo);
+        
+        // Busca a pactuação
+        $pactuacao = self::where('cnae_codigo', $cnaeCodigo)
+            ->where('ativo', true)
+            ->first();
+        
+        if (!$pactuacao) {
+            // Se não encontrou, assume municipal com risco baixo
+            return [
+                'competencia' => 'municipal',
+                'risco' => 'baixo',
+                'detalhes' => [
+                    'encontrado' => false,
+                    'mensagem' => 'Atividade não encontrada na pactuação - assumindo competência municipal'
+                ]
+            ];
+        }
+        
+        $resultado = [
+            'competencia' => null,
+            'risco' => $pactuacao->classificacao_risco ?? 'baixo',
+            'detalhes' => [
+                'encontrado' => true,
+                'tabela' => $pactuacao->tabela,
+                'tipo_questionario' => $pactuacao->tipo_questionario,
+                'requer_questionario' => $pactuacao->requer_questionario,
+                'pergunta' => $pactuacao->pergunta,
+                'pergunta2' => $pactuacao->pergunta2
+            ]
+        ];
+        
+        // Normaliza respostas
+        $resp1 = $resposta1 ? strtolower(trim($resposta1)) : null;
+        $resp1Sim = $resp1 === 'sim' || $resp1 === 'yes' || $resp1 === '1' || $resp1 === 'true';
+        $resp1Nao = $resp1 === 'nao' || $resp1 === 'não' || $resp1 === 'no' || $resp1 === '0' || $resp1 === 'false';
+        
+        $resp2 = $resposta2 ? strtolower(trim($resposta2)) : null;
+        $resp2Sim = $resp2 === 'sim' || $resp2 === 'yes' || $resp2 === '1' || $resp2 === 'true';
+        
+        // Normaliza município
+        $municipioNorm = $municipio ? strtoupper(self::removerAcentos(trim($municipio))) : null;
+        
+        // ========================================
+        // TABELA I - Competência Municipal
+        // ========================================
+        if ($pactuacao->tabela === 'I') {
+            // Competência base é municipal
+            $resultado['competencia'] = 'municipal';
+            
+            // Verifica tipo de questionário
+            switch ($pactuacao->tipo_questionario) {
+                case 'risco':
+                    // Questionário define apenas o risco, competência sempre municipal
+                    if ($resp1Sim) {
+                        $resultado['risco'] = $pactuacao->risco_sim ?? 'alto';
+                    } elseif ($resp1Nao) {
+                        $resultado['risco'] = $pactuacao->risco_nao ?? 'medio';
+                    }
+                    break;
+                    
+                case 'localizacao':
+                    // Competência depende se está em Unidade Hospitalar
+                    // Pergunta: "O estabelecimento exerce a atividade dentro de Unidade Hospitalar?"
+                    if ($resp1Sim) {
+                        // Dentro de hospital = Estadual, EXCETO em municípios específicos
+                        $resultado['competencia'] = 'estadual';
+                        
+                        // Verifica se município está na exceção hospitalar (Palmas, Araguaína)
+                        if ($municipioNorm && $pactuacao->municipios_excecao_hospitalar) {
+                            foreach ($pactuacao->municipios_excecao_hospitalar as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['excecao_hospitalar'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Se NÃO está em hospital, mantém municipal
+                    break;
+                    
+                case 'risco_localizacao':
+                    // Pergunta 1 define risco, Pergunta 2 define competência (localização)
+                    if ($resp1Sim) {
+                        $resultado['risco'] = $pactuacao->risco_sim ?? 'alto';
+                    } elseif ($resp1Nao) {
+                        $resultado['risco'] = $pactuacao->risco_nao ?? 'medio';
+                    }
+                    
+                    // Pergunta 2: localização hospitalar
+                    if ($resp2Sim) {
+                        $resultado['competencia'] = 'estadual';
+                        
+                        // Verifica exceção hospitalar
+                        if ($municipioNorm && $pactuacao->municipios_excecao_hospitalar) {
+                            foreach ($pactuacao->municipios_excecao_hospitalar as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['excecao_hospitalar'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
+            
+            return $resultado;
+        }
+        
+        // ========================================
+        // TABELA II - Estadual Exclusiva
+        // ========================================
+        if ($pactuacao->tabela === 'II') {
+            $resultado['competencia'] = 'estadual';
+            $resultado['risco'] = $pactuacao->classificacao_risco ?? 'alto';
+            return $resultado;
+        }
+        
+        // ========================================
+        // TABELA III - Alto Risco Pactuado
+        // ========================================
+        if ($pactuacao->tabela === 'III') {
+            $resultado['competencia'] = 'estadual';
+            $resultado['risco'] = 'alto';
+            
+            // Verifica se município está descentralizado
+            if ($municipioNorm && $pactuacao->municipios_excecao) {
+                foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                    if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                        $resultado['competencia'] = 'municipal';
+                        $resultado['detalhes']['descentralizado'] = true;
+                        break;
+                    }
+                }
+            }
+            
+            return $resultado;
+        }
+        
+        // ========================================
+        // TABELA IV - Com Questionário
+        // ========================================
+        if ($pactuacao->tabela === 'IV') {
+            // Competência base é estadual
+            $resultado['competencia'] = 'estadual';
+            
+            switch ($pactuacao->tipo_questionario) {
+                case 'competencia':
+                    // Questionário define competência
+                    if ($resp1Sim) {
+                        $resultado['competencia'] = 'estadual';
+                        $resultado['risco'] = $pactuacao->risco_sim ?? 'alto';
+                        
+                        // Verifica descentralização
+                        if ($municipioNorm && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['descentralizado'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } elseif ($resp1Nao) {
+                        $resultado['competencia'] = 'municipal';
+                        $resultado['risco'] = $pactuacao->risco_nao ?? 'medio';
+                    }
+                    break;
+                    
+                case 'risco':
+                    // Questionário define risco, competência é estadual com descentralização
+                    if ($resp1Sim) {
+                        $resultado['risco'] = $pactuacao->risco_sim ?? 'alto';
+                        $resultado['competencia'] = 'estadual';
+                        
+                        // Verifica descentralização
+                        if ($municipioNorm && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['descentralizado'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } elseif ($resp1Nao) {
+                        // Risco médio = competência municipal
+                        $resultado['risco'] = $pactuacao->risco_nao ?? 'medio';
+                        $resultado['competencia'] = 'municipal';
+                    }
+                    break;
+                    
+                case 'localizacao':
+                case 'competencia_localizacao':
+                    // Múltiplas perguntas: competência + localização
+                    // Pergunta 1: análises clínicas?
+                    if ($resp1Sim) {
+                        $resultado['competencia'] = 'estadual';
+                        
+                        // Verifica descentralização para análises clínicas
+                        if ($municipioNorm && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['descentralizado'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // Não faz análises = posto de coleta = municipal
+                        $resultado['competencia'] = 'municipal';
+                    }
+                    
+                    // Pergunta 2: dentro de hospital?
+                    if ($resp2Sim && $resultado['competencia'] === 'municipal') {
+                        $resultado['competencia'] = 'estadual';
+                        
+                        // Verifica exceção hospitalar
+                        if ($municipioNorm && $pactuacao->municipios_excecao_hospitalar) {
+                            foreach ($pactuacao->municipios_excecao_hospitalar as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['excecao_hospitalar'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                    
+                default:
+                    // Comportamento padrão: SIM = estadual, NÃO = municipal
+                    if ($resp1Nao) {
+                        $resultado['competencia'] = 'municipal';
+                    } else {
+                        // Verifica descentralização
+                        if ($municipioNorm && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                                    $resultado['competencia'] = 'municipal';
+                                    $resultado['detalhes']['descentralizado'] = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+            }
+            
+            return $resultado;
+        }
+        
+        // ========================================
+        // TABELA V - Definir se é VISA
+        // ========================================
+        if ($pactuacao->tabela === 'V') {
+            if ($resp1Nao) {
+                // NÃO = Não sujeito à VISA
+                $resultado['competencia'] = 'nao_sujeito_visa';
+                $resultado['risco'] = $pactuacao->risco_nao ?? 'medio';
+                $resultado['detalhes']['sujeito_visa'] = false;
+            } else {
+                // SIM = Sujeito à VISA, aplicar regras de competência
+                $resultado['risco'] = $pactuacao->risco_sim ?? 'alto';
+                $resultado['competencia'] = 'estadual';
+                $resultado['detalhes']['sujeito_visa'] = true;
+                
+                // Verifica descentralização
+                if ($municipioNorm && $pactuacao->municipios_excecao) {
+                    foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                        if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNorm) {
+                            $resultado['competencia'] = 'municipal';
+                            $resultado['detalhes']['descentralizado'] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return $resultado;
+        }
+        
+        // Fallback: competência municipal
+        $resultado['competencia'] = 'municipal';
+        return $resultado;
+    }
+    
+    /**
+     * Retorna os tipos de questionário disponíveis
+     */
+    public static function getTiposQuestionario()
+    {
+        return [
+            'competencia' => 'Competência (SIM=Estadual, NÃO=Municipal)',
+            'risco' => 'Risco (SIM=Alto, NÃO=Médio)',
+            'localizacao' => 'Localização (Hospital=Estadual)',
+            'risco_localizacao' => 'Risco + Localização',
+            'competencia_localizacao' => 'Competência + Localização',
+            'visa' => 'Sujeito à VISA (SIM=Sujeito, NÃO=Não sujeito)'
+        ];
     }
 }

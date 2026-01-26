@@ -79,8 +79,13 @@ class PactuacaoController extends Controller
                     'cnae_formatado' => $pactuacao->cnae_codigo,
                     'descricao' => $pactuacao->cnae_descricao,
                     'pergunta' => $pactuacao->pergunta,
+                    'pergunta2' => $pactuacao->pergunta2,
                     'tabela' => $pactuacao->tabela,
+                    'tipo_questionario' => $pactuacao->tipo_questionario,
+                    'risco_sim' => $pactuacao->risco_sim,
+                    'risco_nao' => $pactuacao->risco_nao,
                     'municipios_excecao' => $pactuacao->municipios_excecao ?? [],
+                    'municipios_excecao_hospitalar' => $pactuacao->municipios_excecao_hospitalar ?? [],
                 ];
             });
 
@@ -138,17 +143,26 @@ class PactuacaoController extends Controller
             'tipo' => 'required|in:municipal,estadual',
             'municipio' => 'nullable|string',
             'tabela' => 'required|in:I,II,III,IV,V',
-            'classificacao_risco' => 'required|in:baixo,medio,alto',
+            'classificacao_risco' => 'nullable|in:baixo,medio,alto',
             'pergunta' => 'nullable|string',
             'atividades' => 'required|array',
             'atividades.*.codigo' => 'required|string',
             'atividades.*.descricao' => 'required|string',
             'municipios_excecao' => 'nullable|array',
             'observacao' => 'nullable|string',
+            // Novos campos avançados
+            'tipo_questionario' => 'nullable|string',
+            'pergunta2' => 'nullable|string',
+            'risco_sim' => 'nullable|in:baixo,medio,alto',
+            'risco_nao' => 'nullable|in:baixo,medio,alto',
+            'municipios_excecao_hospitalar' => 'nullable|array',
         ]);
         
         try {
             DB::beginTransaction();
+            
+            // Determina se requer questionário
+            $requerQuestionario = !empty($request->tipo_questionario) || !empty($request->pergunta);
             
             foreach ($request->atividades as $atividade) {
                 Pactuacao::updateOrCreate(
@@ -165,6 +179,13 @@ class PactuacaoController extends Controller
                         'municipios_excecao' => $request->tipo === 'estadual' ? $request->municipios_excecao : null,
                         'observacao' => $request->observacao,
                         'ativo' => true,
+                        // Novos campos avançados
+                        'requer_questionario' => $requerQuestionario,
+                        'tipo_questionario' => $request->tipo_questionario,
+                        'pergunta2' => $request->pergunta2,
+                        'risco_sim' => $request->risco_sim,
+                        'risco_nao' => $request->risco_nao,
+                        'municipios_excecao_hospitalar' => $request->municipios_excecao_hospitalar,
                     ]
                 );
             }
@@ -431,6 +452,12 @@ class PactuacaoController extends Controller
             'pergunta' => 'nullable|string',
             'observacao' => 'nullable|string',
             'municipios_excecao' => 'nullable|array',
+            // Novos campos avançados
+            'tipo_questionario' => 'nullable|string',
+            'pergunta2' => 'nullable|string',
+            'risco_sim' => 'nullable|in:baixo,medio,alto',
+            'risco_nao' => 'nullable|in:baixo,medio,alto',
+            'municipios_excecao_hospitalar' => 'nullable|array',
         ]);
         
         try {
@@ -455,6 +482,28 @@ class PactuacaoController extends Controller
             
             if ($request->has('municipios_excecao') && $pactuacao->tipo === 'estadual') {
                 $pactuacao->municipios_excecao = $request->municipios_excecao;
+            }
+            
+            // Novos campos avançados
+            if ($request->has('tipo_questionario')) {
+                $pactuacao->tipo_questionario = $request->tipo_questionario;
+                $pactuacao->requer_questionario = !empty($request->tipo_questionario) || !empty($request->pergunta);
+            }
+            
+            if ($request->has('pergunta2')) {
+                $pactuacao->pergunta2 = $request->pergunta2;
+            }
+            
+            if ($request->has('risco_sim')) {
+                $pactuacao->risco_sim = $request->risco_sim;
+            }
+            
+            if ($request->has('risco_nao')) {
+                $pactuacao->risco_nao = $request->risco_nao;
+            }
+            
+            if ($request->has('municipios_excecao_hospitalar')) {
+                $pactuacao->municipios_excecao_hospitalar = $request->municipios_excecao_hospitalar;
             }
             
             $pactuacao->save();

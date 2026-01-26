@@ -595,16 +595,72 @@
                                     Classificação de Risco *
                                 </label>
                                 <select x-model="classificacaoRisco" 
+                                        x-show="!usaRiscoQuestionario"
                                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required>
+                                        :required="!usaRiscoQuestionario">
                                     <option value="">Selecione o risco</option>
                                     <option value="baixo">Baixo</option>
                                     <option value="medio">Médio</option>
                                     <option value="alto">Alto</option>
                                 </select>
+                                <div x-show="usaRiscoQuestionario" class="text-xs text-gray-500 italic p-2 bg-gray-50 rounded">
+                                    O risco será definido pela resposta do questionário
+                                </div>
+                            </div>
+                            
+                            {{-- Tipo de Questionário (para Tabela I, IV, V) --}}
+                            <div x-show="tabelaSelecionada === 'I' || tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Tipo de Questionário
+                                </label>
+                                <select x-model="tipoQuestionario" 
+                                        @change="atualizarCamposQuestionario()"
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Sem questionário</option>
+                                    <option value="competencia" x-show="tabelaSelecionada === 'IV'">Competência (SIM=Estadual, NÃO=Municipal)</option>
+                                    <option value="risco" x-show="tabelaSelecionada === 'I' || tabelaSelecionada === 'IV'">Risco (SIM=Alto, NÃO=Médio)</option>
+                                    <option value="localizacao" x-show="tabelaSelecionada === 'I' || tabelaSelecionada === 'IV'">Localização Hospitalar</option>
+                                    <option value="risco_localizacao" x-show="tabelaSelecionada === 'I'">Risco + Localização</option>
+                                    <option value="competencia_localizacao" x-show="tabelaSelecionada === 'IV'">Competência + Localização</option>
+                                    <option value="visa" x-show="tabelaSelecionada === 'V'">Sujeito à VISA</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <span x-show="tipoQuestionario === 'competencia'">A resposta define se é Estadual ou Municipal</span>
+                                    <span x-show="tipoQuestionario === 'risco'">A resposta define o grau de risco (competência fixa)</span>
+                                    <span x-show="tipoQuestionario === 'localizacao'">Se dentro de hospital = Estadual (exceto municípios específicos)</span>
+                                    <span x-show="tipoQuestionario === 'risco_localizacao'">Pergunta 1 define risco, Pergunta 2 define localização</span>
+                                    <span x-show="tipoQuestionario === 'competencia_localizacao'">Pergunta 1 define competência, Pergunta 2 verifica hospital</span>
+                                    <span x-show="tipoQuestionario === 'visa'">SIM = Sujeito à VISA, NÃO = Não sujeito</span>
+                                </p>
+                            </div>
+                            
+                            {{-- Risco SIM/NÃO (quando questionário define risco) --}}
+                            <div x-show="usaRiscoQuestionario" class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Risco se SIM
+                                    </label>
+                                    <select x-model="riscoSim" 
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="alto">Alto</option>
+                                        <option value="medio">Médio</option>
+                                        <option value="baixo">Baixo</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Risco se NÃO
+                                    </label>
+                                    <select x-model="riscoNao" 
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="medio">Médio</option>
+                                        <option value="baixo">Baixo</option>
+                                        <option value="alto">Alto</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div x-show="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
+                            <div x-show="tipoQuestionario && tipoQuestionario !== ''">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     Pergunta do Questionário *
                                 </label>
@@ -613,11 +669,68 @@
                                     rows="3"
                                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Ex: O resultado do exercício da atividade será diferente de produto artesanal?"
-                                    :required="tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'"></textarea>
+                                    :required="tipoQuestionario && tipoQuestionario !== ''"></textarea>
                                 <p class="mt-1 text-xs text-gray-500">
-                                    <span x-show="tabelaSelecionada === 'IV'">Resposta SIM = Estadual | NÃO = Municipal</span>
-                                    <span x-show="tabelaSelecionada === 'V'">Resposta SIM = Sujeito à VISA | NÃO = Não sujeito</span>
+                                    <span x-show="tipoQuestionario === 'competencia'">Resposta SIM = Estadual | NÃO = Municipal</span>
+                                    <span x-show="tipoQuestionario === 'risco'">Resposta SIM = Alto Risco | NÃO = Médio Risco</span>
+                                    <span x-show="tipoQuestionario === 'localizacao'">Ex: O estabelecimento exerce a atividade dentro de Unidade Hospitalar?</span>
+                                    <span x-show="tipoQuestionario === 'risco_localizacao'">Primeira pergunta define o risco</span>
+                                    <span x-show="tipoQuestionario === 'competencia_localizacao'">Primeira pergunta define a competência</span>
+                                    <span x-show="tipoQuestionario === 'visa'">Resposta SIM = Sujeito à VISA | NÃO = Não sujeito</span>
                                 </p>
+                            </div>
+                            
+                            {{-- Segunda Pergunta (para tipos com localização) --}}
+                            <div x-show="tipoQuestionario === 'risco_localizacao' || tipoQuestionario === 'competencia_localizacao'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Segunda Pergunta (Localização) *
+                                </label>
+                                <textarea 
+                                    x-model="pergunta2" 
+                                    rows="2"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="O estabelecimento exerce a atividade dentro de Unidade Hospitalar?"></textarea>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Se SIM = Estadual (exceto municípios na lista de exceção hospitalar)
+                                </p>
+                            </div>
+                            
+                            {{-- Municípios Exceção Hospitalar --}}
+                            <div x-show="tipoQuestionario === 'localizacao' || tipoQuestionario === 'risco_localizacao' || tipoQuestionario === 'competencia_localizacao'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Municípios Exceção Hospitalar
+                                </label>
+                                <p class="text-xs text-gray-500 mb-2">
+                                    Municípios que mantêm competência municipal mesmo dentro de hospital (ex: Palmas, Araguaína)
+                                </p>
+                                
+                                <div class="relative" @click.away="dropdownHospitalarAberto = false">
+                                    <div class="border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 cursor-text min-h-[42px] bg-white" 
+                                         @click="dropdownHospitalarAberto = true; $nextTick(() => $refs.inputBuscaHospitalar.focus())">
+                                        <template x-for="mun in municipiosExcecaoHospitalar" :key="mun">
+                                            <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                                                <span x-text="mun"></span>
+                                                <button type="button" @click.stop="removerMunicipioHospitalar(mun)" class="hover:text-orange-900 font-bold px-1">×</button>
+                                            </span>
+                                        </template>
+                                        <input type="text" 
+                                               x-ref="inputBuscaHospitalar"
+                                               x-model="buscaMunicipioHospitalar" 
+                                               @focus="dropdownHospitalarAberto = true"
+                                               class="outline-none text-sm flex-1 min-w-[120px] border-none focus:ring-0 p-0" 
+                                               placeholder="Buscar município...">
+                                    </div>
+                                    
+                                    <div x-show="dropdownHospitalarAberto && municipiosFiltradosHospitalar().length > 0" 
+                                         class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto mt-1">
+                                        <template x-for="mun in municipiosFiltradosHospitalar()" :key="mun.id">
+                                            <div class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700" 
+                                                 @click="adicionarMunicipioHospitalar(mun.nome)">
+                                                <span x-text="mun.nome"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div x-show="tabelaSelecionada === 'III' || tabelaSelecionada === 'IV' || tabelaSelecionada === 'V'">
@@ -981,6 +1094,22 @@ function pactuacaoManager() {
         perguntaQuestionario: '',
         observacaoTexto: '',
         
+        // Novos campos avançados
+        tipoQuestionario: '',
+        pergunta2: '',
+        riscoSim: 'alto',
+        riscoNao: 'medio',
+        municipiosExcecaoHospitalar: [],
+        buscaMunicipioHospitalar: '',
+        dropdownHospitalarAberto: false,
+        
+        // Computed para verificar se usa risco por questionário
+        get usaRiscoQuestionario() {
+            return this.tipoQuestionario === 'risco' || 
+                   this.tipoQuestionario === 'risco_localizacao' ||
+                   this.tipoQuestionario === 'visa';
+        },
+        
         // Municípios
         municipiosSelecionados: [],
         buscaMunicipio: '',
@@ -1044,6 +1173,46 @@ function pactuacaoManager() {
                 m.nome.toLowerCase().includes(busca) && 
                 !this.municipiosSelecionados.includes(m.nome)
             );
+        },
+        
+        // Funções para municípios exceção hospitalar
+        adicionarMunicipioHospitalar(nome) {
+            if (!this.municipiosExcecaoHospitalar.includes(nome)) {
+                this.municipiosExcecaoHospitalar.push(nome);
+                this.municipiosExcecaoHospitalar.sort();
+            }
+            this.buscaMunicipioHospitalar = '';
+            this.$refs.inputBuscaHospitalar.focus();
+        },
+        
+        removerMunicipioHospitalar(nome) {
+            this.municipiosExcecaoHospitalar = this.municipiosExcecaoHospitalar.filter(m => m !== nome);
+        },
+        
+        municipiosFiltradosHospitalar() {
+            const busca = this.buscaMunicipioHospitalar.toLowerCase();
+            return this.todosMunicipios.filter(m => 
+                m.nome.toLowerCase().includes(busca) && 
+                !this.municipiosExcecaoHospitalar.includes(m.nome)
+            );
+        },
+        
+        // Atualiza campos quando muda tipo de questionário
+        atualizarCamposQuestionario() {
+            if (this.tipoQuestionario === 'risco' || this.tipoQuestionario === 'risco_localizacao') {
+                this.riscoSim = 'alto';
+                this.riscoNao = 'medio';
+            }
+            if (this.tipoQuestionario === 'visa') {
+                this.riscoSim = 'alto';
+                this.riscoNao = 'medio';
+            }
+            if (this.tipoQuestionario === 'localizacao' || this.tipoQuestionario === 'risco_localizacao' || this.tipoQuestionario === 'competencia_localizacao') {
+                // Pré-preenche com Palmas e Araguaína
+                if (this.municipiosExcecaoHospitalar.length === 0) {
+                    this.municipiosExcecaoHospitalar = ['PALMAS', 'ARAGUAINA'];
+                }
+            }
         },
         
         // Normaliza CNAE removendo pontos, hífens, barras e espaços
@@ -1271,10 +1440,16 @@ function pactuacaoManager() {
                     tipo: this.tipoModal,
                     municipio: this.municipioModal,
                     tabela: this.tabelaSelecionada,
-                    classificacao_risco: this.classificacaoRisco,
+                    classificacao_risco: this.usaRiscoQuestionario ? null : this.classificacaoRisco,
                     pergunta: (this.perguntaQuestionario && this.perguntaQuestionario.trim) ? this.perguntaQuestionario.trim() : null,
                     municipios_excecao: municipiosExcecao,
-                    observacao: (this.observacaoTexto && this.observacaoTexto.trim) ? this.observacaoTexto.trim() : null
+                    observacao: (this.observacaoTexto && this.observacaoTexto.trim) ? this.observacaoTexto.trim() : null,
+                    // Novos campos avançados
+                    tipo_questionario: this.tipoQuestionario || null,
+                    pergunta2: (this.pergunta2 && this.pergunta2.trim) ? this.pergunta2.trim() : null,
+                    risco_sim: this.usaRiscoQuestionario ? this.riscoSim : null,
+                    risco_nao: this.usaRiscoQuestionario ? this.riscoNao : null,
+                    municipios_excecao_hospitalar: this.municipiosExcecaoHospitalar.length > 0 ? this.municipiosExcecaoHospitalar : null
                 };
 
                 // Se for edição, adiciona _method PUT
@@ -1338,6 +1513,13 @@ function pactuacaoManager() {
             this.perguntaQuestionario = '';
             this.municipiosSelecionados = [];
             this.observacaoTexto = '';
+            // Limpar novos campos
+            this.tipoQuestionario = '';
+            this.pergunta2 = '';
+            this.riscoSim = 'alto';
+            this.riscoNao = 'medio';
+            this.municipiosExcecaoHospitalar = [];
+            this.buscaMunicipioHospitalar = '';
         },
 
         async toggleStatus(id) {
@@ -1503,6 +1685,13 @@ function pactuacaoManager() {
                     // Preencher municípios selecionados (array)
                     this.municipiosSelecionados = data.municipios_excecao || [];
                     this.observacaoTexto = data.observacao || '';
+                    
+                    // Novos campos avançados
+                    this.tipoQuestionario = data.tipo_questionario || '';
+                    this.pergunta2 = data.pergunta2 || '';
+                    this.riscoSim = data.risco_sim || 'alto';
+                    this.riscoNao = data.risco_nao || 'medio';
+                    this.municipiosExcecaoHospitalar = data.municipios_excecao_hospitalar || [];
                     
                     // Adiciona a atividade atual à lista
                     this.atividadesParaCadastro = [{

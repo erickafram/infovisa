@@ -146,11 +146,13 @@ class CnpjController extends Controller
             $atividades = $request->input('atividades', []);
             $municipio = $request->input('municipio', null);
             $respostasQuestionario = $request->input('respostas_questionario', []);
+            $respostasQuestionario2 = $request->input('respostas_questionario2', []); // Segunda pergunta (localização)
             
             \Log::info('=== VERIFICAÇÃO DE COMPETÊNCIA INICIADA ===', [
                 'atividades_recebidas' => $atividades,
                 'municipio_recebido' => $municipio,
-                'respostas_recebidas' => $respostasQuestionario
+                'respostas_recebidas' => $respostasQuestionario,
+                'respostas2_recebidas' => $respostasQuestionario2
             ]);
             
             // Valida se tem atividades
@@ -174,93 +176,95 @@ class CnpjController extends Controller
                 foreach ($respostasQuestionario as $key => $val) {
                     $keyLimpa = preg_replace('/[^0-9]/', '', $key);
                     $respostasNormalizadas[$keyLimpa] = $val;
-                    // Mantém a original também se for diferente
                     if ($key !== $keyLimpa) {
                         $respostasNormalizadas[$key] = $val;
                     }
                 }
             }
+            
+            // Normaliza respostas da segunda pergunta
+            $respostas2Normalizadas = [];
+            if (is_array($respostasQuestionario2)) {
+                foreach ($respostasQuestionario2 as $key => $val) {
+                    $keyLimpa = preg_replace('/[^0-9]/', '', $key);
+                    $respostas2Normalizadas[$keyLimpa] = $val;
+                    if ($key !== $keyLimpa) {
+                        $respostas2Normalizadas[$key] = $val;
+                    }
+                }
+            }
 
-            // Verifica se pelo menos uma atividade é estadual
+            // Verifica competência usando o método avançado
             $temAtividadeEstadual = false;
             $temAtividadeNaoSujeitaVisa = false;
             $atividadesVerificadas = [];
+            $riscoMaisAlto = 'baixo';
+            $ordemRisco = ['baixo' => 1, 'medio' => 2, 'alto' => 3];
             
             foreach ($atividades as $cnae) {
                 try {
-                    // Remove formatação do CNAE
                     $cnaeOriginal = $cnae;
                     $cnaeLimpo = preg_replace('/[^0-9]/', '', $cnae);
                     
-                    \Log::info('Verificando CNAE', [
-                        'cnae_original' => $cnaeOriginal,
-                        'cnae_limpo' => $cnaeLimpo,
-                        'municipio' => $municipio
+                    // Busca as respostas para este CNAE
+                    $resposta1 = $respostasNormalizadas[$cnaeLimpo] ?? $respostasNormalizadas[$cnaeOriginal] ?? null;
+                    $resposta2 = $respostas2Normalizadas[$cnaeLimpo] ?? $respostas2Normalizadas[$cnaeOriginal] ?? null;
+                    
+                    // Usa o método avançado de verificação
+                    $resultado = \App\Models\Pactuacao::verificarCompetenciaAvancada(
+                        $cnaeLimpo, 
+                        $municipio, 
+                        $resposta1, 
+                        $resposta2
+                    );
+                    
+                    \Log::info('Resultado verificação avançada', [
+                        'cnae' => $cnaeLimpo,
+                        'resultado' => $resultado
                     ]);
-
-                    // Busca a resposta para este CNAE se houver
-                    $resposta = null;
-                    if (isset($respostasNormalizadas[$cnaeLimpo])) {
-                        $resposta = $respostasNormalizadas[$cnaeLimpo];
-                    } elseif (isset($respostasNormalizadas[$cnaeOriginal])) {
-                        $resposta = $respostasNormalizadas[$cnaeOriginal];
-                    } elseif (isset($respostasNormalizadas[(int)$cnaeLimpo])) {
-                        $resposta = $respostasNormalizadas[(int)$cnaeLimpo];
-                    }
                     
-                    // Verifica se é atividade estadual passando a resposta
-                    $resultado = \App\Models\Pactuacao::isAtividadeEstadual($cnaeLimpo, $municipio, $resposta);
+                    // Processa o resultado
+                    $isEstadual = $resultado['competencia'] === 'estadual';
+                    $naoSujeitoVisa = $resultado['competencia'] === 'nao_sujeito_visa';
                     
-                    // Trata os diferentes retornos
-                    $isEstadual = false;
-                    $naoSujeitoVisa = false;
-                    
-                    if ($resultado === 'nao_sujeito_visa') {
-                        $naoSujeitoVisa = true;
-                        $temAtividadeNaoSujeitaVisa = true;
-                    } elseif ($resultado === true) {
-                        $isEstadual = true;
+                    if ($isEstadual) {
                         $temAtividadeEstadual = true;
                     }
+                    if ($naoSujeitoVisa) {
+                        $temAtividadeNaoSujeitaVisa = true;
+                    }
                     
-                    \Log::info('Resultado verificação', [
-                        'cnae' => $cnaeLimpo,
-                        'resultado' => $resultado,
-                        'is_estadual' => $isEstadual ? 'SIM' : 'NÃO',
-                        'nao_sujeito_visa' => $naoSujeitoVisa ? 'SIM' : 'NÃO'
-                    ]);
+                    // Atualiza o risco mais alto
+                    $riscoAtividade = $resultado['risco'] ?? 'baixo';
+                    if (($ordemRisco[$riscoAtividade] ?? 0) > ($ordemRisco[$riscoMaisAlto] ?? 0)) {
+                        $riscoMaisAlto = $riscoAtividade;
+                    }
                     
                     $atividadesVerificadas[] = [
                         'cnae' => $cnaeLimpo,
                         'estadual' => $isEstadual,
-                        'nao_sujeito_visa' => $naoSujeitoVisa
+                        'nao_sujeito_visa' => $naoSujeitoVisa,
+                        'competencia' => $resultado['competencia'],
+                        'risco' => $resultado['risco'],
+                        'detalhes' => $resultado['detalhes'] ?? []
                     ];
                     
                 } catch (\Exception $e) {
                     \Log::error('Erro ao verificar CNAE individual', [
                         'cnae' => $cnae,
-                        'erro' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'erro' => $e->getMessage()
                     ]);
                 }
             }
             
             // Determina a competência final
-            // Se TODAS as atividades são "não sujeitas à VISA", retorna esse status
-            // Se pelo menos uma é estadual, retorna estadual
-            // Caso contrário, retorna municipal
             $competenciaFinal = 'municipal';
             
             if ($temAtividadeNaoSujeitaVisa && !$temAtividadeEstadual) {
                 // Verifica se TODAS as atividades são não sujeitas à VISA
                 $todasNaoSujeitas = true;
                 foreach ($atividadesVerificadas as $av) {
-                    if (!$av['nao_sujeito_visa'] && !$av['estadual']) {
-                        // Tem atividade municipal normal
-                        $todasNaoSujeitas = false;
-                        break;
-                    }
-                    if ($av['estadual']) {
+                    if ($av['competencia'] !== 'nao_sujeito_visa') {
                         $todasNaoSujeitas = false;
                         break;
                     }
@@ -275,6 +279,7 @@ class CnpjController extends Controller
             
             $resultado = [
                 'competencia' => $competenciaFinal,
+                'risco' => $riscoMaisAlto,
                 'atividades_verificadas' => count($atividades),
                 'detalhes' => $atividadesVerificadas,
                 'municipio' => $municipio,
@@ -296,7 +301,7 @@ class CnpjController extends Controller
                 'competencia' => 'municipal',
                 'erro' => $e->getMessage(),
                 'atividades_verificadas' => 0
-            ], 200); // Retorna 200 para não quebrar o frontend
+            ], 200);
         }
     }
 }

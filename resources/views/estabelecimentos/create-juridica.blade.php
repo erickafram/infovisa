@@ -807,6 +807,8 @@
                                                 <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded-full" x-text="quest.cnae_formatado"></span>
                                                 <span class="text-xs text-gray-600" x-text="quest.descricao"></span>
                                             </div>
+                                            
+                                            {{-- Primeira Pergunta --}}
                                             <p class="text-sm font-semibold text-gray-900 mb-3" x-text="quest.pergunta"></p>
                                             
                                             <div class="flex gap-3">
@@ -833,6 +835,38 @@
                                             <div x-show="!respostasQuestionario[quest.cnae]" class="mt-2 text-xs text-red-600 font-medium">
                                                 ⚠️ Resposta obrigatória
                                             </div>
+                                            
+                                            {{-- Segunda Pergunta (se existir) --}}
+                                            <template x-if="quest.pergunta2">
+                                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                                    <p class="text-sm font-semibold text-gray-900 mb-3" x-text="quest.pergunta2"></p>
+                                                    
+                                                    <div class="flex gap-3">
+                                                        <button type="button"
+                                                                @click="respostasQuestionario2[quest.cnae] = 'sim'"
+                                                                :class="respostasQuestionario2[quest.cnae] === 'sim' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50'"
+                                                                class="flex-1 px-4 py-3 border-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                            </svg>
+                                                            SIM
+                                                        </button>
+                                                        <button type="button"
+                                                                @click="respostasQuestionario2[quest.cnae] = 'nao'"
+                                                                :class="respostasQuestionario2[quest.cnae] === 'nao' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50'"
+                                                                class="flex-1 px-4 py-3 border-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                            </svg>
+                                                            NÃO
+                                                        </button>
+                                                    </div>
+
+                                                    <div x-show="!respostasQuestionario2[quest.cnae]" class="mt-2 text-xs text-red-600 font-medium">
+                                                        ⚠️ Resposta obrigatória
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </div>
                                     </div>
                                 </div>
@@ -1146,6 +1180,7 @@ function estabelecimentoForm() {
         naoSujeitoVisa: false,
         questionarios: [],
         respostasQuestionario: {},
+        respostasQuestionario2: {},
         modalErro: {
             visivel: false,
             mensagens: []
@@ -1218,6 +1253,10 @@ function estabelecimentoForm() {
             });
             // Recalcula competência quando as respostas mudam
             this.$watch('respostasQuestionario', () => {
+                this.verificarCompetencia();
+            }, { deep: true });
+            // Recalcula competência quando as respostas da segunda pergunta mudam
+            this.$watch('respostasQuestionario2', () => {
                 this.verificarCompetencia();
             }, { deep: true });
         },
@@ -1310,7 +1349,8 @@ function estabelecimentoForm() {
                 atividadesExercidas: this.atividadesExercidas,
                 atividades: atividades,
                 municipio: this.dados.cidade,
-                respostas: JSON.parse(JSON.stringify(this.respostasQuestionario)) // Debug das respostas
+                respostas: JSON.parse(JSON.stringify(this.respostasQuestionario)),
+                respostas2: JSON.parse(JSON.stringify(this.respostasQuestionario2))
             });
             
             if (atividades.length === 0) {
@@ -1330,7 +1370,8 @@ function estabelecimentoForm() {
                     body: JSON.stringify({
                         atividades: atividades,
                         municipio: this.dados.cidade,
-                        respostas_questionario: this.respostasQuestionario
+                        respostas_questionario: this.respostasQuestionario,
+                        respostas_questionario2: this.respostasQuestionario2
                     })
                 });
                 
