@@ -54,17 +54,11 @@ class Pactuacao extends Model
     /**
      * Verifica se uma atividade é de competência estadual
      * Considera exceções municipais (descentralização) e resposta do questionário
+     * 
+     * @return bool|string Retorna true (estadual), false (municipal), ou 'nao_sujeito_visa' para Tabela V com resposta NÃO
      */
     public static function isAtividadeEstadual($cnaeCodigo, $municipio = null, $resposta = null)
     {
-        // Se a resposta do questionário for "não", a competência é MUNICIPAL
-        if ($resposta !== null) {
-            $resp = strtolower(trim($resposta));
-            if ($resp === 'nao' || $resp === 'não') {
-                return false;
-            }
-        }
-
         $pactuacao = self::where('tipo', 'estadual')
             ->where('cnae_codigo', $cnaeCodigo)
             ->where('ativo', true)
@@ -72,6 +66,19 @@ class Pactuacao extends Model
         
         if (!$pactuacao) {
             return false;
+        }
+        
+        // Se a resposta do questionário for "não"
+        if ($resposta !== null) {
+            $resp = strtolower(trim($resposta));
+            if ($resp === 'nao' || $resp === 'não') {
+                // Para Tabela V, "não" significa NÃO SUJEITO À VISA
+                if ($pactuacao->tabela === 'V') {
+                    return 'nao_sujeito_visa';
+                }
+                // Para outras tabelas, "não" significa competência municipal
+                return false;
+            }
         }
         
         // Se não foi informado município, retorna true (é estadual)

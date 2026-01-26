@@ -839,9 +839,38 @@
                             </template>
                         </div>
 
+                        {{-- Alerta NÃO SUJEITO À VISA (para TODOS os usuários) --}}
+                        <div x-show="(atividadesExercidas.length > 0 || atividadePrincipalMarcada) && naoSujeitoVisa" class="mt-4">
+                            <div class="bg-gray-50 border-l-4 border-gray-500 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
+                                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <h4 class="text-lg font-bold text-gray-900">🚫 NÃO SUJEITO À VIGILÂNCIA SANITÁRIA</h4>
+                                        <p class="text-sm text-gray-700 mt-1">
+                                            Com base nas respostas do questionário, as atividades selecionadas <strong>NÃO estão sujeitas à fiscalização da Vigilância Sanitária</strong>.
+                                        </p>
+                                        <p class="text-sm text-gray-600 mt-2">
+                                            Este estabelecimento <strong>não precisa de licença sanitária</strong> para exercer estas atividades.
+                                        </p>
+                                        <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p class="text-xs text-yellow-800">
+                                                <strong>⚠️ Atenção:</strong> Se você acredita que esta informação está incorreta, revise as respostas do questionário acima ou entre em contato com a Vigilância Sanitária.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- Alerta de Competência (apenas para usuários municipais) --}}
                         @if(auth('interno')->check() && auth('interno')->user()->isMunicipal())
-                        <div x-show="atividadesExercidas.length > 0 || atividadePrincipalMarcada" class="mt-4">
+                        <div x-show="(atividadesExercidas.length > 0 || atividadePrincipalMarcada) && !naoSujeitoVisa" class="mt-4">
                             {{-- Alerta Estadual --}}
                             <div x-show="competenciaEstadual" class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
                                 <div class="flex items-start">
@@ -1114,6 +1143,7 @@ function estabelecimentoForm() {
         atividadesExercidas: [],
         atividadePrincipalMarcada: false,
         competenciaEstadual: false,
+        naoSujeitoVisa: false,
         questionarios: [],
         respostasQuestionario: {},
         modalErro: {
@@ -1285,6 +1315,7 @@ function estabelecimentoForm() {
             
             if (atividades.length === 0) {
                 this.competenciaEstadual = false;
+                this.naoSujeitoVisa = false;
                 return;
             }
             
@@ -1307,14 +1338,17 @@ function estabelecimentoForm() {
                 console.log('✅ Resultado da API:', result);
                 
                 this.competenciaEstadual = result.competencia === 'estadual';
+                this.naoSujeitoVisa = result.competencia === 'nao_sujeito_visa';
                 
                 console.log('📊 Competência definida:', {
                     competenciaEstadual: this.competenciaEstadual,
+                    naoSujeitoVisa: this.naoSujeitoVisa,
                     resultado: result.competencia
                 });
             } catch (error) {
                 console.error('❌ Erro ao verificar competência:', error);
                 this.competenciaEstadual = false;
+                this.naoSujeitoVisa = false;
             }
         },
 

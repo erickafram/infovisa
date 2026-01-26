@@ -183,6 +183,7 @@ class CnpjController extends Controller
 
             // Verifica se pelo menos uma atividade é estadual
             $temAtividadeEstadual = false;
+            $temAtividadeNaoSujeitaVisa = false;
             $atividadesVerificadas = [];
             
             foreach ($atividades as $cnae) {
@@ -208,21 +209,33 @@ class CnpjController extends Controller
                     }
                     
                     // Verifica se é atividade estadual passando a resposta
-                    $isEstadual = \App\Models\Pactuacao::isAtividadeEstadual($cnaeLimpo, $municipio, $resposta);
+                    $resultado = \App\Models\Pactuacao::isAtividadeEstadual($cnaeLimpo, $municipio, $resposta);
+                    
+                    // Trata os diferentes retornos
+                    $isEstadual = false;
+                    $naoSujeitoVisa = false;
+                    
+                    if ($resultado === 'nao_sujeito_visa') {
+                        $naoSujeitoVisa = true;
+                        $temAtividadeNaoSujeitaVisa = true;
+                    } elseif ($resultado === true) {
+                        $isEstadual = true;
+                        $temAtividadeEstadual = true;
+                    }
                     
                     \Log::info('Resultado verificação', [
                         'cnae' => $cnaeLimpo,
-                        'is_estadual' => $isEstadual ? 'SIM' : 'NÃO'
+                        'resultado' => $resultado,
+                        'is_estadual' => $isEstadual ? 'SIM' : 'NÃO',
+                        'nao_sujeito_visa' => $naoSujeitoVisa ? 'SIM' : 'NÃO'
                     ]);
                     
                     $atividadesVerificadas[] = [
                         'cnae' => $cnaeLimpo,
-                        'estadual' => $isEstadual
+                        'estadual' => $isEstadual,
+                        'nao_sujeito_visa' => $naoSujeitoVisa
                     ];
                     
-                    if ($isEstadual) {
-                        $temAtividadeEstadual = true;
-                    }
                 } catch (\Exception $e) {
                     \Log::error('Erro ao verificar CNAE individual', [
                         'cnae' => $cnae,
@@ -232,11 +245,40 @@ class CnpjController extends Controller
                 }
             }
             
+            // Determina a competência final
+            // Se TODAS as atividades são "não sujeitas à VISA", retorna esse status
+            // Se pelo menos uma é estadual, retorna estadual
+            // Caso contrário, retorna municipal
+            $competenciaFinal = 'municipal';
+            
+            if ($temAtividadeNaoSujeitaVisa && !$temAtividadeEstadual) {
+                // Verifica se TODAS as atividades são não sujeitas à VISA
+                $todasNaoSujeitas = true;
+                foreach ($atividadesVerificadas as $av) {
+                    if (!$av['nao_sujeito_visa'] && !$av['estadual']) {
+                        // Tem atividade municipal normal
+                        $todasNaoSujeitas = false;
+                        break;
+                    }
+                    if ($av['estadual']) {
+                        $todasNaoSujeitas = false;
+                        break;
+                    }
+                }
+                
+                if ($todasNaoSujeitas) {
+                    $competenciaFinal = 'nao_sujeito_visa';
+                }
+            } elseif ($temAtividadeEstadual) {
+                $competenciaFinal = 'estadual';
+            }
+            
             $resultado = [
-                'competencia' => $temAtividadeEstadual ? 'estadual' : 'municipal',
+                'competencia' => $competenciaFinal,
                 'atividades_verificadas' => count($atividades),
                 'detalhes' => $atividadesVerificadas,
-                'municipio' => $municipio
+                'municipio' => $municipio,
+                'tem_atividade_nao_sujeita_visa' => $temAtividadeNaoSujeitaVisa
             ];
             
             \Log::info('=== RESULTADO FINAL ===', $resultado);
