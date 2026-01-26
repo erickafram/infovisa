@@ -39,19 +39,60 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}4. Limpando caches...${NC}"
+echo -e "${YELLOW}4. Instalando dependências do Composer...${NC}"
+php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Dependências do Composer instaladas${NC}"
+else
+    echo -e "${RED}✗ Erro ao instalar dependências do Composer!${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}5. Instalando dependências do Node.js...${NC}"
+npm install
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Dependências do Node.js instaladas${NC}"
+else
+    echo -e "${RED}✗ Erro ao instalar dependências do Node.js!${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}6. Compilando assets do frontend (Vite)...${NC}"
+npm run build
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Assets compilados com sucesso${NC}"
+else
+    echo -e "${RED}✗ Erro ao compilar assets!${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}7. Executando migrations...${NC}"
+php artisan migrate --force
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Migrations executadas${NC}"
+else
+    echo -e "${RED}✗ Erro ao executar migrations!${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}8. Limpando caches...${NC}"
 php artisan config:clear
 php artisan route:clear
 php artisan cache:clear
 php artisan view:clear
 echo -e "${GREEN}✓ Caches limpos${NC}"
 
-echo -e "${YELLOW}5. Ajustando permissões...${NC}"
+echo -e "${YELLOW}9. Cacheando configurações...${NC}"
+php artisan config:cache
+php artisan route:cache
+echo -e "${GREEN}✓ Configurações cacheadas${NC}"
+
+echo -e "${YELLOW}10. Ajustando permissões...${NC}"
 sudo chown -R apache:apache storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 echo -e "${GREEN}✓ Permissões ajustadas${NC}"
 
-echo -e "${YELLOW}6. Reiniciando serviços...${NC}"
+echo -e "${YELLOW}11. Reiniciando serviços...${NC}"
 sudo systemctl restart php-fpm
 sudo systemctl restart httpd
 echo -e "${GREEN}✓ Serviços reiniciados${NC}"

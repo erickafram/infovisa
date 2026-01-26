@@ -95,6 +95,7 @@ sudo systemctl restart httpd
 sudo systemctl restart php-fpm
 
 SE DER ERRO TENTE ESSE
+cd /var/www/html/infovisa
 sudo chown -R $USER:$USER /var/www/html/infovisa/ .git/
 git pull origin main
 php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs
