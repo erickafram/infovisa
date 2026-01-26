@@ -25,6 +25,9 @@ class Processo extends Model
         'setor_atual',
         'responsavel_atual_id',
         'responsavel_desde',
+        'prazo_atribuicao',
+        'responsavel_ciente_em',
+        'motivo_atribuicao',
         'setor_antes_arquivar',
         'responsavel_antes_arquivar_id',
         'observacoes',
@@ -42,6 +45,8 @@ class Processo extends Model
         'data_arquivamento' => 'datetime',
         'data_parada' => 'datetime',
         'responsavel_desde' => 'datetime',
+        'prazo_atribuicao' => 'date',
+        'responsavel_ciente_em' => 'datetime',
     ];
 
     /**

@@ -367,9 +367,23 @@
                                         </svg>
                                         Selecione os Técnicos <span class="text-red-500">*</span>
                                     </label>
-                                    <div class="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gradient-to-b from-gray-50 to-white">
+                                    
+                                    {{-- Campo de Busca --}}
+                                    <div class="relative mb-3">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                            </svg>
+                                        </div>
+                                        <input type="text" id="busca-tecnicos" 
+                                               placeholder="Buscar técnico por nome..." 
+                                               class="w-full pl-10 pr-4 py-2.5 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+                                               oninput="filtrarTecnicos(this.value)">
+                                    </div>
+                                    
+                                    <div id="lista-tecnicos-container" class="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gradient-to-b from-gray-50 to-white">
                                         @foreach($tecnicos as $tecnico)
-                                        <label class="flex items-center p-4 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0 tecnico-item-label transition-colors group" data-tecnico-id="{{ $tecnico->id }}">
+                                        <label class="flex items-center p-4 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0 tecnico-item-label transition-colors group" data-tecnico-id="{{ $tecnico->id }}" data-tecnico-nome="{{ strtolower($tecnico->nome) }}">
                                             <input type="checkbox" class="tecnico-checkbox rounded border-gray-300 text-green-600 focus:ring-green-500 w-5 h-5" 
                                                    value="{{ $tecnico->id }}" data-nome="{{ $tecnico->nome }}"
                                                    onchange="atualizarResponsavelAutomatico()">
@@ -381,6 +395,7 @@
                                         </label>
                                         @endforeach
                                     </div>
+                                    <p id="nenhum-tecnico-encontrado" class="hidden text-sm text-gray-500 text-center py-4">Nenhum técnico encontrado.</p>
                                 </div>
                                 
                                 {{-- Seleção do Responsável (aparece quando há mais de 1 técnico) --}}
@@ -1001,6 +1016,10 @@
             atividadeAtualModal = atividadeId;
             document.getElementById('modal-atividade-titulo').textContent = `Atribuir Técnicos - ${atividadeNome}`;
             
+            // Limpa o campo de busca
+            document.getElementById('busca-tecnicos').value = '';
+            filtrarTecnicos('');
+            
             // Carrega dados existentes
             const tecnicosAtribuidos = atividadesTecnicos[atividadeId] || { responsavel: null, tecnicos: [] };
             
@@ -1020,6 +1039,34 @@
             
             document.getElementById('modal-tecnicos-atividade').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+        };
+
+        // Função para filtrar técnicos por nome
+        window.filtrarTecnicos = function(termo) {
+            const termoLower = termo.toLowerCase().trim();
+            const labels = document.querySelectorAll('.tecnico-item-label');
+            const container = document.getElementById('lista-tecnicos-container');
+            const nenhumEncontrado = document.getElementById('nenhum-tecnico-encontrado');
+            let encontrados = 0;
+            
+            labels.forEach(label => {
+                const nome = label.dataset.tecnicoNome || '';
+                if (termoLower === '' || nome.includes(termoLower)) {
+                    label.style.display = 'flex';
+                    encontrados++;
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+            
+            // Mostra mensagem se nenhum técnico foi encontrado
+            if (encontrados === 0 && termoLower !== '') {
+                container.style.display = 'none';
+                nenhumEncontrado.classList.remove('hidden');
+            } else {
+                container.style.display = 'block';
+                nenhumEncontrado.classList.add('hidden');
+            }
         };
 
         // Função para atualizar automaticamente o responsável quando técnicos são marcados
@@ -1283,6 +1330,54 @@
                 }
             }
         });
+
+        // Pré-seleção de estabelecimento e processo (quando vindo de um processo)
+        @if(isset($estabelecimentoPreSelecionado) && $estabelecimentoPreSelecionado)
+        (function() {
+            // Garante que está com estabelecimento selecionado
+            comEstabelecimentoRadio.checked = true;
+            toggleEstabelecimentoField();
+            
+            // Cria a option do estabelecimento pré-selecionado
+            const estabelecimentoOption = new Option(
+                '{{ $estabelecimentoPreSelecionado->cnpj }} - {{ $estabelecimentoPreSelecionado->nome_fantasia }}',
+                '{{ $estabelecimentoPreSelecionado->id }}',
+                true,
+                true
+            );
+            estabelecimentoOption.dataset.cnpj = '{{ $estabelecimentoPreSelecionado->cnpj }}';
+            estabelecimentoOption.dataset.nome = '{{ $estabelecimentoPreSelecionado->nome_fantasia }}';
+            
+            $('#estabelecimento_id').append(estabelecimentoOption).trigger('change');
+            
+            // Carrega os processos do estabelecimento
+            @if(isset($processoPreSelecionado) && $processoPreSelecionado)
+            setTimeout(function() {
+                fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/{{ $estabelecimentoPreSelecionado->id }}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.success && data.processos.length > 0) {
+                            processoSelect.innerHTML = '<option value="">Selecione um processo</option>';
+                            data.processos.forEach(p => {
+                                const opt = document.createElement('option');
+                                opt.value = p.id;
+                                opt.textContent = `${p.numero_processo} - ${p.tipo_label}`;
+                                // Pré-seleciona o processo
+                                if (p.id == {{ $processoPreSelecionado->id }}) {
+                                    opt.selected = true;
+                                }
+                                processoSelect.appendChild(opt);
+                            });
+                            processoSelect.disabled = false;
+                            document.getElementById('processo-count').textContent = `${data.total} processo(s) encontrado(s)`;
+                            processoInfo.classList.remove('hidden');
+                            submitButton.disabled = false;
+                        }
+                    });
+            }, 100);
+            @endif
+        })();
+        @endif
     });
 </script>
 @endpush

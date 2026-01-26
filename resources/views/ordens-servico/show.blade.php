@@ -319,78 +319,6 @@
             </div>
             @endif
 
-            {{-- Ações Vinculadas e Status de Execução --}}
-            <div class="bg-white rounded-lg border border-gray-200">
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 class="text-base font-semibold text-gray-900">Ações Vinculadas</h2>
-                    @if($ordemServico->tiposAcao()->count() > 0)
-                    <div class="flex items-center gap-2">
-                        @if($ordemServico->status === 'finalizada' && $ordemServico->acoes_executadas_ids)
-                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
-                            {{ count($ordemServico->acoes_executadas_ids) }} executadas
-                        </span>
-                        @endif
-                        <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
-                            {{ $ordemServico->tiposAcao()->count() }} total
-                        </span>
-                    </div>
-                    @endif
-                </div>
-                <div class="px-5 py-5">
-                    @if($ordemServico->tiposAcao()->count() > 0)
-                        <div class="space-y-2">
-                            @foreach($ordemServico->tiposAcao() as $tipoAcao)
-                                @php
-                                    $foiExecutada = $ordemServico->status === 'finalizada' && 
-                                                    $ordemServico->acoes_executadas_ids && 
-                                                    in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids);
-                                    $naoFoiExecutada = $ordemServico->status === 'finalizada' && 
-                                                       (!$ordemServico->acoes_executadas_ids || 
-                                                        !in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids));
-                                @endphp
-                                
-                                @if($ordemServico->status === 'finalizada')
-                                    {{-- OS Finalizada: Mostra status de execução --}}
-                                    @if($foiExecutada)
-                                        <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                            <div class="flex-shrink-0 w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
-                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                </svg>
-                                            </div>
-                                            <span class="text-sm font-medium text-green-900">{{ $tipoAcao->descricao }}</span>
-                                            <span class="ml-auto text-xs text-green-600 font-semibold">Executada</span>
-                                        </div>
-                                    @else
-                                        <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <div class="flex-shrink-0 w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
-                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                </svg>
-                                            </div>
-                                            <span class="text-sm font-medium text-gray-600">{{ $tipoAcao->descricao }}</span>
-                                            <span class="ml-auto text-xs text-gray-500 font-semibold">Não executada</span>
-                                        </div>
-                                    @endif
-                                @else
-                                    {{-- OS Não Finalizada: Mostra apenas as ações --}}
-                                    <div class="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                                        <div class="flex-shrink-0 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
-                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                            </svg>
-                                        </div>
-                                        <span class="text-sm font-medium text-purple-900">{{ $tipoAcao->descricao }}</span>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-sm text-gray-500 text-center py-4">Nenhuma ação cadastrada</p>
-                    @endif
-                </div>
-            </div>
-
             {{-- Atividades por Técnico (Nova Seção) --}}
             @if($ordemServico->atividades_tecnicos && count($ordemServico->atividades_tecnicos) > 0)
             <div class="bg-white rounded-lg border border-gray-200">
@@ -546,6 +474,78 @@
                 </div>
             </div>
             @endif
+
+            {{-- Ações Vinculadas e Status de Execução --}}
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-gray-900">Ações Vinculadas</h2>
+                    @if($ordemServico->tiposAcao()->count() > 0)
+                    <div class="flex items-center gap-2">
+                        @if($ordemServico->status === 'finalizada' && $ordemServico->acoes_executadas_ids)
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                            {{ count($ordemServico->acoes_executadas_ids) }} executadas
+                        </span>
+                        @endif
+                        <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                            {{ $ordemServico->tiposAcao()->count() }} total
+                        </span>
+                    </div>
+                    @endif
+                </div>
+                <div class="px-5 py-5">
+                    @if($ordemServico->tiposAcao()->count() > 0)
+                        <div class="space-y-2">
+                            @foreach($ordemServico->tiposAcao() as $tipoAcao)
+                                @php
+                                    $foiExecutada = $ordemServico->status === 'finalizada' && 
+                                                    $ordemServico->acoes_executadas_ids && 
+                                                    in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids);
+                                    $naoFoiExecutada = $ordemServico->status === 'finalizada' && 
+                                                       (!$ordemServico->acoes_executadas_ids || 
+                                                        !in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids));
+                                @endphp
+                                
+                                @if($ordemServico->status === 'finalizada')
+                                    {{-- OS Finalizada: Mostra status de execução --}}
+                                    @if($foiExecutada)
+                                        <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                            <div class="flex-shrink-0 w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </div>
+                                            <span class="text-sm font-medium text-green-900">{{ $tipoAcao->descricao }}</span>
+                                            <span class="ml-auto text-xs text-green-600 font-semibold">Executada</span>
+                                        </div>
+                                    @else
+                                        <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                            <div class="flex-shrink-0 w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-600">{{ $tipoAcao->descricao }}</span>
+                                            <span class="ml-auto text-xs text-gray-500 font-semibold">Não executada</span>
+                                        </div>
+                                    @endif
+                                @else
+                                    {{-- OS Não Finalizada: Mostra apenas as ações --}}
+                                    <div class="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <div class="flex-shrink-0 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
+                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm font-medium text-purple-900">{{ $tipoAcao->descricao }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-500 text-center py-4">Nenhuma ação cadastrada</p>
+                    @endif
+                </div>
+            </div>
 
             {{-- Documento Anexo --}}
             @if($ordemServico->documento_anexo_path)
@@ -919,38 +919,6 @@
         <form id="formFinalizarAtividade" class="px-8 py-6 space-y-6">
             <input type="hidden" id="atividadeIndex" name="atividade_index" value="">
             
-            @if(!$ordemServico->estabelecimento_id)
-            {{-- Campo de Estabelecimento (apenas se não vinculado) --}}
-            <div>
-                <label for="estabelecimento_id_atividade" class="block text-sm font-medium text-gray-700 mb-2">
-                    Estabelecimento <span class="text-gray-400 text-xs">(opcional)</span>
-                </label>
-                <select name="estabelecimento_id" 
-                        id="estabelecimento_id_atividade"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
-                    <option value="">Não vincular</option>
-                    @php
-                        $usuario = Auth::guard('interno')->user();
-                        $estabelecimentosDisponiveis = \App\Models\Estabelecimento::query();
-                        
-                        if ($usuario->isMunicipal()) {
-                            $estabelecimentosDisponiveis->where('municipio_id', $usuario->municipio_id);
-                        } elseif ($usuario->isEstadual()) {
-                            $estabelecimentosDisponiveis->where(function($q) {
-                                $q->where('competencia_manual', 'estadual')
-                                  ->orWhereNull('competencia_manual');
-                            });
-                        }
-                        
-                        $estabelecimentosDisponiveis = $estabelecimentosDisponiveis->orderBy('nome_fantasia')->get();
-                    @endphp
-                    @foreach($estabelecimentosDisponiveis as $estab)
-                    <option value="{{ $estab->id }}">{{ $estab->nome_fantasia }}</option>
-                    @endforeach
-                </select>
-            </div>
-            @endif
-
             {{-- Status de Execução --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-3">

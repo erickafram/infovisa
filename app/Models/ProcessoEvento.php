@@ -275,6 +275,23 @@ class ProcessoEvento extends Model
     }
 
     /**
+     * Registrar evento de atribuição do processo
+     */
+    public static function registrarAtribuicao(Processo $processo, $dadosAtribuicao, $usuario = null)
+    {
+        return self::create([
+            'processo_id' => $processo->id,
+            'usuario_interno_id' => $usuario?->id ?? auth('interno')->id(),
+            'tipo_evento' => 'processo_atribuido',
+            'titulo' => 'Processo Atribuído',
+            'descricao' => $dadosAtribuicao['descricao'] ?? 'Processo atribuído',
+            'dados_adicionais' => $dadosAtribuicao,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+
+    /**
      * Obter ícone do evento
      */
     public function getIconeAttribute(): string
@@ -290,6 +307,7 @@ class ProcessoEvento extends Model
             'processo_desarquivado' => 'check',
             'processo_parado' => 'pause',
             'processo_reiniciado' => 'play',
+            'processo_atribuido' => 'arrow-right',
             'resposta_aprovada' => 'check',
             'resposta_rejeitada' => 'x',
             'movimentacao' => 'arrow-right',
@@ -314,6 +332,7 @@ class ProcessoEvento extends Model
             'processo_desarquivado' => 'green',
             'processo_parado' => 'red',
             'processo_reiniciado' => 'green',
+            'processo_atribuido' => 'cyan',
             'resposta_aprovada' => 'green',
             'resposta_rejeitada' => 'red',
             'movimentacao' => 'indigo',

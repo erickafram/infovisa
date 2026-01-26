@@ -469,7 +469,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Retorna processos atribuídos paginados via AJAX
+     * Retorna processos atribuídos/tramitados para o usuário paginados via AJAX
      */
     public function processosAtribuidosPaginados(Request $request)
     {
@@ -480,12 +480,8 @@ class DashboardController extends Controller
         $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
 
-        $query->where(function($q) use ($usuario) {
-            $q->where('responsavel_atual_id', $usuario->id);
-            if ($usuario->setor) {
-                $q->orWhere('setor_atual', $usuario->setor);
-            }
-        });
+        // Mostra apenas processos onde o usuário é o responsável direto
+        $query->where('responsavel_atual_id', $usuario->id);
 
         // Filtrar por competência
         if ($usuario->isEstadual()) {
@@ -506,10 +502,25 @@ class DashboardController extends Controller
         }
 
         $total = $processos->count();
-        $lastPage = ceil($total / $perPage);
+        $lastPage = ceil($total / $perPage) ?: 1;
         $processosPaginados = $processos->forPage($page, $perPage)->values();
 
         $data = $processosPaginados->map(function($proc) use ($usuario) {
+            // Calcula status do prazo
+            $prazoInfo = null;
+            if ($proc->prazo_atribuicao) {
+                $prazo = \Carbon\Carbon::parse($proc->prazo_atribuicao);
+                $hoje = \Carbon\Carbon::today();
+                $diasRestantes = $hoje->diffInDays($prazo, false);
+                
+                $prazoInfo = [
+                    'data' => $prazo->format('d/m/Y'),
+                    'vencido' => $diasRestantes < 0,
+                    'proximo' => $diasRestantes >= 0 && $diasRestantes <= 3,
+                    'dias_restantes' => $diasRestantes,
+                ];
+            }
+            
             return [
                 'id' => $proc->id,
                 'numero_processo' => $proc->numero_processo,
@@ -519,6 +530,7 @@ class DashboardController extends Controller
                 'status_nome' => $proc->status_nome,
                 'is_meu_direto' => $proc->responsavel_atual_id === $usuario->id,
                 'responsavel_desde' => $proc->responsavel_desde ? $proc->responsavel_desde->diffForHumans() : null,
+                'prazo' => $prazoInfo,
                 'url' => route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]),
             ];
         });

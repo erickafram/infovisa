@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OrdemServico;
 use App\Models\Estabelecimento;
+use App\Models\Processo;
 use App\Models\TipoAcao;
 use App\Models\UsuarioInterno;
 use App\Models\Municipio;
@@ -87,7 +88,7 @@ class OrdemServicoController extends Controller
      * Show the form for creating a new resource.
      * APENAS Administrador, Gestor Estadual e Gestor Municipal podem criar OS
      */
-    public function create()
+    public function create(Request $request)
     {
         $usuario = Auth::guard('interno')->user();
         
@@ -115,7 +116,19 @@ class OrdemServicoController extends Controller
             $municipios = Municipio::orderBy('nome')->get();
         }
         
-        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios'));
+        // Pré-seleciona estabelecimento e processo se passados via query string
+        $estabelecimentoPreSelecionado = null;
+        $processoPreSelecionado = null;
+        
+        if ($request->filled('estabelecimento_id')) {
+            $estabelecimentoPreSelecionado = Estabelecimento::find($request->estabelecimento_id);
+        }
+        
+        if ($request->filled('processo_id')) {
+            $processoPreSelecionado = Processo::find($request->processo_id);
+        }
+        
+        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios', 'estabelecimentoPreSelecionado', 'processoPreSelecionado'));
     }
 
     /**
@@ -558,15 +571,14 @@ class OrdemServicoController extends Controller
     {
         $query = UsuarioInterno::where('ativo', true)->orderBy('nome');
         
-        if ($usuario->isEstadual()) {
-            // Gestor estadual vê apenas técnicos estaduais
-            $query->where('nivel_acesso', 'estadual');
+        if ($usuario->isAdmin() || $usuario->isEstadual()) {
+            // Administrador e usuários estaduais veem técnicos e gestores estaduais (não admin)
+            $query->whereIn('nivel_acesso', ['gestor_estadual', 'tecnico_estadual']);
         } elseif ($usuario->isMunicipal()) {
-            // Gestor municipal vê apenas técnicos municipais do seu município
-            $query->where('nivel_acesso', 'municipal')
+            // Gestor/Técnico municipal vê apenas usuários municipais do seu município
+            $query->whereIn('nivel_acesso', ['gestor_municipal', 'tecnico_municipal'])
                   ->where('municipio_id', $usuario->municipio_id);
         }
-        // Administrador vê todos
         
         return $query->get();
     }

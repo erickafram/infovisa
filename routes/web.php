@@ -275,6 +275,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}/usuarios-designacao', [\App\Http\Controllers\ProcessoController::class, 'buscarUsuariosParaDesignacao'])->name('estabelecimentos.processos.usuarios.designacao');
     Route::post('/estabelecimentos/{id}/processos/{processo}/designar', [\App\Http\Controllers\ProcessoController::class, 'designarResponsavel'])->name('estabelecimentos.processos.designar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/atribuir', [\App\Http\Controllers\ProcessoController::class, 'atribuirProcesso'])->name('estabelecimentos.processos.atribuir');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/ciente', [\App\Http\Controllers\ProcessoController::class, 'marcarCiente'])->name('estabelecimentos.processos.ciente');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}', [\App\Http\Controllers\ProcessoController::class, 'atualizarDesignacao'])->name('estabelecimentos.processos.designacoes.atualizar');
     Route::put('/estabelecimentos/{id}/processos/{processo}/designacoes/{designacao}/concluir', [\App\Http\Controllers\ProcessoController::class, 'concluirDesignacao'])->name('estabelecimentos.processos.designacoes.concluir');
     

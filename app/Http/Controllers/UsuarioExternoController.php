@@ -74,6 +74,11 @@ class UsuarioExternoController extends Controller
      */
     public function store(Request $request)
     {
+        // Remove máscara do CPF antes de validar
+        $request->merge([
+            'cpf' => preg_replace('/[^0-9]/', '', $request->cpf)
+        ]);
+        
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'cpf' => 'required|string|size:11|unique:usuarios_externos,cpf',
@@ -114,6 +119,11 @@ class UsuarioExternoController extends Controller
      */
     public function update(Request $request, UsuarioExterno $usuarioExterno)
     {
+        // Remove máscara do CPF antes de validar
+        $request->merge([
+            'cpf' => preg_replace('/[^0-9]/', '', $request->cpf)
+        ]);
+        
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'cpf' => 'required|string|size:11|unique:usuarios_externos,cpf,' . $usuarioExterno->id,

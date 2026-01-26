@@ -1860,48 +1860,61 @@ class ProcessoController extends Controller
         
         $usuarioLogado = auth('interno')->user();
         $setorUsuarioLogado = $usuarioLogado->setor;
+        $nivelAcessoUsuario = $usuarioLogado->nivel_acesso->value ?? $usuarioLogado->nivel_acesso;
+        $municipioUsuario = $usuarioLogado->municipio_id;
         
-        // Determina se é competência estadual ou municipal baseado no tipo de processo
-        $tipoProcesso = $processo->tipoProcesso;
-        $isCompetenciaEstadual = $tipoProcesso && in_array($tipoProcesso->competencia, ['estadual', 'estadual_exclusivo']);
+        // Determina se o usuário logado é estadual ou municipal
+        $isUsuarioEstadual = in_array($nivelAcessoUsuario, ['administrador', 'gestor_estadual', 'tecnico_estadual']);
+        $isUsuarioMunicipal = in_array($nivelAcessoUsuario, ['gestor_municipal', 'tecnico_municipal']);
         
-        // Busca setores disponíveis baseado na competência
+        // Busca setores disponíveis baseado no perfil do usuário logado
         $setores = \App\Models\TipoSetor::where('ativo', true)
             ->orderBy('nome')
             ->get();
         
-        // Filtra setores por nível de acesso E exclui o setor do usuário logado
-        // (para tramitar, o usuário não pode enviar para o próprio setor - deve usar "Designar Responsável")
-        $setoresDisponiveis = $setores->filter(function($setor) use ($isCompetenciaEstadual, $setorUsuarioLogado) {
-            // Exclui o setor do usuário logado
-            if ($setorUsuarioLogado && $setor->codigo === $setorUsuarioLogado) {
-                return false;
-            }
-            
+        // Níveis que caracterizam setores estaduais e municipais
+        $niveisSetorEstadual = ['gestor_estadual', 'tecnico_estadual'];
+        $niveisSetorMunicipal = ['gestor_municipal', 'tecnico_municipal'];
+        
+        // Filtra setores por nível de acesso do usuário logado
+        $setoresDisponiveis = $setores->filter(function($setor) use ($isUsuarioEstadual, $isUsuarioMunicipal, $niveisSetorEstadual, $niveisSetorMunicipal) {
+            // Se não tem níveis de acesso definidos, disponível para todos
             if (!$setor->niveis_acesso || count($setor->niveis_acesso) === 0) {
                 return true;
             }
             
-            // Se é competência estadual, mostra setores estaduais
-            if ($isCompetenciaEstadual) {
-                return in_array('gestor_estadual', $setor->niveis_acesso) || 
-                       in_array('tecnico_estadual', $setor->niveis_acesso);
-            } else {
-                // Se é municipal, mostra setores municipais
-                return in_array('gestor_municipal', $setor->niveis_acesso) || 
-                       in_array('tecnico_municipal', $setor->niveis_acesso);
+            // Verifica se o setor é estadual ou municipal baseado nos níveis configurados
+            $isSetorEstadual = !empty(array_intersect($setor->niveis_acesso, $niveisSetorEstadual));
+            $isSetorMunicipal = !empty(array_intersect($setor->niveis_acesso, $niveisSetorMunicipal));
+            
+            // Se usuário é estadual (admin, gestor_estadual, tecnico_estadual), mostra setores estaduais
+            if ($isUsuarioEstadual) {
+                return $isSetorEstadual && !$isSetorMunicipal;
             }
+            
+            // Se usuário é municipal, mostra setores municipais
+            if ($isUsuarioMunicipal) {
+                return $isSetorMunicipal && !$isSetorEstadual;
+            }
+            
+            return false;
         })->values();
+        
+        // Níveis de usuários estaduais e municipais para filtrar usuários
+        $niveisUsuariosEstaduais = ['administrador', 'gestor_estadual', 'tecnico_estadual'];
+        $niveisUsuariosMunicipais = ['gestor_municipal', 'tecnico_municipal'];
         
         // Busca usuários internos ativos
         $query = UsuarioInterno::where('ativo', true);
         
-        // Filtra por município se for competência municipal
-        if (!$isCompetenciaEstadual) {
-            $query->where('municipio_id', $estabelecimento->municipio_id);
-        } else {
-            // Se for estadual, pega apenas usuários estaduais (sem município)
-            $query->whereNull('municipio_id');
+        // Filtra usuários baseado no perfil do usuário logado
+        if ($isUsuarioEstadual) {
+            // Usuário estadual vê todos os usuários estaduais
+            $query->whereIn('nivel_acesso', $niveisUsuariosEstaduais);
+        } elseif ($isUsuarioMunicipal) {
+            // Usuário municipal vê apenas usuários do seu município
+            $query->where('municipio_id', $municipioUsuario)
+                  ->whereIn('nivel_acesso', $niveisUsuariosMunicipais);
         }
         
         $usuarios = $query->orderBy('nome')
@@ -1911,27 +1924,27 @@ class ProcessoController extends Controller
         $usuariosPorSetor = [];
         foreach ($setoresDisponiveis as $setor) {
             $usuariosDoSetor = $usuarios->where('setor', $setor->codigo)->values();
-            $usuariosPorSetor[] = [
-                'setor' => [
-                    'codigo' => $setor->codigo,
-                    'nome' => $setor->nome,
-                ],
-                'usuarios' => $usuariosDoSetor
-            ];
-        }
-        
-        // Adiciona usuários sem setor (se o usuário logado não estiver sem setor)
-        if ($setorUsuarioLogado) {
-            $usuariosSemSetor = $usuarios->whereNull('setor')->values();
-            if ($usuariosSemSetor->count() > 0) {
+            if ($usuariosDoSetor->count() > 0) {
                 $usuariosPorSetor[] = [
                     'setor' => [
-                        'codigo' => null,
-                        'nome' => 'Sem Setor',
+                        'codigo' => $setor->codigo,
+                        'nome' => $setor->nome,
                     ],
-                    'usuarios' => $usuariosSemSetor
+                    'usuarios' => $usuariosDoSetor
                 ];
             }
+        }
+        
+        // Adiciona usuários sem setor
+        $usuariosSemSetor = $usuarios->whereNull('setor')->values();
+        if ($usuariosSemSetor->count() > 0) {
+            $usuariosPorSetor[] = [
+                'setor' => [
+                    'codigo' => null,
+                    'nome' => 'Sem Setor',
+                ],
+                'usuarios' => $usuariosSemSetor
+            ];
         }
         
         // Mapeia setores para array simples com apenas codigo e nome
@@ -1945,8 +1958,14 @@ class ProcessoController extends Controller
         return response()->json([
             'setores' => $setoresArray,
             'usuariosPorSetor' => $usuariosPorSetor,
-            'isCompetenciaEstadual' => $isCompetenciaEstadual,
-            'setorUsuarioLogado' => $setorUsuarioLogado
+            'isUsuarioEstadual' => $isUsuarioEstadual,
+            'setorUsuarioLogado' => $setorUsuarioLogado,
+            'debug' => [
+                'nivelAcessoUsuario' => $nivelAcessoUsuario,
+                'totalSetores' => $setores->count(),
+                'setoresFiltrados' => $setoresDisponiveis->count(),
+                'totalUsuarios' => $usuarios->count(),
+            ]
         ]);
     }
 
@@ -2042,10 +2061,14 @@ class ProcessoController extends Controller
         $validated = $request->validate([
             'setor_atual' => 'nullable|string|max:255',
             'responsavel_atual_id' => 'nullable|exists:usuarios_internos,id',
+            'motivo_atribuicao' => 'nullable|string|max:1000',
+            'prazo_atribuicao' => 'nullable|date|after_or_equal:today',
         ]);
         
         $setorAnterior = $processo->setor_atual;
         $responsavelAnterior = $processo->responsavelAtual;
+        $nomeSetorAnterior = $processo->setor_atual_nome;
+        $prazoAnterior = $processo->prazo_atribuicao;
         
         // Busca o nome do setor se informado
         $nomeSetorNovo = null;
@@ -2059,6 +2082,9 @@ class ProcessoController extends Controller
             'setor_atual' => $validated['setor_atual'] ?: null,
             'responsavel_atual_id' => $validated['responsavel_atual_id'] ?: null,
             'responsavel_desde' => now(),
+            'prazo_atribuicao' => $validated['prazo_atribuicao'] ?? null,
+            'motivo_atribuicao' => $validated['motivo_atribuicao'] ?? null,
+            'responsavel_ciente_em' => null, // Reseta para o novo responsável ver a notificação
         ]);
         
         // Registra no histórico
@@ -2075,23 +2101,81 @@ class ProcessoController extends Controller
             $descricao = 'Atribuição do processo removida';
         }
         
+        // Adiciona motivo se informado
+        $motivoAtribuicao = $validated['motivo_atribuicao'] ?? null;
+        if ($motivoAtribuicao) {
+            $descricao .= '. Motivo: ' . $motivoAtribuicao;
+        }
+        
+        // Adiciona prazo se informado
+        $prazoAtribuicao = $validated['prazo_atribuicao'] ?? null;
+        if ($prazoAtribuicao) {
+            $descricao .= '. Prazo: ' . \Carbon\Carbon::parse($prazoAtribuicao)->format('d/m/Y');
+        }
+        
         ProcessoEvento::create([
             'processo_id' => $processo->id,
             'usuario_interno_id' => auth('interno')->id(),
-            'tipo_evento' => 'processo_atualizado',
+            'tipo_evento' => 'processo_atribuido',
             'titulo' => 'Processo Atribuído',
             'descricao' => $descricao,
             'dados_adicionais' => [
                 'setor_anterior' => $setorAnterior,
+                'setor_anterior_nome' => $nomeSetorAnterior,
+                'responsavel_anterior_id' => $responsavelAnterior ? $responsavelAnterior->id : null,
                 'responsavel_anterior' => $responsavelAnterior ? $responsavelAnterior->nome : null,
-                'setor_novo' => $nomeSetorNovo,
+                'setor_novo' => $validated['setor_atual'] ?? null,
+                'setor_novo_nome' => $nomeSetorNovo,
+                'responsavel_novo_id' => $novoResponsavel ? $novoResponsavel->id : null,
                 'responsavel_novo' => $novoResponsavel ? $novoResponsavel->nome : null,
+                'motivo' => $motivoAtribuicao,
+                'prazo' => $prazoAtribuicao,
+                'prazo_anterior' => $prazoAnterior ? $prazoAnterior->format('Y-m-d') : null,
             ],
         ]);
         
         return redirect()
             ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
             ->with('success', 'Processo atribuído com sucesso!');
+    }
+
+    /**
+     * Marca que o responsável está ciente da atribuição
+     */
+    public function marcarCiente(Request $request, $estabelecimentoId, $processoId)
+    {
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+        
+        $usuario = auth('interno')->user();
+        
+        // Só pode marcar ciente se for o responsável atual
+        if ($processo->responsavel_atual_id !== $usuario->id) {
+            return response()->json(['success' => false, 'message' => 'Você não é o responsável atual deste processo.'], 403);
+        }
+        
+        $processo->update([
+            'responsavel_ciente_em' => now(),
+        ]);
+        
+        // Busca o último evento de atribuição para adicionar a ciência
+        $ultimoEventoAtribuicao = ProcessoEvento::where('processo_id', $processo->id)
+            ->where('tipo_evento', 'processo_atribuido')
+            ->orderBy('created_at', 'desc')
+            ->first();
+        
+        if ($ultimoEventoAtribuicao) {
+            $dadosAdicionais = $ultimoEventoAtribuicao->dados_adicionais ?? [];
+            $dadosAdicionais['ciente_em'] = now()->format('Y-m-d H:i:s');
+            $dadosAdicionais['ciente_por_id'] = $usuario->id;
+            $dadosAdicionais['ciente_por_nome'] = $usuario->nome;
+            
+            $ultimoEventoAtribuicao->update([
+                'dados_adicionais' => $dadosAdicionais,
+            ]);
+        }
+        
+        return response()->json(['success' => true]);
     }
 
     /**

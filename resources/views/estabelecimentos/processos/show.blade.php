@@ -39,6 +39,114 @@
         </div>
     @endif
 
+    {{-- Modal de Notificação de Atribuição (aparece apenas para o responsável que ainda não viu) --}}
+    @if($processo->responsavel_atual_id === auth('interno')->id() && !$processo->responsavel_ciente_em && ($processo->motivo_atribuicao || $processo->prazo_atribuicao))
+    <div x-data="{ 
+        showNotificacao: true,
+        marcarCiente() {
+            fetch('{{ route("admin.estabelecimentos.processos.ciente", [$estabelecimento->id, $processo->id]) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showNotificacao = false;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                this.showNotificacao = false;
+            });
+        }
+    }" x-show="showNotificacao" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+            {{-- Modal Panel --}}
+            <div class="relative bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-lg sm:w-full mx-auto overflow-hidden">
+                {{-- Header --}}
+                <div class="px-6 py-5 bg-gradient-to-r from-cyan-600 to-cyan-700">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-white">Processo Atribuído a Você</h3>
+                            <p class="text-cyan-100 text-sm">{{ $processo->numero_processo }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- Content --}}
+                <div class="px-6 py-5 space-y-4">
+                    @if($processo->motivo_atribuicao)
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                            Motivo da Atribuição
+                        </h4>
+                        <p class="text-gray-700">{{ $processo->motivo_atribuicao }}</p>
+                    </div>
+                    @endif
+                    
+                    @if($processo->prazo_atribuicao)
+                    @php
+                        $prazo = \Carbon\Carbon::parse($processo->prazo_atribuicao);
+                        $hoje = \Carbon\Carbon::today();
+                        $diasRestantes = $hoje->diffInDays($prazo, false);
+                        $vencido = $diasRestantes < 0;
+                        $proximo = $diasRestantes >= 0 && $diasRestantes <= 3;
+                    @endphp
+                    <div class="rounded-xl p-4 {{ $vencido ? 'bg-red-50 border border-red-200' : ($proximo ? 'bg-amber-50 border border-amber-200' : 'bg-cyan-50 border border-cyan-200') }}">
+                        <h4 class="text-sm font-semibold mb-2 flex items-center gap-2 {{ $vencido ? 'text-red-700' : ($proximo ? 'text-amber-700' : 'text-cyan-700') }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Prazo para Resolução
+                        </h4>
+                        <p class="text-lg font-bold {{ $vencido ? 'text-red-800' : ($proximo ? 'text-amber-800' : 'text-cyan-800') }}">
+                            {{ $prazo->format('d/m/Y') }}
+                            @if($vencido)
+                                <span class="text-sm font-medium">(Vencido há {{ abs($diasRestantes) }} dia(s))</span>
+                            @elseif($diasRestantes == 0)
+                                <span class="text-sm font-medium">(Vence hoje!)</span>
+                            @elseif($proximo)
+                                <span class="text-sm font-medium">({{ $diasRestantes }} dia(s) restante(s))</span>
+                            @endif
+                        </p>
+                    </div>
+                    @endif
+                    
+                    <div class="text-sm text-gray-500 text-center pt-2">
+                        Atribuído em {{ $processo->responsavel_desde ? $processo->responsavel_desde->format('d/m/Y \à\s H:i') : '-' }}
+                    </div>
+                </div>
+                
+                {{-- Footer --}}
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <button type="button" 
+                            @click="marcarCiente()"
+                            class="w-full px-4 py-3 bg-cyan-600 text-white font-semibold rounded-xl hover:bg-cyan-700 transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Estou Ciente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Alerta de Processo Parado --}}
     @if($processo->status === 'parado')
     <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-3 rounded-lg">
@@ -207,24 +315,52 @@
                                 </span>
                             @endif
                         </div>
-                        @if($processo->responsavel_desde)
-                            <p class="text-xs text-gray-500">
-                                desde {{ $processo->responsavel_desde->format('d/m/Y H:i') }} ({{ $processo->responsavel_desde->diffForHumans() }})
-                            </p>
-                        @endif
+                        <div class="flex items-center gap-3 mt-0.5">
+                            @if($processo->responsavel_desde)
+                                <p class="text-xs text-gray-500">
+                                    desde {{ $processo->responsavel_desde->format('d/m/Y H:i') }} ({{ $processo->responsavel_desde->diffForHumans() }})
+                                </p>
+                            @endif
+                            @if($processo->prazo_atribuicao)
+                                @php
+                                    $prazoVencido = $processo->prazo_atribuicao->isPast();
+                                    $prazoProximo = !$prazoVencido && $processo->prazo_atribuicao->diffInDays(now()) <= 3;
+                                @endphp
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ $prazoVencido ? 'bg-red-100 text-red-700' : ($prazoProximo ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700') }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    Prazo: {{ $processo->prazo_atribuicao->format('d/m/Y') }}
+                                    @if($prazoVencido)
+                                        (Vencido)
+                                    @endif
+                                </span>
+                            @endif
+                        </div>
                     @else
                         <p class="text-sm text-gray-500 italic">Não atribuído</p>
                     @endif
                 </div>
             </div>
-            @if($processo->status !== 'arquivado')
-            <button @click="modalAtribuir = true" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                </svg>
-                Tramitar Processo
-            </button>
-            @endif
+            <div class="flex items-center gap-2">
+                {{-- Botão Ver Histórico de Atribuições --}}
+                <button @click="modalHistoricoAtribuicoes = true" 
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        title="Ver histórico de atribuições">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Histórico
+                </button>
+                @if($processo->status !== 'arquivado')
+                <button @click="modalAtribuir = true" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Tramitar Processo
+                </button>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -440,13 +576,13 @@
                     </a>
                     @endif
                     @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isGestor())
-                    <button @click="modalOrdemServico = true" 
-                            class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                    <a href="{{ route('admin.ordens-servico.create', ['estabelecimento_id' => $estabelecimento->id, 'processo_id' => $processo->id]) }}" 
+                       class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                         Ordem de Serviço
-                    </button>
+                    </a>
                     @endif
                     <button @click="modalAlertas = true" 
                             class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
@@ -551,101 +687,6 @@
                 </div>
             </div>
 
-            {{-- Responsáveis Designados --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-semibold text-gray-900 uppercase flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        Designar Responsáveis
-                        @if($designacoes->where('status', 'pendente')->count() > 0)
-                            <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
-                                {{ $designacoes->where('status', 'pendente')->count() }}
-                            </span>
-                        @endif
-                    </h3>
-                    <button @click="modalDesignar = true; carregarUsuarios()" 
-                            class="text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors">
-                        + Designar
-                    </button>
-                </div>
-
-                @if($designacoes->isEmpty())
-                    <p class="text-xs text-gray-500 text-center py-3">Nenhum responsável designado</p>
-                @else
-                    <div class="space-y-3">
-                        @foreach($designacoes as $designacao)
-                            <div class="border border-gray-200 rounded-lg p-3 {{ $designacao->status === 'pendente' ? 'bg-purple-50' : ($designacao->status === 'em_andamento' ? 'bg-blue-50' : 'bg-gray-50') }}">
-                                <div class="flex items-start justify-between gap-2 mb-2">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs font-semibold text-gray-900 truncate">
-                                            @if($designacao->setor_designado && !$designacao->usuario_designado_id)
-                                                {{-- Apenas Setor --}}
-                                                <span class="flex items-center gap-1">
-                                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                                    </svg>
-                                                    Setor: {{ $designacao->setor_designado }}
-                                                </span>
-                                            @elseif($designacao->setor_designado && $designacao->usuario_designado_id)
-                                                {{-- Setor + Usuário --}}
-                                                <span class="flex items-center gap-1">
-                                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                    </svg>
-                                                    {{ $designacao->usuarioDesignado->nome }} ({{ $designacao->setor_designado }})
-                                                </span>
-                                            @else
-                                                {{-- Apenas Usuário --}}
-                                                {{ $designacao->usuarioDesignado->nome }}
-                                            @endif
-                                            
-                                            @if($designacao->usuario_designado_id === auth('interno')->id() && $designacao->status === 'pendente')
-                                                <form action="{{ route('admin.estabelecimentos.processos.designacoes.concluir', [$estabelecimento->id, $processo->id, $designacao->id]) }}" method="POST" class="inline-block ml-2">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <button type="submit" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
-                                                        Marcar como Resolvido
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </p>
-                                        <p class="text-xs text-gray-600 mt-0.5">
-                                            {{ Str::limit($designacao->descricao_tarefa, 60) }}
-                                        </p>
-                                    </div>
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded whitespace-nowrap
-                                        {{ $designacao->status === 'pendente' ? 'bg-purple-100 text-purple-800' : '' }}
-                                        {{ $designacao->status === 'em_andamento' ? 'bg-blue-100 text-blue-800' : '' }}
-                                        {{ $designacao->status === 'concluida' ? 'bg-green-100 text-green-800' : '' }}
-                                        {{ $designacao->status === 'cancelada' ? 'bg-gray-100 text-gray-800' : '' }}">
-                                        {{ match($designacao->status) {
-                                            'pendente' => 'Pendente',
-                                            'em_andamento' => 'Em Andamento',
-                                            'concluida' => 'Concluída',
-                                            'cancelada' => 'Cancelada',
-                                            default => $designacao->status
-                                        } }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-2 text-xs text-gray-500">
-                                    @if($designacao->data_limite)
-                                        <span class="flex items-center gap-1 {{ $designacao->isAtrasada() ? 'text-red-600 font-semibold' : '' }}">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            {{ $designacao->data_limite->format('d/m/Y') }}
-                                        </span>
-                                    @endif
-                                    <span>•</span>
-                                    <span>{{ $designacao->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
         </div>
 
         {{-- Coluna Direita: Lista de Documentos/Arquivos --}}
@@ -1388,147 +1429,6 @@
                             <button type="submit"
                                     class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                                 Enviar Arquivo
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    {{-- Modal de Designar Responsável --}}
-    <template x-teleport="body">
-        <div x-show="modalDesignar" 
-             x-cloak
-             @keydown.escape.window="modalDesignar = false"
-             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
-            
-            {{-- Overlay --}}
-            <div @click="modalDesignar = false"
-                 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5);"></div>
-            
-            {{-- Modal Content --}}
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 600px; padding: 0 1rem;">
-                <div class="bg-white rounded-xl shadow-2xl p-6" @click.stop>
-                    {{-- Close Button --}}
-                    <button @click="modalDesignar = false"
-                            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-
-                    {{-- Header --}}
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            Designar Responsável
-                        </h3>
-                        <p class="text-sm text-gray-600 mt-1">Atribua este processo a um usuário interno do município</p>
-                    </div>
-
-                    {{-- Form --}}
-                    <form method="POST" action="{{ route('admin.estabelecimentos.processos.designar', [$estabelecimento->id, $processo->id]) }}">
-                        @csrf
-                        
-                        {{-- Campo oculto para tipo de designação (sempre usuário) --}}
-                        <input type="hidden" name="tipo_designacao" value="usuario">
-
-                        {{-- Selecionar Usuários --}}
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Usuários <span class="text-red-500">*</span>
-                            </label>
-                            <div class="border border-gray-300 rounded-lg p-3 max-h-60 overflow-y-auto bg-gray-50">
-                                <template x-if="usuariosPorSetor.length === 0">
-                                    <p class="text-sm text-gray-500 text-center py-2">Carregando usuários...</p>
-                                </template>
-
-                                {{-- Todos os usuários agrupados por setor --}}
-                                <div class="space-y-3">
-                                    <template x-for="grupo in usuariosPorSetor" :key="grupo.setor.codigo">
-                                        <div x-show="grupo.usuarios.length > 0">
-                                            <p class="text-xs font-semibold text-gray-600 uppercase mb-2" x-text="grupo.setor.nome"></p>
-                                            <div class="space-y-2 ml-2">
-                                                <template x-for="usuario in grupo.usuarios" :key="usuario.id">
-                                                    <label class="flex items-start gap-3 p-2 hover:bg-white rounded cursor-pointer transition-colors">
-                                                        <input type="checkbox" 
-                                                               name="usuarios_designados[]" 
-                                                               :value="usuario.id"
-                                                               x-model="usuariosDesignados"
-                                                               class="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                                        <div class="flex-1 min-w-0">
-                                                            <p class="text-sm font-medium text-gray-900" x-text="usuario.nome"></p>
-                                                            <p class="text-xs text-gray-500" x-text="usuario.cargo || usuario.nivel_acesso"></p>
-                                                        </div>
-                                                    </label>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                            <p class="mt-1 text-xs font-medium text-blue-600" x-show="usuariosDesignados.length > 0">
-                                <span x-text="usuariosDesignados.length"></span> usuário(s) selecionado(s)
-                            </p>
-                        </div>
-
-                        {{-- Descrição da Tarefa --}}
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Descrição da Tarefa <span class="text-red-500">*</span>
-                            </label>
-                            <textarea name="descricao_tarefa" 
-                                      x-model="descricaoTarefa"
-                                      rows="4"
-                                      required
-                                      maxlength="1000"
-                                      placeholder="Descreva o que precisa ser feito neste processo..."
-                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"></textarea>
-                            <p class="mt-1 text-xs text-gray-500">
-                                Máximo de 1000 caracteres
-                            </p>
-                        </div>
-
-                        {{-- Data Limite (Opcional) --}}
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Prazo (Opcional)
-                            </label>
-                            <input type="date" 
-                                   name="data_limite"
-                                   x-model="dataLimite"
-                                   :min="new Date().toISOString().split('T')[0]"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <p class="mt-1 text-xs text-gray-500">
-                                Deixe em branco se não houver prazo específico
-                            </p>
-                        </div>
-
-                        {{-- Info --}}
-                        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <p class="text-xs text-blue-700">
-                                    O usuário designado receberá uma notificação na dashboard e poderá visualizar a tarefa atribuída.
-                                </p>
-                            </div>
-                        </div>
-
-                        {{-- Buttons --}}
-                        <div class="flex items-center gap-3">
-                            <button type="button"
-                                    @click="modalDesignar = false"
-                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                Cancelar
-                            </button>
-                            <button type="submit"
-                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                                Designar Responsável
                             </button>
                         </div>
                     </form>
@@ -2338,6 +2238,8 @@
                                     @elseif($evento->cor === 'green') bg-green-100
                                     @elseif($evento->cor === 'red') bg-red-100
                                     @elseif($evento->cor === 'yellow') bg-yellow-100
+                                    @elseif($evento->cor === 'cyan') bg-cyan-100
+                                    @elseif($evento->cor === 'indigo') bg-indigo-100
                                     @else bg-gray-100
                                     @endif">
                                     @if($evento->icone === 'plus')
@@ -2380,6 +2282,10 @@
                                     @elseif($evento->icone === 'x')
                                     <svg class="w-4 h-4 @if($evento->cor === 'red') text-red-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    @elseif($evento->icone === 'arrow-right')
+                                    <svg class="w-4 h-4 @if($evento->cor === 'cyan') text-cyan-600 @elseif($evento->cor === 'indigo') text-indigo-600 @endif" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                                     </svg>
                                     @endif
                                 </div>
@@ -2427,6 +2333,50 @@
                                                         </p>
                                                         @if(isset($evento->dados_adicionais['motivo_rejeicao']))
                                                         <p class="text-[10px] text-red-600 mt-0.5">Motivo: {{ $evento->dados_adicionais['motivo_rejeicao'] }}</p>
+                                                        @endif
+                                                    </div>
+                                                    @endif
+                                                    
+                                                    @if($evento->tipo_evento === 'processo_atribuido')
+                                                    <div class="mt-1.5 p-2 bg-cyan-50 rounded border border-cyan-200">
+                                                        <div class="flex items-center gap-2 text-xs text-cyan-700">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                            </svg>
+                                                            <span>
+                                                                @if(isset($evento->dados_adicionais['setor_anterior_nome']) || isset($evento->dados_adicionais['responsavel_anterior']))
+                                                                    <strong>De:</strong> 
+                                                                    {{ $evento->dados_adicionais['setor_anterior_nome'] ?? 'Sem setor' }}
+                                                                    {{ isset($evento->dados_adicionais['responsavel_anterior']) ? ' - ' . $evento->dados_adicionais['responsavel_anterior'] : '' }}
+                                                                    →
+                                                                @endif
+                                                                <strong>Para:</strong> 
+                                                                {{ $evento->dados_adicionais['setor_novo_nome'] ?? 'Sem setor' }}
+                                                                {{ isset($evento->dados_adicionais['responsavel_novo']) ? ' - ' . $evento->dados_adicionais['responsavel_novo'] : '' }}
+                                                            </span>
+                                                        </div>
+                                                        @if(isset($evento->dados_adicionais['prazo']) && $evento->dados_adicionais['prazo'])
+                                                        <div class="mt-1 flex items-center gap-1 text-[10px] text-cyan-600">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                            </svg>
+                                                            <strong>Prazo:</strong> {{ \Carbon\Carbon::parse($evento->dados_adicionais['prazo'])->format('d/m/Y') }}
+                                                        </div>
+                                                        @endif
+                                                        @if(isset($evento->dados_adicionais['motivo']) && $evento->dados_adicionais['motivo'])
+                                                        <div class="mt-1.5 pt-1.5 border-t border-cyan-200">
+                                                            <p class="text-[10px] text-cyan-600"><strong>Motivo:</strong> {{ $evento->dados_adicionais['motivo'] }}</p>
+                                                        </div>
+                                                        @endif
+                                                        @if(isset($evento->dados_adicionais['ciente_em']) && $evento->dados_adicionais['ciente_em'])
+                                                        <div class="mt-1.5 pt-1.5 border-t border-cyan-200 flex items-center gap-1.5">
+                                                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            <span class="text-[10px] text-green-600">
+                                                                <strong>Ciente:</strong> {{ $evento->dados_adicionais['ciente_por_nome'] ?? 'Responsável' }} em {{ \Carbon\Carbon::parse($evento->dados_adicionais['ciente_em'])->format('d/m/Y H:i') }}
+                                                            </span>
+                                                        </div>
                                                         @endif
                                                     </div>
                                                     @endif
@@ -2482,6 +2432,163 @@
         </div>
     </template>
 
+    {{-- Modal de Histórico de Atribuições --}}
+    <template x-if="modalHistoricoAtribuicoes">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalHistoricoAtribuicoes" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalHistoricoAtribuicoes = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-2xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    {{-- Header --}}
+                    <div class="px-6 py-4 bg-gradient-to-r from-cyan-600 to-cyan-700 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            Histórico de Atribuições
+                        </h3>
+                        <button @click="modalHistoricoAtribuicoes = false" class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Conteúdo --}}
+                    <div class="px-6 py-6 max-h-[70vh] overflow-y-auto">
+                        @php
+                            try {
+                                $eventosAtribuicao = $processo->eventos()
+                                    ->where('tipo_evento', 'processo_atribuido')
+                                    ->with('usuario')
+                                    ->orderBy('created_at', 'desc')
+                                    ->get();
+                            } catch (\Exception $e) {
+                                $eventosAtribuicao = collect();
+                            }
+                        @endphp
+
+                        @forelse($eventosAtribuicao as $evento)
+                        <div class="mb-4 last:mb-0">
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                {{-- Header do evento --}}
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-900">{{ $evento->titulo }}</p>
+                                            <p class="text-xs text-gray-500">
+                                                por {{ $evento->usuario->nome ?? 'Sistema' }} em {{ $evento->created_at->format('d/m/Y H:i') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {{-- Detalhes da atribuição --}}
+                                <div class="bg-white rounded-lg p-3 border border-cyan-200">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        {{-- De --}}
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-500 uppercase mb-1">De</p>
+                                            @if(isset($evento->dados_adicionais['setor_anterior_nome']) || isset($evento->dados_adicionais['responsavel_anterior']))
+                                                <p class="text-sm text-gray-700">
+                                                    {{ $evento->dados_adicionais['setor_anterior_nome'] ?? 'Sem setor' }}
+                                                </p>
+                                                @if(isset($evento->dados_adicionais['responsavel_anterior']))
+                                                <p class="text-xs text-gray-500">{{ $evento->dados_adicionais['responsavel_anterior'] }}</p>
+                                                @endif
+                                            @else
+                                                <p class="text-sm text-gray-400 italic">Não atribuído</p>
+                                            @endif
+                                        </div>
+                                        
+                                        {{-- Para --}}
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-500 uppercase mb-1">Para</p>
+                                            @if(isset($evento->dados_adicionais['setor_novo_nome']) || isset($evento->dados_adicionais['responsavel_novo']))
+                                                <p class="text-sm text-cyan-700 font-medium">
+                                                    {{ $evento->dados_adicionais['setor_novo_nome'] ?? 'Sem setor' }}
+                                                </p>
+                                                @if(isset($evento->dados_adicionais['responsavel_novo']))
+                                                <p class="text-xs text-cyan-600">{{ $evento->dados_adicionais['responsavel_novo'] }}</p>
+                                                @endif
+                                            @else
+                                                <p class="text-sm text-gray-400 italic">Atribuição removida</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Motivo --}}
+                                    @if(isset($evento->dados_adicionais['motivo']) && $evento->dados_adicionais['motivo'])
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <p class="text-xs font-medium text-gray-500 uppercase mb-1">Motivo da Atribuição</p>
+                                        <p class="text-sm text-gray-700 bg-cyan-50 rounded p-2 border border-cyan-100">
+                                            {{ $evento->dados_adicionais['motivo'] }}
+                                        </p>
+                                    </div>
+                                    @endif
+                                    
+                                    {{-- Prazo --}}
+                                    @if(isset($evento->dados_adicionais['prazo']) && $evento->dados_adicionais['prazo'])
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <p class="text-xs font-medium text-gray-500 uppercase mb-1">Prazo para Resolução</p>
+                                        <p class="text-sm text-gray-700 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            {{ \Carbon\Carbon::parse($evento->dados_adicionais['prazo'])->format('d/m/Y') }}
+                                        </p>
+                                    </div>
+                                    @endif
+                                    
+                                    {{-- Ciência --}}
+                                    @if(isset($evento->dados_adicionais['ciente_em']) && $evento->dados_adicionais['ciente_em'])
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <div class="flex items-center gap-2 bg-green-50 rounded-lg p-2 border border-green-200">
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <div>
+                                                <p class="text-xs font-medium text-green-700">Ciente</p>
+                                                <p class="text-xs text-green-600">
+                                                    {{ $evento->dados_adicionais['ciente_por_nome'] ?? 'Responsável' }} 
+                                                    em {{ \Carbon\Carbon::parse($evento->dados_adicionais['ciente_em'])->format('d/m/Y \à\s H:i') }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-500">Nenhuma atribuição registrada</p>
+                            <p class="text-xs text-gray-400 mt-1">O histórico de atribuições aparecerá aqui quando o processo for tramitado.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <button @click="modalHistoricoAtribuicoes = false" class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Scripts Alpine.js --}}
     <script>
         function processoData() {
@@ -2494,9 +2601,9 @@
                 modalDocumentoDigital: false,
                 modalPastas: false,
                 modalHistorico: false,
+                modalHistoricoAtribuicoes: false,
                 modalArquivar: false,
                 modalParar: false,
-                modalDesignar: false,
                 modalOrdemServico: false,
                 modalAlertas: false,
                 modalRejeitar: false,
@@ -3036,6 +3143,30 @@
                                     {{ $processo->setor_atual && $processo->responsavelAtual ? ' - ' : '' }}
                                     {{ $processo->responsavelAtual->nome ?? '' }}
                                 </p>
+                            </div>
+                            @endif
+                            
+                            {{-- Motivo/Descrição da Atribuição --}}
+                            <div>
+                                <label for="motivo_atribuicao" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Motivo da Atribuição <span class="text-gray-400 font-normal">(opcional)</span>
+                                </label>
+                                <textarea name="motivo_atribuicao" id="motivo_atribuicao" rows="3"
+                                          placeholder="Descreva o motivo da atribuição para que o responsável saiba o que precisa ser feito..."
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm resize-none"></textarea>
+                                <p class="text-xs text-gray-500 mt-1">Esta informação ficará visível no histórico de atribuições do processo.</p>
+                            </div>
+                            
+                            {{-- Prazo para Resolução - Apenas para Gestores e Admin --}}
+                            @if(in_array(auth('interno')->user()->nivel_acesso->value, ['administrador', 'gestor_estadual', 'gestor_municipal']))
+                            <div>
+                                <label for="prazo_atribuicao" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Prazo para Resolução <span class="text-gray-400 font-normal">(opcional)</span>
+                                </label>
+                                <input type="date" name="prazo_atribuicao" id="prazo_atribuicao"
+                                       min="{{ date('Y-m-d') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">Defina uma data limite para o responsável resolver a demanda.</p>
                             </div>
                             @endif
                         </div>
