@@ -21,10 +21,10 @@ class UsuarioInternoController extends Controller
         }
         
         if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorEstadual) {
-            // Gestor Estadual pode criar: Gestor Estadual e Técnico Municipal
+            // Gestor Estadual pode criar: Gestor Estadual e Técnico Estadual
             return [
                 NivelAcesso::GestorEstadual,
-                NivelAcesso::TecnicoMunicipal,
+                NivelAcesso::TecnicoEstadual,
             ];
         }
         
