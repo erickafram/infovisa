@@ -115,6 +115,12 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::get('/processos/{id}/documentos-vigilancia/{documento}/respostas/{resposta}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarRespostaDocumento'])->name('processos.documento-digital.resposta.visualizar');
     Route::delete('/processos/{id}/documentos-vigilancia/{documento}/respostas/{resposta}', [\App\Http\Controllers\Company\ProcessoController::class, 'excluirRespostaDocumento'])->name('processos.documento-digital.resposta.excluir');
     
+    // Protocolo de Abertura do Processo (PDF)
+    Route::get('/processos/{id}/protocolo', [\App\Http\Controllers\Company\ProcessoController::class, 'protocoloAbertura'])->name('processos.protocolo');
+    
+    // Documento de Ajuda (PDF)
+    Route::get('/processos/{id}/documento-ajuda/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumentoAjuda'])->name('processos.documento-ajuda');
+    
     // Alertas do processo
     Route::get('/alertas', [\App\Http\Controllers\Company\ProcessoController::class, 'alertasIndex'])->name('alertas.index');
     Route::post('/processos/{id}/alertas/{alerta}/concluir', [\App\Http\Controllers\Company\ProcessoController::class, 'concluirAlerta'])->name('processos.alertas.concluir');
@@ -530,6 +536,18 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::put('/{categoriaPop}', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'update'])->name('update');
             Route::delete('/{categoriaPop}', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'destroy'])->name('destroy');
             Route::get('/listar', [\App\Http\Controllers\Admin\CategoriaPopController::class, 'listar'])->name('listar');
+        });
+        
+        // Documentos de Ajuda - Apenas Admin
+        Route::prefix('documentos-ajuda')->name('documentos-ajuda.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/visualizar', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'visualizar'])->name('visualizar');
+            Route::get('/{id}/download', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'download'])->name('download');
         });
     });
     

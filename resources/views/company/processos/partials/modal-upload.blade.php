@@ -454,7 +454,7 @@
                                  const arquivo = this.arquivosPessoaFisica[i];
                                  const formData = new FormData();
                                  formData.append('arquivo', arquivo.file);
-                                 formData.append('observacoes', 'Documentos Pessoa Física');
+                                 formData.append('observacoes', 'Outros Documentos');
                                  formData.append('_token', '{{ csrf_token() }}');
                                  
                                  try {
@@ -507,12 +507,12 @@
                                 <option value="">Selecione o tipo...</option>
                                 <option value="Memorando">Memorando</option>
                                 <option value="Ofício">Ofício</option>
-                                <option value="Documentos Pessoa Física">Documentos Pessoa Física</option>
+                                <option value="Outros Documentos">Outros Documentos</option>
                             </select>
                         </div>
                         
-                        {{-- Aviso especial para Pessoa Física --}}
-                        <template x-if="tipoDocDiverso === 'Documentos Pessoa Física'">
+                        {{-- Aviso especial para Outros Documentos --}}
+                        <template x-if="tipoDocDiverso === 'Outros Documentos'">
                             <div class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-xl mb-4">
                                 <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -525,7 +525,7 @@
                         </template>
                         
                         {{-- Área de Upload Normal (1 arquivo) --}}
-                        <template x-if="tipoDocDiverso !== 'Documentos Pessoa Física'">
+                        <template x-if="tipoDocDiverso !== 'Outros Documentos'">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo *</label>
                                 <div class="relative"
@@ -572,8 +572,8 @@
                             </div>
                         </template>
                         
-                        {{-- Área de Upload Múltiplo (Pessoa Física - até 6 arquivos) --}}
-                        <template x-if="tipoDocDiverso === 'Documentos Pessoa Física'">
+                        {{-- Área de Upload Múltiplo (Outros Documentos - até 6 arquivos) --}}
+                        <template x-if="tipoDocDiverso === 'Outros Documentos'">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Arquivos * 
@@ -647,7 +647,7 @@
                         {{-- Botão Enviar --}}
                         <div class="flex justify-end">
                             {{-- Botão para upload normal --}}
-                            <template x-if="tipoDocDiverso !== 'Documentos Pessoa Física'">
+                            <template x-if="tipoDocDiverso !== 'Outros Documentos'">
                                 <button type="button" @click="enviarDiversoAjax()"
                                         :disabled="!tipoDocDiverso || !fileDiverso || enviandoDiverso"
                                         class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -666,8 +666,8 @@
                                 </button>
                             </template>
                             
-                            {{-- Botão para upload múltiplo (Pessoa Física) --}}
-                            <template x-if="tipoDocDiverso === 'Documentos Pessoa Física'">
+                            {{-- Botão para upload múltiplo (Outros Documentos) --}}
+                            <template x-if="tipoDocDiverso === 'Outros Documentos'">
                                 <button type="button" @click="enviarTodosPF()"
                                         :disabled="arquivosPessoaFisica.length === 0 || enviandoDiverso"
                                         class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">

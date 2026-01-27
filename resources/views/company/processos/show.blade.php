@@ -166,6 +166,38 @@
     <div class="flex flex-col lg:flex-row gap-6">
         {{-- Coluna Esquerda: Menu --}}
         <div class="flex-shrink-0 space-y-4" style="width: 320px; min-width: 320px;">
+            {{-- Documentos de Ajuda --}}
+            @if(isset($documentosAjuda) && $documentosAjuda->count() > 0)
+            <div class="bg-emerald-50 rounded-xl shadow-sm border border-emerald-200 p-4">
+                <h3 class="text-sm font-semibold text-emerald-800 uppercase mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Documentos de Ajuda
+                </h3>
+                <div class="space-y-2">
+                    @foreach($documentosAjuda as $docAjuda)
+                    <a href="{{ route('company.processos.documento-ajuda', [$processo->id, $docAjuda->id]) }}" 
+                       target="_blank"
+                       class="flex items-center gap-3 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
+                        <svg class="w-8 h-8 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        </svg>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ $docAjuda->titulo }}</p>
+                            @if($docAjuda->descricao)
+                            <p class="text-xs text-gray-500 truncate">{{ $docAjuda->descricao }}</p>
+                            @endif
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             {{-- Menu de Opções --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="text-sm font-semibold text-gray-900 uppercase mb-3 flex items-center gap-2">
@@ -214,6 +246,19 @@
                         <span class="font-medium text-orange-600">{{ $alertas->where('status', 'pendente')->count() }}</span>
                     </div>
                 </div>
+            </div>
+
+            {{-- Protocolo do Processo --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <a href="{{ route('company.processos.protocolo', $processo->id) }}" 
+                   target="_blank"
+                   class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Protocolo do Processo
+                </a>
+                <p class="text-xs text-gray-500 text-center mt-2">Comprovante de abertura do processo</p>
             </div>
         </div>
 
@@ -487,17 +532,47 @@
                                 
                                 {{-- Respostas vinculadas a este documento --}}
                                 @if($docDigital->respostas->count() > 0)
-                                <div class="mt-2 ml-13 border-l-2 border-green-200 pl-3">
+                                @php
+                                    $respostasAprovadas = $docDigital->respostas->where('status', 'aprovado');
+                                    $respostasPendentes = $docDigital->respostas->where('status', 'pendente');
+                                    $respostasRejeitadas = $docDigital->respostas->where('status', 'rejeitado');
+                                    $totalRejeicoes = $docDigital->respostas->sum(function($r) {
+                                        return $r->historico_rejeicao ? count($r->historico_rejeicao) : 0;
+                                    });
+                                @endphp
+                                <div class="mt-3 ml-13 border-l-2 border-green-200 pl-3">
+                                    {{-- Resumo das respostas --}}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-xs font-semibold text-gray-700">Respostas ({{ $docDigital->respostas->count() }})</span>
+                                        @if($respostasAprovadas->count() > 0)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">{{ $respostasAprovadas->count() }} aprovado(s)</span>
+                                        @endif
+                                        @if($respostasPendentes->count() > 0)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-yellow-100 text-yellow-700 rounded">{{ $respostasPendentes->count() }} pendente(s)</span>
+                                        @endif
+                                        @if($respostasRejeitadas->count() > 0)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded">{{ $respostasRejeitadas->count() }} rejeitado(s)</span>
+                                        @endif
+                                    </div>
+                                    
                                     @foreach($docDigital->respostas as $resposta)
                                     <div class="flex items-center justify-between py-2 {{ !$loop->last ? 'border-b border-gray-100' : '' }}">
                                         <div class="flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                            <svg class="w-4 h-4 {{ $resposta->status === 'aprovado' ? 'text-green-500' : ($resposta->status === 'rejeitado' ? 'text-red-500' : 'text-yellow-500') }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
                                             <div>
-                                                <p class="text-xs font-medium text-gray-700">Resposta: {{ $resposta->nome_original }}</p>
+                                                <p class="text-xs font-medium text-gray-700">{{ $resposta->nome_original }}</p>
                                                 <p class="text-[10px] text-gray-500">
-                                                    Enviado em {{ $resposta->created_at->format('d/m/Y H:i') }} • {{ $resposta->tamanho_formatado }}
+                                                    {{ $resposta->tamanho_formatado }}
+                                                    <span class="mx-1">•</span>
+                                                    {{ $resposta->created_at->format('d/m H:i') }}
+                                                    <span class="mx-1">•</span>
+                                                    {{ $resposta->usuarioExterno->nome ?? 'Usuário' }}
+                                                    @if($resposta->status === 'aprovado' && $resposta->avaliadoPor)
+                                                    <span class="mx-1">•</span>
+                                                    <span class="text-green-600">Aprovado por {{ $resposta->avaliadoPor->nome }}</span>
+                                                    @endif
                                                 </p>
                                             </div>
                                         </div>
@@ -542,31 +617,53 @@
                                         </div>
                                     </div>
                                     @if($resposta->status === 'rejeitado' && $resposta->motivo_rejeicao)
-                                    <div class="py-1 px-2 mb-2 bg-red-50 rounded text-xs text-red-700">
-                                        <strong>Motivo da rejeição:</strong> {{ $resposta->motivo_rejeicao }}
-                                    </div>
-                                    @endif
-                                    {{-- Histórico de Rejeições Anteriores --}}
-                                    @if($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0)
-                                    <div class="py-1 px-2 mb-2 bg-gray-50 rounded text-xs text-gray-600" x-data="{ showHistorico: false }">
-                                        <button type="button" @click="showHistorico = !showHistorico" class="flex items-center gap-1 text-gray-700 hover:text-gray-900">
-                                            <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-90': showHistorico }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    <div class="py-1.5 px-3 mb-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                                        <div class="flex items-start gap-2">
+                                            <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
-                                            <strong>Histórico de rejeições ({{ count($resposta->historico_rejeicao) }})</strong>
-                                        </button>
-                                        <div x-show="showHistorico" x-transition class="mt-2 space-y-1" style="display: none;">
-                                            @foreach($resposta->historico_rejeicao as $index => $rejeicao)
-                                            <div class="p-1.5 bg-white rounded border border-gray-200">
-                                                <p class="text-[10px] text-gray-500">Tentativa {{ $index + 1 }} - {{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m/Y H:i') }}</p>
-                                                <p class="text-[10px] text-gray-700"><strong>Arquivo:</strong> {{ $rejeicao['arquivo_anterior'] }}</p>
-                                                <p class="text-[10px] text-red-600"><strong>Motivo:</strong> {{ $rejeicao['motivo'] }}</p>
+                                            <div>
+                                                <strong>Motivo da rejeição:</strong> {{ $resposta->motivo_rejeicao }}
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
                                     @endif
                                     @endforeach
+                                    
+                                    {{-- Histórico de Rejeições Consolidado --}}
+                                    @if($totalRejeicoes > 0)
+                                    <div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg" x-data="{ showHistorico: false }">
+                                        <button type="button" @click="showHistorico = !showHistorico" class="flex items-center gap-2 text-orange-800 hover:text-orange-900 w-full">
+                                            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <span class="text-xs font-semibold">Histórico de rejeições ({{ $totalRejeicoes }})</span>
+                                            <svg class="w-3 h-3 ml-auto transition-transform" :class="{ 'rotate-180': showHistorico }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        <div x-show="showHistorico" x-transition class="mt-3 space-y-2" style="display: none;">
+                                            @foreach($docDigital->respostas as $resposta)
+                                                @if($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0)
+                                                    @foreach($resposta->historico_rejeicao as $index => $rejeicao)
+                                                    <div class="p-2.5 bg-white rounded-lg border border-orange-200">
+                                                        <div class="flex items-center gap-2 mb-1">
+                                                            <span class="px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 rounded">Tentativa {{ $index + 1 }}</span>
+                                                            <span class="text-[10px] text-gray-500">{{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m/Y H:i') }}</span>
+                                                        </div>
+                                                        <p class="text-xs text-gray-700">
+                                                            <strong>Arquivo:</strong> {{ $rejeicao['arquivo_anterior'] }}
+                                                        </p>
+                                                        <p class="text-xs text-red-600 mt-1">
+                                                            <strong>Motivo:</strong> {{ $rejeicao['motivo'] }}
+                                                        </p>
+                                                    </div>
+                                                    @endforeach
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
                                 @endif
                             </div>
@@ -639,53 +736,223 @@
 
     {{-- Modal Resposta a Documento --}}
     <div x-show="modalResposta" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="fixed inset-0 bg-black bg-opacity-50" @click="modalResposta = false"></div>
+        <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" @click="modalResposta = false"></div>
         <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg" @click.stop>
-                <form :action="`{{ url('/company/processos/' . $processo->id . '/documentos-vigilancia') }}/${docRespostaId}/resposta`" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-green-50">
-                        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                            </svg>
-                            Responder Documento
-                        </h3>
-                        <button type="button" @click="modalResposta = false" class="text-gray-400 hover:text-gray-500">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl" @click.stop
+                 x-data="{
+                     arquivosResposta: [],
+                     maxArquivos: 6,
+                     dragover: false,
+                     enviando: false,
+                     handleFiles(e) {
+                         const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
+                         if (files) {
+                             for (let i = 0; i < files.length && this.arquivosResposta.length < this.maxArquivos; i++) {
+                                 const file = files[i];
+                                 if (file.size > 10 * 1024 * 1024) {
+                                     alert('O arquivo ' + file.name + ' excede o limite de 10MB.');
+                                     continue;
+                                 }
+                                 const jaExiste = this.arquivosResposta.some(f => f.name === file.name && f.size === file.size);
+                                 if (!jaExiste) {
+                                     this.arquivosResposta.push({
+                                         file: file,
+                                         name: file.name,
+                                         size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+                                     });
+                                 }
+                             }
+                         }
+                         if (e.target && e.target.value) e.target.value = '';
+                         this.dragover = false;
+                     },
+                     removeFile(index) {
+                         this.arquivosResposta.splice(index, 1);
+                     },
+                     async enviarRespostas() {
+                         if (this.arquivosResposta.length === 0 || this.enviando) return;
+                         
+                         this.enviando = true;
+                         let sucessos = 0;
+                         let erros = 0;
+                         const observacoes = document.getElementById('observacoesResposta').value;
+                         
+                         for (let i = 0; i < this.arquivosResposta.length; i++) {
+                             const arquivo = this.arquivosResposta[i];
+                             const formData = new FormData();
+                             formData.append('arquivo', arquivo.file);
+                             formData.append('observacoes', observacoes);
+                             formData.append('_token', '{{ csrf_token() }}');
+                             
+                             try {
+                                 const response = await fetch(`{{ url('/company/processos/' . $processo->id . '/documentos-vigilancia') }}/${docRespostaId}/resposta`, {
+                                     method: 'POST',
+                                     body: formData,
+                                     headers: {
+                                         'X-Requested-With': 'XMLHttpRequest',
+                                         'Accept': 'application/json'
+                                     }
+                                 });
+                                 
+                                 if (response.ok) {
+                                     sucessos++;
+                                 } else {
+                                     erros++;
+                                 }
+                             } catch (error) {
+                                 console.error('Erro:', error);
+                                 erros++;
+                             }
+                         }
+                         
+                         this.enviando = false;
+                         this.arquivosResposta = [];
+                         
+                         if (erros === 0) {
+                             alert(`${sucessos} resposta(s) enviada(s) com sucesso!`);
+                             modalResposta = false;
+                             location.reload();
+                         } else {
+                             alert(`${sucessos} resposta(s) enviada(s). ${erros} erro(s).`);
+                         }
+                     }
+                 }">
+                {{-- Header --}}
+                <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-2xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Responder Notificação</h3>
+                                <p class="text-xs text-gray-500">Anexe os documentos de resposta</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="modalResposta = false" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
-                    <div class="px-6 py-4 space-y-4">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <p class="text-sm text-green-800 font-medium">Respondendo a: <span x-text="docRespostaNome"></span></p>
-                            <p class="text-xs text-green-700 mt-1">
-                                <strong>Atenção:</strong> A resposta ficará vinculada ao documento original e aguardará aprovação da Vigilância Sanitária.
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo PDF *</label>
-                            <input type="file" name="arquivo" required
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
-                                   accept=".pdf">
-                            <p class="mt-1 text-xs text-gray-500">Apenas arquivos PDF. Máx: 10MB</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
-                            <textarea name="observacoes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Descreva a resposta ou justificativa (opcional)"></textarea>
-                        </div>
+                </div>
+                
+                <div class="px-6 py-5 space-y-4">
+                    {{-- Info do documento --}}
+                    <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p class="text-sm text-green-800 font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Respondendo a: <span x-text="docRespostaNome" class="text-green-900"></span>
+                        </p>
+                        <p class="text-xs text-green-700 mt-2">
+                            <strong>Atenção:</strong> A resposta ficará vinculada ao documento original e aguardará aprovação da Vigilância Sanitária.
+                        </p>
                     </div>
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-row-reverse gap-2">
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 flex items-center gap-2">
+                    
+                    {{-- Área de Upload --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Arquivos de Resposta * 
+                            <span class="text-gray-500 font-normal">(<span x-text="arquivosResposta.length"></span>/6 selecionados)</span>
+                        </label>
+                        
+                        {{-- Área de drop --}}
+                        <div class="relative mb-3"
+                             @dragover.prevent="dragover = true"
+                             @dragleave.prevent="dragover = false"
+                             @drop.prevent="handleFiles($event)">
+                            <input type="file" 
+                                   @change="handleFiles($event)"
+                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   multiple
+                                   :disabled="arquivosResposta.length >= maxArquivos">
+                            <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
+                                 :class="dragover ? 'border-green-500 bg-green-50' : (arquivosResposta.length >= maxArquivos ? 'border-gray-200 bg-gray-50' : 'border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50')">
+                                <template x-if="arquivosResposta.length < maxArquivos">
+                                    <div>
+                                        <svg class="w-12 h-12 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                        </svg>
+                                        <p class="text-sm text-gray-600 mb-1">
+                                            <span class="text-green-600 font-semibold">Clique para selecionar</span> ou arraste os arquivos
+                                        </p>
+                                        <p class="text-xs text-gray-500">PDF, JPG ou PNG • Máx. 10MB cada • Até 6 arquivos</p>
+                                        <p class="text-xs text-amber-600 mt-2 font-medium">💡 Dica: Documentos com muitas folhas devem ter no máximo 5MB</p>
+                                    </div>
+                                </template>
+                                <template x-if="arquivosResposta.length >= maxArquivos">
+                                    <div>
+                                        <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <p class="text-sm text-gray-500 font-medium">Limite de 6 arquivos atingido</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        {{-- Lista de arquivos selecionados --}}
+                        <template x-if="arquivosResposta.length > 0">
+                            <div class="space-y-2 max-h-40 overflow-y-auto">
+                                <template x-for="(arquivo, index) in arquivosResposta" :key="index">
+                                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate" x-text="arquivo.name"></p>
+                                                <p class="text-xs text-gray-500" x-text="arquivo.size"></p>
+                                            </div>
+                                        </div>
+                                        <button type="button" @click="removeFile(index)" 
+                                                class="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors flex-shrink-0" title="Remover">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    {{-- Observações --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
+                        <textarea id="observacoesResposta" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Descreva a resposta ou justificativa (opcional)"></textarea>
+                    </div>
+                </div>
+                
+                {{-- Footer --}}
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex flex-row-reverse gap-3">
+                    <button type="button" @click="enviarRespostas()"
+                            :disabled="arquivosResposta.length === 0 || enviando"
+                            class="px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <template x-if="!enviando">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                             </svg>
-                            Enviar Resposta
-                        </button>
-                        <button type="button" @click="modalResposta = false" class="px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50">Cancelar</button>
-                    </div>
-                </form>
+                        </template>
+                        <template x-if="enviando">
+                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <span x-text="enviando ? 'Enviando...' : 'Enviar ' + arquivosResposta.length + ' Resposta(s)'"></span>
+                    </button>
+                    <button type="button" @click="modalResposta = false" class="px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

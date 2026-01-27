@@ -423,6 +423,12 @@ class ProcessoController extends Controller
         // Busca documentos obrigatórios baseados nas atividades exercidas
         $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
         
+        // Busca documentos de ajuda vinculados ao tipo de processo
+        $documentosAjuda = \App\Models\DocumentoAjuda::ativos()
+            ->ordenado()
+            ->paraTipoProcesso($processo->tipo)
+            ->get();
+        
         return view('company.processos.show', compact(
             'processo',
             'documentosAprovados',
@@ -432,7 +438,8 @@ class ProcessoController extends Controller
             'todosDocumentos',
             'alertas',
             'documentosObrigatorios',
-            'pastas'
+            'pastas',
+            'documentosAjuda'
         ));
     }
 
@@ -996,5 +1003,77 @@ class ProcessoController extends Controller
 
         return redirect()->route('company.processos.show', $processo->id)
             ->with('success', 'Resposta excluída com sucesso!');
+    }
+
+    /**
+     * Gera o PDF do protocolo de abertura do processo
+     */
+    public function protocoloAbertura($id)
+    {
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
+        
+        $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with(['estabelecimento.municipioRelacionado', 'tipoProcesso'])
+            ->findOrFail($id);
+
+        $estabelecimento = $processo->estabelecimento;
+
+        // Busca a logomarca do município ou configuração do sistema
+        $logomarca = null;
+        $municipioObj = $estabelecimento->municipioRelacionado;
+        if ($municipioObj && $municipioObj->logomarca) {
+            $logomarca = $municipioObj->logomarca;
+        } else {
+            $config = \App\Models\ConfiguracaoSistema::first();
+            if ($config && $config->logomarca) {
+                $logomarca = $config->logomarca;
+            }
+        }
+
+        $data = [
+            'processo' => $processo,
+            'estabelecimento' => $estabelecimento,
+            'logomarca' => $logomarca,
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('company.processos.protocolo-pdf', $data)
+            ->setPaper('a4', 'portrait')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
+
+        $nomeArquivo = 'Protocolo_' . str_replace('/', '-', $processo->numero_processo) . '.pdf';
+
+        return $pdf->stream($nomeArquivo);
+    }
+
+    /**
+     * Visualiza um documento de ajuda vinculado ao tipo de processo
+     */
+    public function visualizarDocumentoAjuda($processoId, $documentoId)
+    {
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
+        
+        // Verifica se o processo pertence ao usuário
+        $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->findOrFail($processoId);
+        
+        // Busca o documento de ajuda
+        $documento = \App\Models\DocumentoAjuda::ativos()
+            ->paraTipoProcesso($processo->tipo)
+            ->findOrFail($documentoId);
+        
+        // Verifica se o arquivo existe
+        if (!\Illuminate\Support\Facades\Storage::disk('local')->exists($documento->arquivo)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+        
+        $caminho = \Illuminate\Support\Facades\Storage::disk('local')->path($documento->arquivo);
+        
+        return response()->file($caminho, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"',
+        ]);
     }
 }
