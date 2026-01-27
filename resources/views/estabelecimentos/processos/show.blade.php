@@ -1678,40 +1678,41 @@
                                                                             </svg>
                                                                             Rejeitar
                                                                         </button>
-                                                                        {{-- Dropdown de Rejeição - Fixed Position --}}
-                                                                        <div x-show="showRejeitar && respostaRejeitandoId === {{ $resposta->id }}" 
-                                                                             @click.away="showRejeitar = false" 
-                                                                             x-transition
-                                                                             style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000;"
-                                                                             class="w-80 bg-white rounded-lg shadow-2xl border border-gray-200 p-4">
-                                                                            <div class="flex items-center justify-between mb-3">
-                                                                                <h4 class="text-sm font-semibold text-red-700">Rejeitar Resposta</h4>
-                                                                                <button type="button" @click="showRejeitar = false" class="text-gray-400 hover:text-gray-600">
-                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                                                    </svg>
-                                                                                </button>
-                                                                            </div>
-                                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
-                                                                                @csrf
-                                                                                <label class="block text-xs font-medium text-gray-700 mb-1">Motivo da Rejeição *</label>
-                                                                                <textarea name="motivo_rejeicao" required rows="4" 
-                                                                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                                                                          placeholder="Descreva o motivo da rejeição..."></textarea>
-                                                                                <div class="flex gap-2 mt-3">
-                                                                                    <button type="submit" class="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
-                                                                                        Confirmar Rejeição
-                                                                                    </button>
-                                                                                    <button type="button" @click="showRejeitar = false" class="px-3 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">
-                                                                                        Cancelar
-                                                                                    </button>
+                                                                        {{-- Dropdown de Rejeição - Fixed Position Centralizado --}}
+                                                                        <template x-if="showRejeitar && respostaRejeitandoId === {{ $resposta->id }}">
+                                                                            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; align-items: center; justify-content: center;">
+                                                                                {{-- Overlay --}}
+                                                                                <div @click="showRejeitar = false"
+                                                                                     style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 40;"></div>
+                                                                                
+                                                                                {{-- Modal de Rejeição --}}
+                                                                                <div style="position: relative; z-index: 50;" class="w-96 bg-white rounded-lg shadow-2xl border border-gray-200 p-5" @click.stop>
+                                                                                    <div class="flex items-center justify-between mb-4">
+                                                                                        <h4 class="text-base font-bold text-red-700">Rejeitar Resposta</h4>
+                                                                                        <button type="button" @click="showRejeitar = false" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded p-1 transition-colors">
+                                                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                                            </svg>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
+                                                                                        @csrf
+                                                                                        <label class="block text-sm font-semibold text-gray-800 mb-2">Motivo da Rejeição *</label>
+                                                                                        <textarea name="motivo_rejeicao" required rows="5" 
+                                                                                                  class="w-full px-4 py-3 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                                                                                                  placeholder="Descreva detalhadamente o motivo da rejeição..."></textarea>
+                                                                                        <div class="flex gap-3 mt-4">
+                                                                                            <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                                                                                                Confirmar Rejeição
+                                                                                            </button>
+                                                                                            <button type="button" @click="showRejeitar = false" class="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                                                                                                Cancelar
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </form>
                                                                                 </div>
-                                                                            </form>
-                                                                        </div>
-                                                                        {{-- Overlay para o dropdown --}}
-                                                                        <div x-show="showRejeitar && respostaRejeitandoId === {{ $resposta->id }}"
-                                                                             @click="showRejeitar = false"
-                                                                             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 9999;"></div>
+                                                                            </div>
+                                                                        </template>
                                                                     </div>
                                                                 </div>
                                                                 @elseif($resposta->status === 'aprovado')
