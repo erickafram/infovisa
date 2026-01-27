@@ -25,87 +25,57 @@
         @csrf
         @method('PUT')
 
-        {{-- Card Principal --}}
+        {{-- Card: Informações Básicas --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-6">Informações do Modelo</h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-full text-xs font-bold">1</span>
+                Informações do Modelo
+            </h3>
 
             <div class="space-y-6">
-                {{-- Tipo de Documento --}}
-                <div>
-                    <label for="tipo_documento_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Documento <span class="text-red-500">*</span>
-                    </label>
-                    <select name="tipo_documento_id" 
-                            id="tipo_documento_id" 
-                            required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_documento_id') border-red-500 @enderror">
-                        <option value="">Selecione o tipo</option>
-                        @foreach($tiposDocumento as $tipo)
-                            <option value="{{ $tipo->id }}" {{ old('tipo_documento_id', $modeloDocumento->tipo_documento_id) == $tipo->id ? 'selected' : '' }}>
-                                {{ $tipo->nome }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('tipo_documento_id')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+                {{-- Grid: Tipo, Código e Ordem --}}
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {{-- Tipo de Documento --}}
+                    <div class="md:col-span-2">
+                        <label for="tipo_documento_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Tipo de Documento <span class="text-red-500">*</span>
+                        </label>
+                        <select name="tipo_documento_id" 
+                                id="tipo_documento_id" 
+                                required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_documento_id') border-red-500 @enderror">
+                            <option value="">Selecione o tipo</option>
+                            @foreach($tiposDocumento as $tipo)
+                                <option value="{{ $tipo->id }}" {{ old('tipo_documento_id', $modeloDocumento->tipo_documento_id) == $tipo->id ? 'selected' : '' }}>
+                                    {{ $tipo->nome }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('tipo_documento_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                {{-- Código --}}
-                <div>
-                    <label for="codigo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Código (opcional)
-                    </label>
-                    <input type="text" 
-                           name="codigo" 
-                           id="codigo" 
-                           value="{{ old('codigo', $modeloDocumento->codigo) }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('codigo') border-red-500 @enderror"
-                           placeholder="Ex: alvara_sanitario">
-                    <p class="mt-1 text-xs text-gray-500">Se não informado, será gerado automaticamente a partir do nome</p>
-                    @error('codigo')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+                    {{-- Código --}}
+                    <div>
+                        <label for="codigo" class="block text-sm font-medium text-gray-700 mb-2">
+                            Código
+                        </label>
+                        <input type="text" 
+                               name="codigo" 
+                               id="codigo" 
+                               value="{{ old('codigo', $modeloDocumento->codigo) }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('codigo') border-red-500 @enderror"
+                               placeholder="Ex: alvara_sanitario">
+                        @error('codigo')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                {{-- Descrição --}}
-                <div>
-                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
-                        Descrição
-                    </label>
-                    <textarea name="descricao" 
-                              id="descricao" 
-                              rows="3"
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('descricao') border-red-500 @enderror"
-                              placeholder="Descreva o propósito deste modelo">{{ old('descricao', $modeloDocumento->descricao) }}</textarea>
-                    @error('descricao')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Conteúdo --}}
-                <div>
-                    <label for="conteudo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Conteúdo do Modelo <span class="text-red-500">*</span>
-                    </label>
-                    <textarea name="conteudo" 
-                              id="conteudo" 
-                              rows="15"
-                              required
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm @error('conteudo') border-red-500 @enderror"
-                              placeholder="Digite o conteúdo HTML do documento...">{{ old('conteudo', $modeloDocumento->conteudo) }}</textarea>
-                    <p class="mt-1 text-xs text-gray-500">Use variáveis como: {estabelecimento_nome}, {processo_numero}, {data_atual}</p>
-                    @error('conteudo')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Grid: Ordem e Status --}}
-                <div class="grid grid-cols-2 gap-6">
                     {{-- Ordem --}}
                     <div>
                         <label for="ordem" class="block text-sm font-medium text-gray-700 mb-2">
-                            Ordem de Exibição
+                            Ordem
                         </label>
                         <input type="number" 
                                name="ordem" 
@@ -117,27 +87,53 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
 
-                    {{-- Status --}}
-                    <div>
-                        <label for="ativo" class="block text-sm font-medium text-gray-700 mb-2">
-                            Status
+                {{-- Descrição --}}
+                <div>
+                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
+                        Descrição
+                    </label>
+                    <textarea name="descricao" 
+                              id="descricao" 
+                              rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('descricao') border-red-500 @enderror"
+                              placeholder="Descreva o propósito deste modelo">{{ old('descricao', $modeloDocumento->descricao) }}</textarea>
+                    @error('descricao')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Status --}}
+                <div>
+                    <label for="ativo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                    </label>
+                    <div class="flex items-center">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="ativo" 
+                                   id="ativo" 
+                                   value="1"
+                                   {{ old('ativo', $modeloDocumento->ativo) ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-700">Ativo</span>
                         </label>
-                        <div class="flex items-center h-10">
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" 
-                                       name="ativo" 
-                                       id="ativo" 
-                                       value="1"
-                                       {{ old('ativo', $modeloDocumento->ativo) ? 'checked' : '' }}
-                                       class="sr-only peer">
-                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                <span class="ms-3 text-sm font-medium text-gray-700">Ativo</span>
-                            </label>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        {{-- Card: Editor de Conteúdo --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="flex items-center justify-center w-6 h-6 bg-green-600 text-white rounded-full text-xs font-bold">2</span>
+                Conteúdo do Modelo <span class="text-red-500">*</span>
+            </h3>
+
+            @php $conteudoInicial = old('conteudo', $modeloDocumento->conteudo); @endphp
+            @include('configuracoes.modelos-documento.partials.editor-wysiwyg')
         </div>
 
         {{-- Botões --}}
