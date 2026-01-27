@@ -860,11 +860,17 @@
                                                     @endif
                                                 @endif
                                                 
-                                                {{-- Alerta de Respostas Pendentes --}}
+                                                {{-- Alerta de Respostas Pendentes com botão para abrir modal --}}
                                                 @if($docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0)
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-medium animate-pulse">
+                                                    <button type="button"
+                                                            @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                            class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-medium animate-pulse hover:bg-yellow-200 transition-colors cursor-pointer inline-flex items-center gap-1">
                                                         📎 {{ $docDigital->respostas->where('status', 'pendente')->count() }} resposta(s) pendente(s)
-                                                    </span>
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                        </svg>
+                                                    </button>
                                                 @endif
                                             </div>
                                         @if($docDigital->status === 'rascunho')
@@ -974,15 +980,13 @@
                                     @if($docDigital->respostas && $docDigital->respostas->count() > 0)
                                     <div class="mt-2" x-data="{ respostasAbertas: {{ $docDigital->respostas->where('status', 'pendente')->count() > 0 ? 'true' : 'false' }} }">
                                         {{-- Cabeçalho colapsável --}}
-                                        <button @click="respostasAbertas = !respostasAbertas" 
-                                                class="w-full flex items-center justify-between text-xs font-semibold text-green-700 hover:text-green-800 transition-colors">
-                                            <span class="flex items-center gap-2">
+                                        <div class="flex items-center justify-between">
+                                            <button @click="respostasAbertas = !respostasAbertas" 
+                                                    class="flex items-center gap-2 text-xs font-semibold text-green-700 hover:text-green-800 transition-colors">
                                                 <svg class="w-3.5 h-3.5 transition-transform" :class="{ 'rotate-90': respostasAbertas }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                 </svg>
-                                                Respostas ({{ $docDigital->respostas->count() }})
-                                            </span>
-                                            <span class="flex items-center gap-1.5">
+                                                <span>Respostas ({{ $docDigital->respostas->count() }})</span>
                                                 @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
                                                     <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-yellow-200 text-yellow-800">
                                                         {{ $docDigital->respostas->where('status', 'pendente')->count() }} pendente(s)
@@ -993,8 +997,20 @@
                                                         {{ $docDigital->respostas->where('status', 'aprovado')->count() }} aprovado(s)
                                                     </span>
                                                 @endif
-                                            </span>
-                                        </button>
+                                            </button>
+                                            
+                                            {{-- Botão para abrir modal de visualização lado a lado --}}
+                                            @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
+                                            <button type="button"
+                                                    @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded transition-colors">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                                                </svg>
+                                                Ver lado a lado
+                                            </button>
+                                            @endif
+                                        </div>
                                         
                                         {{-- Lista de respostas colapsável --}}
                                         <div x-show="respostasAbertas" x-transition class="mt-2 space-y-1.5">
@@ -1485,6 +1501,259 @@
                                 class="w-full h-full border-0"
                                 style="min-height: 500px;">
                         </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Modal de Visualização de Documento com Respostas - Layout Melhorado --}}
+    <template x-teleport="body">
+        <div x-show="modalRespostas" 
+             x-data="{ 
+                respostaVisualizandoUrl: null,
+                respostaVisualizandoNome: '',
+                respostaVisualizandoId: null,
+                showRejeitar: false,
+                respostaRejeitandoId: null
+             }"
+             x-cloak
+             @keydown.escape.window="modalRespostas = false; respostaVisualizandoUrl = null"
+             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
+            
+            {{-- Overlay --}}
+            <div @click="modalRespostas = false; respostaVisualizandoUrl = null"
+                 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85);"></div>
+            
+            {{-- Modal Content - Tela Quase Toda --}}
+            <div style="position: absolute; top: 1%; left: 1%; right: 1%; bottom: 1%;">
+                <div class="bg-white rounded-xl shadow-2xl h-full flex flex-col" @click.stop>
+                    {{-- Header --}}
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-yellow-50">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900" x-text="respostasDocumentoNome"></h3>
+                                <p class="text-xs text-gray-500" x-text="respostasDocumentoNumero"></p>
+                            </div>
+                        </div>
+                        <button @click="modalRespostas = false; respostaVisualizandoUrl = null"
+                                class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Conteúdo Principal --}}
+                    <div class="flex-1 flex overflow-hidden">
+                        {{-- Coluna Esquerda: Documento Original (40%) --}}
+                        <div class="w-2/5 border-r border-gray-200 flex flex-col">
+                            <div class="px-3 py-2 bg-blue-50 border-b border-blue-200 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span class="text-xs font-semibold text-blue-800">Documento Original</span>
+                            </div>
+                            <div class="flex-1 overflow-hidden bg-gray-100">
+                                <iframe :src="respostasDocumentoPdfUrl" class="w-full h-full border-0"></iframe>
+                            </div>
+                        </div>
+
+                        {{-- Coluna Direita: Respostas + Visualização (60%) --}}
+                        <div class="w-3/5 flex flex-col bg-gray-50">
+                            {{-- Se tem resposta selecionada, mostra visualização --}}
+                            <template x-if="respostaVisualizandoUrl">
+                                <div class="flex-1 flex flex-col">
+                                    {{-- Header da Resposta Visualizada --}}
+                                    <div class="px-3 py-2 bg-emerald-50 border-b border-emerald-200 flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span class="text-xs font-semibold text-emerald-800">Resposta:</span>
+                                            <span class="text-xs text-emerald-700" x-text="respostaVisualizandoNome"></span>
+                                        </div>
+                                        <button @click="respostaVisualizandoUrl = null; respostaVisualizandoNome = ''"
+                                                class="px-2 py-1 text-xs font-medium text-gray-600 bg-white hover:bg-gray-100 rounded border border-gray-300 transition-colors flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                            </svg>
+                                            Voltar à lista
+                                        </button>
+                                    </div>
+                                    {{-- Visualização do PDF da Resposta --}}
+                                    <div class="flex-1 overflow-hidden bg-gray-100">
+                                        <iframe :src="respostaVisualizandoUrl" class="w-full h-full border-0"></iframe>
+                                    </div>
+                                </div>
+                            </template>
+
+                            {{-- Se não tem resposta selecionada, mostra lista --}}
+                            <template x-if="!respostaVisualizandoUrl">
+                                <div class="flex-1 flex flex-col">
+                                    <div class="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                        </svg>
+                                        <span class="text-xs font-semibold text-amber-800">Respostas do Estabelecimento</span>
+                                        <span class="text-[10px] text-amber-600">(clique para visualizar)</span>
+                                    </div>
+                                    <div class="flex-1 overflow-y-auto p-3 space-y-2">
+                                        @foreach($documentosDigitais as $docDigital)
+                                            @if($docDigital->respostas && $docDigital->respostas->count() > 0)
+                                                <template x-if="respostasDocumentoId === {{ $docDigital->id }}">
+                                                    <div class="space-y-2">
+                                                        @foreach($docDigital->respostas as $resposta)
+                                                        <div class="bg-white rounded-lg border {{ $resposta->status === 'pendente' ? 'border-yellow-300' : ($resposta->status === 'aprovado' ? 'border-green-300' : 'border-red-300') }} shadow-sm overflow-hidden">
+                                                            {{-- Linha Principal Clicável --}}
+                                                            <div class="px-3 py-2 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                                                                 @click="respostaVisualizandoUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; respostaVisualizandoNome = '{{ addslashes($resposta->nome_original) }}'; respostaVisualizandoId = {{ $resposta->id }}">
+                                                                {{-- Ícone de Status --}}
+                                                                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 {{ $resposta->status === 'pendente' ? 'bg-yellow-100' : ($resposta->status === 'aprovado' ? 'bg-green-100' : 'bg-red-100') }}">
+                                                                    @if($resposta->status === 'pendente')
+                                                                        <svg class="w-3.5 h-3.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                        </svg>
+                                                                    @elseif($resposta->status === 'aprovado')
+                                                                        <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                        </svg>
+                                                                    @else
+                                                                        <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                        </svg>
+                                                                    @endif
+                                                                </div>
+                                                                {{-- Info --}}
+                                                                <div class="flex-1 min-w-0">
+                                                                    <p class="font-medium text-gray-900 text-sm truncate">{{ $resposta->nome_original }}</p>
+                                                                    <p class="text-[10px] text-gray-500">
+                                                                        {{ $resposta->tamanho_formatado }} • {{ $resposta->created_at->format('d/m/Y H:i') }} • {{ $resposta->usuarioExterno->nome ?? 'N/D' }}
+                                                                    </p>
+                                                                </div>
+                                                                {{-- Badge Status --}}
+                                                                <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0 {{ $resposta->status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ($resposta->status === 'aprovado' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') }}">
+                                                                    {{ $resposta->status === 'pendente' ? 'Pendente' : ($resposta->status === 'aprovado' ? 'Aprovado' : 'Rejeitado') }}
+                                                                </span>
+                                                                {{-- Ícone de Visualizar --}}
+                                                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                                </svg>
+                                                            </div>
+                                                            
+                                                            {{-- Ações (sempre visíveis) --}}
+                                                            <div class="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+                                                                <a href="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.download', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}"
+                                                                   class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-600 bg-white hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                                    </svg>
+                                                                    Download
+                                                                </a>
+                                                                
+                                                                @if($resposta->status === 'pendente')
+                                                                <div class="flex items-center gap-1">
+                                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="inline">
+                                                                        @csrf
+                                                                        <button type="submit" 
+                                                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+                                                                                onclick="return confirm('Aprovar esta resposta?')">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                            </svg>
+                                                                            Aprovar
+                                                                        </button>
+                                                                    </form>
+                                                                    <div class="relative">
+                                                                        <button @click="showRejeitar = !showRejeitar; respostaRejeitandoId = {{ $resposta->id }}" 
+                                                                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                            </svg>
+                                                                            Rejeitar
+                                                                        </button>
+                                                                        {{-- Dropdown de Rejeição - Fixed Position --}}
+                                                                        <div x-show="showRejeitar && respostaRejeitandoId === {{ $resposta->id }}" 
+                                                                             @click.away="showRejeitar = false" 
+                                                                             x-transition
+                                                                             style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000;"
+                                                                             class="w-80 bg-white rounded-lg shadow-2xl border border-gray-200 p-4">
+                                                                            <div class="flex items-center justify-between mb-3">
+                                                                                <h4 class="text-sm font-semibold text-red-700">Rejeitar Resposta</h4>
+                                                                                <button type="button" @click="showRejeitar = false" class="text-gray-400 hover:text-gray-600">
+                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                                    </svg>
+                                                                                </button>
+                                                                            </div>
+                                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
+                                                                                @csrf
+                                                                                <label class="block text-xs font-medium text-gray-700 mb-1">Motivo da Rejeição *</label>
+                                                                                <textarea name="motivo_rejeicao" required rows="4" 
+                                                                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                                                                          placeholder="Descreva o motivo da rejeição..."></textarea>
+                                                                                <div class="flex gap-2 mt-3">
+                                                                                    <button type="submit" class="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+                                                                                        Confirmar Rejeição
+                                                                                    </button>
+                                                                                    <button type="button" @click="showRejeitar = false" class="px-3 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">
+                                                                                        Cancelar
+                                                                                    </button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                        {{-- Overlay para o dropdown --}}
+                                                                        <div x-show="showRejeitar && respostaRejeitandoId === {{ $resposta->id }}"
+                                                                             @click="showRejeitar = false"
+                                                                             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 9999;"></div>
+                                                                    </div>
+                                                                </div>
+                                                                @elseif($resposta->status === 'aprovado')
+                                                                <span class="text-[10px] text-green-600">
+                                                                    ✓ Aprovado por {{ $resposta->avaliadoPor->nome ?? 'N/D' }}
+                                                                </span>
+                                                                @else
+                                                                <span class="text-[10px] text-red-600 truncate max-w-[200px]" title="{{ $resposta->motivo_rejeicao }}">
+                                                                    ✗ {{ Str::limit($resposta->motivo_rejeicao, 30) }}
+                                                                </span>
+                                                                @endif
+                                                            </div>
+
+                                                            {{-- Histórico de Rejeições --}}
+                                                            @if($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0)
+                                                            <div class="px-3 py-1.5 bg-red-50 border-t border-red-100">
+                                                                <p class="text-[10px] font-medium text-red-700">Histórico:</p>
+                                                                @foreach($resposta->historico_rejeicao as $rejeicao)
+                                                                <p class="text-[10px] text-red-600">• {{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m H:i') }}: {{ Str::limit($rejeicao['motivo'], 40) }}</p>
+                                                                @endforeach
+                                                            </div>
+                                                            @endif
+                                                        </div>
+                                                        @endforeach
+
+                                                        {{-- Mensagem se todas avaliadas --}}
+                                                        @if($docDigital->respostas->where('status', 'pendente')->count() === 0)
+                                                        <div class="text-center py-3 text-xs text-gray-500">
+                                                            <svg class="w-6 h-6 mx-auto text-green-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Todas as respostas foram avaliadas!
+                                                        </div>
+                                                        @endif
+                                                    </div>
+                                                </template>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2627,6 +2896,13 @@
                 modalExcluirProcesso: false,
                 modalExcluirComSenha: false,
                 modalAtribuir: false,
+                modalRespostas: false,
+                
+                // Modal de Respostas
+                respostasDocumentoId: null,
+                respostasDocumentoNome: '',
+                respostasDocumentoNumero: '',
+                respostasDocumentoPdfUrl: '',
                 
                 // Exclusão com senha
                 exclusaoTipo: '', // 'resposta', 'documento', 'documento_digital'
@@ -2951,6 +3227,15 @@
                         nomeDocumento || 'Documento Digital',
                         `/admin/documentos/${documentoId}`
                     );
+                },
+
+                // Abre modal de visualização de documento com respostas
+                abrirModalRespostas(documentoId, nomeDocumento, numeroDocumento, pdfUrl) {
+                    this.respostasDocumentoId = documentoId;
+                    this.respostasDocumentoNome = nomeDocumento;
+                    this.respostasDocumentoNumero = numeroDocumento;
+                    this.respostasDocumentoPdfUrl = pdfUrl;
+                    this.modalRespostas = true;
                 },
 
                 // Abre o visualizador de PDF com ferramentas de anotação
