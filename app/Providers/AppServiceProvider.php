@@ -24,8 +24,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Força HTTPS e domínio correto apenas em produção
-        if (config('app.env') === 'production') {
+        // SEMPRE força o domínio correto em produção
+        // Isso resolve o problema de paginação gerando URLs com IP interno
+        $host = request()->getHost();
+        $isProduction = config('app.env') === 'production' || 
+                        app()->environment('production') ||
+                        str_contains($host, 'sistemas.saude.to.gov.br') ||
+                        str_contains(config('app.url', ''), 'sistemas.saude.to.gov.br');
+        
+        // Se é produção OU se o APP_URL está configurado para o domínio correto
+        if ($isProduction || str_contains(config('app.url', ''), 'infovisacore')) {
             URL::forceScheme('https');
             URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
         }
