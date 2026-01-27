@@ -76,8 +76,8 @@
         </a>
         @endif
 
-        @if($isAdmin)
-        {{-- Tipos de Ações - Apenas Admin --}}
+        @if($isAdmin || $isGestorEstadual)
+        {{-- Tipos de Ações - Admin e Gestor Estadual --}}
         <a href="{{ route('admin.configuracoes.tipo-acoes.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -94,7 +94,9 @@
                 </div>
             </div>
         </a>
+        @endif
 
+        @if($isAdmin)
         {{-- Tipos de Setor - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.tipo-setores.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">

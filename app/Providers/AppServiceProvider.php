@@ -24,23 +24,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // SEMPRE força o domínio correto em produção
-        // Isso resolve o problema de paginação gerando URLs com IP interno
+        // Só força o domínio se APP_URL contém o domínio de produção
+        // E NÃO é localhost/127.0.0.1
+        $appUrl = config('app.url', '');
         $host = request()->getHost();
-        $isProduction = config('app.env') === 'production' || 
-                        app()->environment('production') ||
-                        str_contains($host, 'sistemas.saude.to.gov.br') ||
-                        str_contains(config('app.url', ''), 'sistemas.saude.to.gov.br');
         
-        // Se é produção OU se o APP_URL está configurado para o domínio correto
-        if ($isProduction || str_contains(config('app.url', ''), 'infovisacore')) {
+        $isLocalhost = str_contains($host, 'localhost') || 
+                       str_contains($host, '127.0.0.1') ||
+                       $host === '::1' ||
+                       str_contains($host, '.test') ||
+                       str_contains($host, '.local');
+        
+        $isProductionUrl = str_contains($appUrl, 'sistemas.saude.to.gov.br');
+        
+        // Só aplica se APP_URL é de produção E não está acessando via localhost
+        if ($isProductionUrl && !$isLocalhost) {
             URL::forceScheme('https');
-            URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
+            URL::forceRootUrl($appUrl);
             
             // Força o Paginator a usar a URL correta
-            \Illuminate\Pagination\Paginator::currentPathResolver(function () {
+            \Illuminate\Pagination\Paginator::currentPathResolver(function () use ($appUrl) {
                 $path = request()->path();
-                return 'https://sistemas.saude.to.gov.br/infovisacore/' . ltrim($path, '/');
+                return rtrim($appUrl, '/') . '/' . ltrim($path, '/');
             });
         }
         

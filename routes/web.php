@@ -459,16 +459,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         // Atividades - Admin e Gestor Estadual
         Route::resource('atividades', \App\Http\Controllers\Admin\AtividadeController::class);
         Route::post('atividades/store-multiple', [\App\Http\Controllers\Admin\AtividadeController::class, 'storeMultiple'])->name('atividades.store-multiple');
-    });
-    
-    // Configurações - RESTRITO APENAS A ADMINISTRADORES
-    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin')->group(function () {
-        // Tipos de Processo - Apenas Admin
-        Route::resource('tipos-processo', \App\Http\Controllers\TipoProcessoController::class)->parameters([
-            'tipos-processo' => 'tipoProcesso'
-        ]);
         
-        // Tipos de Ações - Apenas Admin
+        // Tipos de Ações - Admin e Gestor Estadual
         Route::resource('tipo-acoes', \App\Http\Controllers\Admin\TipoAcaoController::class)->parameters([
             'tipo-acoes' => 'tipoAcao'
         ]);
@@ -482,6 +474,14 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         
         // API: Buscar subações de uma ação
         Route::get('tipo-acoes/{tipoAcao}/sub-acoes/json', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'getSubAcoes'])->name('tipo-acoes.sub-acoes.json');
+    });
+    
+    // Configurações - RESTRITO APENAS A ADMINISTRADORES
+    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin')->group(function () {
+        // Tipos de Processo - Apenas Admin
+        Route::resource('tipos-processo', \App\Http\Controllers\TipoProcessoController::class)->parameters([
+            'tipos-processo' => 'tipoProcesso'
+        ]);
         
         // Tipos de Setor - Apenas Admin
         Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([
