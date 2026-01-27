@@ -16,21 +16,98 @@
             .sidebar-expanded, .sidebar-collapsed { width: 240px; }
         }
     </style>
+    
+    {{-- Script inline para aplicar estado do sidebar ANTES do render --}}
+    <script>
+        (function() {
+            // Aplica classe CSS baseada no localStorage ANTES do Alpine carregar
+            const stored = localStorage.getItem('sidebarExpanded');
+            const isExpanded = stored === null ? true : stored === 'true';
+            
+            // Salva no window para o Alpine usar
+            window.__sidebarExpanded = isExpanded;
+            
+            // Injeta CSS dinâmico para definir estado inicial correto SEM transição
+            const style = document.createElement('style');
+            style.id = 'sidebar-initial-state';
+            style.textContent = `
+                /* Remove transições durante carregamento inicial */
+                aside.fixed { 
+                    width: ${isExpanded ? '240px' : '72px'} !important;
+                    transition: none !important;
+                }
+                /* Controla visibilidade dos botões de toggle ANTES do Alpine */
+                .sidebar-toggle-collapse { display: ${isExpanded ? 'flex' : 'none'} !important; }
+                .sidebar-toggle-expand { display: ${isExpanded ? 'none' : 'flex'} !important; }
+                /* Esconde todos os textos/labels do sidebar quando colapsado */
+                aside.fixed span[x-show="showLabels()"],
+                aside.fixed div[x-show="showLabels()"],
+                aside.fixed p[x-show="showLabels()"] { 
+                    display: ${isExpanded ? '' : 'none'} !important; 
+                }
+                /* Esconde elementos com x-cloak até Alpine estar pronto */
+                [x-cloak] { display: none !important; }
+                @media (max-width: 1023px) {
+                    aside.fixed { width: 240px !important; }
+                    .sidebar-toggle-collapse { display: flex !important; }
+                    .sidebar-toggle-expand { display: none !important; }
+                    aside.fixed span[x-show="showLabels()"],
+                    aside.fixed div[x-show="showLabels()"],
+                    aside.fixed p[x-show="showLabels()"] { 
+                        display: inline !important; 
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Remove o estilo após Alpine inicializar e aplicar seu estado
+            document.addEventListener('alpine:initialized', function() {
+                // Aguarda 2 frames para garantir que Alpine aplicou tudo
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        const initialStyle = document.getElementById('sidebar-initial-state');
+                        if (initialStyle) initialStyle.remove();
+                    });
+                });
+            });
+        })();
+    </script>
     @stack('styles')
 </head>
-<body class="bg-gray-50" x-data="{ 
-    sidebarOpen: false, 
-    sidebarExpanded: localStorage.getItem('sidebarExpanded') === 'true',
-    userMenuOpen: false,
-    isMobile: window.innerWidth < 1024,
-    toggleSidebar() {
-        this.sidebarExpanded = !this.sidebarExpanded;
-        localStorage.setItem('sidebarExpanded', this.sidebarExpanded);
-    },
-    showLabels() {
-        return this.isMobile || this.sidebarExpanded;
-    }
-}" x-init="window.addEventListener('resize', () => { isMobile = window.innerWidth < 1024 })">
+<body class="bg-gray-50" x-data="sidebarState()" x-init="init()">
+    
+    <script>
+        // Define o estado do sidebar usando o valor pré-calculado
+        function sidebarState() {
+            // Usa o valor já calculado pelo script inline no <head>
+            const initialExpanded = window.__sidebarExpanded !== undefined 
+                ? window.__sidebarExpanded 
+                : (localStorage.getItem('sidebarExpanded') !== 'false');
+            
+            return {
+                sidebarOpen: false,
+                sidebarExpanded: initialExpanded,
+                userMenuOpen: false,
+                isMobile: window.innerWidth < 1024,
+                
+                init() {
+                    // Listener para resize
+                    window.addEventListener('resize', () => {
+                        this.isMobile = window.innerWidth < 1024;
+                    });
+                },
+                
+                toggleSidebar() {
+                    this.sidebarExpanded = !this.sidebarExpanded;
+                    localStorage.setItem('sidebarExpanded', this.sidebarExpanded.toString());
+                },
+                
+                showLabels() {
+                    return this.isMobile || this.sidebarExpanded;
+                }
+            };
+        }
+    </script>
     
     {{-- Overlay Mobile --}}
     <div x-show="sidebarOpen" 
@@ -47,13 +124,14 @@
     <div class="flex h-screen overflow-hidden">
 
         {{-- Sidebar --}}
-        <aside class="fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-200 shadow-lg transition-all duration-300 ease-in-out"
+        <aside class="fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-200 shadow-lg"
                :class="{
                    'translate-x-0': sidebarOpen,
                    '-translate-x-full lg:translate-x-0': !sidebarOpen,
                    'sidebar-expanded': sidebarExpanded,
                    'sidebar-collapsed': !sidebarExpanded
-               }">
+               }"
+               x-bind:style="'transition: width 300ms ease-in-out, transform 300ms ease-in-out;'">
         
             {{-- Logo Header --}}
             <div class="flex items-center h-14 bg-gradient-to-r from-cyan-600 to-blue-600 border-b border-cyan-700 px-4"
@@ -64,12 +142,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
                     </div>
-                    <span x-show="showLabels()" class="text-white font-bold text-lg">InfoVISA</span>
+                    <span x-show="showLabels()" x-cloak class="sidebar-label text-white font-bold text-lg">InfoVISA</span>
                 </div>
-                {{-- Toggle Desktop --}}
+                {{-- Toggle Desktop (Colapsar) --}}
                 <button @click="toggleSidebar()" 
                         x-show="sidebarExpanded"
-                        class="hidden lg:flex items-center justify-center w-6 h-6 rounded text-white/70 hover:text-white hover:bg-white/10 transition">
+                        x-cloak
+                        class="sidebar-toggle-collapse hidden lg:flex items-center justify-center w-6 h-6 rounded text-white/70 hover:text-white hover:bg-white/10 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                     </svg>
@@ -86,7 +165,8 @@
             {{-- Expand Button (quando collapsed) --}}
             <button @click="toggleSidebar()" 
                     x-show="!sidebarExpanded"
-                    class="hidden lg:flex items-center justify-center h-10 text-gray-400 hover:text-cyan-600 hover:bg-gray-50 transition border-b border-gray-100">
+                    x-cloak
+                    class="sidebar-toggle-expand hidden lg:flex items-center justify-center h-10 text-gray-400 hover:text-cyan-600 hover:bg-gray-50 transition border-b border-gray-100">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
                 </svg>

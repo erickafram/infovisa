@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             
             // 2. Pactuação (regras de competência)
             PactuacaoSeeder::class,
+            PactuacaoCompletaSeeder::class, // Complementa com CNAEs faltantes
             
             // 3. Usuários e estabelecimentos (dados de teste)
             UsuarioInternoSeeder::class,

@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\ProcessoAlerta;
+use App\Models\ProcessoDocumento;
 use App\Models\DocumentoDigital;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -73,10 +73,26 @@ class DashboardController extends Controller
             ->with(['processo.estabelecimento', 'tipoDocumento', 'assinaturas'])
             ->orderBy('created_at', 'desc')
             ->get()
-            ->filter(function ($doc) {
-                // Só mostra documentos com todas as assinaturas completas
-                return $doc->todasAssinaturasCompletas();
-            });
+            ->filter(fn ($doc) => $doc->todasAssinaturasCompletas());
+        
+        // Documentos rejeitados que precisam de correção pelo usuário externo
+        $documentosRejeitados = ProcessoDocumento::whereIn('processo_id', $processoIds)
+            ->where('status_aprovacao', 'rejeitado')
+            ->with(['processo.estabelecimento', 'tipoDocumentoObrigatorio'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        // Documentos com prazo pendente (notificações que precisam de resposta)
+        $documentosComPrazo = DocumentoDigital::whereIn('processo_id', $processoIds)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->where('prazo_notificacao', true)
+            ->whereNotNull('prazo_iniciado_em')
+            ->whereNull('prazo_finalizado_em')
+            ->with(['processo.estabelecimento', 'tipoDocumento'])
+            ->orderBy('data_vencimento', 'asc')
+            ->get()
+            ->filter(fn ($doc) => $doc->todasAssinaturasCompletas());
         
         return view('company.dashboard', compact(
             'estatisticasEstabelecimentos',
@@ -84,7 +100,9 @@ class DashboardController extends Controller
             'ultimosEstabelecimentos',
             'ultimosProcessos',
             'alertasPendentes',
-            'documentosPendentesVisualizacao'
+            'documentosPendentesVisualizacao',
+            'documentosRejeitados',
+            'documentosComPrazo'
         ));
     }
 }

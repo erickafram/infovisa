@@ -5,6 +5,65 @@
 
 @section('content')
 <div class="space-y-6">
+    {{-- Aviso Importante - Sistema Antigo x Novo --}}
+    <div x-data="{ mostrarAviso: localStorage.getItem('ocultarAvisoInfovisa') !== 'true' }" x-show="mostrarAviso" x-cloak>
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4 shadow-sm relative">
+            {{-- Botão Fechar --}}
+            <button 
+                @click="localStorage.setItem('ocultarAvisoInfovisa', 'true'); mostrarAviso = false"
+                class="absolute top-3 right-3 p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-200 rounded-lg transition-colors"
+                title="Não exibir mais este aviso"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="flex items-start gap-3 pr-8">
+                <div class="flex-shrink-0 p-2 bg-amber-100 rounded-lg">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-bold text-amber-800 mb-2 flex items-center gap-2">
+                        <span>⚠️ Aviso Importante sobre Processos</span>
+                    </h3>
+                    <div class="space-y-2 text-sm text-amber-900">
+                        <p>
+                            <strong class="text-red-700">Processos abertos até 2025:</strong> 
+                            Para consultar ou acompanhar processos em andamento do sistema antigo, acesse:
+                        </p>
+                        <a href="https://sistemas.saude.to.gov.br/infovisa2/" 
+                           target="_blank" 
+                           class="inline-flex items-center gap-2 px-3 py-2 bg-white border-2 border-amber-400 rounded-lg text-amber-800 font-semibold hover:bg-amber-100 hover:border-amber-500 transition-all group">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            <span>sistemas.saude.to.gov.br/infovisa2</span>
+                            <span class="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">Sistema Antigo</span>
+                        </a>
+                        <p class="mt-2">
+                            <strong class="text-green-700">Processos a partir de 2026:</strong> 
+                            Todos os novos processos devem ser abertos e acompanhados por este sistema (InfoVISA 3.0).
+                        </p>
+                    </div>
+                    
+                    {{-- Botão não exibir mais --}}
+                    <button 
+                        @click="localStorage.setItem('ocultarAvisoInfovisa', 'true'); mostrarAviso = false"
+                        class="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium hover:underline"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                        </svg>
+                        Não exibir mais este aviso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Header Section Compacto --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -90,9 +149,130 @@
     </div>
 
     {{-- Alertas e Documentos Pendentes --}}
-    @if($alertasPendentes->count() > 0 || $documentosPendentesVisualizacao->count() > 0)
+    @if($alertasPendentes->count() > 0 || $documentosPendentesVisualizacao->count() > 0 || $documentosRejeitados->count() > 0 || $documentosComPrazo->count() > 0)
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
+        {{-- Documentos com Prazo Pendente --}}
+        @if($documentosComPrazo->count() > 0)
+        <div class="bg-white rounded-xl border border-amber-300 shadow-sm">
+            <div class="px-4 py-3 border-b border-amber-200 bg-amber-100 rounded-t-xl flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-amber-800">Documentos com Prazo Pendente</h3>
+                    <span class="px-2 py-0.5 bg-amber-200 text-amber-800 text-xs font-bold rounded-full">
+                        {{ $documentosComPrazo->count() }}
+                    </span>
+                </div>
+                <a href="{{ route('company.alertas.index') }}" class="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-200 hover:bg-amber-300 px-2 py-0.5 rounded transition-colors uppercase tracking-wide">
+                    Ver todos
+                </a>
+            </div>
+            <div class="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+                @foreach($documentosComPrazo as $documento)
+                <div class="px-4 py-3 hover:bg-amber-50 transition-colors {{ $documento->vencido ? 'bg-red-50' : '' }}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $documento->tipoDocumento->nome ?? 'Notificação' }}
+                            </p>
+                            <p class="text-[10px] mt-0.5 font-semibold {{ $documento->vencido ? 'text-red-600' : ($documento->dias_faltando <= 7 ? 'text-amber-600' : 'text-green-600') }}">
+                                @if($documento->vencido)
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        Vencido há {{ abs($documento->dias_faltando) }} dia(s)
+                                    </span>
+                                @elseif($documento->dias_faltando == 0)
+                                    Vence hoje!
+                                @elseif($documento->dias_faltando == 1)
+                                    Vence amanhã
+                                @else
+                                    Faltam {{ $documento->dias_faltando }} dias
+                                @endif
+                            </p>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    Vence: {{ $documento->data_vencimento->format('d/m/Y') }}
+                                </span>
+                                <span class="text-[10px] text-gray-500 truncate max-w-32">
+                                    {{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}
+                                </span>
+                            </div>
+                        </div>
+                        <a href="{{ route('company.processos.show', $documento->processo_id) }}" 
+                           class="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white {{ $documento->vencido ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700' }} rounded-lg transition-colors flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Responder
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- Documentos Rejeitados --}}
+        @if($documentosRejeitados->count() > 0)
+        <div class="bg-white rounded-xl border border-red-300 shadow-sm">
+            <div class="px-4 py-3 border-b border-red-200 bg-red-100 rounded-t-xl flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-red-800">Documentos Rejeitados</h3>
+                    <span class="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-bold rounded-full">
+                        {{ $documentosRejeitados->count() }}
+                    </span>
+                </div>
+                <a href="{{ route('company.alertas.index') }}" class="text-[10px] font-bold text-red-700 hover:text-red-800 bg-red-200 hover:bg-red-300 px-2 py-0.5 rounded transition-colors uppercase tracking-wide">
+                    Ver todos
+                </a>
+            </div>
+            <div class="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+                @foreach($documentosRejeitados as $documento)
+                <div class="px-4 py-3 hover:bg-red-50 transition-colors">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $documento->tipoDocumentoObrigatorio->nome ?? $documento->nome_original ?? 'Documento' }}
+                            </p>
+                            <p class="text-[10px] text-red-600 mt-0.5 line-clamp-2">
+                                <strong>Motivo:</strong> {{ $documento->motivo_rejeicao ?? 'Não informado' }}
+                            </p>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    {{ $documento->updated_at->format('d/m/Y') }}
+                                </span>
+                                <span class="text-[10px] text-gray-500 truncate max-w-32">
+                                    {{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}
+                                </span>
+                            </div>
+                        </div>
+                        <a href="{{ route('company.processos.show', $documento->processo_id) }}" 
+                           class="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Corrigir
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Alertas Pendentes --}}
         @if($alertasPendentes->count() > 0)
         <div class="bg-white rounded-xl border border-orange-200 shadow-sm">

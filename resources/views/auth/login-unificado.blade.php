@@ -117,9 +117,9 @@
              <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
                     Não tem uma conta? 
-                    <button type="button" onclick="verificarCPFCadastro()" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors cursor-pointer">
+                    <a href="{{ route('registro') }}" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
                         Cadastre-se aqui
-                    </button>
+                    </a>
                 </p>
             </div>
         </div>
@@ -142,11 +142,11 @@
         <div class="text-center mb-6">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
                 <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                 </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Verificação de Cadastro</h3>
-            <p class="text-sm text-gray-600">Digite seu CPF para verificar se você está habilitado para cadastro</p>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Criar Nova Conta</h3>
+            <p class="text-sm text-gray-600">Digite seu CPF para iniciar o cadastro como usuário externo</p>
         </div>
 
         <div class="mb-6">
@@ -221,20 +221,53 @@ function verificarCPF() {
         return;
     }
     
-    // CPF autorizado: 017.588.481-11
-    if (cpf === '01758848111') {
-        mensagem.textContent = '✓ CPF habilitado para cadastro! Redirecionando...';
-        mensagem.className = 'mt-2 text-sm text-green-600 font-semibold';
-        mensagem.classList.remove('hidden');
-        
-        setTimeout(() => {
-            window.location.href = '{{ route("registro") }}?cpf=' + cpfInput.value;
-        }, 1500);
-    } else {
-        mensagem.textContent = '✗ Cadastro temporariamente desabilitado. Este CPF não está autorizado para cadastro no momento.';
+    // Validação básica de CPF
+    if (!validarCPF(cpf)) {
+        mensagem.textContent = 'CPF inválido. Por favor, verifique o número digitado.';
         mensagem.className = 'mt-2 text-sm text-red-600';
         mensagem.classList.remove('hidden');
+        return;
     }
+    
+    // CPF válido - redirecionar para cadastro
+    mensagem.textContent = '✓ CPF válido! Redirecionando para o cadastro...';
+    mensagem.className = 'mt-2 text-sm text-green-600 font-semibold';
+    mensagem.classList.remove('hidden');
+    
+    setTimeout(() => {
+        window.location.href = '{{ route("registro") }}?cpf=' + cpfInput.value;
+    }, 1000);
+}
+
+function validarCPF(cpf) {
+    // Remove caracteres não numéricos
+    cpf = cpf.replace(/\D/g, '');
+    
+    // Verifica se tem 11 dígitos
+    if (cpf.length !== 11) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1+$/.test(cpf)) return false;
+    
+    // Validação do primeiro dígito verificador
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+        soma += parseInt(cpf.charAt(i)) * (10 - i);
+    }
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(9))) return false;
+    
+    // Validação do segundo dígito verificador
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+        soma += parseInt(cpf.charAt(i)) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(10))) return false;
+    
+    return true;
 }
 
 // Permitir verificar com Enter

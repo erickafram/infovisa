@@ -764,9 +764,26 @@
                                             ->first();
                                         $usuarioPrecisaAssinar = $assinaturaUsuario !== null && $docDigital->status !== 'rascunho';
                                     @endphp
+                                @php
+                                    // Determinar cor da borda baseado no status do documento
+                                    $temPrazoAberto = $docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado';
+                                    $temRespostasPendentes = $docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0;
+                                    
+                                    if ($docDigital->status === 'rascunho') {
+                                        $corBorda = 'border-gray-300'; // Rascunho
+                                    } elseif ($temAssinaturasPendentes) {
+                                        $corBorda = 'border-orange-500'; // Aguardando assinaturas
+                                    } elseif ($temPrazoAberto || $temRespostasPendentes) {
+                                        $corBorda = 'border-orange-500'; // Prazo aberto ou respostas pendentes
+                                    } elseif ($docDigital->status === 'assinado' && $docDigital->todasAssinaturasCompletas()) {
+                                        $corBorda = 'border-green-500'; // Documento OK
+                                    } else {
+                                        $corBorda = 'border-gray-300'; // Outros casos
+                                    }
+                                @endphp
                                 <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-3 bg-gray-50 rounded-lg border-l-2 border-green-500 hover:bg-gray-100 transition-colors">
+                                     class="p-3 bg-gray-50 rounded-lg border-l-2 {{ $corBorda }} hover:bg-gray-100 transition-colors">
                                     
                                     {{-- Linha Principal: Nome + Status + Ações --}}
                                     <div class="flex items-center gap-3">
@@ -1187,7 +1204,7 @@
                                     @endphp
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-4 bg-gray-50 rounded-lg border-l-2 {{ $documento->status_aprovacao === 'pendente' ? 'border-yellow-500' : ($documento->status_aprovacao === 'rejeitado' ? 'border-red-500' : 'border-green-500') }} hover:bg-gray-100 transition-colors">
+                                     class="p-4 bg-gray-50 rounded-lg border-l-2 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-orange-500' : 'border-green-500') }} hover:bg-gray-100 transition-colors">
                                     
                                     <div class="flex items-start justify-between gap-3">
                                         {{-- Conteúdo Principal --}}

@@ -60,6 +60,11 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Company\DashboardController::class, 'index'])->name('dashboard');
     
+    // Meu Perfil
+    Route::get('/perfil', [\App\Http\Controllers\Company\PerfilController::class, 'index'])->name('perfil.index');
+    Route::put('/perfil/dados', [\App\Http\Controllers\Company\PerfilController::class, 'updateDados'])->name('perfil.update-dados');
+    Route::put('/perfil/senha', [\App\Http\Controllers\Company\PerfilController::class, 'updateSenha'])->name('perfil.update-senha');
+    
     // Estabelecimentos
     Route::get('/estabelecimentos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'index'])->name('estabelecimentos.index');
     Route::get('/estabelecimentos/create', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'create'])->name('estabelecimentos.create');
@@ -170,6 +175,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/estabelecimentos/{id}/usuarios/vincular', [EstabelecimentoController::class, 'vincularUsuario'])->name('estabelecimentos.usuarios.vincular');
     Route::delete('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'desvincularUsuario'])->name('estabelecimentos.usuarios.desvincular');
     Route::put('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'atualizarVinculo'])->name('estabelecimentos.usuarios.atualizar');
+    Route::delete('/estabelecimentos/{id}/remover-criador', [EstabelecimentoController::class, 'removerCriador'])->name('estabelecimentos.remover-criador');
     Route::get('/usuarios-externos/buscar', [EstabelecimentoController::class, 'buscarUsuarios'])->name('usuarios-externos.buscar');
     
     // Responsáveis

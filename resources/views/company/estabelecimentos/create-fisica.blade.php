@@ -32,27 +32,89 @@
         </div>
     </div>
 
-    {{-- Exibir erros de validação --}}
+    {{-- Modal de Erro do Servidor (Popup) --}}
     @if ($errors->any())
-        <div class="bg-red-50 border-l-4 border-red-500 p-4">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
+    <div x-data="{ showModal: true }" x-cloak>
+        {{-- Overlay --}}
+        <div x-show="showModal" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            
+            {{-- Modal --}}
+            <div x-show="showModal"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 @click.away="showModal = false"
+                 class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+                
+                {{-- Header com ícone --}}
+                <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0 w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Não foi possível cadastrar</h3>
+                            <p class="text-red-100 text-sm mt-0.5">Verifique as informações abaixo</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="ml-3">
-                    <h3 class="text-sm font-medium text-red-800">Há erros no formulário:</h3>
-                    <div class="mt-2 text-sm text-red-700">
-                        <ul class="list-disc list-inside space-y-1">
+                
+                {{-- Conteúdo --}}
+                <div class="px-6 py-5">
+                    @if($errors->has('cidade') && str_contains($errors->first('cidade'), 'InfoVISA'))
+                        {{-- Erro específico de município que não usa InfoVISA --}}
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 mb-2">Município não habilitado</h4>
+                                <p class="text-gray-600 text-sm leading-relaxed">{{ $errors->first('cidade') }}</p>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Outros erros --}}
+                        <ul class="space-y-3">
                             @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <svg class="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </span>
+                                <span class="text-gray-700 text-sm">{{ $error }}</span>
+                            </li>
                             @endforeach
                         </ul>
-                    </div>
+                    @endif
+                </div>
+                
+                {{-- Footer --}}
+                <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                    <a href="{{ route('company.estabelecimentos.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Voltar aos Estabelecimentos
+                    </a>
+                    <button type="button" @click="showModal = false" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                        Entendi
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
     @endif
 
     <form method="POST" action="{{ route('company.estabelecimentos.store') }}" class="space-y-6" id="formPessoaFisica">

@@ -61,8 +61,14 @@
                 @php
                     $alertasPendentesCount = 0;
                     $documentosPendentesCount = 0;
+                    $documentosRejeitadosCount = 0;
+                    $documentosComPrazoCount = 0;
                     if (auth('externo')->check()) {
-                        $estabelecimentoIds = \App\Models\Estabelecimento::where('usuario_externo_id', auth('externo')->id())->pluck('id');
+                        $estabelecimentoIds = \App\Models\Estabelecimento::where('usuario_externo_id', auth('externo')->id())
+                            ->orWhereHas('usuariosVinculados', function($q) {
+                                $q->where('usuario_externo_id', auth('externo')->id());
+                            })
+                            ->pluck('id');
                         $processoIds = \App\Models\Processo::whereIn('estabelecimento_id', $estabelecimentoIds)->pluck('id');
                         $alertasPendentesCount = \App\Models\ProcessoAlerta::whereIn('processo_id', $processoIds)
                             ->where('status', '!=', 'concluido')
@@ -72,11 +78,21 @@
                             ->where('sigiloso', false)
                             ->whereDoesntHave('visualizacoes')
                             ->count();
+                        $documentosRejeitadosCount = \App\Models\ProcessoDocumento::whereIn('processo_id', $processoIds)
+                            ->where('status_aprovacao', 'rejeitado')
+                            ->count();
+                        $documentosComPrazoCount = \App\Models\DocumentoDigital::whereIn('processo_id', $processoIds)
+                            ->where('status', 'assinado')
+                            ->where('sigiloso', false)
+                            ->where('prazo_notificacao', true)
+                            ->whereNotNull('prazo_iniciado_em')
+                            ->whereNull('prazo_finalizado_em')
+                            ->count();
                     }
-                    $totalNotificacoes = $alertasPendentesCount + $documentosPendentesCount;
+                    $totalNotificacoes = $alertasPendentesCount + $documentosPendentesCount + $documentosRejeitadosCount + $documentosComPrazoCount;
                 @endphp
                 <a href="{{ route('company.alertas.index') }}" 
-                   title="Alertas{{ $documentosPendentesCount > 0 ? ' - ' . $documentosPendentesCount . ' documento(s) pendente(s)' : '' }}"
+                   title="Alertas{{ $documentosRejeitadosCount > 0 ? " - {$documentosRejeitadosCount} documento(s) rejeitado(s)" : '' }}{{ $documentosPendentesCount > 0 ? " - {$documentosPendentesCount} documento(s) pendente(s)" : '' }}"
                    class="group relative flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('company.alertas.*') ? 'bg-orange-600 text-white shadow-md scale-105' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600 hover:scale-105' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
@@ -86,6 +102,15 @@
                         {{ $totalNotificacoes > 9 ? '9+' : $totalNotificacoes }}
                     </span>
                     @endif
+                </a>
+
+                {{-- Meu Perfil --}}
+                <a href="{{ route('company.perfil.index') }}" 
+                   title="Meu Perfil"
+                   class="group flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('company.perfil.*') ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:scale-105' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
                 </a>
 
                 {{-- Logout --}}
@@ -138,7 +163,7 @@
                                     <div class="font-medium text-sm text-gray-900">{{ auth('externo')->user()->nome }}</div>
                                     <div class="text-xs text-gray-500 mt-1">{{ auth('externo')->user()->email }}</div>
                                 </div>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <a href="{{ route('company.perfil.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>

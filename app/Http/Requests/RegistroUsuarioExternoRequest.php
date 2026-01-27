@@ -24,13 +24,62 @@ class RegistroUsuarioExternoRequest extends FormRequest
     {
         return [
             'nome' => ['required', 'string', 'min:3', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14', 'unique:usuarios_externos,cpf', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/'],
+            'cpf' => ['required', 'string', 'size:14', 'unique:usuarios_externos,cpf', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/', function ($attribute, $value, $fail) {
+                if (!$this->validarCpf($value)) {
+                    $fail('O CPF informado é inválido.');
+                }
+            }],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:usuarios_externos,email'],
             'telefone' => ['required', 'string', 'min:14', 'max:15', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'],
             'vinculo_estabelecimento' => ['required', Rule::enum(VinculoEstabelecimento::class)],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()],
             'aceite_termos' => ['required', 'accepted'],
         ];
+    }
+
+    /**
+     * Valida se o CPF é matematicamente válido
+     */
+    private function validarCpf(string $cpf): bool
+    {
+        // Remove caracteres não numéricos
+        $cpf = preg_replace('/\D/', '', $cpf);
+        
+        // Verifica se tem 11 dígitos
+        if (strlen($cpf) !== 11) {
+            return false;
+        }
+        
+        // Verifica se todos os dígitos são iguais (CPFs inválidos conhecidos)
+        if (preg_match('/^(\d)\1+$/', $cpf)) {
+            return false;
+        }
+        
+        // Validação do primeiro dígito verificador
+        $soma = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $soma += (int) $cpf[$i] * (10 - $i);
+        }
+        $resto = $soma % 11;
+        $digito1 = ($resto < 2) ? 0 : (11 - $resto);
+        
+        if ((int) $cpf[9] !== $digito1) {
+            return false;
+        }
+        
+        // Validação do segundo dígito verificador
+        $soma = 0;
+        for ($i = 0; $i < 10; $i++) {
+            $soma += (int) $cpf[$i] * (11 - $i);
+        }
+        $resto = $soma % 11;
+        $digito2 = ($resto < 2) ? 0 : (11 - $resto);
+        
+        if ((int) $cpf[10] !== $digito2) {
+            return false;
+        }
+        
+        return true;
     }
 
     /**
@@ -60,7 +109,7 @@ class RegistroUsuarioExternoRequest extends FormRequest
             'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
             
             'aceite_termos.required' => 'Você deve aceitar os termos e condições.',
-            'aceite_termos.accepted' => 'Você deve aceitar os termos e condições para continuar.',
+            'aceite_termos.accepted' => 'Você deve ler e aceitar os termos e condições para continuar.',
         ];
     }
 

@@ -60,6 +60,14 @@ class ProcessoDocumento extends Model
     }
 
     /**
+     * Tipo de documento obrigatório associado
+     */
+    public function tipoDocumentoObrigatorio(): BelongsTo
+    {
+        return $this->belongsTo(TipoDocumentoObrigatorio::class, 'tipo_documento_obrigatorio_id');
+    }
+
+    /**
      * Documento que este substitui (quando for correção de rejeitado)
      */
     public function documentoSubstituido(): BelongsTo

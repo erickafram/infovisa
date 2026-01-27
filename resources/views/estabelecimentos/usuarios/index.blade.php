@@ -146,12 +146,84 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-900">
-                Usuários Vinculados ({{ $estabelecimento->usuariosVinculados->count() }})
+                Usuários Vinculados ({{ $estabelecimento->usuariosVinculados->count() + ($criador && !$criadorVinculado ? 1 : 0) }})
             </h3>
         </div>
 
-        @if($estabelecimento->usuariosVinculados->count() > 0)
+        @if($estabelecimento->usuariosVinculados->count() > 0 || ($criador && !$criadorVinculado))
             <div class="divide-y divide-gray-200">
+                {{-- Mostra o criador primeiro (se não estiver na lista de vinculados) --}}
+                @if($criador && !$criadorVinculado)
+                <div class="p-6 hover:bg-gray-50 transition-colors bg-amber-50">
+                    <div class="flex items-start justify-between gap-4">
+                        {{-- Informações do Usuário Criador --}}
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <span class="text-amber-600 font-semibold text-sm">
+                                        {{ strtoupper(substr($criador->nome, 0, 2)) }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        {{ $criador->nome }}
+                                        <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                                            Criador do Cadastro
+                                        </span>
+                                    </h4>
+                                    <p class="text-sm text-gray-600">{{ $criador->email }}</p>
+                                </div>
+                            </div>
+
+                            <div class="ml-13 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Telefone:</span>
+                                    <p class="font-medium text-gray-900">{{ $criador->telefone_formatado ?? $criador->telefone ?? '-' }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Tipo de Vínculo:</span>
+                                    <p class="font-medium text-gray-900">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                                            Criador do Cadastro
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Cadastrado em:</span>
+                                    <p class="font-medium text-gray-900">{{ $estabelecimento->created_at->format('d/m/Y H:i') }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Ações para o criador (admin pode desvincular) --}}
+                        <div class="flex gap-2">
+                            <span class="inline-flex items-center gap-1 px-3 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded" title="Usuário que cadastrou o estabelecimento">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Proprietário Original
+                            </span>
+                            
+                            @if(auth('interno')->user()->isAdmin())
+                            <form action="{{ route('admin.estabelecimentos.remover-criador', $estabelecimento->id) }}" 
+                                  method="POST"
+                                  onsubmit="return confirm('ATENÇÃO: Este é o usuário que cadastrou o estabelecimento. Ao desvincular, ele perderá acesso. Tem certeza?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded hover:bg-orange-700 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    Desvincular
+                                </button>
+                            </form>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 @foreach($estabelecimento->usuariosVinculados as $usuario)
                 @php
                     $isCriador = $usuario->id == $estabelecimento->usuario_externo_id;
@@ -302,15 +374,28 @@
                 @endforeach
             </div>
         @else
-            <div class="px-6 py-12 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum usuário vinculado</h3>
-                <p class="mt-1 text-sm text-gray-500">
-                    Vincule usuários externos para dar acesso a este estabelecimento.
-                </p>
-            </div>
+            @if($criador ?? false)
+                {{-- Tem criador mas não está vinculado - isso não deveria acontecer, mas vamos mostrar --}}
+                <div class="px-6 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum usuário vinculado</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Vincule usuários externos para dar acesso a este estabelecimento.
+                    </p>
+                </div>
+            @else
+                <div class="px-6 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum usuário vinculado</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Vincule usuários externos para dar acesso a este estabelecimento.
+                    </p>
+                </div>
+            @endif
         @endif
     </div>
 </div>

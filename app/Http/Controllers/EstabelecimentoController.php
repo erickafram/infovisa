@@ -1111,7 +1111,13 @@ class EstabelecimentoController extends Controller
             ->orderBy('nome')
             ->get();
 
-        return view('estabelecimentos.usuarios.index', compact('estabelecimento', 'usuariosDisponiveis'));
+        // Buscar o criador do cadastro (usuário que cadastrou o estabelecimento)
+        $criador = $estabelecimento->usuarioExterno;
+        
+        // Verificar se o criador já está na lista de vinculados
+        $criadorVinculado = $estabelecimento->usuariosVinculados->contains('id', $criador?->id);
+
+        return view('estabelecimentos.usuarios.index', compact('estabelecimento', 'usuariosDisponiveis', 'criador', 'criadorVinculado'));
     }
 
     /**
@@ -1176,6 +1182,48 @@ class EstabelecimentoController extends Controller
         return redirect()
             ->route('admin.estabelecimentos.usuarios.index', $estabelecimento->id)
             ->with('success', 'Usuário desvinculado com sucesso.');
+    }
+
+    /**
+     * Remove o criador do cadastro (apenas admin)
+     */
+    public function removerCriador(string $id)
+    {
+        // Verifica se o usuário é administrador
+        if (!auth('interno')->user()->isAdmin()) {
+            return redirect()
+                ->route('admin.estabelecimentos.usuarios.index', $id)
+                ->with('error', 'Apenas administradores podem desvincular o criador do cadastro.');
+        }
+
+        $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Verifica se tem criador
+        if (!$estabelecimento->usuario_externo_id) {
+            return redirect()
+                ->route('admin.estabelecimentos.usuarios.index', $estabelecimento->id)
+                ->with('error', 'Este estabelecimento não possui um criador vinculado.');
+        }
+
+        $criador = UsuarioExterno::find($estabelecimento->usuario_externo_id);
+        $nomeUsuario = $criador ? $criador->nome : 'Usuário desconhecido';
+
+        // Remove o vínculo do criador
+        $estabelecimento->usuario_externo_id = null;
+        $estabelecimento->save();
+
+        // Registra no histórico
+        EstabelecimentoHistorico::registrar(
+            $estabelecimento->id,
+            'atualizado',
+            null,
+            null,
+            "Criador do cadastro ({$nomeUsuario}) desvinculado pelo administrador"
+        );
+
+        return redirect()
+            ->route('admin.estabelecimentos.usuarios.index', $estabelecimento->id)
+            ->with('success', "Criador do cadastro ({$nomeUsuario}) desvinculado com sucesso.");
     }
 
     /**

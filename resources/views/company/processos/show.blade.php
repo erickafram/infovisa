@@ -339,7 +339,7 @@
             @php
                 $totalDocumentos = isset($todosDocumentos) ? $todosDocumentos->count() : 0;
             @endphp
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="{ pastaAtiva: null }">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200" x-data="{ pastaAtiva: null }">
                 <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,9 +402,28 @@
                 <div class="divide-y divide-gray-100">
                     @foreach($todosDocumentos as $item)
                         @if($item['tipo'] === 'vigilancia')
-                            @php $docDigital = $item['documento']; @endphp
+                            @php 
+                                $docDigital = $item['documento'];
+                                // Determinar cor da borda para documentos da vigilância
+                                // Verde: documento assinado e sem prazo pendente
+                                // Laranja: documento com prazo pendente ou respostas pendentes
+                                // Cinza: outros casos
+                                $temRespostaPendente = $docDigital->respostas->where('status', 'pendente')->count() > 0;
+                                $temRespostaRejeitada = $docDigital->respostas->where('status', 'rejeitado')->count() > 0;
+                                $temPrazoPendente = $docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->status === 'assinado';
+                                
+                                if ($temRespostaRejeitada) {
+                                    $corBordaDoc = 'border-red-500';
+                                } elseif ($temRespostaPendente || $temPrazoPendente) {
+                                    $corBordaDoc = 'border-orange-500';
+                                } elseif ($docDigital->status === 'assinado') {
+                                    $corBordaDoc = 'border-green-500';
+                                } else {
+                                    $corBordaDoc = 'border-gray-300';
+                                }
+                            @endphp
                             <div x-show="pastaAtiva === null || pastaAtiva === {{ $item['pasta_id'] ?? 'null' }}"
-                                 class="px-4 py-3 hover:bg-gray-50">
+                                 class="px-4 py-3 hover:bg-gray-50 border-l-4 {{ $corBordaDoc }}">
                                 <div class="flex items-center justify-between">
                                     <a href="{{ route('company.processos.documento-digital.visualizar', [$processo->id, $docDigital->id]) }}" 
                                        target="_blank"
@@ -552,9 +571,25 @@
                                 @endif
                             </div>
                         @else
-                            @php $documento = $item['documento']; @endphp
+                            @php 
+                                $documento = $item['documento'];
+                                // Determinar cor da borda para arquivos do usuário
+                                // Se o tipo é 'aprovado' (vem da collection documentosAprovados), é verde
+                                // Caso contrário, verifica o status_aprovacao
+                                if ($item['tipo'] === 'aprovado') {
+                                    $corBordaArquivo = 'border-green-500';
+                                } elseif ($documento->status_aprovacao === 'rejeitado') {
+                                    $corBordaArquivo = 'border-red-500';
+                                } elseif ($documento->status_aprovacao === 'pendente') {
+                                    $corBordaArquivo = 'border-orange-500';
+                                } elseif ($documento->status_aprovacao === 'aprovado') {
+                                    $corBordaArquivo = 'border-green-500';
+                                } else {
+                                    $corBordaArquivo = 'border-gray-300';
+                                }
+                            @endphp
                             <div x-show="pastaAtiva === null || pastaAtiva === {{ $item['pasta_id'] ?? 'null' }}"
-                                 class="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                                 class="px-4 py-3 flex items-center justify-between hover:bg-gray-50 border-l-4 {{ $corBordaArquivo }}">
                                 <button type="button" 
                                         @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
                                         class="flex items-center gap-3 text-left flex-1">

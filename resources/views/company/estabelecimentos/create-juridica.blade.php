@@ -31,20 +31,86 @@
         </div>
     </div>
 
-    {{-- Erros de Validação --}}
+    {{-- Modal de Erro do Servidor (Popup) --}}
     @if ($errors->any())
-    <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-        <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div>
-                <h3 class="text-sm font-semibold text-red-900">Erro ao cadastrar</h3>
-                <ul class="mt-2 text-sm text-red-800 list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+    <div x-data="{ showModal: true }" x-cloak>
+        {{-- Overlay --}}
+        <div x-show="showModal" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            
+            {{-- Modal --}}
+            <div x-show="showModal"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 @click.away="showModal = false"
+                 class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+                
+                {{-- Header com ícone --}}
+                <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0 w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Não foi possível cadastrar</h3>
+                            <p class="text-red-100 text-sm mt-0.5">Verifique as informações abaixo</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- Conteúdo --}}
+                <div class="px-6 py-5">
+                    @if($errors->has('cidade') && str_contains($errors->first('cidade'), 'InfoVISA'))
+                        {{-- Erro específico de município que não usa InfoVISA --}}
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 mb-2">Município não habilitado</h4>
+                                <p class="text-gray-600 text-sm leading-relaxed">{{ $errors->first('cidade') }}</p>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Outros erros --}}
+                        <ul class="space-y-3">
+                            @foreach ($errors->all() as $error)
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <svg class="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </span>
+                                <span class="text-gray-700 text-sm">{{ $error }}</span>
+                            </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+                
+                {{-- Footer --}}
+                <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                    <a href="{{ route('company.estabelecimentos.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Voltar aos Estabelecimentos
+                    </a>
+                    <button type="button" @click="showModal = false" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                        Entendi
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -593,6 +659,15 @@
                     <input type="hidden" name="competencia_estadual" :value="competenciaEstadual ? '1' : '0'">
                     <input type="hidden" name="nao_sujeito_visa" :value="naoSujeitoVisa ? '1' : '0'">
 
+                    {{-- Indicador de Carregamento --}}
+                    <div x-show="carregandoQuestionarios" class="mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-blue-700">Carregando informações das atividades...</span>
+                    </div>
+
                     {{-- Botões de Navegação --}}
                     <div class="flex justify-between pt-4 border-t border-gray-200">
                         <button type="button" @click="abaAtiva = 'endereco'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
@@ -600,11 +675,19 @@
                         </button>
                         <button type="button" 
                                 @click="proximaAba('atividades')" 
-                                :disabled="naoSujeitoVisa"
-                                :class="naoSujeitoVisa ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
-                                class="px-6 py-2 text-white rounded-lg font-medium">
-                            <span x-show="!naoSujeitoVisa">Próximo: Contato →</span>
+                                :disabled="naoSujeitoVisa || !podeAvancarAtividades()"
+                                :class="(naoSujeitoVisa || !podeAvancarAtividades()) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                                class="px-6 py-2 text-white rounded-lg font-medium flex items-center gap-2">
+                            <template x-if="carregandoQuestionarios">
+                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </template>
                             <span x-show="naoSujeitoVisa">Cadastro não necessário</span>
+                            <span x-show="!naoSujeitoVisa && carregandoQuestionarios">Aguarde...</span>
+                            <span x-show="!naoSujeitoVisa && !carregandoQuestionarios && !podeAvancarAtividades()">Selecione atividades</span>
+                            <span x-show="!naoSujeitoVisa && !carregandoQuestionarios && podeAvancarAtividades()">Próximo: Contato →</span>
                         </button>
                     </div>
                 </div>
@@ -697,6 +780,7 @@ function estabelecimentoFormCompany() {
         cnpjBusca: '',
         loading: false,
         submitting: false,
+        carregandoQuestionarios: false,
         mensagem: '',
         tipoMensagem: '',
         dadosCarregados: false,
@@ -1005,8 +1089,12 @@ function estabelecimentoFormCompany() {
             if (cnaes.length === 0) {
                 this.questionarios = [];
                 this.respostasQuestionario = {};
+                this.carregandoQuestionarios = false;
                 return;
             }
+            
+            // Ativa indicador de carregamento
+            this.carregandoQuestionarios = true;
             
             try {
                 const response = await fetch('{{ route('company.estabelecimentos.buscar-questionarios') }}', {
@@ -1036,7 +1124,36 @@ function estabelecimentoFormCompany() {
                 }
             } catch (error) {
                 console.error('Erro ao buscar questionários:', error);
+            } finally {
+                // Desativa indicador de carregamento
+                this.carregandoQuestionarios = false;
             }
+        },
+
+        // Verifica se pode avançar da aba de atividades
+        podeAvancarAtividades() {
+            // Deve ter pelo menos uma atividade selecionada
+            const temAtividade = this.atividadePrincipalMarcada || this.atividadesExercidas.length > 0;
+            if (!temAtividade) return false;
+            
+            // Não pode estar carregando questionários
+            if (this.carregandoQuestionarios) return false;
+            
+            // Se houver questionários, todos devem estar respondidos
+            if (this.questionarios.length > 0) {
+                for (const quest of this.questionarios) {
+                    // Verifica primeira pergunta
+                    if (!this.respostasQuestionario[quest.cnae]) {
+                        return false;
+                    }
+                    // Verifica segunda pergunta se existir
+                    if (quest.pergunta2 && !this.respostasQuestionario2[quest.cnae]) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
         },
 
         validarAba(aba) {

@@ -16,24 +16,8 @@ class RegistroController extends Controller
      */
     public function showRegistroForm(Request $request)
     {
-        // CPF autorizado para testes
-        $cpfAutorizado = '01758848111'; // 017.588.481-11 sem formatação
-        
-        // Verifica se o CPF foi fornecido via query string
+        // Cadastro habilitado para todos os CPFs
         $cpfFornecido = $request->query('cpf');
-        
-        if ($cpfFornecido) {
-            // Remove formatação do CPF fornecido
-            $cpfLimpo = preg_replace('/\D/', '', $cpfFornecido);
-            
-            // Se o CPF não for o autorizado, bloqueia
-            if ($cpfLimpo !== $cpfAutorizado) {
-                abort(403, 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
-            }
-        } else {
-            // Se não forneceu CPF, bloqueia
-            abort(403, 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
-        }
         
         $vinculos = VinculoEstabelecimento::toArray();
         
@@ -45,19 +29,6 @@ class RegistroController extends Controller
      */
     public function registro(RegistroUsuarioExternoRequest $request)
     {
-        // CPF autorizado para testes
-        $cpfAutorizado = '01758848111'; // 017.588.481-11 sem formatação
-        
-        // Remove formatação do CPF fornecido
-        $cpfFornecido = preg_replace('/\D/', '', $request->input('cpf'));
-        
-        // Valida se é o CPF autorizado
-        if ($cpfFornecido !== $cpfAutorizado) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Cadastro temporariamente desabilitado. Apenas usuários autorizados podem se cadastrar no momento.');
-        }
-        
         try {
             // Remove máscaras para salvar no banco
             $dados = $request->validated();

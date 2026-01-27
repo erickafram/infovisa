@@ -310,7 +310,7 @@ class DashboardController extends Controller
             ->with(['processo.estabelecimento']);
 
         $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
-            ->with(['documentoDigital.processo.estabelecimento']);
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
 
         // Filtrar por competência
         if ($usuario->isEstadual()) {
@@ -366,8 +366,11 @@ class DashboardController extends Controller
             }
         }
 
+        // Respostas são tratadas separadamente para mostrar o tipo de documento original
         foreach($respostas_pendentes as $resposta) {
-            $key = 'processo_' . $resposta->documentoDigital->processo_id;
+            $key = 'resposta_' . $resposta->documentoDigital->processo_id;
+            $tipoDocumento = $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento';
+            
             if (!isset($tarefasArray[$key])) {
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
@@ -376,6 +379,7 @@ class DashboardController extends Controller
                     'estabelecimento_id' => $resposta->documentoDigital->processo->estabelecimento_id,
                     'estabelecimento' => $resposta->documentoDigital->processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
                     'numero_processo' => $resposta->documentoDigital->processo->numero_processo,
+                    'tipo_documento' => $tipoDocumento,
                     'primeiro_arquivo' => $resposta->nome_original,
                     'total' => 1,
                     'dias_pendente' => $diasPendente,
@@ -430,23 +434,41 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Adicionar aprovações agrupadas
+        // Adicionar aprovações e respostas agrupadas
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
             $diasRestantes = 5 - $tarefa['dias_pendente'];
-            $todasTarefas->push([
-                'tipo' => 'aprovacao',
-                'processo_id' => $tarefa['processo_id'],
-                'estabelecimento_id' => $tarefa['estabelecimento_id'],
-                'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 30),
-                'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
-                'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
-                'total' => $tarefa['total'],
-                'dias_restantes' => $diasRestantes,
-                'atrasado' => $tarefa['atrasado'],
-                'dias_pendente' => $tarefa['dias_pendente'],
-                'ordem' => 2,
-            ]);
+            
+            // Diferencia respostas de aprovações normais
+            if ($tarefa['tipo'] === 'resposta') {
+                $todasTarefas->push([
+                    'tipo' => 'resposta',
+                    'processo_id' => $tarefa['processo_id'],
+                    'estabelecimento_id' => $tarefa['estabelecimento_id'],
+                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
+                    'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
+                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'total' => $tarefa['total'],
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $tarefa['atrasado'],
+                    'dias_pendente' => $tarefa['dias_pendente'],
+                    'ordem' => 1, // Respostas têm prioridade maior que aprovações normais
+                ]);
+            } else {
+                $todasTarefas->push([
+                    'tipo' => 'aprovacao',
+                    'processo_id' => $tarefa['processo_id'],
+                    'estabelecimento_id' => $tarefa['estabelecimento_id'],
+                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 30),
+                    'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
+                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'total' => $tarefa['total'],
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $tarefa['atrasado'],
+                    'dias_pendente' => $tarefa['dias_pendente'],
+                    'ordem' => 2,
+                ]);
+            }
         }
 
         // Ordenar: atrasados primeiro, depois por ordem

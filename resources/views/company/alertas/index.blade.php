@@ -10,6 +10,118 @@
         <p class="text-sm text-gray-500">Acompanhe os alertas e documentos pendentes dos seus processos</p>
     </div>
 
+    {{-- Documentos com Prazo Pendente --}}
+    @if($documentosComPrazo->count() > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-amber-300 overflow-hidden">
+        <div class="px-4 py-3 border-b border-amber-200 bg-amber-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-amber-800">Documentos com Prazo Pendente</h3>
+                <span class="px-2 py-0.5 bg-amber-200 text-amber-800 text-xs font-bold rounded-full">
+                    {{ $documentosComPrazo->count() }}
+                </span>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100">
+            @foreach($documentosComPrazo as $documento)
+            <div class="px-4 py-3 hover:bg-amber-50 transition-colors {{ $documento->vencido ? 'bg-red-50' : '' }}">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg {{ $documento->vencido ? 'bg-red-100' : 'bg-amber-100' }} flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 {{ $documento->vencido ? 'text-red-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $documento->tipoDocumento->nome ?? 'Notificação' }}
+                            </p>
+                            <p class="text-xs font-semibold mt-0.5 {{ $documento->vencido ? 'text-red-600' : ($documento->dias_faltando <= 7 ? 'text-amber-600' : 'text-green-600') }}">
+                                @if($documento->vencido)
+                                    Vencido há {{ abs($documento->dias_faltando) }} dia(s)
+                                @elseif($documento->dias_faltando == 0)
+                                    Vence hoje!
+                                @elseif($documento->dias_faltando == 1)
+                                    Vence amanhã
+                                @else
+                                    Faltam {{ $documento->dias_faltando }} dias
+                                @endif
+                            </p>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <span>Vence: {{ $documento->data_vencimento->format('d/m/Y') }}</span>
+                                <span>•</span>
+                                <span class="truncate">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ route('company.processos.show', $documento->processo_id) }}" 
+                       class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white {{ $documento->vencido ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700' }} rounded-lg transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                        Responder
+                    </a>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- Documentos Rejeitados --}}
+    @if($documentosRejeitados->count() > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-red-300 overflow-hidden">
+        <div class="px-4 py-3 border-b border-red-200 bg-red-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-red-800">Documentos Rejeitados - Correção Necessária</h3>
+                <span class="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-bold rounded-full">
+                    {{ $documentosRejeitados->count() }}
+                </span>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100">
+            @foreach($documentosRejeitados as $documento)
+            <div class="px-4 py-3 hover:bg-red-50 transition-colors">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $documento->tipoDocumentoObrigatorio->nome ?? $documento->nome_original ?? 'Documento' }}
+                            </p>
+                            <p class="text-xs text-red-600 mt-0.5 line-clamp-2">
+                                <strong>Motivo:</strong> {{ $documento->motivo_rejeicao ?? 'Não informado' }}
+                            </p>
+                            <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <span>{{ $documento->updated_at->format('d/m/Y H:i') }}</span>
+                                <span>•</span>
+                                <span class="truncate">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ route('company.processos.show', $documento->processo_id) }}" 
+                       class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Corrigir
+                    </a>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     {{-- Documentos Pendentes de Visualização --}}
     @if($documentosPendentes->count() > 0)
     <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">

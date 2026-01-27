@@ -252,7 +252,26 @@ class ProcessoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        return view('company.alertas.index', compact('alertas', 'estatisticas', 'estabelecimentos', 'documentosPendentes'));
+        // Documentos rejeitados que precisam de correção
+        $documentosRejeitados = \App\Models\ProcessoDocumento::whereIn('processo_id', $processoIds)
+            ->where('status_aprovacao', 'rejeitado')
+            ->with(['processo.estabelecimento', 'tipoDocumentoObrigatorio'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        // Documentos com prazo pendente (notificações que precisam de resposta)
+        $documentosComPrazo = \App\Models\DocumentoDigital::whereIn('processo_id', $processoIds)
+            ->where('status', 'assinado')
+            ->where('sigiloso', false)
+            ->where('prazo_notificacao', true)
+            ->whereNotNull('prazo_iniciado_em')
+            ->whereNull('prazo_finalizado_em')
+            ->with(['processo.estabelecimento', 'tipoDocumento'])
+            ->orderBy('data_vencimento', 'asc')
+            ->get()
+            ->filter(fn ($doc) => $doc->todasAssinaturasCompletas());
+        
+        return view('company.alertas.index', compact('alertas', 'estatisticas', 'estabelecimentos', 'documentosPendentes', 'documentosRejeitados', 'documentosComPrazo'));
     }
 
     public function index(Request $request)
