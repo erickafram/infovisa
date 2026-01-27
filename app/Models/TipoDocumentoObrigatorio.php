@@ -206,7 +206,9 @@ class TipoDocumentoObrigatorio extends Model
     public static function getDocumentosParaEstabelecimento(Estabelecimento $estabelecimento): Collection
     {
         $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
-        $tipoSetor = $estabelecimento->tipo_setor ?? 'privado';
+        // tipo_setor é um enum, precisa pegar o value
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
         
         // 1. Buscar documentos comuns
         $documentosComuns = self::ativos()
@@ -290,6 +292,10 @@ class TipoDocumentoObrigatorio extends Model
     {
         $documentos = self::getDocumentosParaEstabelecimento($estabelecimento);
         
+        // tipo_setor é um enum, precisa pegar o value
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+        
         return [
             'comuns' => $documentos->where('origem', 'comum')->values(),
             'especificos' => $documentos->where('origem', 'atividade')->values(),
@@ -297,7 +303,7 @@ class TipoDocumentoObrigatorio extends Model
             'opcionais' => $documentos->where('obrigatorio_para_atividade', false)->values(),
             'total' => $documentos->count(),
             'escopo_competencia' => $estabelecimento->getEscopoCompetencia(),
-            'tipo_setor' => $estabelecimento->tipo_setor ?? 'privado',
+            'tipo_setor' => $tipoSetor,
         ];
     }
 }
