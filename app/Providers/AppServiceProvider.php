@@ -36,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
         if ($isProduction || str_contains(config('app.url', ''), 'infovisacore')) {
             URL::forceScheme('https');
             URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
+            
+            // Força o Paginator a usar a URL correta
+            \Illuminate\Pagination\Paginator::currentPathResolver(function () {
+                $path = request()->path();
+                return 'https://sistemas.saude.to.gov.br/infovisacore/' . ltrim($path, '/');
+            });
         }
         
         // Configura tamanho padrão de strings para MySQL
