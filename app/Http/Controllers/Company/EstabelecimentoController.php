@@ -725,6 +725,11 @@ class EstabelecimentoController extends Controller
             return $documentosPorTipoProcesso;
         }
 
+        // Determina o escopo de competência e tipo de setor do estabelecimento
+        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+
         // Para cada tipo de processo, busca as listas de documentos aplicáveis
         foreach ($tiposProcesso as $tipoProcesso) {
             $query = \App\Models\ListaDocumento::where('ativo', true)
@@ -753,6 +758,15 @@ class EstabelecimentoController extends Controller
             $documentos = collect();
             foreach ($listas as $lista) {
                 foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                    // Filtra por escopo_competencia
+                    $aplicaEscopo = $doc->escopo_competencia === 'todos' || $doc->escopo_competencia === $escopoCompetencia;
+                    // Filtra por tipo_setor
+                    $aplicaTipoSetor = $doc->tipo_setor === 'todos' || $doc->tipo_setor === $tipoSetor;
+                    
+                    if (!$aplicaEscopo || !$aplicaTipoSetor) {
+                        continue; // Pula documentos que não se aplicam
+                    }
+                    
                     // Evita duplicatas pelo ID do tipo de documento
                     if (!$documentos->contains('id', $doc->id)) {
                         $documentos->push([

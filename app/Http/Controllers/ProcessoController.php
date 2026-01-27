@@ -104,9 +104,22 @@ class ProcessoController extends Controller
                 ];
             });
         
-        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO
+        // Determina o escopo de competência e tipo de setor do estabelecimento
+        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+        
+        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO (filtrados por escopo e tipo_setor)
         $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
             ->where('documento_comum', true)
+            ->where(function($q) use ($escopoCompetencia) {
+                $q->where('escopo_competencia', 'todos')
+                  ->orWhere('escopo_competencia', $escopoCompetencia);
+            })
+            ->where(function($q) use ($tipoSetor) {
+                $q->where('tipo_setor', 'todos')
+                  ->orWhere('tipo_setor', $tipoSetor);
+            })
             ->ordenado()
             ->get();
         
@@ -127,9 +140,18 @@ class ProcessoController extends Controller
             ]);
         }
         
-        // ADICIONA DOCUMENTOS ESPECÍFICOS DAS LISTAS
+        // ADICIONA DOCUMENTOS ESPECÍFICOS DAS LISTAS (filtrados por escopo e tipo_setor)
         foreach ($listas as $lista) {
             foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                // Filtra por escopo_competencia
+                $aplicaEscopo = $doc->escopo_competencia === 'todos' || $doc->escopo_competencia === $escopoCompetencia;
+                // Filtra por tipo_setor
+                $aplicaTipoSetor = $doc->tipo_setor === 'todos' || $doc->tipo_setor === $tipoSetor;
+                
+                if (!$aplicaEscopo || !$aplicaTipoSetor) {
+                    continue; // Pula documentos que não se aplicam
+                }
+                
                 // Evita duplicatas pelo ID do tipo de documento
                 if (!$documentos->contains('id', $doc->id)) {
                     $infoEnviado = $documentosEnviadosInfo->get($doc->id);
