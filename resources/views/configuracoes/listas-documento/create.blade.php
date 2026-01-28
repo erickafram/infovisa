@@ -267,9 +267,9 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6" id="documentos-comuns-container">
                         @foreach($documentosComuns as $doc)
-                        <div class="border-2 border-green-200 bg-green-50/30 rounded-lg p-4">
+                        <div class="documento-comum-item border-2 border-green-200 bg-green-50/30 rounded-lg p-4" data-tipo-processo-id="{{ $doc->tipo_processo_id ?? '' }}">
                             <div class="flex items-start gap-3">
                                 <div class="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,6 +285,15 @@
                                         <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded">
                                             Comum
                                         </span>
+                                        @if($doc->tipoProcesso)
+                                        <span class="px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700 rounded">
+                                            {{ $doc->tipoProcesso->nome }}
+                                        </span>
+                                        @else
+                                        <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">
+                                            Todos os processos
+                                        </span>
+                                        @endif
                                         @if($doc->escopo_competencia)
                                         <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">
                                             {{ ucfirst($doc->escopo_competencia) }}
@@ -504,6 +513,46 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Filtrar documentos comuns quando o tipo de processo for selecionado
+    const tipoProcessoSelect = document.getElementById('tipo_processo_id');
+    if (tipoProcessoSelect) {
+        tipoProcessoSelect.addEventListener('change', function() {
+            filtrarDocumentosComuns(this.value);
+        });
+        
+        // Aplica filtro inicial se já houver um valor selecionado
+        if (tipoProcessoSelect.value) {
+            filtrarDocumentosComuns(tipoProcessoSelect.value);
+        }
+    }
 });
+
+// Função para filtrar documentos comuns por tipo de processo
+function filtrarDocumentosComuns(tipoProcessoId) {
+    const container = document.getElementById('documentos-comuns-container');
+    if (!container) return;
+    
+    const documentos = container.querySelectorAll('.documento-comum-item');
+    let visiveis = 0;
+    
+    documentos.forEach(function(doc) {
+        const docTipoProcessoId = doc.getAttribute('data-tipo-processo-id');
+        
+        // Mostra se: não tem tipo_processo_id (aplica a todos) OU se o tipo_processo_id é igual ao selecionado
+        if (!docTipoProcessoId || docTipoProcessoId === '' || docTipoProcessoId === tipoProcessoId) {
+            doc.style.display = '';
+            visiveis++;
+        } else {
+            doc.style.display = 'none';
+        }
+    });
+    
+    // Atualiza o contador de documentos comuns
+    const contadorSpan = container.closest('.mb-6')?.querySelector('.bg-green-100.text-green-700');
+    if (contadorSpan) {
+        contadorSpan.textContent = visiveis + ' documento' + (visiveis !== 1 ? 's' : '');
+    }
+}
 </script>
 @endsection

@@ -112,9 +112,11 @@ class ListaDocumentoController extends Controller
             ->ordenado()
             ->get();
         
-        // Documentos comuns (apenas para visualização/informação)
+        // Documentos comuns - na criação mostra todos, pois o tipo de processo ainda não foi selecionado
+        // A view pode filtrar via JavaScript quando o usuário selecionar o tipo de processo
         $documentosComuns = TipoDocumentoObrigatorio::ativos()
             ->where('documento_comum', true)
+            ->with('tipoProcesso')
             ->ordenado()
             ->get();
             
@@ -236,9 +238,14 @@ class ListaDocumentoController extends Controller
             ->ordenado()
             ->get();
         
-        // Documentos comuns (apenas para visualização/informação)
+        // Documentos comuns filtrados pelo tipo de processo da lista
+        // Mostra documentos comuns que são para este tipo de processo OU para todos (tipo_processo_id = null)
         $documentosComuns = TipoDocumentoObrigatorio::ativos()
             ->where('documento_comum', true)
+            ->where(function($q) use ($listas_documento) {
+                $q->whereNull('tipo_processo_id')
+                  ->orWhere('tipo_processo_id', $listas_documento->tipo_processo_id);
+            })
             ->ordenado()
             ->get();
             

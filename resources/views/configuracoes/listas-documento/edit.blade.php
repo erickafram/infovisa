@@ -152,8 +152,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <div class="flex-1">
-                        <h4 class="text-sm font-semibold text-green-900 mb-1">Documentos Comuns ({{ $documentosComuns->count() }})</h4>
-                        <p class="text-xs text-green-800">Estes documentos são obrigatórios para todos os serviços e aplicados automaticamente.</p>
+                        <h4 class="text-sm font-semibold text-green-900 mb-1">Documentos Comuns para {{ $lista->tipoProcesso->nome ?? 'este tipo de processo' }} ({{ $documentosComuns->count() }})</h4>
+                        <p class="text-xs text-green-800">Estes documentos são obrigatórios para todos os serviços deste tipo de processo e aplicados automaticamente.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-3">
