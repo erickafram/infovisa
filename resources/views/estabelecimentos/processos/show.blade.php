@@ -1276,6 +1276,15 @@
                                                         @endif
                                                     @endif
                                                     
+                                                    {{-- Motivo da Rejeição --}}
+                                                    @if($documento->status_aprovacao === 'rejeitado' && $documento->motivo_rejeicao)
+                                                    <div class="w-full mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                                                        <p class="text-xs text-red-700">
+                                                            <span class="font-semibold">Motivo:</span> {{ $documento->motivo_rejeicao }}
+                                                        </p>
+                                                    </div>
+                                                    @endif
+                                                    
                                                     @if($documento->pasta_id)
                                                         <span class="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full"
                                                               x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
