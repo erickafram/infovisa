@@ -13,6 +13,7 @@ use App\Models\ProcessoDesignacao;
 use App\Models\OrdemServico;
 use App\Models\ProcessoDocumento;
 use App\Models\DocumentoResposta;
+use App\Models\Aviso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -262,6 +263,13 @@ class DashboardController extends Controller
             ->orderBy('ordem')
             ->get();
 
+        // Buscar avisos ativos para o nível de acesso do usuário
+        $avisos_sistema = Aviso::ativos()
+            ->paraNivel($usuario->nivel_acesso->value)
+            ->orderBy('tipo', 'desc') // urgente primeiro
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('admin.dashboard', compact(
             'stats',
             'usuarios_externos_recentes',
@@ -276,7 +284,8 @@ class DashboardController extends Controller
             'documentos_vencendo',
             'documentos_pendentes_aprovacao',
             'respostas_pendentes_aprovacao',
-            'atalhos_rapidos'
+            'atalhos_rapidos',
+            'avisos_sistema'
         ));
     }
 

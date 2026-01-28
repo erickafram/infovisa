@@ -423,6 +423,10 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             'modelos-documento' => 'modeloDocumento'
         ]);
         
+        // Avisos do Sistema - Admin e Gestor Estadual
+        Route::resource('avisos', \App\Http\Controllers\Admin\AvisoController::class);
+        Route::patch('avisos/{aviso}/toggle', [\App\Http\Controllers\Admin\AvisoController::class, 'toggleAtivo'])->name('avisos.toggle');
+        
         // Pactuação (Competências Municipais e Estaduais) - Admin e Gestor Estadual
         Route::prefix('pactuacao')->name('pactuacao.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PactuacaoController::class, 'index'])->name('index');

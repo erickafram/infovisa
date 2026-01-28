@@ -29,6 +29,31 @@
         @endif
     </div>
 
+    {{-- Avisos do Sistema --}}
+    @if(isset($avisos_sistema) && $avisos_sistema->count() > 0)
+    <div class="space-y-2">
+        @foreach($avisos_sistema as $aviso)
+        <div class="flex items-start gap-3 p-3 rounded-lg border {{ $aviso->tipo_color }}">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $aviso->tipo_icone }}"/>
+            </svg>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium">{{ $aviso->titulo }}</p>
+                <p class="text-xs mt-0.5 opacity-80">{{ $aviso->mensagem }}</p>
+                @if($aviso->link)
+                <a href="{{ $aviso->link }}" target="_blank" class="inline-flex items-center gap-1 text-xs mt-1 underline hover:opacity-80">
+                    {{ $aviso->link }}
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                </a>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <a href="{{ route('admin.documentos-pendentes.index') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
