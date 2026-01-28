@@ -114,11 +114,16 @@ class ProcessoController extends Controller
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
         
-        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO (filtrados por escopo e tipo_setor)
+        // ADICIONA DOCUMENTOS COMUNS PRIMEIRO (filtrados por escopo, tipo_setor e tipo_processo)
         // Documentos comuns são aplicados automaticamente quando há listas configuradas
         // para o tipo de processo e atividades do estabelecimento
         $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
             ->where('documento_comum', true)
+            ->where(function($q) use ($tipoProcessoId) {
+                // Filtra por tipo_processo_id: deve ser null (todos) ou igual ao tipo do processo
+                $q->whereNull('tipo_processo_id')
+                  ->orWhere('tipo_processo_id', $tipoProcessoId);
+            })
             ->where(function($q) use ($escopoCompetencia) {
                 $q->where('escopo_competencia', 'todos')
                   ->orWhere('escopo_competencia', $escopoCompetencia);

@@ -54,6 +54,7 @@ class TipoDocumentoObrigatorioController extends Controller
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
             'documento_comum' => 'boolean',
+            'tipo_processo_id' => 'nullable|exists:tipos_processo,id',
             'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
             'tipo_setor' => 'required|string|in:todos,publico,privado',
             'observacao_publica' => 'nullable|string',
@@ -64,6 +65,11 @@ class TipoDocumentoObrigatorioController extends Controller
         $validated['ativo'] = $request->has('ativo');
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        
+        // Se não é documento comum, limpa o tipo_processo_id
+        if (!$validated['documento_comum']) {
+            $validated['tipo_processo_id'] = null;
+        }
 
         TipoDocumentoObrigatorio::create($validated);
 
@@ -87,6 +93,7 @@ class TipoDocumentoObrigatorioController extends Controller
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
             'documento_comum' => 'boolean',
+            'tipo_processo_id' => 'nullable|exists:tipos_processo,id',
             'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
             'tipo_setor' => 'required|string|in:todos,publico,privado',
             'observacao_publica' => 'nullable|string',
@@ -97,6 +104,11 @@ class TipoDocumentoObrigatorioController extends Controller
         $validated['ativo'] = $request->has('ativo');
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        
+        // Se não é documento comum, limpa o tipo_processo_id
+        if (!$validated['documento_comum']) {
+            $validated['tipo_processo_id'] = null;
+        }
 
         $tipos_documento_obrigatorio->update($validated);
 

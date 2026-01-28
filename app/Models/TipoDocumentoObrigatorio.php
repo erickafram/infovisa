@@ -21,6 +21,7 @@ class TipoDocumentoObrigatorio extends Model
         'ativo',
         'ordem',
         'documento_comum',
+        'tipo_processo_id',
         'escopo_competencia',
         'tipo_setor',
         'observacao_publica',
@@ -34,6 +35,14 @@ class TipoDocumentoObrigatorio extends Model
         'ordem' => 'integer',
         'prazo_validade_dias' => 'integer',
     ];
+
+    /**
+     * Relacionamento com tipo de processo (para documentos comuns)
+     */
+    public function tipoProcesso()
+    {
+        return $this->belongsTo(TipoProcesso::class);
+    }
 
     /**
      * Relacionamento com listas de documento (estrutura antiga - mantida para compatibilidade)
