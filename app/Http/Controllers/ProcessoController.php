@@ -89,7 +89,7 @@ class ProcessoController extends Controller
         $listas = $query->get();
 
         // Se não há listas para este tipo de processo, retorna vazio
-        // (não mostra documentos comuns se não há lista configurada para o tipo de processo)
+        // (não mostra documentos se não há lista configurada para o tipo de processo)
         if ($listas->isEmpty()) {
             return collect();
         }
@@ -115,12 +115,15 @@ class ProcessoController extends Controller
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
         
+        // Coleta IDs das listas aplicáveis para buscar documentos comuns
+        $listasIds = $listas->pluck('id');
+        
         // ADICIONA DOCUMENTOS COMUNS PRIMEIRO (filtrados por escopo e tipo_setor)
-        // Só adiciona documentos comuns se existem listas configuradas para este tipo de processo
+        // Busca documentos comuns que estão vinculados às listas aplicáveis
         $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
             ->where('documento_comum', true)
-            ->whereHas('listasDocumento', function($q) use ($tipoProcessoId) {
-                $q->where('tipo_processo_id', $tipoProcessoId);
+            ->whereHas('listasDocumento', function($q) use ($listasIds) {
+                $q->whereIn('listas_documento.id', $listasIds);
             })
             ->where(function($q) use ($escopoCompetencia) {
                 $q->where('escopo_competencia', 'todos')
