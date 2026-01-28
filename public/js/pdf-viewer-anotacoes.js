@@ -4,6 +4,9 @@
 let _pdfDocInstance = null;
 let _currentRenderTask = null;
 
+// Base URL para as requisições (definida no layout)
+const APP_BASE_URL = window.APP_BASE_URL || '';
+
 function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
     return {
         documentoId: documentoId,
@@ -80,7 +83,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
 
         async carregarAnotacoesExistentes() {
             try {
-                const response = await fetch(`/admin/processos/documentos/${this.documentoId}/anotacoes`, {
+                const response = await fetch(`${APP_BASE_URL}/admin/processos/documentos/${this.documentoId}/anotacoes`, {
                     headers: {
                         'Accept': 'application/json'
                     },
@@ -523,7 +526,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
 
         async salvarAnotacoes() {
             try {
-                const response = await fetch(`/admin/processos/documentos/${this.documentoId}/anotacoes`, {
+                const response = await fetch(`${APP_BASE_URL}/admin/processos/documentos/${this.documentoId}/anotacoes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

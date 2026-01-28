@@ -3193,14 +3193,16 @@
                     this.exclusaoErro = '';
 
                     try {
+                        // Usa POST com _method=DELETE para compatibilidade com servidores que não aceitam DELETE
                         const response = await fetch(this.exclusaoUrl, {
-                            method: 'DELETE',
+                            method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify({
+                                _method: 'DELETE',
                                 senha_assinatura: this.senhaExclusao
                             })
                         });
@@ -3226,7 +3228,7 @@
                         'documento_digital',
                         documentoId,
                         nomeDocumento || 'Documento Digital',
-                        `/admin/documentos/${documentoId}`
+                        `{{ url('/admin/documentos') }}/${documentoId}`
                     );
                 },
 

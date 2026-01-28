@@ -492,7 +492,8 @@ function assistenteDocumento() {
             if (!this.processoId || !this.estabelecimentoId) return;
             
             try {
-                const response = await fetch(`/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`, {
+                const baseUrl = window.APP_BASE_URL || '';
+                const response = await fetch(`${baseUrl}/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`, {
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }

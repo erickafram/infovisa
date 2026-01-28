@@ -416,6 +416,11 @@
         </div>
     </div>
 
+    {{-- Base URL para JavaScript --}}
+    <script>
+        window.APP_BASE_URL = '{{ rtrim(config('app.url'), '/') }}';
+    </script>
+
     {{-- PDF.js Library --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>

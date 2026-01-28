@@ -391,7 +391,8 @@ function assistenteEdicaoDocumento() {
             }
             
             try {
-                const url = `/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`;
+                const baseUrl = window.APP_BASE_URL || '';
+                const url = `${baseUrl}/admin/ia/documentos-processo/${this.estabelecimentoId}/${this.processoId}`;
                 console.log('Assistente Redação: URL busca', url);
                 
                 const response = await fetch(url, {

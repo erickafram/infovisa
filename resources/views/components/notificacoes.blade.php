@@ -285,7 +285,8 @@
 <script>
 // Função para marcar notificação como lida
 function marcarNotificacaoLida(notificacaoId) {
-    fetch(`/admin/notificacoes/${notificacaoId}/marcar-lida`, {
+    const baseUrl = window.APP_BASE_URL || '';
+    fetch(`${baseUrl}/admin/notificacoes/${notificacaoId}/marcar-lida`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
