@@ -12,7 +12,7 @@ return new class extends Migration
             $table->foreignId('tipo_processo_id')
                 ->nullable()
                 ->after('documento_comum')
-                ->constrained('tipos_processo')
+                ->constrained('tipo_processos')
                 ->onDelete('set null');
         });
 
