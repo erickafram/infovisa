@@ -20,33 +20,40 @@ class ChatInternoController extends Controller
      */
     public function usuarios(): JsonResponse
     {
-        $usuarioAtual = auth('interno')->user();
-        $onlineIds = ChatUsuarioOnline::getUsuariosOnlineIds();
+        try {
+            $usuarioAtual = auth('interno')->user();
+            $onlineIds = ChatUsuarioOnline::getUsuariosOnlineIds();
 
-        // Query otimizada: busca todos os usuários ativos
-        $usuarios = UsuarioInterno::where('id', '!=', $usuarioAtual->id)
-            ->where('ativo', true)
-            ->select('id', 'nome', 'nivel_acesso', 'municipio_id', 'municipio')
-            ->with('municipioRelacionado:id,nome')
-            ->orderBy('nome')
-            ->get()
-            ->map(function ($usuario) use ($onlineIds) {
-                return [
-                    'id' => $usuario->id,
-                    'nome' => $this->formatarNome($usuario->nome),
-                    'nome_completo' => $usuario->nome,
-                    'iniciais' => $this->getIniciais($usuario->nome),
-                    'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
-                    'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
-                    'online' => \in_array($usuario->id, $onlineIds),
-                    'nao_lidas' => 0, // Removido para performance - será mostrado na lista de conversas
-                ];
-            });
+            // Query otimizada: busca todos os usuários ativos
+            $usuarios = UsuarioInterno::where('id', '!=', $usuarioAtual->id)
+                ->where('ativo', true)
+                ->select('id', 'nome', 'nivel_acesso', 'municipio_id', 'municipio')
+                ->with('municipioRelacionado:id,nome')
+                ->orderBy('nome')
+                ->get()
+                ->map(function ($usuario) use ($onlineIds) {
+                    return [
+                        'id' => $usuario->id,
+                        'nome' => $this->formatarNome($usuario->nome),
+                        'nome_completo' => $usuario->nome,
+                        'iniciais' => $this->getIniciais($usuario->nome),
+                        'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
+                        'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
+                        'online' => \in_array($usuario->id, $onlineIds),
+                        'nao_lidas' => 0,
+                    ];
+                });
 
-        // Ordena: online primeiro
-        $usuarios = $usuarios->sortByDesc('online')->values();
+            // Ordena: online primeiro
+            $usuarios = $usuarios->sortByDesc('online')->values();
 
-        return response()->json($usuarios);
+            return response()->json($usuarios);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao carregar usuários do chat: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**
