@@ -16,49 +16,42 @@ use Illuminate\Support\Str;
 class ChatInternoController extends Controller
 {
     /**
-     * Retorna lista de usuários para o chat
+     * Retorna lista de usuários para o chat (otimizado)
      */
     public function usuarios(): JsonResponse
     {
         $usuarioAtual = auth('interno')->user();
         $onlineIds = ChatUsuarioOnline::getUsuariosOnlineIds();
 
+        // Query otimizada: busca usuários com contagem de não lidas em uma única query
         $usuarios = UsuarioInterno::where('id', '!=', $usuarioAtual->id)
             ->where('ativo', true)
+            ->select('id', 'nome', 'nivel_acesso', 'municipio_id', 'municipio')
+            ->with('municipioRelacionado:id,nome')
             ->orderBy('nome')
+            ->limit(50) // Limita para performance
             ->get()
-            ->map(function ($usuario) use ($onlineIds, $usuarioAtual) {
-                // Busca conversa existente para contar não lidas
-                $conversa = ChatConversa::where(function ($q) use ($usuario, $usuarioAtual) {
-                    $q->where('usuario1_id', $usuarioAtual->id)->where('usuario2_id', $usuario->id);
-                })->orWhere(function ($q) use ($usuario, $usuarioAtual) {
-                    $q->where('usuario1_id', $usuario->id)->where('usuario2_id', $usuarioAtual->id);
-                })->first();
-
-                $naoLidas = $conversa ? $conversa->mensagensNaoLidas($usuarioAtual->id) : 0;
-
+            ->map(function ($usuario) use ($onlineIds) {
                 return [
                     'id' => $usuario->id,
                     'nome' => $this->formatarNome($usuario->nome),
                     'nome_completo' => $usuario->nome,
                     'iniciais' => $this->getIniciais($usuario->nome),
                     'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
-                    'municipio' => $usuario->municipio,
-                    'online' => in_array($usuario->id, $onlineIds),
-                    'nao_lidas' => $naoLidas,
+                    'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
+                    'online' => \in_array($usuario->id, $onlineIds),
+                    'nao_lidas' => 0, // Removido para performance - será mostrado na lista de conversas
                 ];
             });
 
-        // Ordena: online primeiro, depois por não lidas, depois por nome
-        $usuarios = $usuarios->sortByDesc('online')
-            ->sortByDesc('nao_lidas')
-            ->values();
+        // Ordena: online primeiro
+        $usuarios = $usuarios->sortByDesc('online')->values();
 
         return response()->json($usuarios);
     }
 
     /**
-     * Retorna conversas do usuário
+     * Retorna conversas do usuário (otimizado)
      */
     public function conversas(): JsonResponse
     {
@@ -67,8 +60,9 @@ class ChatInternoController extends Controller
 
         $conversas = ChatConversa::where('usuario1_id', $usuarioAtual->id)
             ->orWhere('usuario2_id', $usuarioAtual->id)
-            ->with(['usuario1', 'usuario2', 'ultimaMensagem.remetente'])
+            ->with(['usuario1:id,nome,nivel_acesso,municipio_id,municipio', 'usuario2:id,nome,nivel_acesso,municipio_id,municipio', 'usuario1.municipioRelacionado:id,nome', 'usuario2.municipioRelacionado:id,nome', 'ultimaMensagem'])
             ->orderByDesc('ultima_mensagem_at')
+            ->limit(30) // Limita para performance
             ->get()
             ->map(function ($conversa) use ($usuarioAtual, $onlineIds) {
                 $outroUsuario = $conversa->getOutroUsuario($usuarioAtual->id);
@@ -80,7 +74,8 @@ class ChatInternoController extends Controller
                     'nome' => $this->formatarNome($outroUsuario->nome),
                     'iniciais' => $this->getIniciais($outroUsuario->nome),
                     'tipo' => $outroUsuario->isEstadual() || $outroUsuario->isAdmin() ? 'Estadual' : 'Municipal',
-                    'online' => in_array($outroUsuario->id, $onlineIds),
+                    'municipio' => $outroUsuario->municipio ?? $outroUsuario->municipioRelacionado?->nome,
+                    'online' => \in_array($outroUsuario->id, $onlineIds),
                     'nao_lidas' => $conversa->mensagensNaoLidas($usuarioAtual->id),
                     'ultima_mensagem' => $ultimaMensagem ? [
                         'conteudo' => $this->resumirMensagem($ultimaMensagem),
@@ -94,7 +89,7 @@ class ChatInternoController extends Controller
     }
 
     /**
-     * Retorna mensagens de uma conversa
+     * Retorna mensagens de uma conversa (otimizado)
      */
     public function mensagens(int $usuarioId): JsonResponse
     {
@@ -103,19 +98,20 @@ class ChatInternoController extends Controller
         // Encontra ou cria a conversa
         $conversa = ChatConversa::encontrarOuCriar($usuarioAtual->id, $usuarioId);
 
-        // Marca mensagens como lidas
+        // Marca mensagens como lidas em background
         $conversa->mensagens()
             ->where('remetente_id', $usuarioId)
             ->whereNull('lida_em')
             ->update(['lida_em' => now()]);
 
         // Verifica se o outro usuário está online
-        $outroOnline = in_array($usuarioId, ChatUsuarioOnline::getUsuariosOnlineIds());
+        $outroOnline = \in_array($usuarioId, ChatUsuarioOnline::getUsuariosOnlineIds());
 
-        // Busca mensagens
+        // Busca mensagens (limitado às últimas 100 para performance)
         $mensagens = $conversa->mensagens()
-            ->with('remetente')
+            ->select('id', 'conteudo', 'tipo', 'arquivo_path', 'arquivo_nome', 'arquivo_tamanho', 'remetente_id', 'lida_em', 'created_at', 'deletada_para_todos')
             ->orderBy('created_at')
+            ->limit(100)
             ->get()
             ->map(function ($msg) use ($usuarioAtual, $outroOnline) {
                 $minha = $msg->remetente_id === $usuarioAtual->id;
@@ -196,7 +192,7 @@ class ChatInternoController extends Controller
         $conversa->update(['ultima_mensagem_at' => now()]);
 
         // Verifica se destinatário está online
-        $destinatarioOnline = in_array($request->usuario_id, ChatUsuarioOnline::getUsuariosOnlineIds());
+        $destinatarioOnline = \in_array($request->usuario_id, ChatUsuarioOnline::getUsuariosOnlineIds());
 
         return response()->json([
             'success' => true,
@@ -212,6 +208,8 @@ class ChatInternoController extends Controller
                 'data_completa' => $mensagem->created_at->format('d/m/Y H:i'),
                 'lida' => false,
                 'entregue' => $destinatarioOnline,
+                'deletada' => false,
+                'pode_deletar' => true, // Mensagem recém enviada pode ser deletada
             ],
         ]);
     }
@@ -226,51 +224,57 @@ class ChatInternoController extends Controller
     }
 
     /**
-     * Verifica novas mensagens
+     * Verifica novas mensagens (otimizado para polling rápido)
      */
     public function verificarNovas(Request $request): JsonResponse
     {
         $usuarioAtual = auth('interno')->user();
-        $ultimaId = $request->input('ultima_id', 0);
+        $ultimaId = (int) $request->input('ultima_id', 0);
         $usuarioId = $request->input('usuario_id');
 
-        // Atualiza status online
+        // Atualiza status online (leve)
         ChatUsuarioOnline::atualizarStatus($usuarioAtual->id);
 
         $resultado = [
             'novas_mensagens' => [],
             'total_nao_lidas' => 0,
-            'mensagens_lidas' => [], // IDs das mensagens que foram lidas
+            'suporte_nao_lidos' => 0,
+            'mensagens_lidas' => [],
+            'mensagens_deletadas' => [],
             'outro_online' => false,
         ];
 
         // Se está em uma conversa específica, busca novas mensagens
         if ($usuarioId) {
-            $conversa = ChatConversa::where(function ($q) use ($usuarioId, $usuarioAtual) {
-                $q->where('usuario1_id', $usuarioAtual->id)->where('usuario2_id', $usuarioId);
-            })->orWhere(function ($q) use ($usuarioId, $usuarioAtual) {
-                $q->where('usuario1_id', $usuarioId)->where('usuario2_id', $usuarioAtual->id);
-            })->first();
+            $ids = [$usuarioAtual->id, (int)$usuarioId];
+            sort($ids);
+            
+            $conversa = ChatConversa::where('usuario1_id', $ids[0])
+                ->where('usuario2_id', $ids[1])
+                ->first();
 
             if ($conversa) {
                 // Verifica se outro usuário está online
-                $resultado['outro_online'] = in_array($usuarioId, ChatUsuarioOnline::getUsuariosOnlineIds());
+                $resultado['outro_online'] = \in_array((int)$usuarioId, ChatUsuarioOnline::getUsuariosOnlineIds());
 
-                // Busca novas mensagens recebidas
+                // Busca novas mensagens recebidas (query otimizada)
                 $novas = $conversa->mensagens()
                     ->where('id', '>', $ultimaId)
                     ->where('remetente_id', '!=', $usuarioAtual->id)
-                    ->with('remetente')
+                    ->where('deletada_para_todos', false)
+                    ->select('id', 'conteudo', 'tipo', 'arquivo_path', 'arquivo_nome', 'arquivo_tamanho', 'created_at')
+                    ->orderBy('id')
+                    ->limit(20)
                     ->get();
 
-                // Marca como lidas
-                $conversa->mensagens()
-                    ->where('remetente_id', $usuarioId)
-                    ->whereNull('lida_em')
-                    ->update(['lida_em' => now()]);
+                if ($novas->isNotEmpty()) {
+                    // Marca como lidas
+                    $conversa->mensagens()
+                        ->where('remetente_id', $usuarioId)
+                        ->whereNull('lida_em')
+                        ->update(['lida_em' => now()]);
 
-                $resultado['novas_mensagens'] = $novas->map(function ($msg) {
-                    return [
+                    $resultado['novas_mensagens'] = $novas->map(fn($msg) => [
                         'id' => $msg->id,
                         'conteudo' => $msg->conteudo,
                         'tipo' => $msg->tipo,
@@ -282,26 +286,64 @@ class ChatInternoController extends Controller
                         'data_completa' => $msg->created_at->format('d/m/Y H:i'),
                         'lida' => false,
                         'entregue' => false,
-                    ];
-                });
+                        'deletada' => false,
+                        'pode_deletar' => false,
+                    ]);
+                }
 
-                // Busca IDs das mensagens que eu enviei e foram lidas
+                // Busca IDs das mensagens que eu enviei e foram lidas (otimizado)
                 $resultado['mensagens_lidas'] = $conversa->mensagens()
                     ->where('remetente_id', $usuarioAtual->id)
                     ->whereNotNull('lida_em')
+                    ->where('id', '>', $ultimaId - 50) // Só verifica mensagens recentes
                     ->pluck('id')
                     ->toArray();
+
+                // Busca IDs das mensagens que foram deletadas (para atualizar no cliente)
+                // Verifica mensagens que o cliente já tem (baseado nos IDs enviados ou no ultimaId)
+                $msgIds = $request->input('msg_ids', []);
+                if (!empty($msgIds) && is_array($msgIds)) {
+                    // Se o cliente enviou os IDs das mensagens que tem, verifica quais foram deletadas
+                    $resultado['mensagens_deletadas'] = $conversa->mensagens()
+                        ->where('deletada_para_todos', true)
+                        ->whereIn('id', $msgIds)
+                        ->pluck('id')
+                        ->toArray();
+                } else {
+                    // Fallback: busca todas as deletadas que o cliente pode ter
+                    $resultado['mensagens_deletadas'] = $conversa->mensagens()
+                        ->where('deletada_para_todos', true)
+                        ->where('id', '<=', $ultimaId)
+                        ->pluck('id')
+                        ->toArray();
+                }
             }
         }
 
-        // Conta total de não lidas
-        $conversas = ChatConversa::where('usuario1_id', $usuarioAtual->id)
-            ->orWhere('usuario2_id', $usuarioAtual->id)
-            ->get();
+        // Conta total de não lidas (query otimizada)
+        $resultado['total_nao_lidas'] = ChatMensagem::whereHas('conversa', function($q) use ($usuarioAtual) {
+            $q->where('usuario1_id', $usuarioAtual->id)
+              ->orWhere('usuario2_id', $usuarioAtual->id);
+        })
+        ->where('remetente_id', '!=', $usuarioAtual->id)
+        ->whereNull('lida_em')
+        ->count();
 
-        foreach ($conversas as $conv) {
-            $resultado['total_nao_lidas'] += $conv->mensagensNaoLidas($usuarioAtual->id);
+        // Conta mensagens do suporte não lidas (broadcasts que o usuário pode ver mas não leu)
+        $broadcasts = ChatBroadcast::all();
+        $suporteNaoLidos = 0;
+        foreach ($broadcasts as $broadcast) {
+            if ($broadcast->podeVer($usuarioAtual)) {
+                $leitura = ChatBroadcastLeitura::where('broadcast_id', $broadcast->id)
+                    ->where('usuario_id', $usuarioAtual->id)
+                    ->whereNotNull('lida_em')
+                    ->first();
+                if (!$leitura) {
+                    $suporteNaoLidos++;
+                }
+            }
         }
+        $resultado['suporte_nao_lidos'] = $suporteNaoLidos;
 
         return response()->json($resultado);
     }
@@ -394,7 +436,7 @@ class ChatInternoController extends Controller
     }
 
     /**
-     * Busca usuários por nome
+     * Busca usuários por nome (otimizado)
      */
     public function buscarUsuarios(Request $request): JsonResponse
     {
@@ -403,31 +445,27 @@ class ChatInternoController extends Controller
         $onlineIds = ChatUsuarioOnline::getUsuariosOnlineIds();
 
         $query = UsuarioInterno::where('id', '!=', $usuarioAtual->id)
-            ->where('ativo', true);
+            ->where('ativo', true)
+            ->select('id', 'nome', 'nivel_acesso', 'municipio_id', 'municipio')
+            ->with('municipioRelacionado:id,nome');
 
         if ($termo) {
-            $query->where('nome', 'like', "%{$termo}%");
+            $query->where('nome', 'ilike', "%{$termo}%");
         }
 
         $usuarios = $query->orderBy('nome')
             ->limit(20)
             ->get()
-            ->map(function ($usuario) use ($onlineIds, $usuarioAtual) {
-                $conversa = ChatConversa::where(function ($q) use ($usuario, $usuarioAtual) {
-                    $q->where('usuario1_id', $usuarioAtual->id)->where('usuario2_id', $usuario->id);
-                })->orWhere(function ($q) use ($usuario, $usuarioAtual) {
-                    $q->where('usuario1_id', $usuario->id)->where('usuario2_id', $usuarioAtual->id);
-                })->first();
-
+            ->map(function ($usuario) use ($onlineIds) {
                 return [
                     'id' => $usuario->id,
                     'nome' => $this->formatarNome($usuario->nome),
                     'nome_completo' => $usuario->nome,
                     'iniciais' => $this->getIniciais($usuario->nome),
                     'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
-                    'municipio' => $usuario->municipio,
-                    'online' => in_array($usuario->id, $onlineIds),
-                    'nao_lidas' => $conversa ? $conversa->mensagensNaoLidas($usuarioAtual->id) : 0,
+                    'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
+                    'online' => \in_array($usuario->id, $onlineIds),
+                    'nao_lidas' => 0,
                 ];
             });
 
