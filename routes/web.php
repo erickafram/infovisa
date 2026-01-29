@@ -72,6 +72,7 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::get('/estabelecimentos/create/fisica', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'createFisica'])->name('estabelecimentos.create.fisica');
     Route::post('/estabelecimentos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'store'])->name('estabelecimentos.store');
     Route::post('/estabelecimentos/buscar-questionarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarQuestionarios'])->name('estabelecimentos.buscar-questionarios');
+    Route::get('/estabelecimentos/buscar-cnaes', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarCnaes'])->name('estabelecimentos.buscar-cnaes');
     Route::get('/estabelecimentos/{id}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'show'])->name('estabelecimentos.show');
     Route::get('/estabelecimentos/{id}/edit', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'edit'])->name('estabelecimentos.edit');
     Route::put('/estabelecimentos/{id}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'update'])->name('estabelecimentos.update');

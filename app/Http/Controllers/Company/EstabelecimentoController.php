@@ -26,6 +26,31 @@ class EstabelecimentoController extends Controller
     }
 
     /**
+     * Busca CNAEs por código ou descrição
+     */
+    public function buscarCnaes(Request $request)
+    {
+        $query = $request->input('q', '');
+        
+        if (strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        // Busca nas pactuações cadastradas
+        $resultados = Pactuacao::where('ativo', true)
+            ->where(function($q) use ($query) {
+                $q->where('cnae_codigo', 'like', "%{$query}%")
+                  ->orWhere('cnae_descricao', 'ilike', "%{$query}%");
+            })
+            ->select('cnae_codigo as codigo', 'cnae_descricao as descricao')
+            ->distinct()
+            ->limit(20)
+            ->get();
+
+        return response()->json($resultados);
+    }
+
+    /**
      * Busca questionários para uma lista de CNAEs
      */
     public function buscarQuestionarios(Request $request)

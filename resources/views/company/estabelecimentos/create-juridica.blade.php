@@ -303,7 +303,33 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nome Fantasia <span class="text-red-500">*</span></label>
                             <input type="text" name="nome_fantasia" x-model="dados.nome_fantasia"
                                    @input="dados.nome_fantasia = $event.target.value.toUpperCase()"
+                                   :class="dados.tipo_setor === 'publico' ? 'border-2 border-yellow-400 bg-yellow-50' : ''"
                                    class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 uppercase">
+                            
+                            {{-- Alerta para estabelecimentos públicos --}}
+                            <div x-show="dados.tipo_setor === 'publico'" 
+                                 x-cloak
+                                 class="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-yellow-800 mb-1">⚠️ Atenção: Estabelecimento Público</p>
+                                        <p class="text-xs text-yellow-700 leading-relaxed">
+                                            O nome fantasia que veio da API pode ser genérico (ex: "Fundo Municipal de Saúde"). 
+                                            <strong>Altere para o nome específico da unidade</strong>, como:
+                                        </p>
+                                        <ul class="text-xs text-yellow-700 mt-2 space-y-1 ml-4">
+                                            <li>• Hospital Municipal [Nome]</li>
+                                            <li>• Laboratório Central de Saúde Pública</li>
+                                            <li>• UBS [Nome do Bairro]</li>
+                                            <li>• HPP - Hospital de Pequeno Porte</li>
+                                            <li>• Centro de Especialidades</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Natureza Jurídica</label>
@@ -365,6 +391,26 @@
                 {{-- Aba: Endereço --}}
                 <div x-show="abaAtiva === 'endereco'" x-cloak>
                     <h3 class="text-lg font-medium text-gray-900 mb-6">Endereço do Estabelecimento</h3>
+                    
+                    {{-- Alerta para estabelecimentos públicos --}}
+                    <div x-show="dados.tipo_setor === 'publico'" 
+                         x-cloak
+                         class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Atenção: Endereço do Estabelecimento Público</p>
+                                <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                    O endereço que veio da API é o endereço da <strong>sede administrativa</strong> (Prefeitura, Secretaria de Saúde, etc.).
+                                </p>
+                                <p class="text-xs text-yellow-700 leading-relaxed">
+                                    <strong>Altere para o endereço real da unidade de saúde</strong> que está sendo cadastrada (Hospital, UBS, Laboratório, etc.).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                         <div>
@@ -450,8 +496,8 @@
                         </label>
                         <p class="text-xs text-gray-500 mb-3">Marque apenas as atividades que serão efetivamente exercidas neste estabelecimento.</p>
                         
-                        {{-- Aviso sobre Taxa DARE Cumulativa --}}
-                        <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
+                        {{-- Aviso sobre Taxa DARE Cumulativa (apenas para estabelecimentos privados) --}}
+                        <div x-show="dados.tipo_setor !== 'publico'" class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
                             <div class="flex items-start gap-3">
                                 <div class="flex-shrink-0">
                                     <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,11 +551,68 @@
                                            @change="buscarQuestionarios()"
                                            class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                     <div class="flex-1">
-                                        <span class="font-mono text-sm text-gray-900" x-text="cnae.codigo"></span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-mono text-sm text-gray-900" x-text="cnae.codigo"></span>
+                                            <span x-show="cnae.manual" class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">Manual</span>
+                                        </div>
                                         <span class="text-sm text-gray-600" x-text="' - ' + (cnae.descricao || cnae.texto || '')"></span>
                                     </div>
                                 </label>
                             </template>
+                        </div>
+                        
+                        {{-- Busca de CNAE Manual (Apenas Público) --}}
+                        <div x-show="dados.tipo_setor === 'publico'" class="mt-4 bg-white border-2 border-dashed border-blue-300 rounded-lg p-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <h4 class="text-base font-semibold text-blue-800">Adicionar Atividade Manualmente</h4>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Para estabelecimentos públicos (Prefeituras, Fundos Municipais) que não possuem os CNAEs de saúde vinculados ao CNPJ, 
+                                você pode buscar e adicionar manualmente a atividade correta aqui.
+                            </p>
+                            
+                            <div class="flex gap-2">
+                                <div class="flex-1 relative">
+                                    <input type="text" 
+                                           x-model="cnaeBusca"
+                                           @keydown.enter.prevent="buscarCnaeAdicional"
+                                           placeholder="Digite o código CNAE (7 dígitos) ou descrição" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <p x-show="cnaeErro" class="absolute text-xs text-red-600 mt-1" x-text="cnaeErro"></p>
+                                </div>
+                                <button type="button" 
+                                        @click="buscarCnaeAdicional"
+                                        :disabled="loadingCnae"
+                                        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                                    <span x-show="!loadingCnae">Buscar</span>
+                                    <span x-show="loadingCnae" class="flex items-center gap-2">
+                                        <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Buscando...
+                                    </span>
+                                </button>
+                            </div>
+
+                            {{-- Resultados da Busca --}}
+                            <div x-show="cnaeResultados.length > 0" class="mt-4 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                                <template x-for="resultado in cnaeResultados" :key="resultado.codigo">
+                                    <div class="flex items-start justify-between p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" x-text="resultado.codigo"></span>
+                                            </div>
+                                            <p class="text-sm text-gray-800 mt-1" x-text="resultado.descricao"></p>
+                                        </div>
+                                        <button type="button" 
+                                                @click="adicionarCnaeManual(resultado)"
+                                                class="ml-3 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white border border-blue-200 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors">
+                                            Adicionar
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
 
@@ -896,6 +999,70 @@
                 </div>
             </div>
         </div>
+
+        {{-- Modal de Estabelecimentos Existentes --}}
+        <div x-show="modalEstabelecimentosExistentes.visivel" 
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+            
+            {{-- Modal --}}
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="relative bg-white rounded-lg shadow-2xl max-w-lg w-full mx-auto transform transition-all"
+                     @click.away="fecharModalEstabelecimentos()">
+                    
+                    {{-- Header --}}
+                    <div class="bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-3 rounded-t-lg">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-base font-bold text-white">Estabelecimentos Já Cadastrados</h3>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {{-- Body --}}
+                    <div class="px-4 py-4">
+                        {{-- Lista de Estabelecimentos --}}
+                        <div class="space-y-2 mb-3">
+                            <template x-for="(estabelecimento, index) in modalEstabelecimentosExistentes.estabelecimentos" :key="index">
+                                <div class="flex items-center gap-2 p-2 bg-blue-50 border-l-4 border-blue-500 rounded-r">
+                                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-gray-900" x-text="estabelecimento.nome_fantasia"></p>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        {{-- Informação --}}
+                        <div class="bg-green-50 border-l-4 border-green-400 p-2 rounded-r">
+                            <p class="text-xs text-green-700">
+                                ✅ Você pode cadastrar outro estabelecimento com o mesmo CNPJ (Hospital, Laboratório, UBS, etc.)
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 px-4 py-3 rounded-b-lg flex justify-end gap-2">
+                        <button type="button"
+                                @click="cancelarCadastro()"
+                                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                @click="continuarCadastro()"
+                                class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors">
+                            Continuar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -928,6 +1095,15 @@ function estabelecimentoFormCompany() {
             visivel: false,
             mensagens: []
         },
+        modalEstabelecimentosExistentes: {
+            visivel: false,
+            estabelecimentos: []
+        },
+        // Busca manual de CNAE (para estabelecimentos públicos)
+        cnaeBusca: '',
+        cnaeErro: '',
+        loadingCnae: false,
+        cnaeResultados: [],
         dados: {
             cnpj: '',
             razao_social: '',
@@ -1099,11 +1275,13 @@ function estabelecimentoFormCompany() {
             this.mensagem = '';
 
             try {
+                // Primeiro busca na API externa (BrasilAPI)
                 const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
                 if (!response.ok) throw new Error('CNPJ não encontrado');
                 
                 const data = await response.json();
                 
+                // Preenche os dados
                 this.dados.cnpj = this.cnpjBusca;
                 this.dados.razao_social = data.razao_social || '';
                 this.dados.nome_fantasia = data.nome_fantasia || data.razao_social || '';
@@ -1144,9 +1322,27 @@ function estabelecimentoFormCompany() {
                 }
                 this.dados.email = data.email || '';
 
-                // Tipo de setor
+                // Tipo de setor baseado na natureza jurídica
                 const natureza = (data.natureza_juridica || '').toLowerCase();
-                this.dados.tipo_setor = (natureza.includes('público') || natureza.includes('administração pública')) ? 'publico' : 'privado';
+                const tipoSetor = (natureza.includes('público') || natureza.includes('administração pública')) ? 'publico' : 'privado';
+                this.dados.tipo_setor = tipoSetor;
+
+                // Se for PÚBLICO, verifica se já existem estabelecimentos com este CNPJ
+                if (tipoSetor === 'publico') {
+                    try {
+                        const verificarResponse = await fetch(`{{ url('/api/verificar-cnpj') }}/${cnpj}`);
+                        if (verificarResponse.ok) {
+                            const verificarData = await verificarResponse.json();
+                            if (verificarData.existe && verificarData.estabelecimentos && verificarData.estabelecimentos.length > 0) {
+                                this.modalEstabelecimentosExistentes.estabelecimentos = verificarData.estabelecimentos;
+                                this.modalEstabelecimentosExistentes.visivel = true;
+                                return; // Aguarda decisão do usuário no modal
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Erro ao verificar estabelecimentos existentes:', e);
+                    }
+                }
 
                 this.dadosCarregados = true;
                 this.mensagem = 'Dados carregados com sucesso!';
@@ -1466,6 +1662,120 @@ function estabelecimentoFormCompany() {
             }
             
             this.submitting = true;
+        },
+
+        // Funções do Modal de Estabelecimentos Existentes
+        fecharModalEstabelecimentos() {
+            this.modalEstabelecimentosExistentes.visivel = false;
+            this.modalEstabelecimentosExistentes.estabelecimentos = [];
+        },
+
+        cancelarCadastro() {
+            this.fecharModalEstabelecimentos();
+            this.dadosCarregados = false;
+            this.cnpjBusca = '';
+            this.dados = {
+                cnpj: '',
+                razao_social: '',
+                nome_fantasia: '',
+                natureza_juridica: '',
+                porte: '',
+                descricao_situacao_cadastral: '',
+                data_situacao_cadastral: '',
+                data_inicio_atividade: '',
+                data_inicio_atividade_raw: '',
+                capital_social: '',
+                cnae_fiscal: '',
+                cnae_fiscal_descricao: '',
+                cnaes_secundarios: [],
+                endereco: '',
+                numero: '',
+                complemento: '',
+                bairro: '',
+                cidade: '',
+                estado: '',
+                cep: '',
+                codigo_municipio_ibge: '',
+                telefone: '',
+                email: '',
+                tipo_setor: 'privado'
+            };
+        },
+
+        continuarCadastro() {
+            this.fecharModalEstabelecimentos();
+            this.mensagem = '✅ Dados encontrados com sucesso! Você pode continuar o cadastro.';
+            this.tipoMensagem = 'success';
+            this.dadosCarregados = true;
+        },
+
+        // Métodos para busca manual de CNAE
+        async buscarCnaeAdicional() {
+            if (!this.cnaeBusca || this.cnaeBusca.length < 3) {
+                this.cnaeErro = 'Digite pelo menos 3 caracteres para buscar';
+                return;
+            }
+            
+            this.cnaeErro = '';
+            this.loadingCnae = true;
+            this.cnaeResultados = [];
+
+            try {
+                // Se for código (apenas números)
+                if (/^\d+$/.test(this.cnaeBusca)) {
+                    const response = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/${this.cnaeBusca}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.id) {
+                            this.cnaeResultados = [{
+                                codigo: data.id,
+                                descricao: data.descricao
+                            }];
+                        }
+                    }
+                } else {
+                    // Busca na nossa rota local por descrição
+                    const response = await fetch(`{{ route('company.estabelecimentos.buscar-cnaes') }}?q=${encodeURIComponent(this.cnaeBusca)}`);
+                    if (response.ok) {
+                        this.cnaeResultados = await response.json();
+                    }
+                }
+
+                if (this.cnaeResultados.length === 0) {
+                    this.cnaeErro = 'Nenhum CNAE encontrado';
+                }
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                this.cnaeErro = 'Erro ao buscar CNAE';
+            } finally {
+                this.loadingCnae = false;
+            }
+        },
+
+        adicionarCnaeManual(cnae) {
+            // Verifica se já existe na lista de secundários
+            const codigoCnae = String(cnae.codigo);
+            const existe = this.dados.cnaes_secundarios.some(c => String(c.codigo) === codigoCnae);
+            
+            if (!existe) {
+                // Adiciona à lista de secundários
+                this.dados.cnaes_secundarios.unshift({
+                    codigo: cnae.codigo,
+                    descricao: cnae.descricao,
+                    manual: true
+                });
+            }
+            
+            // Marca automaticamente
+            if (!this.atividadesExercidas.includes(codigoCnae)) {
+                this.atividadesExercidas.push(codigoCnae);
+            }
+            
+            // Limpa busca
+            this.cnaeBusca = '';
+            this.cnaeResultados = [];
+            this.mensagem = 'CNAE adicionado com sucesso!';
+            this.tipoMensagem = 'success';
         }
     }
 }
