@@ -89,7 +89,7 @@ class ConfiguracaoSistemaController extends Controller
         
         // Remove logomarca se solicitado
         if ($request->has('remover_logomarca_estadual') && $config && $config->valor) {
-            Storage::delete(str_replace('storage/', 'public/', $config->valor));
+            Storage::disk('public')->delete('sistema/logomarcas/' . basename($config->valor));
             $config->update(['valor' => null]);
             
             return redirect()
@@ -101,13 +101,22 @@ class ConfiguracaoSistemaController extends Controller
         if ($request->hasFile('logomarca_estadual')) {
             // Remove logomarca antiga se existir
             if ($config && $config->valor) {
-                Storage::delete(str_replace('storage/', 'public/', $config->valor));
+                Storage::disk('public')->delete('sistema/logomarcas/' . basename($config->valor));
             }
             
             $arquivo = $request->file('logomarca_estadual');
             $nomeArquivo = 'logomarca_estado_tocantins_' . time() . '.' . $arquivo->getClientOriginalExtension();
-            $caminho = $arquivo->storeAs('public/sistema/logomarcas', $nomeArquivo);
-            $caminhoPublico = str_replace('public/', 'storage/', $caminho);
+            
+            // Usa o disco 'public' que aponta para storage/app/public
+            $caminho = $arquivo->storeAs('sistema/logomarcas', $nomeArquivo, 'public');
+            
+            if (!$caminho) {
+                return redirect()
+                    ->route('admin.configuracoes.sistema.index')
+                    ->with('error', 'Erro ao salvar o arquivo. Verifique as permissões.');
+            }
+            
+            $caminhoPublico = 'storage/' . $caminho;
             
             ConfiguracaoSistema::definir(
                 'logomarca_estadual',
