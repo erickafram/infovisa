@@ -49,9 +49,10 @@ class ChatInternoController extends Controller
                 });
 
             // Ordena: online primeiro
-            $usuarios = $usuarios->sortByDesc('online')->values();
+            $usuarios = $usuarios->sortByDesc('online')->values()->toArray();
 
-            return response()->json($usuarios);
+            // Retorna com flag para substituir caracteres UTF-8 inválidos
+            return response()->json($usuarios, 200, [], JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Exception $e) {
             \Log::error('Erro ao carregar usuários do chat: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -69,13 +70,16 @@ class ChatInternoController extends Controller
             return '';
         }
         
-        // Remove caracteres inválidos de UTF-8
-        $string = mb_convert_encoding($string, 'UTF-8', 'UTF-8');
+        // Converte de Latin1/ISO-8859-1 para UTF-8 se necessário
+        if (!mb_check_encoding($string, 'UTF-8')) {
+            $string = mb_convert_encoding($string, 'UTF-8', 'ISO-8859-1');
+        }
         
         // Remove caracteres de controle exceto newline e tab
-        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $string);
+        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $string ?? '');
         
-        return $string ?? '';
+        // Garante que é UTF-8 válido
+        return iconv('UTF-8', 'UTF-8//IGNORE', $string ?? '') ?: '';
     }
 
     /**
@@ -499,9 +503,9 @@ class ChatInternoController extends Controller
                     'online' => \in_array($usuario->id, $onlineIds),
                     'nao_lidas' => 0,
                 ];
-            });
+            })->toArray();
 
-        return response()->json($usuarios);
+        return response()->json($usuarios, 200, [], JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     /**
