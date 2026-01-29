@@ -100,11 +100,12 @@
                 @endif
 
                 <div class="space-y-4">
-                    <label class="block">
+                    <div class="block">
                         <span class="text-sm font-medium text-gray-700 mb-2 block">
                             {{ $logomarcaEstadual && $logomarcaEstadual->valor ? 'Substituir Logomarca' : 'Fazer Upload da Logomarca' }}
                         </span>
-                        <div class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer">
+                        <div class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
+                             onclick="document.getElementById('input-logomarca-estadual').click()">
                             <div class="text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -119,11 +120,12 @@
                             </div>
                         </div>
                         <input type="file" 
+                               id="input-logomarca-estadual"
                                name="logomarca_estadual" 
                                accept="image/jpeg,image/png,image/jpg,image/svg+xml"
                                class="hidden"
                                onchange="previewLogoEstadual(event)">
-                    </label>
+                    </div>
 
                     <div id="preview-container-estadual" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <p class="text-sm text-blue-700 font-semibold mb-3">Prévia da nova logomarca:</p>
