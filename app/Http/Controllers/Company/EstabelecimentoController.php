@@ -213,6 +213,46 @@ class EstabelecimentoController extends Controller
             $validated['respostas_questionario'] = json_decode($request->respostas_questionario, true);
         }
 
+        // ========================================
+        // PROCESSAMENTO: Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem)
+        // ========================================
+        $apenasAtividadesEspeciais = $request->input('apenas_atividades_especiais') === '1';
+        
+        if ($apenasAtividadesEspeciais) {
+            $atividadesEspeciais = [];
+            
+            if ($request->input('atividade_especial_projeto_arq') === '1') {
+                $atividadesEspeciais[] = [
+                    'codigo' => 'PROJ_ARQ',
+                    'descricao' => 'Projeto Arquitetônico - Análise de projeto arquitetônico para adequação sanitária',
+                    'especial' => true
+                ];
+            }
+            
+            if ($request->input('atividade_especial_rotulagem') === '1') {
+                $atividadesEspeciais[] = [
+                    'codigo' => 'ANAL_ROT',
+                    'descricao' => 'Análise de Rotulagem - Análise e aprovação de rótulos de produtos',
+                    'especial' => true
+                ];
+            }
+            
+            // Valida se pelo menos uma atividade especial foi selecionada
+            if (empty($atividadesEspeciais)) {
+                return back()->withErrors([
+                    'atividades_exercidas' => 'Você deve selecionar pelo menos uma atividade especial (Projeto Arquitetônico ou Análise de Rotulagem).'
+                ])->withInput();
+            }
+            
+            // Substitui as atividades exercidas pelas atividades especiais
+            $validated['atividades_exercidas'] = $atividadesEspeciais;
+            
+            Log::info('Cadastro com atividades especiais:', [
+                'atividades' => $atividadesEspeciais
+            ]);
+        }
+        // ========================================
+
         // Usuário externo - sempre pendente
         $validated['usuario_externo_id'] = auth('externo')->id();
         $validated['status'] = 'pendente';
@@ -630,6 +670,34 @@ class EstabelecimentoController extends Controller
                 ->with('error', 'Para abrir um processo, é obrigatório ter pelo menos um Responsável Legal cadastrado. Por favor, cadastre o responsável legal primeiro.');
         }
 
+        // ========================================
+        // VERIFICA SE TEM APENAS ATIVIDADES ESPECIAIS
+        // ========================================
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+        $apenasAtividadesEspeciais = false;
+        $atividadesEspeciaisCodigos = [];
+        
+        if (!empty($atividadesExercidas)) {
+            $apenasAtividadesEspeciais = true;
+            foreach ($atividadesExercidas as $atividade) {
+                $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+                $especial = is_array($atividade) ? ($atividade['especial'] ?? false) : false;
+                
+                if ($codigo) {
+                    // Se encontrar alguma atividade que não seja especial, não é "apenas especiais"
+                    if (!in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT']) && !$especial) {
+                        $apenasAtividadesEspeciais = false;
+                    }
+                    
+                    // Guarda os códigos das atividades especiais
+                    if (in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT']) || $especial) {
+                        $atividadesEspeciaisCodigos[] = $codigo;
+                    }
+                }
+            }
+        }
+        // ========================================
+
         // Busca tipos de processo disponíveis para usuários externos
         $tiposProcessoBase = \App\Models\TipoProcesso::where('ativo', true)
             ->where('usuario_externo_pode_abrir', true)
@@ -637,9 +705,30 @@ class EstabelecimentoController extends Controller
             ->orderBy('nome')
             ->get();
 
-        // Filtra tipos de processo baseado nas regras de anual/único
+        // Filtra tipos de processo baseado nas regras de anual/único E atividades especiais
         $anoAtual = date('Y');
-        $tiposProcesso = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual) {
+        $tiposProcesso = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual, $apenasAtividadesEspeciais, $atividadesEspeciaisCodigos) {
+            // ========================================
+            // FILTRO POR ATIVIDADES ESPECIAIS
+            // ========================================
+            if ($apenasAtividadesEspeciais) {
+                // Se tem apenas atividades especiais, só pode abrir processos vinculados a elas
+                $codigosPermitidos = [];
+                
+                if (in_array('PROJ_ARQ', $atividadesEspeciaisCodigos)) {
+                    $codigosPermitidos[] = 'projeto_arquitetonico';
+                }
+                if (in_array('ANAL_ROT', $atividadesEspeciaisCodigos)) {
+                    $codigosPermitidos[] = 'analise_rotulagem';
+                }
+                
+                // Se o tipo de processo não está na lista de permitidos, bloqueia
+                if (!in_array($tipo->codigo, $codigosPermitidos)) {
+                    return false;
+                }
+            }
+            // ========================================
+            
             // Se é único por estabelecimento, verifica se já existe algum processo deste tipo
             if ($tipo->unico_por_estabelecimento) {
                 $existeProcesso = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
@@ -702,28 +791,32 @@ class EstabelecimentoController extends Controller
             return $documentosPorTipoProcesso;
         }
 
-        // Extrai os códigos CNAE das atividades exercidas
+        // ========================================
+        // VERIFICA SE TEM ATIVIDADES ESPECIAIS
+        // ========================================
+        $temAtividadesEspeciais = false;
+        $atividadesEspeciaisCodigos = [];
+        
+        foreach ($atividadesExercidas as $atividade) {
+            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            $especial = is_array($atividade) ? ($atividade['especial'] ?? false) : false;
+            
+            if ($codigo && (in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT']) || $especial)) {
+                $temAtividadesEspeciais = true;
+                $atividadesEspeciaisCodigos[] = $codigo;
+            }
+        }
+        // ========================================
+
+        // Extrai os códigos CNAE das atividades exercidas (excluindo atividades especiais)
         $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
             $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+            // Ignora atividades especiais
+            if (in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
+                return null;
+            }
             return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
         })->filter()->values()->toArray();
-
-        if (empty($codigosCnae)) {
-            return $documentosPorTipoProcesso;
-        }
-
-        // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
-        $atividadeIds = \App\Models\Atividade::where('ativo', true)
-            ->where(function($query) use ($codigosCnae) {
-                foreach ($codigosCnae as $codigo) {
-                    $query->orWhere('codigo_cnae', $codigo);
-                }
-            })
-            ->pluck('id');
-
-        if ($atividadeIds->isEmpty()) {
-            return $documentosPorTipoProcesso;
-        }
 
         // Determina o escopo de competência e tipo de setor do estabelecimento
         $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
@@ -732,6 +825,89 @@ class EstabelecimentoController extends Controller
 
         // Para cada tipo de processo, busca as listas de documentos aplicáveis
         foreach ($tiposProcesso as $tipoProcesso) {
+            // ========================================
+            // BUSCA POR TIPO DE PROCESSO (para atividades especiais)
+            // ========================================
+            if ($temAtividadesEspeciais) {
+                // Mapeia atividade especial para código do tipo de processo
+                $codigoProcessoEspecial = null;
+                if (in_array('PROJ_ARQ', $atividadesEspeciaisCodigos) && $tipoProcesso->codigo === 'projeto_arquitetonico') {
+                    $codigoProcessoEspecial = 'projeto_arquitetonico';
+                } elseif (in_array('ANAL_ROT', $atividadesEspeciaisCodigos) && $tipoProcesso->codigo === 'analise_rotulagem') {
+                    $codigoProcessoEspecial = 'analise_rotulagem';
+                }
+                
+                if ($codigoProcessoEspecial) {
+                    // Busca listas vinculadas ao tipo de processo (sem filtrar por atividade)
+                    $queryEspecial = \App\Models\ListaDocumento::where('ativo', true)
+                        ->where('tipo_processo_id', $tipoProcesso->id)
+                        ->with(['tiposDocumentoObrigatorio' => function($q) {
+                            $q->orderBy('lista_documento_tipo.ordem');
+                        }]);
+
+                    // Filtra por escopo
+                    $queryEspecial->where(function($q) use ($estabelecimento) {
+                        $q->where('escopo', 'estadual');
+                        if ($estabelecimento->municipio_id) {
+                            $q->orWhere(function($q2) use ($estabelecimento) {
+                                $q2->where('escopo', 'municipal')
+                                   ->where('municipio_id', $estabelecimento->municipio_id);
+                            });
+                        }
+                    });
+
+                    $listasEspeciais = $queryEspecial->get();
+
+                    // Consolida os documentos
+                    $documentos = collect();
+                    foreach ($listasEspeciais as $lista) {
+                        foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                            $aplicaEscopo = $doc->escopo_competencia === 'todos' || $doc->escopo_competencia === $escopoCompetencia;
+                            $aplicaTipoSetor = $doc->tipo_setor === 'todos' || $doc->tipo_setor === $tipoSetor;
+                            
+                            if (!$aplicaEscopo || !$aplicaTipoSetor) {
+                                continue;
+                            }
+                            
+                            if (!$documentos->contains('id', $doc->id)) {
+                                $documentos->push([
+                                    'id' => $doc->id,
+                                    'nome' => $doc->nome,
+                                    'descricao' => $doc->descricao,
+                                    'obrigatorio' => $doc->pivot->obrigatorio,
+                                    'observacao' => $doc->pivot->observacao,
+                                    'lista_nome' => $lista->nome,
+                                ]);
+                            }
+                        }
+                    }
+
+                    if ($documentos->isNotEmpty()) {
+                        $documentosPorTipoProcesso[$tipoProcesso->codigo] = $documentos;
+                    }
+                    continue; // Pula para o próximo tipo de processo
+                }
+            }
+            // ========================================
+
+            // Se não tem CNAEs normais, pula
+            if (empty($codigosCnae)) {
+                continue;
+            }
+
+            // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
+            $atividadeIds = \App\Models\Atividade::where('ativo', true)
+                ->where(function($query) use ($codigosCnae) {
+                    foreach ($codigosCnae as $codigo) {
+                        $query->orWhere('codigo_cnae', $codigo);
+                    }
+                })
+                ->pluck('id');
+
+            if ($atividadeIds->isEmpty()) {
+                continue;
+            }
+
             $query = \App\Models\ListaDocumento::where('ativo', true)
                 ->where('tipo_processo_id', $tipoProcesso->id)
                 ->whereHas('atividades', function($q) use ($atividadeIds) {

@@ -67,6 +67,34 @@ class Pactuacao extends Model
      */
     public static function isAtividadeEstadual($cnaeCodigo, $municipio = null, $resposta = null)
     {
+        // Atividades especiais (Tabela VI) - Projeto Arquitetônico e Análise de Rotulagem
+        if (in_array($cnaeCodigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
+            $pactuacao = self::where('cnae_codigo', $cnaeCodigo)
+                ->where('tabela', 'VI')
+                ->where('ativo', true)
+                ->first();
+            
+            if (!$pactuacao) {
+                // Se não encontrou na pactuação, assume estadual por padrão
+                return true;
+            }
+            
+            // Verifica se o município está na lista de exceções (descentralizado)
+            if ($municipio && $pactuacao->municipios_excecao && is_array($pactuacao->municipios_excecao)) {
+                $municipioNormalizado = strtoupper(self::removerAcentos(trim($municipio)));
+                
+                foreach ($pactuacao->municipios_excecao as $municipioExcecao) {
+                    $municipioExcecaoNorm = strtoupper(self::removerAcentos(trim($municipioExcecao)));
+                    
+                    if ($municipioExcecaoNorm === $municipioNormalizado) {
+                        return false; // Descentralizado para o município
+                    }
+                }
+            }
+            
+            return true; // Competência estadual
+        }
+        
         $pactuacao = self::where('tipo', 'estadual')
             ->where('cnae_codigo', $cnaeCodigo)
             ->where('ativo', true)
@@ -230,7 +258,47 @@ class Pactuacao extends Model
      */
     public static function verificarCompetenciaAvancada($cnaeCodigo, $municipio = null, $resposta1 = null, $resposta2 = null)
     {
-        // Normaliza o código CNAE
+        // ========================================
+        // ATIVIDADES ESPECIAIS (Tabela VI)
+        // ========================================
+        // Verifica se é uma atividade especial (PROJ_ARQ, ANAL_ROT)
+        if (in_array($cnaeCodigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
+            $pactuacao = self::where('cnae_codigo', $cnaeCodigo)
+                ->where('tabela', 'VI')
+                ->where('ativo', true)
+                ->first();
+            
+            $resultado = [
+                'competencia' => 'estadual', // Padrão é estadual
+                'risco' => $pactuacao->classificacao_risco ?? 'medio',
+                'detalhes' => [
+                    'encontrado' => (bool)$pactuacao,
+                    'tabela' => 'VI',
+                    'atividade_especial' => true,
+                    'tipo_processo_codigo' => $pactuacao->tipo_processo_codigo ?? null
+                ]
+            ];
+            
+            // Verifica se o município está na lista de exceções (descentralizado)
+            if ($municipio && $pactuacao && $pactuacao->municipios_excecao && is_array($pactuacao->municipios_excecao)) {
+                $municipioNormalizado = strtoupper(self::removerAcentos(trim($municipio)));
+                
+                foreach ($pactuacao->municipios_excecao as $municipioExcecao) {
+                    $municipioExcecaoNorm = strtoupper(self::removerAcentos(trim($municipioExcecao)));
+                    
+                    if ($municipioExcecaoNorm === $municipioNormalizado) {
+                        $resultado['competencia'] = 'municipal';
+                        $resultado['detalhes']['descentralizado'] = true;
+                        break;
+                    }
+                }
+            }
+            
+            return $resultado;
+        }
+        // ========================================
+        
+        // Normaliza o código CNAE (apenas para códigos numéricos)
         $cnaeCodigo = preg_replace('/[^0-9]/', '', $cnaeCodigo);
         
         // Busca a pactuação

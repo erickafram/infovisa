@@ -37,10 +37,12 @@
                 <div>
                     <label for="tipo_processo_id" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Processo *</label>
                     <select name="tipo_processo_id" id="tipo_processo_id" required
+                            x-model="tipoProcessoId"
+                            @change="onTipoProcessoChange($event)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Selecione o tipo de processo...</option>
                         @foreach($tiposProcesso as $tp)
-                        <option value="{{ $tp->id }}" {{ old('tipo_processo_id', $lista->tipo_processo_id) == $tp->id ? 'selected' : '' }}>
+                        <option value="{{ $tp->id }}" data-codigo="{{ $tp->codigo }}" {{ old('tipo_processo_id', $lista->tipo_processo_id) == $tp->id ? 'selected' : '' }}>
                             {{ $tp->nome }}
                         </option>
                         @endforeach
@@ -89,9 +91,28 @@
             </div>
         </div>
 
-        {{-- Tipos de Serviço --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Tipos de Serviço Vinculados *</h3>
+        {{-- Aviso para Processos Especiais --}}
+        <div class="bg-white rounded-xl shadow-sm border border-purple-200 p-6 mb-6" 
+             x-show="isProcessoEspecial" x-transition>
+            <div class="flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-purple-800 mb-2">
+                        <strong>Processo Especial:</strong> Para Projeto Arquitetônico e Análise de Rotulagem, a lista é vinculada diretamente ao tipo de processo.
+                    </p>
+                    <p class="text-xs text-purple-700">
+                        Não é necessário selecionar tipos de serviço ou atividades (CNAEs). Os documentos serão exigidos para todos os estabelecimentos que abrirem este tipo de processo.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Tipos de Serviço (escondido para processos especiais) --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
+             x-show="!isProcessoEspecial" x-transition>
+            <h3 class="text-sm font-semibold text-gray-900 uppercase mb-4">Tipos de Serviço Vinculados <span x-show="!isProcessoEspecial">*</span></h3>
             <p class="text-xs text-gray-500 mb-4">Selecione os tipos de serviço que exigirão esta lista de documentos. Todas as atividades (CNAEs) dentro do tipo selecionado serão incluídas automaticamente.</p>
             
             @php
@@ -268,7 +289,34 @@
 <script>
 function listaDocumentoForm() {
     return {
-        escopo: '{{ old('escopo', $lista->escopo) }}'
+        escopo: '{{ old('escopo', $lista->escopo) }}',
+        tipoProcessoId: '{{ old('tipo_processo_id', $lista->tipo_processo_id) }}',
+        tipoProcessoCodigo: '{{ $lista->tipoProcesso->codigo ?? '' }}',
+        isProcessoEspecial: {{ in_array($lista->tipoProcesso->codigo ?? '', ['projeto_arquitetonico', 'analise_rotulagem']) ? 'true' : 'false' }},
+        
+        init() {
+            // Verifica se já tem um tipo de processo selecionado
+            if (this.tipoProcessoId) {
+                const select = document.getElementById('tipo_processo_id');
+                const option = select.querySelector(`option[value="${this.tipoProcessoId}"]`);
+                if (option) {
+                    this.tipoProcessoCodigo = option.dataset.codigo || '';
+                    this.isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(this.tipoProcessoCodigo);
+                }
+            }
+        },
+        
+        onTipoProcessoChange(event) {
+            const select = event.target;
+            const selectedOption = select.options[select.selectedIndex];
+            this.tipoProcessoCodigo = selectedOption.dataset.codigo || '';
+            this.isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(this.tipoProcessoCodigo);
+            
+            // Se for processo especial, limpa os tipos de serviço selecionados
+            if (this.isProcessoEspecial) {
+                document.querySelectorAll('input[name="tipos_servico[]"]').forEach(cb => cb.checked = false);
+            }
+        }
     }
 }
 
@@ -279,7 +327,13 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             const formData = new FormData(form);
             const documentos = [];
-            const atividades = formData.getAll('atividades[]');
+            const tiposServico = formData.getAll('tipos_servico[]');
+            
+            // Verifica se é processo especial
+            const tipoProcessoSelect = document.getElementById('tipo_processo_id');
+            const selectedOption = tipoProcessoSelect.options[tipoProcessoSelect.selectedIndex];
+            const tipoProcessoCodigo = selectedOption?.dataset?.codigo || '';
+            const isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(tipoProcessoCodigo);
             
             // Collect documentos data
             let index = 0;
@@ -301,9 +355,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('=== EDIT FORM DEBUG ===');
             console.log('Form submitting with:');
             console.log('Documentos:', documentos);
-            console.log('Atividades:', atividades);
+            console.log('Tipos Serviço:', tiposServico);
             console.log('Total documentos:', documentos.length);
-            console.log('Total atividades:', atividades.length);
+            console.log('Total tipos serviço:', tiposServico.length);
+            console.log('Is Processo Especial:', isProcessoEspecial);
             console.log('=======================');
             
             if (documentos.length === 0) {
@@ -312,8 +367,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
             
-            if (atividades.length === 0) {
-                alert('ERRO: Nenhuma atividade selecionada!');
+            // Só valida tipos de serviço se NÃO for processo especial
+            if (!isProcessoEspecial && tiposServico.length === 0) {
+                alert('ERRO: Nenhum tipo de serviço selecionado!');
                 e.preventDefault();
                 return false;
             }

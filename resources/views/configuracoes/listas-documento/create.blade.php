@@ -59,10 +59,12 @@
                             Tipo de Processo <span class="text-red-500">*</span>
                         </label>
                         <select name="tipo_processo_id" id="tipo_processo_id" required
+                                x-model="tipoProcessoId"
+                                @change="onTipoProcessoChange($event)"
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                             <option value="">Selecione o tipo de processo...</option>
                             @foreach($tiposProcesso as $tp)
-                            <option value="{{ $tp->id }}" {{ old('tipo_processo_id') == $tp->id ? 'selected' : '' }}>
+                            <option value="{{ $tp->id }}" data-codigo="{{ $tp->codigo }}" {{ old('tipo_processo_id') == $tp->id ? 'selected' : '' }}>
                                 {{ $tp->nome }}
                             </option>
                             @endforeach
@@ -100,8 +102,9 @@
             </div>
         </div>
 
-        {{-- Passo 2: Tipos de Serviço --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        {{-- Passo 2: Tipos de Serviço (escondido para processos especiais) --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6" 
+             x-show="!isProcessoEspecial" x-transition>
             <div class="bg-gradient-to-r from-violet-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-violet-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
@@ -180,11 +183,47 @@
             </div>
         </div>
 
+        {{-- Aviso para Processos Especiais (Projeto Arquitetônico / Análise de Rotulagem) --}}
+        <div class="bg-white rounded-xl shadow-sm border border-purple-200 overflow-hidden mb-6" 
+             x-show="isProcessoEspecial" x-transition>
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Processo Especial Selecionado</h3>
+                        <p class="text-xs text-gray-600 mt-0.5">Esta lista será vinculada diretamente ao tipo de processo</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-purple-800 mb-2">
+                            Para <strong>Projeto Arquitetônico</strong> e <strong>Análise de Rotulagem</strong>, a lista de documentos é vinculada diretamente ao tipo de processo.
+                        </p>
+                        <ul class="text-xs text-purple-700 space-y-1 list-disc list-inside">
+                            <li>Não é necessário selecionar tipos de serviço ou atividades (CNAEs)</li>
+                            <li>Os documentos serão exigidos para todos os estabelecimentos que abrirem este tipo de processo</li>
+                            <li>Esta configuração é independente das listas de documentos por atividade do Licenciamento Sanitário</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Passo 3: Nome e Descrição --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
             <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                    <div class="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold" x-text="isProcessoEspecial ? '2' : '3'"></div>
                     <div>
                         <h3 class="text-base font-semibold text-gray-900">Nome e Descrição</h3>
                         <p class="text-xs text-gray-600 mt-0.5">Identifique a lista (gerado automaticamente ou personalize)</p>
@@ -232,7 +271,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
             <div class="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+                    <div class="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center text-sm font-bold" x-text="isProcessoEspecial ? '3' : '4'"></div>
                     <div>
                         <h3 class="text-base font-semibold text-gray-900">Documentos Exigidos</h3>
                         <p class="text-xs text-gray-600 mt-0.5">Selecione os documentos específicos e veja os documentos comuns aplicados automaticamente</p>
@@ -436,6 +475,65 @@ function listaDocumentoForm() {
         nomeLista: '{{ old('nome', '') }}',
         tiposServicoSelecionados: @json(old('tipos_servico', [])),
         tiposServicoNomes: {},
+        tipoProcessoId: '{{ old('tipo_processo_id', '') }}',
+        tipoProcessoCodigo: '',
+        isProcessoEspecial: false,
+        
+        init() {
+            // Verifica se já tem um tipo de processo selecionado (old value)
+            if (this.tipoProcessoId) {
+                const select = document.getElementById('tipo_processo_id');
+                const option = select.querySelector(`option[value="${this.tipoProcessoId}"]`);
+                if (option) {
+                    this.tipoProcessoCodigo = option.dataset.codigo || '';
+                    this.isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(this.tipoProcessoCodigo);
+                }
+            }
+        },
+        
+        onTipoProcessoChange(event) {
+            const select = event.target;
+            const selectedOption = select.options[select.selectedIndex];
+            this.tipoProcessoCodigo = selectedOption.dataset.codigo || '';
+            this.isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(this.tipoProcessoCodigo);
+            
+            // Se for processo especial, limpa os tipos de serviço selecionados
+            if (this.isProcessoEspecial) {
+                this.tiposServicoSelecionados = [];
+                this.tiposServicoNomes = {};
+                // Desmarca todos os checkboxes de tipos de serviço
+                document.querySelectorAll('input[name="tipos_servico[]"]').forEach(cb => cb.checked = false);
+            }
+            
+            // Atualiza nome da lista
+            this.updateNomeListaProcessoEspecial();
+            
+            // Filtra documentos comuns
+            filtrarDocumentosComuns(this.tipoProcessoId);
+        },
+        
+        updateNomeListaProcessoEspecial() {
+            if (this.isProcessoEspecial) {
+                const select = document.getElementById('tipo_processo_id');
+                const selectedOption = select.options[select.selectedIndex];
+                const nomeProcesso = selectedOption.text;
+                
+                let sufixo = '';
+                if (this.escopo === 'estadual') {
+                    sufixo = ' - Estado';
+                } else if (this.escopo === 'municipal') {
+                    const municipioSelect = document.getElementById('municipio_id');
+                    const municipioNome = municipioSelect.options[municipioSelect.selectedIndex]?.text;
+                    if (municipioNome && municipioNome !== 'Selecione o município...') {
+                        sufixo = ' - ' + municipioNome;
+                    } else {
+                        sufixo = ' - Municipal';
+                    }
+                }
+                
+                this.nomeLista = nomeProcesso + sufixo;
+            }
+        },
         
         toggleTipoServico(id, nome) {
             const index = this.tiposServicoSelecionados.indexOf(id);
@@ -450,6 +548,12 @@ function listaDocumentoForm() {
         },
         
         updateNomeLista() {
+            // Se for processo especial, usa lógica diferente
+            if (this.isProcessoEspecial) {
+                this.updateNomeListaProcessoEspecial();
+                return;
+            }
+            
             // Só atualiza se o usuário não tiver digitado um nome personalizado
             const nomeInput = document.getElementById('nome');
             const nomeAtual = nomeInput.value.trim();
@@ -497,8 +601,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(form);
             const documentos = formData.getAll('documentos_selecionados[]');
             const tiposServico = formData.getAll('tipos_servico[]');
+            const tipoProcessoSelect = document.getElementById('tipo_processo_id');
+            const selectedOption = tipoProcessoSelect.options[tipoProcessoSelect.selectedIndex];
+            const tipoProcessoCodigo = selectedOption?.dataset?.codigo || '';
+            const isProcessoEspecial = ['projeto_arquitetonico', 'analise_rotulagem'].includes(tipoProcessoCodigo);
             
-            if (tiposServico.length === 0) {
+            // Só valida tipos de serviço se NÃO for processo especial
+            if (!isProcessoEspecial && tiposServico.length === 0) {
                 e.preventDefault();
                 alert('⚠️ Selecione pelo menos um tipo de serviço!');
                 document.querySelector('[name="tipos_servico[]"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });

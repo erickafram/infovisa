@@ -61,7 +61,8 @@
                                           'bg-orange-100 text-orange-800': resultado.tabela === 'II',
                                           'bg-red-100 text-red-800': resultado.tabela === 'III',
                                           'bg-purple-100 text-purple-800': resultado.tabela === 'IV',
-                                          'bg-green-100 text-green-800': resultado.tabela === 'V'
+                                          'bg-green-100 text-green-800': resultado.tabela === 'V',
+                                          'bg-indigo-100 text-indigo-800': resultado.tabela === 'VI'
                                       }"
                                       x-text="'Tabela ' + resultado.tabela"></span>
                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full"
@@ -153,6 +154,17 @@
                         Tabela V - Definir VISA
                         <span class="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                             {{ $tabelaV->count() }}
+                        </span>
+                    </div>
+                </button>
+                
+                <button @click="abaAtiva = 'tabela-vi'" 
+                        :class="abaAtiva === 'tabela-vi' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                    <div class="flex items-center gap-2">
+                        Tabela VI - Atividades de Processo
+                        <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            {{ $tabelaVI->count() }}
                         </span>
                     </div>
                 </button>
@@ -531,6 +543,111 @@
         </div>
     </div>
 
+    {{-- Tabela VI - Atividades de Processo (Projeto Arquitetônico / Análise de Rotulagem) --}}
+    <div x-show="abaAtiva === 'tabela-vi'" x-cloak>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Tabela VI - Atividades de Processo</h3>
+                    <p class="text-sm text-gray-600 mt-1">Atividades especiais para processos específicos (Projeto Arquitetônico, Análise de Rotulagem)</p>
+                </div>
+                <button @click="modalAdicionar = true; tipoModal = 'estadual'; tabelaSelecionada = 'VI'; municipioModal = null"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Adicionar Atividade
+                </button>
+            </div>
+
+            {{-- Informação sobre a Tabela VI --}}
+            <div class="mb-6 bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-indigo-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-indigo-800 mb-1">O que são Atividades de Processo?</h4>
+                        <p class="text-sm text-indigo-700">
+                            São atividades especiais que permitem estabelecimentos abrirem <strong>apenas</strong> processos específicos 
+                            (como Projeto Arquitetônico ou Análise de Rotulagem) sem precisar de licenciamento sanitário.
+                            Útil quando o licenciamento é de competência municipal mas o projeto/rotulagem é estadual.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            @if($tabelaVI->isEmpty())
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma atividade cadastrada</h3>
+                    <p class="mt-1 text-sm text-gray-500">Adicione atividades especiais para processos específicos</p>
+                </div>
+            @else
+                <div class="space-y-4">
+                    @foreach($tabelaVI as $pactuacao)
+                    <div class="border border-indigo-200 rounded-lg p-4 bg-indigo-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="font-mono font-semibold text-gray-900">{{ $pactuacao->cnae_codigo }}</span>
+                                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs rounded-full">Atividade Especial</span>
+                                    @if($pactuacao->tipo_processo_codigo)
+                                        <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                            Processo: {{ $pactuacao->tipo_processo_codigo }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">{{ $pactuacao->cnae_descricao }}</p>
+                                
+                                @if($pactuacao->observacao)
+                                    <div class="mt-2 text-xs text-gray-500 italic">
+                                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ $pactuacao->observacao }}
+                                    </div>
+                                @endif
+                                
+                                @if($pactuacao->municipios_excecao && count($pactuacao->municipios_excecao) > 0)
+                                    <div class="mt-3 pt-3 border-t border-indigo-200">
+                                        <p class="text-xs font-semibold text-indigo-800 mb-2">🏘️ Municípios Descentralizados:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach($pactuacao->municipios_excecao as $mun)
+                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">{{ $mun }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="mt-2 text-xs text-indigo-600">
+                                        🏛️ Competência: <strong>Estadual</strong> (não descentralizado)
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex flex-col gap-2 ml-4">
+                                <button @click="abrirModalEditarCompleto({{ $pactuacao->id }})" 
+                                        class="text-xs text-gray-600 hover:text-gray-900">
+                                    ✏️ Editar
+                                </button>
+                                <button @click="toggleStatus({{ $pactuacao->id }})" 
+                                        class="text-xs text-blue-600 hover:text-blue-900">
+                                    {{ $pactuacao->ativo ? '🔒 Desativar' : '✅ Ativar' }}
+                                </button>
+                                <button @click="remover({{ $pactuacao->id }})" 
+                                        class="text-xs text-red-600 hover:text-red-900">
+                                    🗑️ Remover
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
+
     {{-- Modal Adicionar Atividade --}}
     <div x-show="modalAdicionar" 
          x-cloak
@@ -587,6 +704,7 @@
                                     <option value="III">Tabela III - Alto Risco Pactuado</option>
                                     <option value="IV">Tabela IV - Com Questionário (Estadual/Municipal)</option>
                                     <option value="V">Tabela V - Definir se é VISA</option>
+                                    <option value="VI">Tabela VI - Atividades de Processo</option>
                                 </select>
                             </div>
 
@@ -1775,7 +1893,8 @@ function pactuacaoManager() {
                 'II': 'tabela-ii',
                 'III': 'tabela-iii',
                 'IV': 'tabela-iv',
-                'V': 'tabela-v'
+                'V': 'tabela-v',
+                'VI': 'tabela-vi'
             };
             this.abaAtiva = mapa[tabela] || 'tabela-i';
             

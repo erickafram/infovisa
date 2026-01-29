@@ -444,11 +444,41 @@
                     <input type="hidden" name="cnaes_secundarios" :value="JSON.stringify(dados.cnaes_secundarios)">
 
                     {{-- Lista de Atividades (Principal + Secundárias) --}}
-                    <div class="mb-6">
+                    <div class="mb-6" x-show="!apenasAtividadesEspeciais" x-cloak>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Selecione as atividades que o estabelecimento exerce <span class="text-red-500">*</span>
                         </label>
                         <p class="text-xs text-gray-500 mb-3">Marque apenas as atividades que serão efetivamente exercidas neste estabelecimento.</p>
+                        
+                        {{-- Aviso sobre Taxa DARE Cumulativa --}}
+                        <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-bold text-amber-900 mb-2">⚠️ ATENÇÃO: Taxa DARE é CUMULATIVA por Atividade</h4>
+                                    <div class="text-xs text-amber-800 space-y-2">
+                                        <p>
+                                            Conforme <strong>Art. 4º, parágrafo II da PORTARIA Nº 1153/2025/SES/GASEC</strong>, a taxa de licença sanitária é 
+                                            <strong>cumulativa</strong> para todas as atividades sujeitas ao controle sanitário constantes no CNPJ.
+                                        </p>
+                                        <p>
+                                            <strong>📌 Importante:</strong> Se o CNPJ da empresa tiver mais de uma atividade sujeita à Vigilância Sanitária, 
+                                            deve ser emitido <strong>um DARE para cada atividade</strong>. Todos os DAREs e seus respectivos comprovantes 
+                                            devem ser protocolados no processo de licenciamento sanitário.
+                                        </p>
+                                        <p class="bg-amber-100 p-2 rounded border border-amber-300">
+                                            <strong>💡 Dica:</strong> Selecione <strong>APENAS</strong> as atividades que serão efetivamente exercidas. 
+                                            Caso no CNPJ estejam relacionadas atividades sujeitas à VISA que <strong>não sejam exercidas</strong> pelo 
+                                            estabelecimento, sugerimos que sejam <strong>retiradas do CNPJ</strong> para não precisar pagar por atividades não executadas.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
                             {{-- Atividade Principal --}}
@@ -483,8 +513,105 @@
                         </div>
                     </div>
 
+                    {{-- Seção: Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem) --}}
+                    <div class="mb-6 mt-6">
+                        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+                            <div class="flex items-start gap-3 mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-bold text-indigo-900 mb-1">📋 Deseja abrir apenas Projeto Arquitetônico e/ou Análise de Rotulagem?</h4>
+                                    <p class="text-xs text-indigo-700">
+                                        Se você deseja <strong>apenas</strong> abrir processo de Projeto Arquitetônico ou Análise de Rotulagem 
+                                        (sem licenciamento sanitário), marque a opção abaixo. As atividades do CNPJ serão desmarcadas automaticamente.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {{-- Toggle para ativar modo de atividades especiais --}}
+                            <div class="mb-4">
+                                <label class="flex items-center gap-3 p-3 bg-white border-2 border-indigo-200 rounded-lg cursor-pointer hover:bg-indigo-50 transition-colors">
+                                    <input type="checkbox" 
+                                           x-model="apenasAtividadesEspeciais"
+                                           @change="toggleAtividadesEspeciais()"
+                                           class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                    <div class="flex-1">
+                                        <span class="text-sm font-semibold text-indigo-900">Sim, desejo abrir apenas processos de Projeto e/ou Análise de Rotulagem</span>
+                                        <p class="text-xs text-indigo-600 mt-0.5">Isso desmarcará todas as atividades do CNPJ acima</p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- Opções de atividades especiais --}}
+                            <div x-show="apenasAtividadesEspeciais" x-cloak class="space-y-3 pt-3 border-t border-indigo-200">
+                                <p class="text-xs font-medium text-indigo-800 mb-2">Selecione o(s) tipo(s) de processo que deseja abrir:</p>
+                                
+                                {{-- Projeto Arquitetônico --}}
+                                <label class="flex items-start gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all"
+                                       :class="atividadeEspecialProjetoArq ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300'">
+                                    <input type="checkbox" 
+                                           x-model="atividadeEspecialProjetoArq"
+                                           @change="atualizarAtividadesEspeciais()"
+                                           class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded">PROJ_ARQ</span>
+                                            <span class="text-sm font-semibold text-gray-900">Projeto Arquitetônico</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600">Análise de projeto arquitetônico para adequação sanitária</p>
+                                        <p class="text-xs text-indigo-600 mt-1">📍 Competência: Estadual (pode ser descentralizado para alguns municípios)</p>
+                                    </div>
+                                </label>
+
+                                {{-- Análise de Rotulagem --}}
+                                <label class="flex items-start gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all"
+                                       :class="atividadeEspecialRotulagem ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300'">
+                                    <input type="checkbox" 
+                                           x-model="atividadeEspecialRotulagem"
+                                           @change="atualizarAtividadesEspeciais()"
+                                           class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded">ANAL_ROT</span>
+                                            <span class="text-sm font-semibold text-gray-900">Análise de Rotulagem</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600">Análise e aprovação de rótulos de produtos</p>
+                                        <p class="text-xs text-indigo-600 mt-1">📍 Competência: Estadual (pode ser descentralizado para alguns municípios)</p>
+                                    </div>
+                                </label>
+
+                                {{-- Aviso importante --}}
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                                    <div class="flex items-start gap-2">
+                                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        <div class="text-xs text-amber-800">
+                                            <p class="font-semibold mb-1">⚠️ Importante:</p>
+                                            <ul class="list-disc list-inside space-y-1">
+                                                <li>Ao marcar esta opção, você <strong>não poderá</strong> abrir processo de Licenciamento Sanitário</li>
+                                                <li>Se precisar de licenciamento no futuro, deverá atualizar o cadastro com as atividades do CNPJ</li>
+                                                <li>A competência (Estado ou Município) será definida conforme a pactuação vigente</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Hidden inputs para atividades especiais --}}
+                    <input type="hidden" name="apenas_atividades_especiais" :value="apenasAtividadesEspeciais ? '1' : '0'">
+                    <input type="hidden" name="atividade_especial_projeto_arq" :value="atividadeEspecialProjetoArq ? '1' : '0'">
+                    <input type="hidden" name="atividade_especial_rotulagem" :value="atividadeEspecialRotulagem ? '1' : '0'">
+
                     {{-- Questionários Dinâmicos --}}
-                    <div x-show="questionarios.length > 0" class="mt-6 space-y-4">
+                    <div x-show="questionarios.length > 0 && !apenasAtividadesEspeciais" class="mt-6 space-y-4">
                         <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
                             <div class="flex items-start">
                                 <svg class="h-6 w-6 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -793,6 +920,10 @@ function estabelecimentoFormCompany() {
         respostasQuestionario2: {},
         competenciaEstadual: false,
         naoSujeitoVisa: false,
+        // Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem)
+        apenasAtividadesEspeciais: false,
+        atividadeEspecialProjetoArq: false,
+        atividadeEspecialRotulagem: false,
         modalErro: {
             visivel: false,
             mensagens: []
@@ -847,25 +978,46 @@ function estabelecimentoFormCompany() {
         async verificarCompetencia() {
             const atividades = [];
             
-            // Adiciona CNAE principal se marcado
-            if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
-                atividades.push(this.dados.cnae_fiscal);
+            // Se está no modo de atividades especiais
+            if (this.apenasAtividadesEspeciais) {
+                if (this.atividadeEspecialProjetoArq) {
+                    atividades.push('PROJ_ARQ');
+                }
+                if (this.atividadeEspecialRotulagem) {
+                    atividades.push('ANAL_ROT');
+                }
+                
+                console.log('🔍 Verificando competência (atividades especiais):', {
+                    atividades: atividades,
+                    municipio: this.dados.cidade
+                });
+                
+                if (atividades.length === 0) {
+                    this.competenciaEstadual = false;
+                    this.naoSujeitoVisa = false;
+                    return;
+                }
+            } else {
+                // Adiciona CNAE principal se marcado
+                if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
+                    atividades.push(this.dados.cnae_fiscal);
+                }
+                
+                // Adiciona atividades secundárias selecionadas
+                this.atividadesExercidas.forEach(codigo => {
+                    atividades.push(codigo);
+                });
+                
+                console.log('🔍 Verificando competência:', {
+                    atividadePrincipalMarcada: this.atividadePrincipalMarcada,
+                    cnae_fiscal: this.dados.cnae_fiscal,
+                    atividadesExercidas: this.atividadesExercidas,
+                    atividades: atividades,
+                    municipio: this.dados.cidade,
+                    respostas: JSON.parse(JSON.stringify(this.respostasQuestionario)),
+                    respostas2: JSON.parse(JSON.stringify(this.respostasQuestionario2))
+                });
             }
-            
-            // Adiciona atividades secundárias selecionadas
-            this.atividadesExercidas.forEach(codigo => {
-                atividades.push(codigo);
-            });
-            
-            console.log('🔍 Verificando competência:', {
-                atividadePrincipalMarcada: this.atividadePrincipalMarcada,
-                cnae_fiscal: this.dados.cnae_fiscal,
-                atividadesExercidas: this.atividadesExercidas,
-                atividades: atividades,
-                municipio: this.dados.cidade,
-                respostas: JSON.parse(JSON.stringify(this.respostasQuestionario)),
-                respostas2: JSON.parse(JSON.stringify(this.respostasQuestionario2))
-            });
             
             if (atividades.length === 0) {
                 this.competenciaEstadual = false;
@@ -1042,8 +1194,57 @@ function estabelecimentoFormCompany() {
             return nomes[aba] || '';
         },
 
+        // Funções para Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem)
+        toggleAtividadesEspeciais() {
+            if (this.apenasAtividadesEspeciais) {
+                // Desmarca todas as atividades do CNPJ
+                this.atividadePrincipalMarcada = false;
+                this.atividadesExercidas = [];
+                this.questionarios = [];
+                this.respostasQuestionario = {};
+                this.respostasQuestionario2 = {};
+                console.log('🔄 Modo atividades especiais ativado - atividades do CNPJ desmarcadas');
+            } else {
+                // Desmarca atividades especiais
+                this.atividadeEspecialProjetoArq = false;
+                this.atividadeEspecialRotulagem = false;
+                console.log('🔄 Modo atividades especiais desativado');
+            }
+            this.verificarCompetencia();
+        },
+
+        atualizarAtividadesEspeciais() {
+            console.log('📋 Atividades especiais atualizadas:', {
+                projetoArq: this.atividadeEspecialProjetoArq,
+                rotulagem: this.atividadeEspecialRotulagem
+            });
+            this.verificarCompetencia();
+        },
+
         getAtividadesExercidas() {
             let atividades = [];
+            
+            // Se está no modo de atividades especiais, retorna apenas as atividades especiais
+            if (this.apenasAtividadesEspeciais) {
+                if (this.atividadeEspecialProjetoArq) {
+                    atividades.push({ 
+                        codigo: 'PROJ_ARQ', 
+                        descricao: 'Projeto Arquitetônico - Análise de projeto arquitetônico para adequação sanitária',
+                        principal: false,
+                        especial: true
+                    });
+                }
+                if (this.atividadeEspecialRotulagem) {
+                    atividades.push({ 
+                        codigo: 'ANAL_ROT', 
+                        descricao: 'Análise de Rotulagem - Análise e aprovação de rótulos de produtos',
+                        principal: false,
+                        especial: true
+                    });
+                }
+                console.log('Atividades especiais selecionadas:', atividades);
+                return atividades;
+            }
             
             // Adiciona atividade principal se marcada
             if (this.atividadePrincipalMarcada && this.dados.cnae_fiscal) {
@@ -1132,6 +1333,12 @@ function estabelecimentoFormCompany() {
 
         // Verifica se pode avançar da aba de atividades
         podeAvancarAtividades() {
+            // Se está no modo de atividades especiais
+            if (this.apenasAtividadesEspeciais) {
+                // Deve ter pelo menos uma atividade especial selecionada
+                return this.atividadeEspecialProjetoArq || this.atividadeEspecialRotulagem;
+            }
+            
             // Deve ter pelo menos uma atividade selecionada
             const temAtividade = this.atividadePrincipalMarcada || this.atividadesExercidas.length > 0;
             if (!temAtividade) return false;
@@ -1175,16 +1382,23 @@ function estabelecimentoFormCompany() {
             }
             
             if (aba === 'atividades') {
-                // Validar se pelo menos uma atividade foi selecionada
-                if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
-                    erros.push('Selecione pelo menos uma atividade que será exercida');
-                }
-                
-                // Validar questionários
-                if (this.questionarios.length > 0) {
-                    const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
-                    if (questionariosNaoRespondidos.length > 0) {
-                        erros.push('Responda todos os questionários obrigatórios');
+                // Se está no modo de atividades especiais, valida se pelo menos uma foi selecionada
+                if (this.apenasAtividadesEspeciais) {
+                    if (!this.atividadeEspecialProjetoArq && !this.atividadeEspecialRotulagem) {
+                        erros.push('Selecione pelo menos uma atividade especial (Projeto Arquitetônico ou Análise de Rotulagem)');
+                    }
+                } else {
+                    // Validar se pelo menos uma atividade foi selecionada
+                    if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
+                        erros.push('Selecione pelo menos uma atividade que será exercida');
+                    }
+                    
+                    // Validar questionários
+                    if (this.questionarios.length > 0) {
+                        const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
+                        if (questionariosNaoRespondidos.length > 0) {
+                            erros.push('Responda todos os questionários obrigatórios');
+                        }
                     }
                 }
             }
@@ -1223,17 +1437,25 @@ function estabelecimentoFormCompany() {
                 erros.push('E-mail é obrigatório');
             }
             
-            // Validar questionários
-            if (this.questionarios.length > 0) {
-                const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
-                if (questionariosNaoRespondidos.length > 0) {
-                    erros.push('Responda todos os questionários obrigatórios na aba Atividades');
+            // Validar atividades
+            if (this.apenasAtividadesEspeciais) {
+                // Se está no modo de atividades especiais, valida se pelo menos uma foi selecionada
+                if (!this.atividadeEspecialProjetoArq && !this.atividadeEspecialRotulagem) {
+                    erros.push('Selecione pelo menos uma atividade especial (Projeto Arquitetônico ou Análise de Rotulagem)');
                 }
-            }
-            
-            // Validar se pelo menos uma atividade foi selecionada
-            if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
-                erros.push('Selecione pelo menos uma atividade que será exercida');
+            } else {
+                // Validar questionários
+                if (this.questionarios.length > 0) {
+                    const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
+                    if (questionariosNaoRespondidos.length > 0) {
+                        erros.push('Responda todos os questionários obrigatórios na aba Atividades');
+                    }
+                }
+                
+                // Validar se pelo menos uma atividade foi selecionada
+                if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
+                    erros.push('Selecione pelo menos uma atividade que será exercida');
+                }
             }
             
             if (erros.length > 0) {

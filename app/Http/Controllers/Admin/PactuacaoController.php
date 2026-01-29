@@ -25,6 +25,7 @@ class PactuacaoController extends Controller
         $tabelaIII = Pactuacao::where('tabela', 'III')->orderBy('cnae_codigo')->get();
         $tabelaIV = Pactuacao::where('tabela', 'IV')->orderBy('cnae_codigo')->get();
         $tabelaV = Pactuacao::where('tabela', 'V')->orderBy('cnae_codigo')->get();
+        $tabelaVI = Pactuacao::where('tabela', 'VI')->orderBy('cnae_codigo')->get();
         
         // Busca pactuações estaduais (todas exceto Tabela I)
         $pactuacoesEstaduais = Pactuacao::where('tipo', 'estadual')
@@ -39,6 +40,7 @@ class PactuacaoController extends Controller
             'tabelaIII',
             'tabelaIV',
             'tabelaV',
+            'tabelaVI',
             'pactuacoesEstaduais'
         ));
     }

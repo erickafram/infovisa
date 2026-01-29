@@ -135,23 +135,40 @@ class ListaDocumentoController extends Controller
             'tipos_servico' => $request->input('tipos_servico'),
         ]);
 
-        $validated = $request->validate([
+        // Verifica se é um tipo de processo especial (não requer tipos de serviço)
+        $tipoProcessoId = $request->input('tipo_processo_id');
+        $tipoProcesso = $tipoProcessoId ? TipoProcesso::find($tipoProcessoId) : null;
+        $isProcessoEspecial = $tipoProcesso && in_array($tipoProcesso->codigo, ['projeto_arquitetonico', 'analise_rotulagem']);
+
+        // Regras de validação base
+        $rules = [
             'tipo_processo_id' => 'required|exists:tipo_processos,id',
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'escopo' => 'required|in:estadual,municipal',
             'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
-            'tipos_servico' => 'required|array|min:1',
-            'tipos_servico.*' => 'exists:tipos_servico,id',
             'documentos_selecionados' => 'required|array|min:1',
             'documentos_selecionados.*' => 'exists:tipos_documento_obrigatorio,id',
-        ], [
+        ];
+
+        $messages = [
             'documentos_selecionados.required' => 'Selecione pelo menos um documento.',
             'documentos_selecionados.min' => 'Selecione pelo menos um documento.',
-            'tipos_servico.required' => 'Selecione pelo menos um tipo de serviço.',
-            'tipos_servico.min' => 'Selecione pelo menos um tipo de serviço.',
-        ]);
+        ];
+
+        // Para processos especiais, tipos_servico é opcional
+        if (!$isProcessoEspecial) {
+            $rules['tipos_servico'] = 'required|array|min:1';
+            $rules['tipos_servico.*'] = 'exists:tipos_servico,id';
+            $messages['tipos_servico.required'] = 'Selecione pelo menos um tipo de serviço.';
+            $messages['tipos_servico.min'] = 'Selecione pelo menos um tipo de serviço.';
+        } else {
+            $rules['tipos_servico'] = 'nullable|array';
+            $rules['tipos_servico.*'] = 'exists:tipos_servico,id';
+        }
+
+        $validated = $request->validate($rules, $messages);
 
         $validated['ativo'] = $request->has('ativo');
         $validated['criado_por'] = Auth::guard('interno')->user()->id;
@@ -172,14 +189,17 @@ class ListaDocumentoController extends Controller
                 'criado_por' => $validated['criado_por'],
             ]);
 
-            // Busca todas as atividades dos tipos de serviço selecionados
-            $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $validated['tipos_servico'])
-                ->pluck('id')
-                ->toArray();
+            // Busca todas as atividades dos tipos de serviço selecionados (se houver)
+            $tiposServicoSelecionados = $validated['tipos_servico'] ?? [];
+            if (!empty($tiposServicoSelecionados)) {
+                $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $tiposServicoSelecionados)
+                    ->pluck('id')
+                    ->toArray();
 
-            // Vincula atividades
-            if (!empty($atividadesIds)) {
-                $lista->atividades()->attach($atividadesIds);
+                // Vincula atividades
+                if (!empty($atividadesIds)) {
+                    $lista->atividades()->attach($atividadesIds);
+                }
             }
 
             // Vincula documentos com pivot data
@@ -228,7 +248,7 @@ class ListaDocumentoController extends Controller
 
     public function edit(ListaDocumento $listas_documento)
     {
-        $listas_documento->load(['atividades', 'tiposDocumentoObrigatorio']);
+        $listas_documento->load(['atividades', 'tiposDocumentoObrigatorio', 'tipoProcesso']);
         
         $tiposServico = TipoServico::ativos()->with('atividadesAtivas')->ordenado()->get();
         
@@ -272,25 +292,42 @@ class ListaDocumentoController extends Controller
             'tipos_servico' => $request->input('tipos_servico'),
         ]);
 
-        $validated = $request->validate([
+        // Verifica se é um tipo de processo especial (não requer tipos de serviço)
+        $tipoProcessoId = $request->input('tipo_processo_id');
+        $tipoProcesso = $tipoProcessoId ? TipoProcesso::find($tipoProcessoId) : null;
+        $isProcessoEspecial = $tipoProcesso && in_array($tipoProcesso->codigo, ['projeto_arquitetonico', 'analise_rotulagem']);
+
+        // Regras de validação base
+        $rules = [
             'tipo_processo_id' => 'required|exists:tipo_processos,id',
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'escopo' => 'required|in:estadual,municipal',
             'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
-            'tipos_servico' => 'required|array|min:1',
-            'tipos_servico.*' => 'exists:tipos_servico,id',
             'documentos' => 'required|array|min:1',
             'documentos.*.id' => 'required|exists:tipos_documento_obrigatorio,id',
             'documentos.*.obrigatorio' => 'boolean',
             'documentos.*.observacao' => 'nullable|string',
-        ], [
+        ];
+
+        $messages = [
             'documentos.required' => 'Selecione pelo menos um documento.',
             'documentos.min' => 'Selecione pelo menos um documento.',
-            'tipos_servico.required' => 'Selecione pelo menos um tipo de serviço.',
-            'tipos_servico.min' => 'Selecione pelo menos um tipo de serviço.',
-        ]);
+        ];
+
+        // Para processos especiais, tipos_servico é opcional
+        if (!$isProcessoEspecial) {
+            $rules['tipos_servico'] = 'required|array|min:1';
+            $rules['tipos_servico.*'] = 'exists:tipos_servico,id';
+            $messages['tipos_servico.required'] = 'Selecione pelo menos um tipo de serviço.';
+            $messages['tipos_servico.min'] = 'Selecione pelo menos um tipo de serviço.';
+        } else {
+            $rules['tipos_servico'] = 'nullable|array';
+            $rules['tipos_servico.*'] = 'exists:tipos_servico,id';
+        }
+
+        $validated = $request->validate($rules, $messages);
 
         $validated['ativo'] = $request->has('ativo');
 
@@ -309,13 +346,17 @@ class ListaDocumentoController extends Controller
                 'ativo' => $validated['ativo'],
             ]);
 
-            // Busca todas as atividades dos tipos de serviço selecionados
-            $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $validated['tipos_servico'])
-                ->pluck('id')
-                ->toArray();
-
-            // Atualiza atividades
-            $listas_documento->atividades()->sync($atividadesIds);
+            // Busca todas as atividades dos tipos de serviço selecionados (se houver)
+            $tiposServicoSelecionados = $validated['tipos_servico'] ?? [];
+            if (!empty($tiposServicoSelecionados)) {
+                $atividadesIds = \App\Models\Atividade::whereIn('tipo_servico_id', $tiposServicoSelecionados)
+                    ->pluck('id')
+                    ->toArray();
+                $listas_documento->atividades()->sync($atividadesIds);
+            } else {
+                // Se não tem tipos de serviço (processo especial), remove todas as atividades
+                $listas_documento->atividades()->sync([]);
+            }
 
             // Atualiza documentos
             $documentosData = [];

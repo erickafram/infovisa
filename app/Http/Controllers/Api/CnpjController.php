@@ -204,7 +204,13 @@ class CnpjController extends Controller
             foreach ($atividades as $cnae) {
                 try {
                     $cnaeOriginal = $cnae;
-                    $cnaeLimpo = preg_replace('/[^0-9]/', '', $cnae);
+                    
+                    // Atividades especiais (PROJ_ARQ, ANAL_ROT) não devem ser limpas
+                    if (in_array($cnae, ['PROJ_ARQ', 'ANAL_ROT'])) {
+                        $cnaeLimpo = $cnae;
+                    } else {
+                        $cnaeLimpo = preg_replace('/[^0-9]/', '', $cnae);
+                    }
                     
                     // Busca as respostas para este CNAE
                     $resposta1 = $respostasNormalizadas[$cnaeLimpo] ?? $respostasNormalizadas[$cnaeOriginal] ?? null;

@@ -40,55 +40,73 @@ class ProcessoController extends Controller
 
     /**
      * Busca documentos obrigatórios para um processo baseado nas atividades exercidas do estabelecimento
+     * ou diretamente pelo tipo de processo (para processos especiais como Projeto Arquitetônico e Análise de Rotulagem)
      */
     private function buscarDocumentosObrigatoriosParaProcesso($processo)
     {
         $estabelecimento = $processo->estabelecimento;
-        $tipoProcessoId = $processo->tipoProcesso->id ?? null;
+        $tipoProcesso = $processo->tipoProcesso;
+        $tipoProcessoId = $tipoProcesso->id ?? null;
         
         if (!$tipoProcessoId) {
             return collect();
         }
 
+        // Verifica se é um processo especial (Projeto Arquitetônico ou Análise de Rotulagem)
+        $isProcessoEspecial = $tipoProcesso && in_array($tipoProcesso->codigo, ['projeto_arquitetonico', 'analise_rotulagem']);
+
         // Pega as atividades exercidas do estabelecimento (apenas as marcadas)
         $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
         
-        if (empty($atividadesExercidas)) {
+        // Para processos especiais, não precisa de atividades
+        // Para processos normais, se não tem atividades, retorna vazio
+        if (!$isProcessoEspecial && empty($atividadesExercidas)) {
             return collect();
         }
 
-        // Extrai os códigos CNAE das atividades exercidas
-        $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
-            $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
-            return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
-        })->filter()->values()->toArray();
+        $atividadeIds = collect();
+        
+        // Só busca atividades se não for processo especial e tiver atividades exercidas
+        if (!$isProcessoEspecial && !empty($atividadesExercidas)) {
+            // Extrai os códigos CNAE das atividades exercidas
+            $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
+                $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+                return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+            })->filter()->values()->toArray();
 
-        if (empty($codigosCnae)) {
-            return collect();
-        }
-
-        // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
-        $atividadeIds = \App\Models\Atividade::where('ativo', true)
-            ->where(function($query) use ($codigosCnae) {
-                foreach ($codigosCnae as $codigo) {
-                    $query->orWhere('codigo_cnae', $codigo);
-                }
-            })
-            ->pluck('id');
-
-        if ($atividadeIds->isEmpty()) {
-            return collect();
+            if (!empty($codigosCnae)) {
+                // Busca as atividades cadastradas que correspondem aos CNAEs exercidos
+                $atividadeIds = \App\Models\Atividade::where('ativo', true)
+                    ->where(function($query) use ($codigosCnae) {
+                        foreach ($codigosCnae as $codigo) {
+                            $query->orWhere('codigo_cnae', $codigo);
+                        }
+                    })
+                    ->pluck('id');
+            }
         }
 
         // Busca as listas de documentos aplicáveis para este tipo de processo
         $query = \App\Models\ListaDocumento::where('ativo', true)
             ->where('tipo_processo_id', $tipoProcessoId)
-            ->whereHas('atividades', function($q) use ($atividadeIds) {
-                $q->whereIn('atividades.id', $atividadeIds);
-            })
             ->with(['tiposDocumentoObrigatorio' => function($q) {
                 $q->orderBy('lista_documento_tipo.ordem');
             }]);
+
+        // Para processos especiais: busca listas SEM atividades vinculadas (vinculadas diretamente ao tipo de processo)
+        // Para processos normais: busca listas COM atividades que correspondem às do estabelecimento
+        if ($isProcessoEspecial) {
+            // Busca listas que NÃO têm atividades vinculadas (listas de processos especiais)
+            $query->whereDoesntHave('atividades');
+        } else {
+            // Busca listas que têm atividades correspondentes
+            if ($atividadeIds->isEmpty()) {
+                return collect();
+            }
+            $query->whereHas('atividades', function($q) use ($atividadeIds) {
+                $q->whereIn('atividades.id', $atividadeIds);
+            });
+        }
 
         // Filtra por escopo (estadual ou do município do estabelecimento)
         $query->where(function($q) use ($estabelecimento) {
@@ -102,11 +120,6 @@ class ProcessoController extends Controller
         });
 
         $listas = $query->get();
-
-        // Se não há listas para este tipo de processo e atividades, retorna vazio
-        if ($listas->isEmpty()) {
-            return collect();
-        }
 
         // Consolida os documentos de todas as listas aplicáveis
         $documentos = collect();
