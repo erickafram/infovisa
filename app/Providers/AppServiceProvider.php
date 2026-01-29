@@ -24,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configura paginação para usar Tailwind CSS
+        \Illuminate\Pagination\Paginator::useTailwind();
+        
         // Só força o domínio se APP_URL contém o domínio de produção
         // E NÃO é localhost/127.0.0.1
         $appUrl = config('app.url', '');
