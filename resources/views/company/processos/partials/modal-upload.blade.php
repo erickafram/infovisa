@@ -455,11 +455,15 @@
                                                 $nomeDocUpper = strtoupper($doc['nome'] ?? '');
                                                 $isDareDoc = $nomeDocUpper === 'DARE' || ($nomeDocUpper !== 'COMP PAGAMENTO' && str_contains($nomeDocUpper, 'DARE') && !str_contains($nomeDocUpper, 'COMPROVANTE'));
                                                 $isComprovanteDoc = str_contains($nomeDocUpper, 'COMP PAGAMENTO') || str_contains($nomeDocUpper, 'COMPROVANTE DE PAGAMENTO') || (str_contains($nomeDocUpper, 'COMPROVANTE') && str_contains($nomeDocUpper, 'DARE'));
+                                                // Aviso DARE só aparece para processos de licenciamento
+                                                $tipoProcesso = strtolower($processo->tipo ?? '');
+                                                $isLicenciamento = str_contains($tipoProcesso, 'licenciamento') || $tipoProcesso === 'licenciamento';
+                                                $mostrarAvisoDare = ($isDareDoc || $isComprovanteDoc) && $isLicenciamento;
                                             @endphp
                                             
                                             {{-- Botão selecionar arquivo --}}
                                             <template x-if="!arquivosObrigatorios[{{ $doc['id'] }}]">
-                                                @if($isDareDoc || $isComprovanteDoc)
+                                                @if($mostrarAvisoDare)
                                                 {{-- Botão com aviso para DARE ou Comprovante --}}
                                                 <button type="button"
                                                         @click="mostrarAvisoDare({{ $doc['id'] }}, '{{ $doc['nome'] }}', '{{ $isDareDoc ? 'dare' : 'comprovante' }}')"
