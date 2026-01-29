@@ -23,13 +23,12 @@ class ChatInternoController extends Controller
         $usuarioAtual = auth('interno')->user();
         $onlineIds = ChatUsuarioOnline::getUsuariosOnlineIds();
 
-        // Query otimizada: busca usuários com contagem de não lidas em uma única query
+        // Query otimizada: busca todos os usuários ativos
         $usuarios = UsuarioInterno::where('id', '!=', $usuarioAtual->id)
             ->where('ativo', true)
             ->select('id', 'nome', 'nivel_acesso', 'municipio_id', 'municipio')
             ->with('municipioRelacionado:id,nome')
             ->orderBy('nome')
-            ->limit(50) // Limita para performance
             ->get()
             ->map(function ($usuario) use ($onlineIds) {
                 return [
