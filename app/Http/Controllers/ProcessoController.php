@@ -1226,23 +1226,30 @@ class ProcessoController extends Controller
     }
 
     /**
-     * Revalida documento aprovado (volta para pendente)
+     * Revalida documento aprovado ou rejeitado (volta para pendente)
      */
     public function revalidarDocumento($estabelecimentoId, $processoId, $documentoId)
     {
         $documento = ProcessoDocumento::where('processo_id', $processoId)
-            ->where('status_aprovacao', 'aprovado')
+            ->whereIn('status_aprovacao', ['aprovado', 'rejeitado'])
             ->findOrFail($documentoId);
+        
+        $statusAnterior = $documento->status_aprovacao;
         
         $documento->update([
             'status_aprovacao' => 'pendente',
             'aprovado_por' => null,
             'aprovado_em' => null,
+            'motivo_rejeicao' => null,
         ]);
+        
+        $mensagem = $statusAnterior === 'rejeitado' 
+            ? 'Documento rejeitado foi revalidado e voltou para análise (pendente).'
+            : 'Documento voltou para análise (pendente).';
         
         return redirect()
             ->back()
-            ->with('success', 'Documento voltou para análise (pendente).');
+            ->with('success', $mensagem);
     }
 
     /**

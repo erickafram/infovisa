@@ -1347,6 +1347,17 @@
                                                     </svg>
                                                 </button>
                                             </form>
+                                            @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'rejeitado')
+                                            {{-- Botão Revalidar documento rejeitado (voltar para pendente) --}}
+                                            <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
+                                                  onsubmit="return confirm('Deseja revalidar este documento rejeitado? Ele voltará para o status Pendente.')">
+                                                @csrf
+                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Revalidar (voltar para pendente)">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                    </svg>
+                                                </button>
+                                            </form>
                                             @endif
                                             
                                             <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Download">
