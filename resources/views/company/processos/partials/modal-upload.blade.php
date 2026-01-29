@@ -14,6 +14,27 @@
                  fileDiversoSize: '',
                  tipoDocDiverso: '',
                  enviandoDiverso: false,
+                 modalAvisoDare: false,
+                 avisoDareDocId: null,
+                 avisoDareDocNome: '',
+                 avisoDareTipo: '',
+                 mostrarAvisoDare(docId, docNome, tipo) {
+                     this.avisoDareDocId = docId;
+                     this.avisoDareDocNome = docNome;
+                     this.avisoDareTipo = tipo;
+                     this.modalAvisoDare = true;
+                 },
+                 confirmarAvisoDare() {
+                     this.modalAvisoDare = false;
+                     const input = document.getElementById('file_doc_' + this.avisoDareDocId);
+                     if (input) input.click();
+                 },
+                 fecharAvisoDare() {
+                     this.modalAvisoDare = false;
+                     this.avisoDareDocId = null;
+                     this.avisoDareDocNome = '';
+                     this.avisoDareTipo = '';
+                 },
                  handleFileObrigatorio(e, docId, docNome) {
                      const file = e.target.files[0];
                      if (file) {
@@ -137,6 +158,99 @@
                      }
                  }
              }">
+            
+            {{-- Modal de Aviso DARE --}}
+            <div x-show="modalAvisoDare" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="display: none;">
+                <div class="fixed inset-0 bg-black bg-opacity-60" @click="fecharAvisoDare()"></div>
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" @click.stop>
+                    {{-- Header --}}
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white" x-text="avisoDareTipo === 'dare' ? '⚠️ ATENÇÃO: Taxa DARE Cumulativa' : '⚠️ ATENÇÃO: Comprovantes de Pagamento'"></h3>
+                                <p class="text-amber-100 text-sm">Leia atentamente antes de continuar</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {{-- Body --}}
+                    <div class="px-6 py-5 max-h-[60vh] overflow-y-auto">
+                        {{-- Aviso para DARE --}}
+                        <template x-if="avisoDareTipo === 'dare'">
+                            <div class="space-y-4">
+                                <p class="text-sm text-gray-700">
+                                    Conforme <strong>Art. 4º, parágrafo II da PORTARIA Nº 1153/2025/SES/GASEC</strong>, a taxa de licença sanitária é <strong>cumulativa</strong> para todas as atividades sujeitas ao controle sanitário.
+                                </p>
+                                
+                                @if(isset($processo) && $processo->estabelecimento && !empty($processo->estabelecimento->atividades_exercidas))
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                    <p class="text-sm font-bold text-amber-800 mb-2">📋 Atividades exercidas neste estabelecimento:</p>
+                                    <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                                        @foreach($processo->estabelecimento->atividades_exercidas as $atividade)
+                                        <li>{{ is_array($atividade) ? ($atividade['codigo'] ?? '') . ' - ' . ($atividade['descricao'] ?? '') : $atividade }}</li>
+                                        @endforeach
+                                    </ul>
+                                    <p class="text-xs text-amber-600 mt-2 font-medium">Total: {{ count($processo->estabelecimento->atividades_exercidas) }} atividade(s)</p>
+                                </div>
+                                @endif
+                                
+                                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                    <p class="text-sm font-bold text-red-800">📌 IMPORTANTE:</p>
+                                    <p class="text-sm text-red-700 mt-1">
+                                        Você deve anexar neste documento <strong>TODOS os boletos DARE</strong> (um para cada atividade exercida) em um <strong>único arquivo PDF</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        {{-- Aviso para Comprovante de Pagamento --}}
+                        <template x-if="avisoDareTipo === 'comprovante'">
+                            <div class="space-y-4">
+                                <p class="text-sm text-gray-700">
+                                    Conforme a <strong>PORTARIA Nº 1153/2025/SES/GASEC</strong>, você deve pagar um DARE para cada atividade exercida pelo estabelecimento.
+                                </p>
+                                
+                                @if(isset($processo) && $processo->estabelecimento && !empty($processo->estabelecimento->atividades_exercidas))
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                    <p class="text-sm font-bold text-amber-800 mb-2">📋 Atividades exercidas ({{ count($processo->estabelecimento->atividades_exercidas) }} atividade(s)):</p>
+                                    <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                                        @foreach($processo->estabelecimento->atividades_exercidas as $atividade)
+                                        <li>{{ is_array($atividade) ? ($atividade['codigo'] ?? '') . ' - ' . ($atividade['descricao'] ?? '') : $atividade }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                                @endif
+                                
+                                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                    <p class="text-sm font-bold text-red-800">📌 IMPORTANTE:</p>
+                                    <p class="text-sm text-red-700 mt-1">
+                                        Você deve anexar neste documento <strong>TODOS os comprovantes de pagamento</strong> (um para cada DARE pago) em um <strong>único arquivo PDF</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                        <button type="button" @click="fecharAvisoDare()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button" @click="confirmarAvisoDare()" class="px-5 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Entendi, Selecionar Arquivo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             {{-- Header --}}
             <div class="px-6 py-4 border-b border-gray-100">
                 <div class="flex items-center justify-between">
@@ -337,8 +451,26 @@
                                                    class="hidden" accept=".pdf"
                                                    @change="handleFileObrigatorio($event, {{ $doc['id'] }}, '{{ $doc['nome'] }}')">
                                             
+                                            @php
+                                                $nomeDocUpper = strtoupper($doc['nome'] ?? '');
+                                                $isDareDoc = $nomeDocUpper === 'DARE' || ($nomeDocUpper !== 'COMP PAGAMENTO' && str_contains($nomeDocUpper, 'DARE') && !str_contains($nomeDocUpper, 'COMPROVANTE'));
+                                                $isComprovanteDoc = str_contains($nomeDocUpper, 'COMP PAGAMENTO') || str_contains($nomeDocUpper, 'COMPROVANTE DE PAGAMENTO') || (str_contains($nomeDocUpper, 'COMPROVANTE') && str_contains($nomeDocUpper, 'DARE'));
+                                            @endphp
+                                            
                                             {{-- Botão selecionar arquivo --}}
                                             <template x-if="!arquivosObrigatorios[{{ $doc['id'] }}]">
+                                                @if($isDareDoc || $isComprovanteDoc)
+                                                {{-- Botão com aviso para DARE ou Comprovante --}}
+                                                <button type="button"
+                                                        @click="mostrarAvisoDare({{ $doc['id'] }}, '{{ $doc['nome'] }}', '{{ $isDareDoc ? 'dare' : 'comprovante' }}')"
+                                                        class="px-4 py-2 {{ $isRejeitado ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-sm font-medium rounded-lg cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                                    </svg>
+                                                    {{ $isRejeitado ? 'Reenviar' : 'Selecionar' }}
+                                                </button>
+                                                @else
+                                                {{-- Botão normal para outros documentos --}}
                                                 <label for="file_doc_{{ $doc['id'] }}" 
                                                        class="px-4 py-2 {{ $isRejeitado ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-sm font-medium rounded-lg cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,6 +478,7 @@
                                                     </svg>
                                                     {{ $isRejeitado ? 'Reenviar' : 'Selecionar' }}
                                                 </label>
+                                                @endif
                                             </template>
                                         </div>
                                     </template>
