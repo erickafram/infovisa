@@ -32,13 +32,17 @@ class ChatInternoController extends Controller
                 ->orderBy('nome')
                 ->get()
                 ->map(function ($usuario) use ($onlineIds) {
+                    // Sanitiza strings para evitar problemas de encoding UTF-8
+                    $nome = $this->sanitizeUtf8($usuario->nome ?? '');
+                    $municipio = $this->sanitizeUtf8($usuario->municipio ?? $usuario->municipioRelacionado?->nome ?? '');
+                    
                     return [
                         'id' => $usuario->id,
-                        'nome' => $this->formatarNome($usuario->nome),
-                        'nome_completo' => $usuario->nome,
-                        'iniciais' => $this->getIniciais($usuario->nome),
+                        'nome' => $this->formatarNome($nome),
+                        'nome_completo' => $nome,
+                        'iniciais' => $this->getIniciais($nome),
                         'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
-                        'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
+                        'municipio' => $municipio,
                         'online' => \in_array($usuario->id, $onlineIds),
                         'nao_lidas' => 0,
                     ];
@@ -54,6 +58,24 @@ class ChatInternoController extends Controller
             ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+    
+    /**
+     * Sanitiza string para UTF-8 válido
+     */
+    private function sanitizeUtf8(?string $string): string
+    {
+        if (empty($string)) {
+            return '';
+        }
+        
+        // Remove caracteres inválidos de UTF-8
+        $string = mb_convert_encoding($string, 'UTF-8', 'UTF-8');
+        
+        // Remove caracteres de controle exceto newline e tab
+        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $string);
+        
+        return $string ?? '';
     }
 
     /**
@@ -460,16 +482,20 @@ class ChatInternoController extends Controller
         }
 
         $usuarios = $query->orderBy('nome')
-            ->limit(20)
+            ->limit(50)
             ->get()
             ->map(function ($usuario) use ($onlineIds) {
+                // Sanitiza strings para evitar problemas de encoding UTF-8
+                $nome = $this->sanitizeUtf8($usuario->nome ?? '');
+                $municipio = $this->sanitizeUtf8($usuario->municipio ?? $usuario->municipioRelacionado?->nome ?? '');
+                
                 return [
                     'id' => $usuario->id,
-                    'nome' => $this->formatarNome($usuario->nome),
-                    'nome_completo' => $usuario->nome,
-                    'iniciais' => $this->getIniciais($usuario->nome),
+                    'nome' => $this->formatarNome($nome),
+                    'nome_completo' => $nome,
+                    'iniciais' => $this->getIniciais($nome),
                     'tipo' => $usuario->isEstadual() || $usuario->isAdmin() ? 'Estadual' : 'Municipal',
-                    'municipio' => $usuario->municipio ?? $usuario->municipioRelacionado?->nome,
+                    'municipio' => $municipio,
                     'online' => \in_array($usuario->id, $onlineIds),
                     'nao_lidas' => 0,
                 ];
