@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Confiar em todos os proxies (necessário quando atrás de load balancer/proxy reverso)
         $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
         
+        // Força a URL correta em produção
+        $middleware->prepend(\App\Http\Middleware\ForceAppUrl::class);
+        
         $middleware->validateCsrfTokens(except: [
             'api/consultar-cnpj',
             'api/verificar-cnpj/*',

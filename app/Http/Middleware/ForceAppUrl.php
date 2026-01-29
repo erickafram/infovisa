@@ -15,9 +15,14 @@ class ForceAppUrl
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Força o domínio correto
-        URL::forceScheme('https');
-        URL::forceRootUrl('https://sistemas.saude.to.gov.br/infovisacore');
+        // Só força em produção
+        if (config('app.env') === 'production') {
+            $appUrl = config('app.url');
+            if ($appUrl) {
+                URL::forceScheme('https');
+                URL::forceRootUrl($appUrl);
+            }
+        }
         
         return $next($request);
     }
