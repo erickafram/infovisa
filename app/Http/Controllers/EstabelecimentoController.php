@@ -43,12 +43,24 @@ class EstabelecimentoController extends Controller
         // Filtro de busca
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nome_fantasia', 'like', "%{$search}%")
-                  ->orWhere('razao_social', 'like', "%{$search}%")
-                  ->orWhere('cnpj', 'like', "%{$search}%")
-                  ->orWhere('cpf', 'like', "%{$search}%")
-                  ->orWhere('cidade', 'like', "%{$search}%");
+            // Remove formatação de CNPJ/CPF para busca (pontos, traços, barras)
+            $searchLimpo = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+            
+            $query->where(function ($q) use ($search, $searchLimpo) {
+                // Busca case-insensitive usando ILIKE (PostgreSQL) ou LOWER (MySQL)
+                $q->whereRaw('LOWER(nome_fantasia) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(razao_social) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(cidade) LIKE ?', ['%' . strtolower($search) . '%']);
+                
+                // Busca por CNPJ/CPF - tanto formatado quanto sem formatação
+                if (!empty($searchLimpo)) {
+                    $q->orWhere('cnpj', 'like', "%{$search}%")
+                      ->orWhere('cnpj', 'like', "%{$searchLimpo}%")
+                      ->orWhereRaw("REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '-', ''), '/', '') LIKE ?", ['%' . $searchLimpo . '%'])
+                      ->orWhere('cpf', 'like', "%{$search}%")
+                      ->orWhere('cpf', 'like', "%{$searchLimpo}%")
+                      ->orWhereRaw("REPLACE(REPLACE(cpf, '.', ''), '-', '') LIKE ?", ['%' . $searchLimpo . '%']);
+                }
             });
         }
 
