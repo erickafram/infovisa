@@ -546,7 +546,7 @@
                                                 <p class="text-sm text-gray-600 mb-1">
                                                     <span class="text-blue-600 font-medium">Clique para selecionar</span> ou arraste o arquivo
                                                 </p>
-                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 10MB)</p>
+                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 30MB)</p>
                                             </div>
                                         </template>
                                         <template x-if="fileDiverso">
@@ -601,7 +601,7 @@
                                                 <p class="text-sm text-gray-600 mb-1">
                                                     <span class="text-green-600 font-medium">Clique para selecionar</span> ou arraste os arquivos
                                                 </p>
-                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 10MB cada) - Até 6 arquivos</p>
+                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 30MB cada) - Até 6 arquivos</p>
                                             </div>
                                         </template>
                                         <template x-if="arquivosPessoaFisica.length >= maxArquivosPF">

@@ -477,13 +477,13 @@ class ProcessoController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf',
+            'arquivo' => 'required|file|max:30720|mimes:pdf',
             'observacoes' => 'nullable|string|max:500',
             'tipo_documento_obrigatorio_id' => 'nullable|exists:tipos_documento_obrigatorio,id',
             'documento_id' => 'nullable|integer|exists:processo_documentos,id',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
-            'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
+            'arquivo.max' => 'O arquivo não pode ter mais de 30MB.',
             'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
@@ -693,11 +693,11 @@ class ProcessoController extends Controller
             ->findOrFail($documentoId);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf',
+            'arquivo' => 'required|file|max:30720|mimes:pdf',
             'observacoes' => 'nullable|string|max:500',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
-            'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
+            'arquivo.max' => 'O arquivo não pode ter mais de 30MB.',
             'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
@@ -871,11 +871,11 @@ class ProcessoController extends Controller
         }
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf',
+            'arquivo' => 'required|file|max:30720|mimes:pdf',
             'observacoes' => 'nullable|string|max:1000',
         ], [
             'arquivo.required' => 'Selecione um arquivo PDF para enviar.',
-            'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
+            'arquivo.max' => 'O arquivo não pode ter mais de 30MB.',
             'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
