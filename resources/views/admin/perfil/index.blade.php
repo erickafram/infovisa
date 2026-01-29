@@ -93,6 +93,20 @@
                     @enderror
                 </div>
 
+                {{-- Data de Nascimento --}}
+                <div>
+                    <label for="data_nascimento" class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento</label>
+                    <input type="date" 
+                           id="data_nascimento" 
+                           name="data_nascimento" 
+                           value="{{ old('data_nascimento', $usuario->data_nascimento?->format('Y-m-d')) }}"
+                           max="{{ date('Y-m-d') }}"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_nascimento') border-red-500 @enderror">
+                    @error('data_nascimento')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 {{-- CPF (somente leitura) --}}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">CPF</label>

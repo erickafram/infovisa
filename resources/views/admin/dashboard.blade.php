@@ -15,6 +15,60 @@
 @endphp
 
 <div class="space-y-6">
+    {{-- Modal de Data de Nascimento (se não preenchida) --}}
+    @if(!auth('interno')->user()->data_nascimento)
+    <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+            {{-- Modal --}}
+            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <form action="{{ route('admin.perfil.atualizar-nascimento') }}" method="POST">
+                    @csrf
+                    <div class="bg-white px-6 pt-6 pb-4">
+                        <div class="text-center">
+                            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-blue-100 mb-4">
+                                <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900" id="modal-title">
+                                Complete seu cadastro
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-2">
+                                Por favor, informe sua data de nascimento para continuar.
+                            </p>
+                        </div>
+                        
+                        <div class="mt-5">
+                            <label for="data_nascimento_modal" class="block text-sm font-medium text-gray-700 mb-2">
+                                Data de Nascimento <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" 
+                                   id="data_nascimento_modal" 
+                                   name="data_nascimento" 
+                                   required
+                                   max="{{ date('Y-m-d') }}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-lg">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 px-6 py-4">
+                        <button type="submit" 
+                                class="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Salvar e Continuar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>

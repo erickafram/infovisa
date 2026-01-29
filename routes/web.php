@@ -148,6 +148,21 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/perfil', [\App\Http\Controllers\PerfilController::class, 'index'])->name('perfil.index');
     Route::put('/perfil/dados', [\App\Http\Controllers\PerfilController::class, 'updateDados'])->name('perfil.update-dados');
     Route::put('/perfil/senha', [\App\Http\Controllers\PerfilController::class, 'updateSenha'])->name('perfil.update-senha');
+    Route::match(['get', 'post'], '/perfil/atualizar-nascimento', [\App\Http\Controllers\PerfilController::class, 'atualizarNascimento'])->name('perfil.atualizar-nascimento');
+
+    // Chat Interno
+    Route::prefix('chat')->name('chat.')->group(function () {
+        Route::get('/usuarios', [\App\Http\Controllers\ChatInternoController::class, 'usuarios'])->name('usuarios');
+        Route::get('/usuarios/buscar', [\App\Http\Controllers\ChatInternoController::class, 'buscarUsuarios'])->name('usuarios.buscar');
+        Route::get('/conversas', [\App\Http\Controllers\ChatInternoController::class, 'conversas'])->name('conversas');
+        Route::get('/mensagens/{usuarioId}', [\App\Http\Controllers\ChatInternoController::class, 'mensagens'])->name('mensagens');
+        Route::post('/enviar', [\App\Http\Controllers\ChatInternoController::class, 'enviar'])->name('enviar');
+        Route::post('/heartbeat', [\App\Http\Controllers\ChatInternoController::class, 'heartbeat'])->name('heartbeat');
+        Route::get('/verificar-novas', [\App\Http\Controllers\ChatInternoController::class, 'verificarNovas'])->name('verificar-novas');
+        Route::delete('/mensagem/{mensagemId}', [\App\Http\Controllers\ChatInternoController::class, 'apagarMensagem'])->name('mensagem.apagar');
+        Route::get('/suporte/mensagens', [\App\Http\Controllers\ChatInternoController::class, 'suporteMensagens'])->name('suporte.mensagens');
+        Route::get('/suporte/nao-lidos', [\App\Http\Controllers\ChatInternoController::class, 'suporteNaoLidos'])->name('suporte.nao-lidos');
+    });
 
     // Atalhos Rápidos
     Route::get('/atalhos-rapidos', [\App\Http\Controllers\Admin\AtalhoRapidoController::class, 'index'])->name('atalhos-rapidos.index');
@@ -552,6 +567,15 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::delete('/{id}', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'destroy'])->name('destroy');
             Route::get('/{id}/visualizar', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'visualizar'])->name('visualizar');
             Route::get('/{id}/download', [\App\Http\Controllers\Admin\DocumentoAjudaController::class, 'download'])->name('download');
+        });
+
+        // Chat Broadcast (Suporte InfoVISA) - Apenas Admin
+        Route::prefix('chat-broadcast')->name('chat-broadcast.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'store'])->name('store');
+            Route::delete('/{chatBroadcast}', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'destroy'])->name('destroy');
+            Route::get('/{chatBroadcast}/estatisticas', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'estatisticas'])->name('estatisticas');
         });
     });
     

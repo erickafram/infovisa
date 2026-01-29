@@ -29,11 +29,14 @@ class PerfilController extends Controller
             'nome' => 'required|string|max:255',
             'telefone' => 'nullable|string|max:20',
             'email' => 'required|email|max:255|unique:usuarios_internos,email,' . $usuario->id,
+            'data_nascimento' => 'nullable|date|before_or_equal:today',
         ], [
             'nome.required' => 'O nome é obrigatório.',
             'email.required' => 'O e-mail é obrigatório.',
             'email.email' => 'Informe um e-mail válido.',
             'email.unique' => 'Este e-mail já está em uso por outro usuário.',
+            'data_nascimento.date' => 'Informe uma data válida.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
         ]);
 
         // Limpa formatação do telefone
@@ -80,5 +83,31 @@ class PerfilController extends Controller
 
         return redirect()->route('admin.perfil.index')
             ->with('success', 'Senha alterada com sucesso!');
+    }
+
+    /**
+     * Atualiza a data de nascimento do usuário (chamado pelo modal obrigatório)
+     */
+    public function atualizarNascimento(Request $request)
+    {
+        // Se for GET, redireciona para o dashboard
+        if ($request->isMethod('get')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $validated = $request->validate([
+            'data_nascimento' => 'required|date|before_or_equal:today',
+        ], [
+            'data_nascimento.required' => 'A data de nascimento é obrigatória.',
+            'data_nascimento.date' => 'Informe uma data válida.',
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
+        ]);
+
+        auth('interno')->user()->update([
+            'data_nascimento' => $validated['data_nascimento']
+        ]);
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Data de nascimento atualizada com sucesso!');
     }
 }

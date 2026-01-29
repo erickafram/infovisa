@@ -435,6 +435,9 @@
     @stack('scripts')
     @stack('modals')
 
+    {{-- Chat Interno --}}
+    @include('components.chat-interno')
+
     {{-- Assistentes IA --}}
     @include('components.assistente-ia-chat')
     @include('components.assistente-documento-chat')
