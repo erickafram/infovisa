@@ -296,7 +296,7 @@ class ProcessoController extends Controller
                 $query->orderBy('created_at', 'desc');
         }
 
-        $processos = $query->with('responsavelAtual')->paginate(20)->withQueryString();
+        $processos = $query->with('responsavelAtual')->paginate(10)->withQueryString();
 
         // ✅ FILTRO ADICIONAL POR COMPETÊNCIA (após paginação)
         if (!$usuario->isAdmin()) {
