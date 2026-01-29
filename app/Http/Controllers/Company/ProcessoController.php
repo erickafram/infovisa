@@ -477,14 +477,14 @@ class ProcessoController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'arquivo' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'arquivo' => 'required|file|max:10240|mimes:pdf',
             'observacoes' => 'nullable|string|max:500',
             'tipo_documento_obrigatorio_id' => 'nullable|exists:tipos_documento_obrigatorio,id',
             'documento_id' => 'nullable|integer|exists:processo_documentos,id',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
-            'arquivo.mimes' => 'Apenas arquivos PDF, JPG e PNG são permitidos.',
+            'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
         $arquivo = $request->file('arquivo');

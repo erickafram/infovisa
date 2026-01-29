@@ -334,7 +334,7 @@
                                     <template x-if="!documentosEnviados[{{ $doc['id'] }}]">
                                         <div class="flex items-center gap-2">
                                             <input type="file" id="file_doc_{{ $doc['id'] }}"
-                                                   class="hidden" accept=".pdf,.jpg,.jpeg,.png"
+                                                   class="hidden" accept=".pdf"
                                                    @change="handleFileObrigatorio($event, {{ $doc['id'] }}, '{{ $doc['nome'] }}')">
                                             
                                             {{-- Botão selecionar arquivo --}}
@@ -535,7 +535,7 @@
                                     <input type="file" x-ref="fileDiversoInput"
                                            @change="handleFileDiverso($event)"
                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                           accept=".pdf,.jpg,.jpeg,.png">
+                                           accept=".pdf">
                                     <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
                                          :class="dragoverDiverso ? 'border-blue-500 bg-blue-50' : (fileDiverso ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50')">
                                         <template x-if="!fileDiverso">
@@ -546,7 +546,7 @@
                                                 <p class="text-sm text-gray-600 mb-1">
                                                     <span class="text-blue-600 font-medium">Clique para selecionar</span> ou arraste o arquivo
                                                 </p>
-                                                <p class="text-xs text-gray-500">PDF, JPG ou PNG (máx. 10MB)</p>
+                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 10MB)</p>
                                             </div>
                                         </template>
                                         <template x-if="fileDiverso">
@@ -588,7 +588,7 @@
                                     <input type="file" 
                                            @change="handleFilesPessoaFisica($event)"
                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                           accept=".pdf,.jpg,.jpeg,.png"
+                                           accept=".pdf"
                                            multiple
                                            :disabled="arquivosPessoaFisica.length >= maxArquivosPF">
                                     <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
@@ -601,7 +601,7 @@
                                                 <p class="text-sm text-gray-600 mb-1">
                                                     <span class="text-green-600 font-medium">Clique para selecionar</span> ou arraste os arquivos
                                                 </p>
-                                                <p class="text-xs text-gray-500">PDF, JPG ou PNG (máx. 10MB cada) - Até 6 arquivos</p>
+                                                <p class="text-xs text-gray-500">Apenas PDF (máx. 10MB cada) - Até 6 arquivos</p>
                                             </div>
                                         </template>
                                         <template x-if="arquivosPessoaFisica.length >= maxArquivosPF">

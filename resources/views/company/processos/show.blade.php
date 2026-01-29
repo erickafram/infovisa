@@ -868,7 +868,7 @@
                             <input type="file" 
                                    @change="handleFiles($event)"
                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   accept=".pdf"
                                    multiple
                                    :disabled="arquivosResposta.length >= maxArquivos">
                             <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
@@ -881,7 +881,7 @@
                                         <p class="text-sm text-gray-600 mb-1">
                                             <span class="text-green-600 font-semibold">Clique para selecionar</span> ou arraste os arquivos
                                         </p>
-                                        <p class="text-xs text-gray-500">PDF, JPG ou PNG • Máx. 10MB cada • Até 6 arquivos</p>
+                                        <p class="text-xs text-gray-500">Apenas PDF • Máx. 10MB cada • Até 6 arquivos</p>
                                         <p class="text-xs text-amber-600 mt-2 font-medium">💡 Dica: Documentos com muitas folhas devem ter no máximo 5MB</p>
                                     </div>
                                 </template>
@@ -1216,7 +1216,7 @@
                             <input type="file" x-ref="fileReenvioInput"
                                    @change="handleFile($event)"
                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                   accept=".pdf,.jpg,.jpeg,.png">
+                                   accept=".pdf">
                             <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
                                  :class="dragover ? 'border-blue-500 bg-blue-50' : (fileReenvio ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50')">
                                 <template x-if="!fileReenvio">
@@ -1227,7 +1227,7 @@
                                         <p class="text-sm text-gray-600 mb-1">
                                             <span class="text-blue-600 font-medium">Clique para selecionar</span> ou arraste o arquivo
                                         </p>
-                                        <p class="text-xs text-gray-500">PDF, JPG ou PNG (máx. 10MB)</p>
+                                        <p class="text-xs text-gray-500">Apenas PDF (máx. 10MB)</p>
                                     </div>
                                 </template>
                                 <template x-if="fileReenvio">
