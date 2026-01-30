@@ -248,6 +248,7 @@ function chatInterno() {
         totalNaoLidas: 0,
         usuariosOnline: 0,
         pollingInterval: null,
+        pollingIntervalMs: 5000, // Intervalo base de polling (5 segundos)
         ultimaMensagemId: 0,
         buscaUsuario: '',
         suporteAberto: false,
@@ -257,20 +258,54 @@ function chatInterno() {
         loadingMensagens: false,
         enviando: false,
         cache: { conversas: null, conversasTime: 0 },
+        documentVisible: true,
 
         init() {
             this.carregarConversas();
-            this.pollingInterval = setInterval(() => this.verificarNovas(), 1500);
+            this.startPolling();
+            
+            // Pausa polling quando aba não está visível
+            document.addEventListener('visibilitychange', () => {
+                this.documentVisible = !document.hidden;
+                if (this.documentVisible) {
+                    this.startPolling();
+                } else {
+                    this.stopPolling();
+                }
+            });
+        },
+        
+        startPolling() {
+            if (this.pollingInterval) return;
+            // Polling mais frequente se chat aberto (3s), senão mais lento (8s)
+            const interval = this.isOpen ? 3000 : 8000;
+            this.pollingInterval = setInterval(() => this.verificarNovas(), interval);
+        },
+        
+        stopPolling() {
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+        },
+        
+        restartPolling() {
+            this.stopPolling();
+            if (this.documentVisible) {
+                this.startPolling();
+            }
         },
 
         toggleChat() {
             this.isOpen = !this.isOpen;
             if (this.isOpen) this.carregarConversas();
+            // Reinicia polling com intervalo adequado (mais rápido se aberto)
+            this.restartPolling();
         },
 
         async carregarConversas() {
             const now = Date.now();
-            if (this.cache.conversas && (now - this.cache.conversasTime) < 1000) return;
+            if (this.cache.conversas && (now - this.cache.conversasTime) < 3000) return; // Cache de 3 segundos
             this.loading = true;
             try {
                 const r = await fetch('{{ route("admin.chat.conversas") }}');

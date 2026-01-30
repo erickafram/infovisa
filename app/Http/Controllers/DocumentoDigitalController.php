@@ -232,6 +232,17 @@ class DocumentoDigitalController extends Controller
             // Busca o tipo de documento para pegar o nome
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
             
+            // Busca o processo e estabelecimento se existir
+            $processo = null;
+            $estabelecimento = null;
+            if ($request->processo_id) {
+                $processo = \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])->find($request->processo_id);
+                $estabelecimento = $processo?->estabelecimento;
+            }
+            
+            // Substitui as variáveis no conteúdo
+            $conteudoProcessado = $this->substituirVariaveis($request->conteudo, $estabelecimento, $processo);
+            
             // Calcula data de vencimento se prazo foi informado
             $dataVencimento = null;
             $tipoPrazo = $request->tipo_prazo ?? 'corridos';
@@ -266,7 +277,7 @@ class DocumentoDigitalController extends Controller
                 'usuario_criador_id' => Auth::guard('interno')->user()->id,
                 'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
                 'nome' => $tipoDocumento->nome, // Nome do tipo de documento
-                'conteudo' => $request->conteudo,
+                'conteudo' => $conteudoProcessado, // Usa conteúdo com variáveis substituídas
                 'sigiloso' => $request->sigiloso ?? false,
                 'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
                 'prazo_dias' => $request->prazo_dias,
@@ -289,7 +300,7 @@ class DocumentoDigitalController extends Controller
             // Salva a primeira versão do documento
             $documento->salvarVersao(
                 Auth::guard('interno')->user()->id,
-                $request->conteudo,
+                $conteudoProcessado, // Usa conteúdo com variáveis substituídas
                 null
             );
 
@@ -1130,6 +1141,209 @@ class DocumentoDigitalController extends Controller
             'success' => true,
             'message' => 'Edição finalizada.'
         ]);
+    }
+
+    /**
+     * Substitui variáveis no conteúdo do documento
+     * 
+     * @param string $conteudo O conteúdo do documento com variáveis
+     * @param mixed $estabelecimento O estabelecimento relacionado (pode ser null)
+     * @param mixed $processo O processo relacionado (pode ser null)
+     * @return string O conteúdo com as variáveis substituídas
+     */
+    private function substituirVariaveis($conteudo, $estabelecimento = null, $processo = null)
+    {
+        // Se não houver conteúdo, retorna vazio
+        if (empty($conteudo)) {
+            return $conteudo;
+        }
+
+        $variaveis = [
+            // Data
+            '{data_atual}' => now()->format('d/m/Y'),
+            '{data_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
+            '{data_atual_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
+            '{ano_atual}' => now()->format('Y'),
+        ];
+
+        // Variáveis do estabelecimento
+        if ($estabelecimento) {
+            $variaveis['{estabelecimento_nome}'] = $estabelecimento->nome_fantasia ?? $estabelecimento->razao_social ?? '';
+            $variaveis['{estabelecimento_razao_social}'] = $estabelecimento->razao_social ?? '';
+            $variaveis['{estabelecimento_cnpj}'] = $estabelecimento->cnpj_formatado ?? $estabelecimento->cnpj ?? '';
+            $variaveis['{estabelecimento_cpf}'] = $estabelecimento->cpf_formatado ?? $estabelecimento->cpf ?? '';
+            $variaveis['{estabelecimento_endereco}'] = trim(($estabelecimento->endereco ?? '') . ', ' . ($estabelecimento->numero ?? ''));
+            $variaveis['{estabelecimento_bairro}'] = $estabelecimento->bairro ?? '';
+            $variaveis['{estabelecimento_cidade}'] = $estabelecimento->cidade ?? '';
+            $variaveis['{estabelecimento_estado}'] = $estabelecimento->estado ?? '';
+            $variaveis['{estabelecimento_cep}'] = $estabelecimento->cep ?? '';
+            $variaveis['{estabelecimento_telefone}'] = $estabelecimento->telefone_formatado ?? $estabelecimento->telefone ?? '';
+            $variaveis['{estabelecimento_email}'] = $estabelecimento->email ?? '';
+            $variaveis['{municipio}'] = $estabelecimento->cidade ?? $estabelecimento->municipioRelacionado?->nome ?? '';
+            
+            // Responsável técnico (pega o primeiro da lista de responsáveis técnicos)
+            $responsavel = $estabelecimento->responsaveisTecnicos?->first() ?? null;
+            $variaveis['{responsavel_nome}'] = $responsavel?->nome ?? '';
+            $variaveis['{responsavel_cpf}'] = $responsavel?->cpf_formatado ?? $responsavel?->cpf ?? '';
+            $variaveis['{responsavel_email}'] = $responsavel?->email ?? '';
+            $variaveis['{responsavel_telefone}'] = $responsavel?->telefone ?? '';
+            $variaveis['{responsavel_conselho}'] = $responsavel?->numero_conselho ?? '';
+            
+            // Atividades do estabelecimento - busca todas as atividades disponíveis
+            $atividadesTexto = $this->formatarAtividadesEstabelecimento($estabelecimento);
+            $variaveis['{atividades}'] = $atividadesTexto;
+        } else {
+            // Valores padrão quando não há estabelecimento
+            $variaveis['{estabelecimento_nome}'] = '';
+            $variaveis['{estabelecimento_razao_social}'] = '';
+            $variaveis['{estabelecimento_cnpj}'] = '';
+            $variaveis['{estabelecimento_cpf}'] = '';
+            $variaveis['{estabelecimento_endereco}'] = '';
+            $variaveis['{estabelecimento_bairro}'] = '';
+            $variaveis['{estabelecimento_cidade}'] = '';
+            $variaveis['{estabelecimento_estado}'] = '';
+            $variaveis['{estabelecimento_cep}'] = '';
+            $variaveis['{estabelecimento_telefone}'] = '';
+            $variaveis['{estabelecimento_email}'] = '';
+            $variaveis['{municipio}'] = '';
+            $variaveis['{responsavel_nome}'] = '';
+            $variaveis['{responsavel_cpf}'] = '';
+            $variaveis['{responsavel_email}'] = '';
+            $variaveis['{responsavel_telefone}'] = '';
+            $variaveis['{responsavel_conselho}'] = '';
+            $variaveis['{atividades}'] = '';
+        }
+
+        // Variáveis do processo
+        if ($processo) {
+            $variaveis['{processo_numero}'] = $processo->numero_processo ?? '';
+            $variaveis['{processo_tipo}'] = $processo->tipo ?? '';
+            $variaveis['{processo_status}'] = $processo->status_formatado ?? $processo->status ?? '';
+            $variaveis['{processo_data_criacao}'] = $processo->created_at?->format('d/m/Y') ?? '';
+            $variaveis['{processo_data_criacao_extenso}'] = $processo->created_at?->translatedFormat('d \d\e F \d\e Y') ?? '';
+        } else {
+            $variaveis['{processo_numero}'] = '';
+            $variaveis['{processo_tipo}'] = '';
+            $variaveis['{processo_status}'] = '';
+            $variaveis['{processo_data_criacao}'] = '';
+            $variaveis['{processo_data_criacao_extenso}'] = '';
+        }
+
+        // Substitui todas as variáveis
+        return str_replace(array_keys($variaveis), array_values($variaveis), $conteudo);
+    }
+
+    /**
+     * Formata as atividades do estabelecimento para exibição no documento
+     * Busca atividades exercidas ou, se não houver, usa CNAE principal e secundários
+     * 
+     * @param mixed $estabelecimento
+     * @return string
+     */
+    private function formatarAtividadesEstabelecimento($estabelecimento)
+    {
+        if (!$estabelecimento) {
+            return '';
+        }
+
+        $listaAtividades = [];
+
+        // 1. Primeiro tenta usar atividades_exercidas (atividades selecionadas pelo usuário)
+        // Filtra apenas atividades com código CNAE válido (numérico, ex: 86.40-2-02 ou 8640202)
+        if ($estabelecimento->atividades_exercidas && is_array($estabelecimento->atividades_exercidas) && count($estabelecimento->atividades_exercidas) > 0) {
+            foreach ($estabelecimento->atividades_exercidas as $atividade) {
+                if (is_array($atividade)) {
+                    $codigo = $atividade['codigo'] ?? '';
+                    $descricao = $atividade['descricao'] ?? $atividade['nome'] ?? '';
+                    $principal = isset($atividade['principal']) && $atividade['principal'];
+                    
+                    // Verifica se o código é um CNAE válido (deve conter apenas números e formatação)
+                    // Ignora códigos como "PROJ_ARQ", "DOC_123", etc.
+                    $codigoLimpo = preg_replace('/[^0-9]/', '', $codigo);
+                    $isCodigoCnaeValido = !empty($codigoLimpo) && strlen($codigoLimpo) >= 5 && strlen($codigoLimpo) <= 7;
+                    
+                    // Só inclui se tiver código CNAE válido
+                    if ($isCodigoCnaeValido && ($descricao || $codigo)) {
+                        $texto = '• ';
+                        if ($codigo) {
+                            // Formata o código CNAE (ex: 4711301 -> 47.11-3-01)
+                            $codigoFormatado = $this->formatarCodigoCnae($codigo);
+                            $texto .= "[{$codigoFormatado}] ";
+                        }
+                        $texto .= $descricao;
+                        if ($principal) {
+                            $texto .= ' (Principal)';
+                        }
+                        $listaAtividades[] = $texto;
+                    }
+                } elseif (is_string($atividade) && !empty($atividade)) {
+                    // Verifica se é um código CNAE válido
+                    $codigoLimpo = preg_replace('/[^0-9]/', '', $atividade);
+                    if (!empty($codigoLimpo) && strlen($codigoLimpo) >= 5) {
+                        $listaAtividades[] = '• ' . $atividade;
+                    }
+                }
+            }
+        }
+
+        // 2. Se não tem atividades exercidas válidas, usa CNAE principal e secundários
+        if (empty($listaAtividades)) {
+            // CNAE Principal
+            if ($estabelecimento->cnae_fiscal) {
+                $codigoFormatado = $this->formatarCodigoCnae($estabelecimento->cnae_fiscal);
+                $descricao = $estabelecimento->cnae_fiscal_descricao ?? '';
+                $texto = "• [{$codigoFormatado}] {$descricao} (Principal)";
+                $listaAtividades[] = $texto;
+            }
+
+            // CNAEs Secundários
+            if ($estabelecimento->cnaes_secundarios && is_array($estabelecimento->cnaes_secundarios)) {
+                foreach ($estabelecimento->cnaes_secundarios as $cnae) {
+                    if (is_array($cnae)) {
+                        $codigo = $cnae['codigo'] ?? '';
+                        $descricao = $cnae['descricao'] ?? $cnae['texto'] ?? '';
+                        
+                        if ($codigo || $descricao) {
+                            $texto = '• ';
+                            if ($codigo) {
+                                $codigoFormatado = $this->formatarCodigoCnae($codigo);
+                                $texto .= "[{$codigoFormatado}] ";
+                            }
+                            $texto .= $descricao;
+                            $listaAtividades[] = $texto;
+                        }
+                    } elseif (is_string($cnae) && !empty($cnae)) {
+                        $codigoFormatado = $this->formatarCodigoCnae($cnae);
+                        $listaAtividades[] = "• [{$codigoFormatado}]";
+                    }
+                }
+            }
+        }
+
+        return implode("\n", $listaAtividades);
+    }
+
+    /**
+     * Formata código CNAE no padrão XX.XX-X-XX
+     * 
+     * @param string $codigo
+     * @return string
+     */
+    private function formatarCodigoCnae($codigo)
+    {
+        // Remove caracteres não numéricos
+        $codigo = preg_replace('/[^0-9]/', '', $codigo);
+        
+        // Se já tem 7 dígitos, formata no padrão XX.XX-X-XX
+        if (strlen($codigo) === 7) {
+            return substr($codigo, 0, 2) . '.' . 
+                   substr($codigo, 2, 2) . '-' . 
+                   substr($codigo, 4, 1) . '-' . 
+                   substr($codigo, 5, 2);
+        }
+        
+        // Retorna como está se não tiver 7 dígitos
+        return $codigo;
     }
 
 }
