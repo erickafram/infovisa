@@ -111,3 +111,7 @@ sudo systemctl restart httpd php-fpm
 git add .
 git commit -m "Implementação de questionários dinâmicos e override de competência"
 git push -u origin main
+
+
+se der erro
+composer install --no-dev --optimize-autoloader
