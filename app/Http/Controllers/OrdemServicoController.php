@@ -46,8 +46,9 @@ class OrdemServicoController extends Controller
 
             $query->whereHas('estabelecimento', function ($subQuery) use ($term, $numericTerm) {
                 $subQuery->where(function ($inner) use ($term, $numericTerm) {
-                    $inner->where('nome_fantasia', 'like', "%{$term}%")
-                        ->orWhere('razao_social', 'like', "%{$term}%")
+                    // Busca case-insensitive e accent-insensitive usando unaccent e ILIKE
+                    $inner->whereRaw("unaccent(lower(nome_fantasia)) ILIKE unaccent(lower(?))", ["%{$term}%"])
+                        ->orWhereRaw("unaccent(lower(razao_social)) ILIKE unaccent(lower(?))", ["%{$term}%"])
                         ->orWhere('cnpj', 'like', "%{$term}%")
                         ->orWhere('cpf', 'like', "%{$term}%");
 

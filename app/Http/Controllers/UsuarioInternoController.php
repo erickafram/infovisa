@@ -73,9 +73,10 @@ class UsuarioInternoController extends Controller
             }
         }
 
-        // Filtro por nome
+        // Filtro por nome (case-insensitive e accent-insensitive)
         if ($request->filled('nome')) {
-            $query->where('nome', 'like', '%' . $request->nome . '%');
+            $nome = $request->nome;
+            $query->whereRaw("unaccent(lower(nome)) ILIKE unaccent(lower(?))", ['%' . $nome . '%']);
         }
 
         // Filtro por CPF
@@ -84,14 +85,14 @@ class UsuarioInternoController extends Controller
             $query->where('cpf', 'like', '%' . $cpf . '%');
         }
 
-        // Filtro por email
+        // Filtro por email (case-insensitive)
         if ($request->filled('email')) {
-            $query->where('email', 'like', '%' . $request->email . '%');
+            $query->whereRaw("lower(email) ILIKE lower(?)", ['%' . $request->email . '%']);
         }
 
-        // Filtro por município
+        // Filtro por município (case-insensitive e accent-insensitive)
         if ($request->filled('municipio')) {
-            $query->where('municipio', 'like', '%' . $request->municipio . '%');
+            $query->whereRaw("unaccent(lower(municipio)) ILIKE unaccent(lower(?))", ['%' . $request->municipio . '%']);
         }
 
         // Filtro por nível de acesso
