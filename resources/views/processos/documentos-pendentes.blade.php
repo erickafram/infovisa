@@ -144,6 +144,11 @@
                                 </svg>
                             </div>
                             <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded {{ $doc->processo->tipo === 'licenciamento' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                        {{ $doc->processo->tipo_nome }}
+                                    </span>
+                                </div>
                                 <p class="text-sm font-medium text-gray-900 truncate">{{ $doc->nome_original }}</p>
                                 <p class="text-xs text-gray-500 mt-0.5">
                                     <span class="font-medium">{{ $doc->processo->estabelecimento->nome_fantasia ?? $doc->processo->estabelecimento->razao_social }}</span>
@@ -215,6 +220,11 @@
                                 </svg>
                             </div>
                             <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded {{ $resposta->documentoDigital->processo->tipo === 'licenciamento' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                        {{ $resposta->documentoDigital->processo->tipo_nome }}
+                                    </span>
+                                </div>
                                 <p class="text-sm font-medium text-gray-900 truncate">{{ $resposta->nome_original }}</p>
                                 <p class="text-xs text-gray-500 mt-0.5">
                                     Resposta para: <span class="font-medium">{{ $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento' }}</span>
