@@ -118,7 +118,7 @@
                     {{-- Busca Rápida --}}
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1.5">🔍 Buscar</label>
-                        <input type="text" name="numero_processo" value="{{ request('numero_processo') }}" 
+                        <input type="text" name="busca" value="{{ request('busca') }}" 
                                placeholder="Nº ou estabelecimento"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                     </div>

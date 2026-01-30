@@ -232,17 +232,30 @@ class ProcessoController extends Controller
             }
         }
 
-        // Filtro por número do processo
-        if ($request->filled('numero_processo')) {
-            $query->where('numero_processo', 'like', '%' . $request->numero_processo . '%');
+        // Busca unificada: número do processo OU estabelecimento (nome/CNPJ)
+        if ($request->filled('busca')) {
+            $busca = $request->busca;
+            $query->where(function($q) use ($busca) {
+                $q->where('numero_processo', 'ilike', '%' . $busca . '%')
+                  ->orWhereHas('estabelecimento', function ($qe) use ($busca) {
+                      $qe->where('nome_fantasia', 'ilike', '%' . $busca . '%')
+                        ->orWhere('razao_social', 'ilike', '%' . $busca . '%')
+                        ->orWhere('cnpj', 'ilike', '%' . $busca . '%');
+                  });
+            });
         }
 
-        // Filtro por estabelecimento (nome ou CNPJ)
+        // Filtro por número do processo (mantido para compatibilidade)
+        if ($request->filled('numero_processo')) {
+            $query->where('numero_processo', 'ilike', '%' . $request->numero_processo . '%');
+        }
+
+        // Filtro por estabelecimento (nome ou CNPJ) (mantido para compatibilidade)
         if ($request->filled('estabelecimento')) {
             $query->whereHas('estabelecimento', function ($q) use ($request) {
-                $q->where('nome_fantasia', 'like', '%' . $request->estabelecimento . '%')
-                  ->orWhere('razao_social', 'like', '%' . $request->estabelecimento . '%')
-                  ->orWhere('cnpj', 'like', '%' . $request->estabelecimento . '%');
+                $q->where('nome_fantasia', 'ilike', '%' . $request->estabelecimento . '%')
+                  ->orWhere('razao_social', 'ilike', '%' . $request->estabelecimento . '%')
+                  ->orWhere('cnpj', 'ilike', '%' . $request->estabelecimento . '%');
             });
         }
 

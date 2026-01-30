@@ -795,13 +795,6 @@
                                     
                                     {{-- Linha Principal: Nome + Status + Ações --}}
                                     <div class="flex items-center gap-3">
-                                        {{-- Checkbox de seleção --}}
-                                        <input type="checkbox" 
-                                               x-show="selecionarMultiplos" 
-                                               :value="'doc_digital_{{ $docDigital->id }}'"
-                                               @change="toggleDocumento('doc_digital_{{ $docDigital->id }}')"
-                                               class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 flex-shrink-0">
-                                        
                                         {{-- Ícone --}}
                                         <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
                                             <span class="text-lg">📄</span>
