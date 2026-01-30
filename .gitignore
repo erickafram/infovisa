@@ -1,73 +1,65 @@
+# Laravel
+/.phpunit.cache
+/build
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
 
-- 
-+ # Laravel
-+ /.phpunit.cache
-+ /build
-+ /public/storage
-+ /storage/*.key
-+ /storage/pail
-+ /vendor
-+ .env
-+ .env.backup
-+ .env.production
-+ .env.local
-+ .env.*.local
-+ 
-+ # PHP
-+ .phpactor.json
-+ .phpunit.result.cache
-+ 
-+ # Node
-+ /node_modules
-+ npm-debug.log
-+ yarn-error.log
-+ package-lock.json
-+ yarn.lock
-+ 
-+ # Frontend Build
-+ /public/build
-+ /public/hot
-+ /public/mix-manifest.json
-+ 
-+ # IDE/Editor
-+ /.fleet
-+ /.idea
-+ /.nova
-+ /.vscode
-+ /.vscode/*
-+ !.vscode/settings.json
-+ !.vscode/tasks.json
-+ !.vscode/launch.json
-+ !.vscode/extensions.json
-+ .zed
-+ *.swp
-+ *.swo
-+ 
-+ # OS
-+ .DS_Store
-+ Thumbs.db
-+ 
-+ # Git
-+ .git/
-+ .gitignore
-+ 
-+ # Auth
-+ /auth.json
-+ 
-+ # Logs
-+ storage/logs/*.log
-+ *.log
-+ 
-+ # Homestead
-+ Homestead.json
-+ Homestead.yaml
-+ vagrant/.vagrant
-+ 
-+ # Cache
-+ .cache/
-+ cache/
-+ 
-+ # Composer
-+ composer.lock
-+ 
-node_modules
+# PHP
+.phpactor.json
+.phpunit.result.cache
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Frontend Build
+/public/build
+/public/hot
+/public/mix-manifest.json
+
+# IDE/Editor
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.zed
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Auth
+/auth.json
+
+# Logs
+storage/logs/*.log
+*.log
+
+# Homestead
+Homestead.json
+Homestead.yaml
+vagrant/.vagrant
+
+# Cache
+.cache/
+cache/
+
+# Composer
+composer.lock
