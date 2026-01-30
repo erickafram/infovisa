@@ -1127,6 +1127,7 @@
             <input type="hidden" name="codigo_municipio_ibge" x-model="dados.codigo_municipio_ibge">
             <input type="hidden" name="atividades_exercidas" :value="getAtividadesJSON()">
             <input type="hidden" name="respostas_questionario" :value="JSON.stringify(respostasQuestionario)">
+            <input type="hidden" name="respostas_questionario2" :value="JSON.stringify(respostasQuestionario2)">
             <input type="hidden" name="atividade_principal_marcada" x-model="atividadePrincipalMarcada">
         </div>
 
@@ -1720,6 +1721,10 @@ function estabelecimentoForm() {
                         this.questionarios.forEach(quest => {
                             if (!this.respostasQuestionario[quest.cnae]) {
                                 erros.push(`Responda o questionário da atividade: ${quest.cnae_formatado} - ${quest.descricao}`);
+                            }
+                            // Validar segunda pergunta (se existir)
+                            if (quest.pergunta2 && !this.respostasQuestionario2[quest.cnae]) {
+                                erros.push(`Responda a segunda pergunta do questionário da atividade: ${quest.cnae_formatado}`);
                             }
                         });
                     }

@@ -182,6 +182,7 @@ class EstabelecimentoController extends Controller
             'descricao_motivo_situacao_cadastral' => 'nullable|string',
             'atividades_exercidas' => 'nullable|string', // JSON das atividades selecionadas
             'respostas_questionario' => 'nullable|string', // JSON das respostas dos questionários
+            'respostas_questionario2' => 'nullable|string', // JSON das respostas da segunda pergunta
         ];
 
         // Validações específicas por tipo de pessoa
@@ -241,6 +242,13 @@ class EstabelecimentoController extends Controller
             $respostasQuestionario = json_decode($request->respostas_questionario, true);
             \Log::info('Respostas questionário recebidas:', ['respostas' => $respostasQuestionario]);
             $validated['respostas_questionario'] = $respostasQuestionario;
+        }
+
+        // Processa respostas da segunda pergunta dos questionários
+        if ($request->filled('respostas_questionario2')) {
+            $respostasQuestionario2 = json_decode($request->respostas_questionario2, true);
+            \Log::info('Respostas questionário 2 recebidas:', ['respostas2' => $respostasQuestionario2]);
+            $validated['respostas_questionario2'] = $respostasQuestionario2;
         }
 
         // Define o usuário responsável e status inicial

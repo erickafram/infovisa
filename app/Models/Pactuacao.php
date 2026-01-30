@@ -67,6 +67,12 @@ class Pactuacao extends Model
      */
     public static function isAtividadeEstadual($cnaeCodigo, $municipio = null, $resposta = null)
     {
+        \Log::info('isAtividadeEstadual chamado:', [
+            'cnae' => $cnaeCodigo,
+            'municipio' => $municipio,
+            'resposta' => $resposta
+        ]);
+        
         // Atividades especiais (Tabela VI) - Projeto Arquitetônico e Análise de Rotulagem
         if (in_array($cnaeCodigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
             $pactuacao = self::where('cnae_codigo', $cnaeCodigo)
@@ -76,6 +82,7 @@ class Pactuacao extends Model
             
             if (!$pactuacao) {
                 // Se não encontrou na pactuação, assume estadual por padrão
+                \Log::info('Atividade especial não encontrada, assumindo estadual');
                 return true;
             }
             
@@ -87,58 +94,276 @@ class Pactuacao extends Model
                     $municipioExcecaoNorm = strtoupper(self::removerAcentos(trim($municipioExcecao)));
                     
                     if ($municipioExcecaoNorm === $municipioNormalizado) {
+                        \Log::info('Atividade especial descentralizada para município');
                         return false; // Descentralizado para o município
                     }
                 }
             }
             
+            \Log::info('Atividade especial é estadual');
             return true; // Competência estadual
         }
         
-        $pactuacao = self::where('tipo', 'estadual')
-            ->where('cnae_codigo', $cnaeCodigo)
+        // Busca a pactuação (sem filtrar por tipo para considerar todas as tabelas)
+        $pactuacao = self::where('cnae_codigo', $cnaeCodigo)
             ->where('ativo', true)
             ->first();
         
         if (!$pactuacao) {
+            \Log::info('Pactuação não encontrada para CNAE, assumindo municipal');
             return false;
         }
         
-        // Se a resposta do questionário for "não"
-        if ($resposta !== null) {
-            $resp = strtolower(trim($resposta));
-            if ($resp === 'nao' || $resp === 'não') {
-                // Para Tabela V, "não" significa NÃO SUJEITO À VISA
-                if ($pactuacao->tabela === 'V') {
-                    return 'nao_sujeito_visa';
-                }
-                // Para outras tabelas, "não" significa competência municipal
-                return false;
-            }
+        \Log::info('Pactuação encontrada:', [
+            'tabela' => $pactuacao->tabela,
+            'tipo' => $pactuacao->tipo,
+            'tipo_questionario' => $pactuacao->tipo_questionario,
+            'requer_questionario' => $pactuacao->requer_questionario
+        ]);
+        
+        // Normaliza município para verificação de exceções
+        $municipioNormalizado = null;
+        if ($municipio) {
+            $municipioNormalizado = strtoupper(self::removerAcentos(trim($municipio)));
         }
         
-        // Se não foi informado município, retorna true (é estadual)
-        if (!$municipio) {
+        // ========================================
+        // TABELA I - Competência Municipal (base)
+        // ========================================
+        if ($pactuacao->tabela === 'I') {
+            // Tabela I é competência municipal por padrão
+            // Só pode ser estadual se estiver em hospital (tipo_questionario = localizacao)
+            if ($pactuacao->tipo_questionario === 'localizacao' || $pactuacao->tipo_questionario === 'risco_localizacao') {
+                // Se resposta for SIM (está em hospital), pode ser estadual
+                if ($resposta !== null) {
+                    $resp = strtolower(trim($resposta));
+                    $respSim = ($resp === 'sim' || $resp === 'yes' || $resp === '1' || $resp === 'true');
+                    
+                    if ($respSim) {
+                        // Verifica exceção hospitalar (Palmas, Araguaína)
+                        if ($municipioNormalizado && $pactuacao->municipios_excecao_hospitalar) {
+                            foreach ($pactuacao->municipios_excecao_hospitalar as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                                    \Log::info('Tabela I: em hospital mas município tem exceção hospitalar = municipal');
+                                    return false; // Municipal (exceção hospitalar)
+                                }
+                            }
+                        }
+                        \Log::info('Tabela I: em hospital = estadual');
+                        return true; // Estadual (em hospital)
+                    }
+                }
+            }
+            \Log::info('Tabela I: competência municipal');
+            return false; // Municipal
+        }
+        
+        // ========================================
+        // TABELA II - Estadual Exclusiva
+        // ========================================
+        if ($pactuacao->tabela === 'II') {
+            \Log::info('Tabela II: competência estadual exclusiva');
+            return true; // Sempre estadual
+        }
+        
+        // ========================================
+        // TABELA III - Alto Risco Pactuado
+        // ========================================
+        if ($pactuacao->tabela === 'III') {
+            // Verifica descentralização
+            if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                    if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                        \Log::info('Tabela III: município descentralizado = municipal');
+                        return false; // Municipal (descentralizado)
+                    }
+                }
+            }
+            \Log::info('Tabela III: competência estadual');
+            return true; // Estadual
+        }
+        
+        // ========================================
+        // TABELA IV - Com Questionário
+        // ========================================
+        if ($pactuacao->tabela === 'IV') {
+            \Log::info('Processando Tabela IV com tipo_questionario: ' . $pactuacao->tipo_questionario);
+            
+            // Normaliza resposta
+            $respNao = false;
+            $respSim = false;
+            if ($resposta !== null) {
+                $resp = strtolower(trim($resposta));
+                $respNao = ($resp === 'nao' || $resp === 'não' || $resp === 'no' || $resp === '0' || $resp === 'false');
+                $respSim = ($resp === 'sim' || $resp === 'yes' || $resp === '1' || $resp === 'true');
+                
+                \Log::info('Processando resposta do questionário:', [
+                    'resposta_original' => $resposta,
+                    'resposta_normalizada' => $resp,
+                    'respNao' => $respNao,
+                    'respSim' => $respSim
+                ]);
+            }
+            
+            switch ($pactuacao->tipo_questionario) {
+                case 'competencia':
+                    // SIM = Estadual (com verificação de descentralização)
+                    // NÃO = Municipal
+                    if ($respNao) {
+                        \Log::info('Tabela IV competencia: resposta NÃO = municipal');
+                        return false; // Municipal
+                    }
+                    if ($respSim) {
+                        // Verifica descentralização
+                        if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                                    \Log::info('Tabela IV competencia: município descentralizado = municipal');
+                                    return false; // Municipal (descentralizado)
+                                }
+                            }
+                        }
+                        \Log::info('Tabela IV competencia: resposta SIM = estadual');
+                        return true; // Estadual
+                    }
+                    // Se não respondeu, assume estadual (será validado no frontend)
+                    \Log::info('Tabela IV competencia: sem resposta, assumindo estadual');
+                    break;
+                    
+                case 'risco':
+                    // Questionário define apenas o risco
+                    // SIM (alto risco) = Estadual com descentralização
+                    // NÃO (médio risco) = Municipal
+                    if ($respNao) {
+                        \Log::info('Tabela IV risco: resposta NÃO = municipal (risco médio)');
+                        return false; // Municipal (risco médio)
+                    }
+                    if ($respSim) {
+                        // Verifica descentralização
+                        if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                                    \Log::info('Tabela IV risco: município descentralizado = municipal');
+                                    return false; // Municipal (descentralizado)
+                                }
+                            }
+                        }
+                        \Log::info('Tabela IV risco: resposta SIM = estadual');
+                        return true; // Estadual
+                    }
+                    // Se não respondeu, assume estadual
+                    \Log::info('Tabela IV risco: sem resposta, assumindo estadual');
+                    break;
+                    
+                case 'localizacao':
+                case 'competencia_localizacao':
+                    // Lógica mais complexa - se NÃO faz análises, é municipal
+                    if ($respNao) {
+                        \Log::info('Tabela IV localizacao: resposta NÃO = municipal');
+                        return false; // Municipal (posto de coleta)
+                    }
+                    if ($respSim) {
+                        // Verifica descentralização
+                        if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                                    \Log::info('Tabela IV localizacao: município descentralizado = municipal');
+                                    return false; // Municipal (descentralizado)
+                                }
+                            }
+                        }
+                        \Log::info('Tabela IV localizacao: resposta SIM = estadual');
+                        return true; // Estadual
+                    }
+                    // Se não respondeu, assume estadual
+                    \Log::info('Tabela IV localizacao: sem resposta, assumindo estadual');
+                    break;
+                    
+                default:
+                    // Comportamento padrão para Tabela IV sem tipo_questionario definido
+                    // SIM = Estadual, NÃO = Municipal
+                    if ($respNao) {
+                        \Log::info('Tabela IV default: resposta NÃO = municipal');
+                        return false;
+                    }
+                    if ($respSim) {
+                        // Verifica descentralização
+                        if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                            foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                                if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                                    \Log::info('Tabela IV default: município descentralizado = municipal');
+                                    return false; // Municipal (descentralizado)
+                                }
+                            }
+                        }
+                        \Log::info('Tabela IV default: resposta SIM = estadual');
+                        return true; // Estadual
+                    }
+                    \Log::info('Tabela IV default: sem resposta, assumindo estadual');
+            }
+            
+            // Verifica descentralização para casos sem resposta
+            if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                    if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                        \Log::info('Tabela IV: município descentralizado = municipal');
+                        return false; // Municipal (descentralizado)
+                    }
+                }
+            }
+            
+            \Log::info('Tabela IV: resultado final = estadual');
+            return true; // Estadual
+        }
+        
+        // ========================================
+        // TABELA V - Definir se é VISA
+        // ========================================
+        if ($pactuacao->tabela === 'V') {
+            if ($resposta !== null) {
+                $resp = strtolower(trim($resposta));
+                $respNao = ($resp === 'nao' || $resp === 'não' || $resp === 'no' || $resp === '0' || $resp === 'false');
+                
+                if ($respNao) {
+                    \Log::info('Tabela V: resposta NÃO = não sujeito à VISA');
+                    return 'nao_sujeito_visa';
+                }
+            }
+            
+            // SIM = Sujeito à VISA, verifica descentralização
+            if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                    if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                        \Log::info('Tabela V: município descentralizado = municipal');
+                        return false; // Municipal (descentralizado)
+                    }
+                }
+            }
+            
+            \Log::info('Tabela V: competência estadual');
+            return true; // Estadual
+        }
+        
+        // ========================================
+        // Fallback para pactuações sem tabela definida
+        // ========================================
+        // Se tipo = 'estadual', é estadual
+        if ($pactuacao->tipo === 'estadual') {
+            // Verifica descentralização
+            if ($municipioNormalizado && $pactuacao->municipios_excecao) {
+                foreach ($pactuacao->municipios_excecao as $munExcecao) {
+                    if (strtoupper(self::removerAcentos(trim($munExcecao))) === $municipioNormalizado) {
+                        \Log::info('Fallback: município descentralizado = municipal');
+                        return false; // Municipal (descentralizado)
+                    }
+                }
+            }
+            \Log::info('Fallback: tipo estadual = estadual');
             return true;
         }
         
-        // Verifica se o município está na lista de exceções (descentralizado)
-        if ($pactuacao->municipios_excecao && is_array($pactuacao->municipios_excecao)) {
-            // Normaliza o município do estabelecimento
-            $municipioNormalizado = strtoupper(self::removerAcentos(trim($municipio)));
-            
-            // Verifica se está na lista de exceções (comparando sem acentos)
-            foreach ($pactuacao->municipios_excecao as $municipioExcecao) {
-                $municipioExcecaoNorm = strtoupper(self::removerAcentos(trim($municipioExcecao)));
-                
-                if ($municipioExcecaoNorm === $municipioNormalizado) {
-                    // Se o município está nas exceções, ele tem competência MUNICIPAL (não é estadual)
-                    return false;
-                }
-            }
-        }
-        
-        return true;
+        \Log::info('Fallback: competência municipal');
+        return false; // Municipal
     }
     
     /**

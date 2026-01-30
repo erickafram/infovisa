@@ -77,6 +77,8 @@ class EstabelecimentoController extends Controller
                     'cnae_formatado' => $pactuacao->cnae_codigo,
                     'descricao' => $pactuacao->cnae_descricao,
                     'pergunta' => $pactuacao->pergunta,
+                    'pergunta2' => $pactuacao->pergunta2,
+                    'tipo_questionario' => $pactuacao->tipo_questionario,
                     'tabela' => $pactuacao->tabela,
                     'municipios_excecao' => $pactuacao->municipios_excecao ?? [],
                 ];
@@ -177,6 +179,7 @@ class EstabelecimentoController extends Controller
             'codigo_municipio_ibge' => 'nullable|string',
             'atividades_exercidas' => 'nullable|string',
             'respostas_questionario' => 'nullable|string',
+            'respostas_questionario2' => 'nullable|string',
         ];
 
         if ($request->tipo_pessoa === 'juridica') {
@@ -236,6 +239,9 @@ class EstabelecimentoController extends Controller
         }
         if ($request->filled('respostas_questionario')) {
             $validated['respostas_questionario'] = json_decode($request->respostas_questionario, true);
+        }
+        if ($request->filled('respostas_questionario2')) {
+            $validated['respostas_questionario2'] = json_decode($request->respostas_questionario2, true);
         }
 
         // ========================================
@@ -302,6 +308,16 @@ class EstabelecimentoController extends Controller
         // ========================================
         // Cria um estabelecimento temporário (não salvo) para verificar competência
         $estabelecimentoTemp = new Estabelecimento($validated);
+        
+        // Log para debug da competência
+        Log::info('Verificação de competência no cadastro:', [
+            'municipio' => $validated['cidade'] ?? null,
+            'atividades_exercidas' => $validated['atividades_exercidas'] ?? [],
+            'respostas_questionario' => $validated['respostas_questionario'] ?? [],
+            'todas_atividades' => $estabelecimentoTemp->getTodasAtividades(),
+            'is_competencia_estadual' => $estabelecimentoTemp->isCompetenciaEstadual(),
+            'is_competencia_municipal' => $estabelecimentoTemp->isCompetenciaMunicipal(),
+        ]);
         
         // Se for de competência MUNICIPAL, verifica se o município usa o InfoVISA
         if ($estabelecimentoTemp->isCompetenciaMunicipal()) {

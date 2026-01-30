@@ -886,6 +886,7 @@
                     {{-- Atividades Exercidas (hidden) --}}
                     <input type="hidden" name="atividades_exercidas" :value="JSON.stringify(getAtividadesExercidas())">
                     <input type="hidden" name="respostas_questionario" :value="JSON.stringify(respostasQuestionario)">
+                    <input type="hidden" name="respostas_questionario2" :value="JSON.stringify(respostasQuestionario2)">
                     <input type="hidden" name="competencia_estadual" :value="competenciaEstadual ? '1' : '0'">
                     <input type="hidden" name="nao_sujeito_visa" :value="naoSujeitoVisa ? '1' : '0'">
 
@@ -1595,6 +1596,12 @@ function estabelecimentoFormCompany() {
                         if (questionariosNaoRespondidos.length > 0) {
                             erros.push('Responda todos os questionários obrigatórios');
                         }
+                        
+                        // Validar segunda pergunta (se existir)
+                        const questionarios2NaoRespondidos = this.questionarios.filter(q => q.pergunta2 && !this.respostasQuestionario2[q.cnae]);
+                        if (questionarios2NaoRespondidos.length > 0) {
+                            erros.push('Responda todas as perguntas dos questionários (incluindo a segunda pergunta)');
+                        }
                     }
                 }
             }
@@ -1645,6 +1652,12 @@ function estabelecimentoFormCompany() {
                     const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
                     if (questionariosNaoRespondidos.length > 0) {
                         erros.push('Responda todos os questionários obrigatórios na aba Atividades');
+                    }
+                    
+                    // Validar segunda pergunta (se existir)
+                    const questionarios2NaoRespondidos = this.questionarios.filter(q => q.pergunta2 && !this.respostasQuestionario2[q.cnae]);
+                    if (questionarios2NaoRespondidos.length > 0) {
+                        erros.push('Responda todas as perguntas dos questionários (incluindo a segunda pergunta)');
                     }
                 }
                 

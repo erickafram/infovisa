@@ -55,6 +55,7 @@ class Estabelecimento extends Model
         'tipo_setor',
         'atividades_exercidas',
         'respostas_questionario',
+        'respostas_questionario2',
         'competencia_manual',
         'motivo_alteracao_competencia',
         'alterado_por',
@@ -99,6 +100,7 @@ class Estabelecimento extends Model
         'regime_tributario' => 'array',
         'atividades_exercidas' => 'array',
         'respostas_questionario' => 'array',
+        'respostas_questionario2' => 'array',
         'tipo_setor' => TipoSetor::class,
         'aprovado_em' => 'datetime',
         'alterado_em' => 'datetime',
@@ -585,6 +587,7 @@ class Estabelecimento extends Model
     {
         // PRIORIDADE 1: Se há competência manual definida, usa ela (override administrativo/judicial)
         if ($this->competencia_manual) {
+            \Log::info('Competência manual definida: ' . $this->competencia_manual);
             return $this->competencia_manual === 'estadual';
         }
         
@@ -599,25 +602,58 @@ class Estabelecimento extends Model
             $municipio = trim($municipio);
         }
         
+        \Log::info('isCompetenciaEstadual - Verificando atividades:', [
+            'atividades' => $atividades,
+            'municipio' => $municipio,
+            'respostas_questionario' => $this->respostas_questionario,
+            'respostas_questionario2' => $this->respostas_questionario2
+        ]);
+        
         // Se pelo menos uma atividade for estadual (considerando exceções e questionários), o estabelecimento é estadual
         foreach ($atividades as $cnae) {
             // Busca resposta do questionário para este CNAE, se houver
-            $resposta = null;
+            $resposta1 = null;
+            $resposta2 = null;
             $cnaeString = (string)$cnae;
             
+            // Busca resposta da primeira pergunta
             if ($this->respostas_questionario) {
                 if (isset($this->respostas_questionario[$cnaeString])) {
-                    $resposta = $this->respostas_questionario[$cnaeString];
+                    $resposta1 = $this->respostas_questionario[$cnaeString];
                 } elseif (isset($this->respostas_questionario[(int)$cnaeString])) {
-                    $resposta = $this->respostas_questionario[(int)$cnaeString];
+                    $resposta1 = $this->respostas_questionario[(int)$cnaeString];
                 }
             }
+            
+            // Busca resposta da segunda pergunta (para tipo risco_localizacao)
+            if ($this->respostas_questionario2) {
+                if (isset($this->respostas_questionario2[$cnaeString])) {
+                    $resposta2 = $this->respostas_questionario2[$cnaeString];
+                } elseif (isset($this->respostas_questionario2[(int)$cnaeString])) {
+                    $resposta2 = $this->respostas_questionario2[(int)$cnaeString];
+                }
+            }
+            
+            \Log::info('Verificando CNAE:', [
+                'cnae' => $cnaeString,
+                'resposta1_encontrada' => $resposta1,
+                'resposta2_encontrada' => $resposta2
+            ]);
 
-            if (Pactuacao::isAtividadeEstadual($cnaeString, $municipio, $resposta)) {
+            // Usa o método avançado que considera ambas as respostas
+            $resultado = Pactuacao::verificarCompetenciaAvancada($cnaeString, $municipio, $resposta1, $resposta2);
+            
+            \Log::info('Resultado para CNAE ' . $cnaeString . ':', [
+                'competencia' => $resultado['competencia'],
+                'risco' => $resultado['risco']
+            ]);
+            
+            if ($resultado['competencia'] === 'estadual') {
                 return true;
             }
         }
         
+        \Log::info('Nenhuma atividade estadual encontrada, estabelecimento é municipal');
         return false;
     }
     
