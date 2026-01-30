@@ -171,7 +171,10 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="tarefasPaginadas()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900">Minhas Tarefas</h3>
-                <span class="text-xs text-gray-400" x-show="total > 0" x-text="total + ' itens'"></span>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400" x-show="total > 0" x-text="total + ' itens'"></span>
+                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                </div>
             </div>
             <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
                 <template x-if="loading">
@@ -210,13 +213,11 @@
                     <div class="p-8 text-center text-sm text-gray-400">Nenhuma tarefa pendente</div>
                 </template>
             </div>
-            <template x-if="lastPage > 1">
-                <div class="px-4 py-2 border-t border-gray-100 flex items-center justify-between">
-                    <span class="text-xs text-gray-400">Página <span x-text="currentPage"></span> de <span x-text="lastPage"></span></span>
-                    <div class="flex gap-1">
-                        <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
-                        <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
-                    </div>
+            <template x-if="total > 10">
+                <div class="px-4 py-2 border-t border-gray-100 text-center">
+                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        Ver todas as <span x-text="total"></span> tarefas →
+                    </a>
                 </div>
             </template>
         </div>
@@ -421,9 +422,9 @@ function tarefasPaginadas() {
         async load() {
             this.loading = true;
             try {
-                const r = await fetch(`{{ route('admin.dashboard.tarefas') }}?page=${this.currentPage}`);
+                const r = await fetch(`{{ route('admin.dashboard.tarefas') }}?page=${this.currentPage}&per_page=10`);
                 const d = await r.json();
-                this.tarefas = d.data; this.currentPage = d.current_page; this.lastPage = d.last_page; this.total = d.total;
+                this.tarefas = d.data.slice(0, 10); this.currentPage = d.current_page; this.lastPage = Math.min(d.last_page, 1); this.total = d.total;
             } catch(e) { console.error(e); }
             this.loading = false;
         },

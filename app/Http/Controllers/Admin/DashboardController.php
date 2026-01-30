@@ -592,4 +592,266 @@ class DashboardController extends Controller
             'per_page' => $perPage,
         ]);
     }
+
+    /**
+     * Exibe página com todas as tarefas
+     */
+    public function todasTarefas()
+    {
+        return view('admin.dashboard.tarefas');
+    }
+
+    /**
+     * Retorna todas as tarefas paginadas via AJAX (para página completa)
+     */
+    public function todasTarefasPaginadas(Request $request)
+    {
+        $usuario = Auth::guard('interno')->user();
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 20);
+        $filtro = $request->get('filtro', 'todos'); // todos, aprovacao, resposta, assinatura, os
+
+        // Buscar documentos pendentes de assinatura
+        $assinaturas = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
+            ->where('status', 'pendente')
+            ->whereHas('documentoDigital', fn($q) => $q->where('status', '!=', 'rascunho'))
+            ->with(['documentoDigital.tipoDocumento', 'documentoDigital.processo.estabelecimento'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Buscar OSs em andamento do usuário
+        $ordensServico = OrdemServico::with(['estabelecimento'])
+            ->whereIn('status', ['aberta', 'em_andamento'])
+            ->get()
+            ->filter(fn($os) => $os->tecnicos_ids && in_array($usuario->id, $os->tecnicos_ids))
+            ->sortBy('data_fim');
+
+        // Buscar documentos pendentes de aprovação
+        $documentos_pendentes_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
+            ->where('tipo_usuario', 'externo')
+            ->with(['processo.estabelecimento']);
+
+        $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
+
+        // Filtrar por competência
+        if ($usuario->isEstadual()) {
+            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                $q->where('municipio_id', $usuario->municipio_id));
+            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                $q->where('municipio_id', $usuario->municipio_id));
+        }
+
+        $documentos_pendentes = $documentos_pendentes_query->orderBy('created_at', 'desc')->get();
+        $respostas_pendentes = $respostas_pendentes_query->orderBy('created_at', 'desc')->get();
+
+        // Filtrar por competência em memória
+        if ($usuario->isEstadual()) {
+            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
+            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+        } elseif ($usuario->isMunicipal()) {
+            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
+            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+        }
+
+        // Agrupar documentos por processo
+        $tarefasArray = [];
+        foreach($documentos_pendentes as $doc) {
+            $key = 'processo_' . $doc->processo_id;
+            $tipoProcesso = $doc->processo->tipo ?? null;
+            $tipoProcessoNome = $doc->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $isLicenciamento = $tipoProcesso === 'licenciamento';
+            
+            if (!isset($tarefasArray[$key])) {
+                $diasPendente = (int) $doc->created_at->diffInDays(now());
+                $tarefasArray[$key] = [
+                    'tipo' => 'aprovacao',
+                    'processo_id' => $doc->processo_id,
+                    'estabelecimento_id' => $doc->processo->estabelecimento_id,
+                    'estabelecimento' => $doc->processo->estabelecimento->nome_fantasia ?? $doc->processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                    'numero_processo' => $doc->processo->numero_processo,
+                    'tipo_processo' => $tipoProcessoNome,
+                    'is_licenciamento' => $isLicenciamento,
+                    'primeiro_arquivo' => $doc->nome_original,
+                    'total' => 1,
+                    'dias_pendente' => $diasPendente,
+                    'atrasado' => $isLicenciamento && $diasPendente > 5,
+                    'created_at' => $doc->created_at,
+                ];
+            } else {
+                $tarefasArray[$key]['total']++;
+                if ($doc->created_at < $tarefasArray[$key]['created_at']) {
+                    $tarefasArray[$key]['created_at'] = $doc->created_at;
+                    $diasPendente = (int) $doc->created_at->diffInDays(now());
+                    $tarefasArray[$key]['dias_pendente'] = $diasPendente;
+                    $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
+                }
+            }
+        }
+
+        // Respostas são tratadas separadamente
+        foreach($respostas_pendentes as $resposta) {
+            $key = 'resposta_' . $resposta->documentoDigital->processo_id;
+            $tipoDocumento = $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento';
+            $tipoProcesso = $resposta->documentoDigital->processo->tipo ?? null;
+            $tipoProcessoNome = $resposta->documentoDigital->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $isLicenciamento = $tipoProcesso === 'licenciamento';
+            
+            if (!isset($tarefasArray[$key])) {
+                $diasPendente = (int) $resposta->created_at->diffInDays(now());
+                $tarefasArray[$key] = [
+                    'tipo' => 'resposta',
+                    'processo_id' => $resposta->documentoDigital->processo_id,
+                    'estabelecimento_id' => $resposta->documentoDigital->processo->estabelecimento_id,
+                    'estabelecimento' => $resposta->documentoDigital->processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
+                    'numero_processo' => $resposta->documentoDigital->processo->numero_processo,
+                    'tipo_processo' => $tipoProcessoNome,
+                    'is_licenciamento' => $isLicenciamento,
+                    'tipo_documento' => $tipoDocumento,
+                    'primeiro_arquivo' => $resposta->nome_original,
+                    'total' => 1,
+                    'dias_pendente' => $diasPendente,
+                    'atrasado' => $isLicenciamento && $diasPendente > 5,
+                    'created_at' => $resposta->created_at,
+                ];
+            } else {
+                $tarefasArray[$key]['total']++;
+                if ($resposta->created_at < $tarefasArray[$key]['created_at']) {
+                    $tarefasArray[$key]['created_at'] = $resposta->created_at;
+                    $diasPendente = (int) $resposta->created_at->diffInDays(now());
+                    $tarefasArray[$key]['dias_pendente'] = $diasPendente;
+                    $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
+                }
+            }
+        }
+
+        // Combinar todas as tarefas
+        $todasTarefas = collect();
+
+        // Adicionar assinaturas
+        if ($filtro === 'todos' || $filtro === 'assinatura') {
+            foreach($assinaturas as $ass) {
+                $todasTarefas->push([
+                    'tipo' => 'assinatura',
+                    'id' => $ass->documentoDigital->id,
+                    'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
+                    'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
+                                   $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                    'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
+                    'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                    'badge' => null,
+                    'atrasado' => false,
+                    'ordem' => 0,
+                    'data' => $ass->created_at->format('d/m/Y H:i'),
+                    'created_at' => $ass->created_at,
+                ]);
+            }
+        }
+
+        // Adicionar OSs
+        if ($filtro === 'todos' || $filtro === 'os') {
+            foreach($ordensServico as $os) {
+                $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
+                $isVencido = $diasRestantes !== null && $diasRestantes < 0;
+                $tiposAcao = $os->tiposAcao();
+                
+                $todasTarefas->push([
+                    'tipo' => 'os',
+                    'id' => $os->id,
+                    'numero' => $os->numero,
+                    'titulo' => 'OS #' . $os->numero,
+                    'subtitulo' => $os->estabelecimento->nome_fantasia ?? 'Sem estabelecimento',
+                    'tipo_acao' => $tiposAcao && $tiposAcao->count() > 0 ? $tiposAcao->first()->descricao : null,
+                    'url' => route('admin.ordens-servico.show', $os),
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $isVencido,
+                    'ordem' => 1,
+                    'data' => $os->created_at->format('d/m/Y H:i'),
+                    'created_at' => $os->created_at,
+                ]);
+            }
+        }
+
+        // Adicionar aprovações e respostas agrupadas
+        $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
+        foreach($tarefasOrdenadas as $tarefa) {
+            if ($filtro !== 'todos' && $filtro !== $tarefa['tipo']) continue;
+            
+            $diasRestantes = $tarefa['is_licenciamento'] ? (5 - $tarefa['dias_pendente']) : null;
+            
+            if ($tarefa['tipo'] === 'resposta') {
+                $todasTarefas->push([
+                    'tipo' => 'resposta',
+                    'processo_id' => $tarefa['processo_id'],
+                    'estabelecimento_id' => $tarefa['estabelecimento_id'],
+                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
+                    'subtitulo' => $tarefa['estabelecimento'],
+                    'numero_processo' => $tarefa['numero_processo'],
+                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'total' => $tarefa['total'],
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $tarefa['atrasado'],
+                    'dias_pendente' => $tarefa['dias_pendente'],
+                    'is_licenciamento' => $tarefa['is_licenciamento'],
+                    'tipo_processo' => $tarefa['tipo_processo'],
+                    'ordem' => 1,
+                    'data' => $tarefa['created_at']->format('d/m/Y H:i'),
+                    'created_at' => $tarefa['created_at'],
+                ]);
+            } else {
+                $todasTarefas->push([
+                    'tipo' => 'aprovacao',
+                    'processo_id' => $tarefa['processo_id'],
+                    'estabelecimento_id' => $tarefa['estabelecimento_id'],
+                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 50),
+                    'subtitulo' => $tarefa['estabelecimento'],
+                    'numero_processo' => $tarefa['numero_processo'],
+                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'total' => $tarefa['total'],
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $tarefa['atrasado'],
+                    'dias_pendente' => $tarefa['dias_pendente'],
+                    'is_licenciamento' => $tarefa['is_licenciamento'],
+                    'tipo_processo' => $tarefa['tipo_processo'],
+                    'ordem' => 2,
+                    'data' => $tarefa['created_at']->format('d/m/Y H:i'),
+                    'created_at' => $tarefa['created_at'],
+                ]);
+            }
+        }
+
+        // Ordenar: atrasados primeiro, depois por ordem
+        $todasTarefas = $todasTarefas->sortBy([
+            ['atrasado', 'desc'],
+            ['ordem', 'asc'],
+            ['created_at', 'desc'],
+        ]);
+
+        $total = $todasTarefas->count();
+        $lastPage = max(1, ceil($total / $perPage));
+        $tarefasPaginadas = $todasTarefas->forPage($page, $perPage)->values();
+
+        // Contadores por tipo
+        $contadores = [
+            'total' => $total,
+            'aprovacao' => $todasTarefas->where('tipo', 'aprovacao')->count(),
+            'resposta' => $todasTarefas->where('tipo', 'resposta')->count(),
+            'assinatura' => $todasTarefas->where('tipo', 'assinatura')->count(),
+            'os' => $todasTarefas->where('tipo', 'os')->count(),
+        ];
+
+        return response()->json([
+            'data' => $tarefasPaginadas,
+            'current_page' => (int) $page,
+            'last_page' => $lastPage,
+            'total' => $total,
+            'per_page' => $perPage,
+            'contadores' => $contadores,
+        ]);
+    }
 }

@@ -144,6 +144,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/tarefas', [DashboardController::class, 'tarefasPaginadas'])->name('dashboard.tarefas');
     Route::get('/dashboard/processos-atribuidos', [DashboardController::class, 'processosAtribuidosPaginados'])->name('dashboard.processos-atribuidos');
+    Route::get('/dashboard/todas-tarefas', [DashboardController::class, 'todasTarefas'])->name('dashboard.todas-tarefas');
+    Route::get('/dashboard/todas-tarefas-paginadas', [DashboardController::class, 'todasTarefasPaginadas'])->name('dashboard.todas-tarefas-paginadas');
 
     // Meu Perfil
     Route::get('/perfil', [\App\Http\Controllers\PerfilController::class, 'index'])->name('perfil.index');
