@@ -1,3 +1,10 @@
+@php
+    // Verifica se o Chat Interno está ativo nas configurações
+    $chatInternoAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'chat_interno_ativo')->first();
+    $chatAtivo = $chatInternoAtivo && $chatInternoAtivo->valor === 'true';
+@endphp
+
+@if($chatAtivo)
 {{-- Chat Interno - Estilo WhatsApp - Otimizado --}}
 <div x-data="chatInterno()" x-init="init()" class="fixed bottom-6 z-40" style="right: 100px;">
     
@@ -473,4 +480,4 @@ function chatInterno() {
         }
     };
 }
-</script>
+</script>@endif

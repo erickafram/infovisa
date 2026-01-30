@@ -23,13 +23,17 @@ class ConfiguracaoSistemaController extends Controller
         $iaModel = ConfiguracaoSistema::where('chave', 'ia_model')->first();
         $iaBuscaWeb = ConfiguracaoSistema::where('chave', 'ia_busca_web')->first();
         
+        // Configurações do Chat Interno
+        $chatInternoAtivo = ConfiguracaoSistema::where('chave', 'chat_interno_ativo')->first();
+        
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
             'iaAtiva',
             'iaApiKey',
             'iaApiUrl',
             'iaModel',
-            'iaBuscaWeb'
+            'iaBuscaWeb',
+            'chatInternoAtivo'
         ));
     }
 
@@ -45,6 +49,7 @@ class ConfiguracaoSistemaController extends Controller
             'ia_api_key' => 'nullable|string',
             'ia_api_url' => 'nullable|url',
             'ia_model' => 'nullable|string',
+            'chat_interno_ativo' => 'nullable|boolean',
         ], [
             'logomarca_estadual.image' => 'O arquivo deve ser uma imagem',
             'logomarca_estadual.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
@@ -78,12 +83,19 @@ class ConfiguracaoSistemaController extends Controller
         ConfiguracaoSistema::where('chave', 'ia_busca_web')
             ->update(['valor' => $request->has('ia_busca_web') ? 'true' : 'false']);
         
+        // Atualiza configuração do Chat Interno
+        ConfiguracaoSistema::updateOrCreate(
+            ['chave' => 'chat_interno_ativo'],
+            ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
+        );
+        
         // Verifica se foi apenas atualização de IA (sem logomarca)
         $atualizouIA = $request->has('ia_ativa') || 
                        $request->filled('ia_api_key') || 
                        $request->filled('ia_api_url') || 
                        $request->filled('ia_model') ||
-                       $request->has('ia_busca_web');
+                       $request->has('ia_busca_web') ||
+                       $request->has('chat_interno_ativo');
 
         $config = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         
