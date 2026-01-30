@@ -61,7 +61,7 @@
            class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-orange-300 transition-all cursor-pointer group">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1 group-hover:text-orange-600 transition">Documentação Pendente</p>
+                    <p class="text-xs font-medium text-gray-500 mb-1 group-hover:text-orange-600 transition">Documentação Incompleta</p>
                     <p class="text-2xl font-bold text-orange-600">
                         @php
                             $pendentes = $processos->getCollection()
