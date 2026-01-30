@@ -28,7 +28,6 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Pagination\Paginator::useTailwind();
         
         // Só força o domínio se APP_URL contém o domínio de produção
-        // E NÃO é localhost/127.0.0.1
         $appUrl = config('app.url', '');
         $host = request()->getHost();
         
@@ -40,8 +39,11 @@ class AppServiceProvider extends ServiceProvider
         
         $isProductionUrl = str_contains($appUrl, 'sistemas.saude.to.gov.br');
         
-        // Só aplica se APP_URL é de produção E não está acessando via localhost
-        if ($isProductionUrl && !$isLocalhost) {
+        // Detecta se está acessando via IP (ex: 10.48.208.42)
+        $isAccessingViaIP = filter_var($host, FILTER_VALIDATE_IP) !== false;
+        
+        // Aplica se APP_URL é de produção E (não está acessando via localhost OU está acessando via IP)
+        if ($isProductionUrl && (!$isLocalhost || $isAccessingViaIP)) {
             URL::forceScheme('https');
             URL::forceRootUrl($appUrl);
             
