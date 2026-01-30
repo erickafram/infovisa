@@ -43,12 +43,36 @@ class LoginController extends Controller
         // Tenta autenticar como usuário INTERNO primeiro
         if (Auth::guard('interno')->attempt(array_merge($credentials, ['ativo' => true]), $remember)) {
             $request->session()->regenerate();
+            
+            // Limpa URL intended se for uma rota AJAX (chat, api, etc)
+            $intended = $request->session()->get('url.intended');
+            if ($intended && (
+                str_contains($intended, '/chat/') ||
+                str_contains($intended, '/api/') ||
+                str_contains($intended, 'verificar-novas') ||
+                str_contains($intended, 'heartbeat')
+            )) {
+                $request->session()->forget('url.intended');
+            }
+            
             return redirect()->intended(route('admin.dashboard'));
         }
 
         // Se falhar, tenta autenticar como usuário EXTERNO
         if (Auth::guard('externo')->attempt(array_merge($credentials, ['ativo' => true]), $remember)) {
             $request->session()->regenerate();
+            
+            // Limpa URL intended se for uma rota AJAX (chat, api, etc)
+            $intended = $request->session()->get('url.intended');
+            if ($intended && (
+                str_contains($intended, '/chat/') ||
+                str_contains($intended, '/api/') ||
+                str_contains($intended, 'verificar-novas') ||
+                str_contains($intended, 'heartbeat')
+            )) {
+                $request->session()->forget('url.intended');
+            }
+            
             return redirect()->intended(route('company.dashboard'));
         }
 

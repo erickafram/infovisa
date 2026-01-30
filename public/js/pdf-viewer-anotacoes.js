@@ -3,6 +3,7 @@
 // Armazenar o documento PDF fora do objeto Alpine para evitar problemas com Proxy
 let _pdfDocInstance = null;
 let _currentRenderTask = null;
+let _currentDocumentoId = null; // Rastrear qual documento está carregado
 
 // Base URL para as requisições (definida no layout)
 const APP_BASE_URL = window.APP_BASE_URL || '';
@@ -28,6 +29,23 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         selectedAnnotationIndex: null,
 
         async init() {
+            // Limpar instância anterior se for um documento diferente
+            if (_currentDocumentoId !== this.documentoId) {
+                if (_currentRenderTask) {
+                    try {
+                        _currentRenderTask.cancel();
+                    } catch (e) {}
+                    _currentRenderTask = null;
+                }
+                if (_pdfDocInstance) {
+                    try {
+                        _pdfDocInstance.destroy();
+                    } catch (e) {}
+                    _pdfDocInstance = null;
+                }
+                _currentDocumentoId = this.documentoId;
+            }
+            
             this.canvas = document.getElementById('pdf-canvas');
             this.ctx = this.canvas.getContext('2d');
             this.annotationCanvas = document.getElementById('annotation-canvas');
@@ -64,9 +82,12 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 // Carregar anotações existentes do banco de dados
                 await this.carregarAnotacoesExistentes();
                 
+                // Adicionar timestamp para evitar cache do navegador
+                const urlComTimestamp = this.pdfUrl + (this.pdfUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                
                 // PDF.js requer um objeto com a propriedade 'url'
                 const loadingTask = pdfjsLib.getDocument({ 
-                    url: this.pdfUrl,
+                    url: urlComTimestamp,
                     cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
                     cMapPacked: true
                 });

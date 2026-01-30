@@ -3341,6 +3341,9 @@
                 // Fecha o modal PDF e dispara evento para fechar assistente de documento
                 fecharModalPDF() {
                     this.modalVisualizadorAnotacoes = false;
+                    // Limpa as variáveis do documento para forçar recarregamento
+                    this.documentoIdAnotacoes = null;
+                    this.pdfUrlAnotacoes = '';
                     // Dispara evento para notificar que o modal PDF foi fechado
                     window.dispatchEvent(new CustomEvent('pdf-modal-fechado'));
                 },
