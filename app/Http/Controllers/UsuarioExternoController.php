@@ -15,10 +15,9 @@ class UsuarioExternoController extends Controller
     {
         $query = UsuarioExterno::query();
 
-        // Filtro por nome (case-insensitive e accent-insensitive)
+        // Filtro por nome (case-insensitive usando ILIKE)
         if ($request->filled('nome')) {
-            $nome = $request->nome;
-            $query->whereRaw("unaccent(lower(nome)) ILIKE unaccent(lower(?))", ['%' . $nome . '%']);
+            $query->whereRaw("nome ILIKE ?", ['%' . $request->nome . '%']);
         }
 
         // Filtro por CPF
@@ -27,9 +26,9 @@ class UsuarioExternoController extends Controller
             $query->where('cpf', 'like', '%' . $cpf . '%');
         }
 
-        // Filtro por email (case-insensitive)
+        // Filtro por email (case-insensitive usando ILIKE)
         if ($request->filled('email')) {
-            $query->whereRaw("lower(email) ILIKE lower(?)", ['%' . $request->email . '%']);
+            $query->whereRaw("email ILIKE ?", ['%' . $request->email . '%']);
         }
 
         // Filtro por vínculo
