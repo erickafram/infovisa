@@ -121,7 +121,7 @@ class ResponsavelGlobalController extends Controller
         
         // Paginação manual
         $page = $request->get('page', 1);
-        $perPage = 15;
+        $perPage = 10;
         $total = $responsaveisAgrupados->count();
         $responsaveis = new \Illuminate\Pagination\LengthAwarePaginator(
             $responsaveisAgrupados->forPage($page, $perPage),

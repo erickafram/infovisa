@@ -124,8 +124,8 @@
 
         <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 </div>
                 <div>
                     <p class="text-2xl font-bold text-gray-900">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
@@ -215,7 +215,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="processosAtribuidos()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900">Meus Processos</h3>
-                <span class="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded-full font-medium" x-text="total"></span>
+                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium" x-text="total"></span>
             </div>
             <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
                 <template x-if="loading">
@@ -230,15 +230,15 @@
                     <div>
                         <template x-for="p in processos" :key="p.id">
                             <a :href="p.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="p.is_meu_direto ? 'bg-cyan-100' : 'bg-blue-100'">
-                                    <svg class="w-4 h-4" :class="p.is_meu_direto ? 'text-cyan-600' : 'text-blue-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="p.is_meu_direto ? 'bg-blue-100' : 'bg-blue-100'">
+                                    <svg class="w-4 h-4" :class="p.is_meu_direto ? 'text-blue-600' : 'text-blue-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
                                         <span x-text="p.numero_processo"></span>
                                         <template x-if="p.prazo">
                                             <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                                                  :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700')">
+                                                  :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                 <span x-text="p.prazo.data"></span>
                                             </span>
@@ -272,7 +272,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-900">Monitorando</h3>
-                    <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-cyan-600 hover:text-cyan-700 font-medium">ver todos</a>
+                    <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto">
                     @forelse(($processos_acompanhados ?? collect())->take(5) as $proc)
@@ -296,13 +296,13 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-900">Cadastros Pendentes</h3>
-                    <span class="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded-full font-medium">{{ count($estabelecimentos_pendentes) }}</span>
+                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">{{ count($estabelecimentos_pendentes) }}</span>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[140px] overflow-y-auto">
                     @foreach(($estabelecimentos_pendentes ?? collect())->take(3) as $est)
                     <a href="{{ route('admin.estabelecimentos.show', $est) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                        <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-900 truncate">{{ $est->nome_fantasia ?? $est->razao_social }}</p>
@@ -315,49 +315,49 @@
             @endif
 
             {{-- Atalhos Rápidos --}}
-            <div class="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-sm" x-data="atalhosRapidos()">
-                <div class="px-4 py-3 border-b border-white/20 flex items-center justify-between">
-                    <h3 class="font-semibold text-white">Atalhos</h3>
+            <div class="bg-blue-600 rounded-xl shadow-sm" x-data="atalhosRapidos()">
+                <div class="px-3 py-2 border-b border-white/20 flex items-center justify-between">
+                    <h3 class="font-semibold text-white text-sm">Atalhos</h3>
                     <button @click="abrirModal()" class="text-white/70 hover:text-white transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     </button>
                 </div>
-                <div class="divide-y divide-white/10">
+                <div class="divide-y divide-white/10 max-h-48 overflow-y-auto">
                     @forelse($atalhos_rapidos ?? [] as $atalho)
                     <div class="group relative">
-                        <a href="{{ $atalho->url }}" class="flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition">
-                            <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        <a href="{{ $atalho->url }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
+                            <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                             </div>
-                            <span class="text-sm text-white font-medium">{{ $atalho->titulo }}</span>
+                            <span class="text-xs text-white font-medium truncate">{{ $atalho->titulo }}</span>
                         </a>
-                        <div class="absolute right-3 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-1">
-                            <button @click.prevent="editarAtalho({{ $atalho->id }}, '{{ addslashes($atalho->titulo) }}', '{{ addslashes($atalho->url) }}', '{{ $atalho->icone }}')" class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-1">
+                            <button @click.prevent="editarAtalho({{ $atalho->id }}, '{{ addslashes($atalho->titulo) }}', '{{ addslashes($atalho->url) }}', '{{ $atalho->icone }}')" class="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                             </button>
-                            <button @click.prevent="excluirAtalho({{ $atalho->id }})" class="p-1.5 rounded-lg text-white/70 hover:text-red-300 hover:bg-white/20 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <button @click.prevent="excluirAtalho({{ $atalho->id }})" class="p-1 rounded-lg text-white/70 hover:text-red-300 hover:bg-white/20 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
                     </div>
                     @empty
-                    <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition">
-                        <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
+                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
-                        <span class="text-sm text-white font-medium">Documentos Pendentes</span>
+                        <span class="text-xs text-white font-medium truncate">Documentos Pendentes</span>
                     </a>
-                    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition">
-                        <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
+                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         </div>
-                        <span class="text-sm text-white font-medium">Estabelecimentos Pendentes</span>
+                        <span class="text-xs text-white font-medium truncate">Estabelecimentos Pendentes</span>
                     </a>
-                    <a href="{{ route('admin.ordens-servico.index') }}" class="flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition">
-                        <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <a href="{{ route('admin.ordens-servico.index') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
+                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         </div>
-                        <span class="text-sm text-white font-medium">Ordens de Serviço</span>
+                        <span class="text-xs text-white font-medium truncate">Ordens de Serviço</span>
                     </a>
                     @endforelse
                 </div>
@@ -374,7 +374,7 @@
                         <form @submit.prevent="salvarAtalho()" class="p-5 space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Página</label>
-                                <select x-model="form.url" @change="atualizarTituloPadrao()" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <select x-model="form.url" @change="atualizarTituloPadrao()" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                                     <option value="">Selecione...</option>
                                     <option value="{{ route('admin.dashboard') }}">Dashboard</option>
                                     <option value="{{ route('admin.estabelecimentos.index') }}">Estabelecimentos</option>
@@ -389,11 +389,11 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                                <input type="text" x-model="form.titulo" required maxlength="50" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <input type="text" x-model="form.titulo" required maxlength="50" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                             </div>
                             <div class="flex gap-3 pt-2">
                                 <button type="button" @click="fecharModal()" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancelar</button>
-                                <button type="submit" :disabled="salvando" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 disabled:opacity-50 transition" x-text="salvando ? 'Salvando...' : 'Salvar'"></button>
+                                <button type="submit" :disabled="salvando" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition" x-text="salvando ? 'Salvando...' : 'Salvar'"></button>
                             </div>
                         </form>
                     </div>
@@ -480,7 +480,7 @@ function atalhosRapidos() {
         async salvarAtalho() {
             this.salvando = true;
             try {
-                const url = this.editandoId ? `/admin/atalhos-rapidos/${this.editandoId}` : '/admin/atalhos-rapidos';
+                const url = this.editandoId ? `${window.APP_URL}/admin/atalhos-rapidos/${this.editandoId}` : `${window.APP_URL}/admin/atalhos-rapidos`;
                 const r = await fetch(url, { method: this.editandoId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify(this.form) });
                 const d = await r.json();
                 if (d.success) window.location.reload(); else alert(d.error || 'Erro');
@@ -490,7 +490,7 @@ function atalhosRapidos() {
         async excluirAtalho(id) {
             if (!confirm('Remover este atalho?')) return;
             try {
-                const r = await fetch(`/admin/atalhos-rapidos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
+                const r = await fetch(`${window.APP_URL}/admin/atalhos-rapidos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
                 const d = await r.json();
                 if (d.success) window.location.reload();
             } catch(e) { alert('Erro'); }

@@ -884,7 +884,7 @@ function documentoEditor() {
             if (!this.documentoId) return;
             
             try {
-                const response = await fetch(`/admin/documentos/${this.documentoId}/registrar-edicao`, {
+                const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/registrar-edicao`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -912,7 +912,7 @@ function documentoEditor() {
             if (!this.documentoId) return;
             
             try {
-                const response = await fetch(`/admin/documentos/${this.documentoId}/verificar-edicao`);
+                const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/verificar-edicao`);
                 const data = await response.json();
                 
                 if (data.editando) {
@@ -1345,7 +1345,7 @@ function documentoEditor() {
         // Busca informações de prazo do tipo de documento
         async buscarPrazoTipo(tipoId) {
             try {
-                const response = await fetch(`/admin/documentos/prazo-tipo/${tipoId}`);
+                const response = await fetch(`${window.APP_URL}/admin/documentos/prazo-tipo/${tipoId}`);
                 
                 if (!response.ok) {
                     console.warn('Erro ao buscar prazo do tipo');

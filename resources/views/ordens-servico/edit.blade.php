@@ -1000,7 +1000,7 @@
             processoSelect.disabled = true;
 
             try {
-                const response = await fetch(`/admin/ordens-servico/estabelecimento/${estabelecimentoId}/processos`);
+                const response = await fetch(`${window.APP_URL}/admin/ordens-servico/estabelecimento/${estabelecimentoId}/processos`);
                 const data = await response.json();
 
                 // Limpa select

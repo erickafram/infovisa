@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para buscar dados por CPF no banco
     function buscarDadosPorCPF(cpf) {
-        fetch(`/admin/estabelecimentos/buscar-por-cpf/${cpf}`)
+        fetch(`${window.APP_URL}/admin/estabelecimentos/buscar-por-cpf/${cpf}`)
             .then(response => response.json())
             .then(data => {
                 if (data.existe) {

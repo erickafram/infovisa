@@ -625,7 +625,7 @@ function documentoEditor() {
             if (!tipoId) return;
             
             try {
-                const response = await fetch(`/admin/documentos/modelos/${tipoId}`);
+                const response = await fetch(`${window.APP_URL}/admin/documentos/modelos/${tipoId}`);
                 
                 if (!response.ok) {
                     console.warn('Nenhum modelo encontrado para este tipo de documento');

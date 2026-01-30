@@ -79,7 +79,7 @@ class EdicaoColaborativa {
 
     async iniciarEdicao() {
         try {
-            const response = await fetch(`/admin/documentos/${this.documentoId}/iniciar-edicao`, {
+            const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/iniciar-edicao`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ class EdicaoColaborativa {
         this.mostrarIndicadorSalvando();
         
         try {
-            const response = await fetch(`/admin/documentos/${this.documentoId}/salvar-auto`, {
+            const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/salvar-auto`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ class EdicaoColaborativa {
 
     async verificarEditoresAtivos() {
         try {
-            const response = await fetch(`/admin/documentos/${this.documentoId}/editores-ativos`);
+            const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/editores-ativos`);
             const data = await response.json();
             
             if (data.success) {
@@ -165,7 +165,7 @@ class EdicaoColaborativa {
         this.sincronizandoAgora = true;
         
         try {
-            const response = await fetch(`/admin/documentos/${this.documentoId}/obter-conteudo`);
+            const response = await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/obter-conteudo`);
             const data = await response.json();
             
             if (!data.success) {
@@ -414,7 +414,7 @@ class EdicaoColaborativa {
         if (!this.edicaoId) return;
         
         try {
-            await fetch(`/admin/documentos/${this.documentoId}/finalizar-edicao`, {
+            await fetch(`${window.APP_URL}/admin/documentos/${this.documentoId}/finalizar-edicao`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

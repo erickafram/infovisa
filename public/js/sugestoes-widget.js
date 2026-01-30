@@ -103,7 +103,7 @@ const SugestoesWidget = {
         if (minhas) params.append('minhas', '1');
         
         try {
-            const response = await fetch(`/admin/sugestoes?${params.toString()}`, {
+            const response = await fetch(`${window.APP_URL}/admin/sugestoes?${params.toString()}`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             });
             const data = await response.json();
@@ -248,7 +248,7 @@ const SugestoesWidget = {
         formData.append('pagina_url', this.paginaAtual);
         
         try {
-            const response = await fetch('/admin/sugestoes', {
+            const response = await fetch(window.APP_URL + '/admin/sugestoes', {
                 method: 'POST',
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                 body: formData
@@ -333,7 +333,7 @@ const SugestoesWidget = {
         };
         
         try {
-            const response = await fetch(`/admin/sugestoes/${id}`, {
+            const response = await fetch(`${window.APP_URL}/admin/sugestoes/${id}`, {
                 method: 'PUT',
                 headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                 body: JSON.stringify(data)
@@ -356,7 +356,7 @@ const SugestoesWidget = {
         if (!confirm('Tem certeza que deseja excluir esta sugestão?')) return;
         
         try {
-            const response = await fetch(`/admin/sugestoes/${id}`, {
+            const response = await fetch(`${window.APP_URL}/admin/sugestoes/${id}`, {
                 method: 'DELETE',
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
             });

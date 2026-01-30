@@ -426,7 +426,7 @@ function usuariosVinculo() {
             this.timeoutBusca = setTimeout(() => {
                 this.carregando = true;
                 
-                fetch(`/admin/usuarios-externos/buscar?q=${encodeURIComponent(this.buscaUsuario)}&estabelecimento_id=${this.estabelecimentoId}`)
+                fetch(`${window.APP_URL}/admin/usuarios-externos/buscar?q=${encodeURIComponent(this.buscaUsuario)}&estabelecimento_id=${this.estabelecimentoId}`)
                     .then(response => response.json())
                     .then(data => {
                         this.resultados = data;

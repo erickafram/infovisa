@@ -3139,7 +3139,7 @@
 
                 // Métodos para Documentos Digitais
                 moverDocumentoDigitalParaPasta(documentoId, pastaId, element) {
-                    fetch(`/admin/documentos/${documentoId}/mover-pasta`, {
+                    fetch(`${window.APP_URL}/admin/documentos/${documentoId}/mover-pasta`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -3176,7 +3176,7 @@
                 },
 
                 renomearDocumentoDigital(documentoId, novoNome) {
-                    fetch(`/admin/documentos/${documentoId}/renomear`, {
+                    fetch(`${window.APP_URL}/admin/documentos/${documentoId}/renomear`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

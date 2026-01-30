@@ -100,17 +100,21 @@ class EstabelecimentoController extends Controller
         }
 
         // Estatísticas para o dashboard
-        $estatisticasQuery = Estabelecimento::query();
-        if (auth('interno')->check()) {
-            $estatisticasQuery->paraUsuario(auth('interno')->user());
-        }
+        // Cada contagem precisa de uma query separada para evitar acúmulo de filtros
+        $baseQuery = function() {
+            $query = Estabelecimento::query();
+            if (auth('interno')->check()) {
+                $query->paraUsuario(auth('interno')->user());
+            }
+            return $query;
+        };
         
         $estatisticas = [
-            'total' => $estatisticasQuery->aprovados()->count(),
-            'pendentes' => $estatisticasQuery->pendentes()->count(),
-            'aprovados' => $estatisticasQuery->aprovados()->where('ativo', true)->count(),
-            'rejeitados' => $estatisticasQuery->rejeitados()->count(),
-            'desativados' => $estatisticasQuery->where('ativo', false)->count(),
+            'total' => $baseQuery()->aprovados()->count(),
+            'pendentes' => $baseQuery()->pendentes()->count(),
+            'aprovados' => $baseQuery()->aprovados()->where('ativo', true)->count(),
+            'rejeitados' => $baseQuery()->rejeitados()->count(),
+            'desativados' => $baseQuery()->where('ativo', false)->count(),
         ];
 
         return view('estabelecimentos.index', compact('estabelecimentos', 'estatisticas'));

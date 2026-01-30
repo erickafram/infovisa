@@ -6,6 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - InfoVISA Admin</title>
     
+    {{-- URL base para chamadas JavaScript --}}
+    <script>
+        window.APP_URL = '{{ url('/') }}';
+    </script>
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
@@ -134,7 +139,7 @@
                x-bind:style="'transition: width 300ms ease-in-out, transform 300ms ease-in-out;'">
         
             {{-- Logo Header --}}
-            <div class="flex items-center h-14 bg-gradient-to-r from-cyan-600 to-blue-600 border-b border-cyan-700 px-4"
+            <div class="flex items-center h-14 bg-blue-600 border-b border-blue-700 px-4"
                  :class="showLabels() ? 'justify-between' : 'lg:justify-center'">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -166,7 +171,7 @@
             <button @click="toggleSidebar()" 
                     x-show="!sidebarExpanded"
                     x-cloak
-                    class="sidebar-toggle-expand hidden lg:flex items-center justify-center h-10 text-gray-400 hover:text-cyan-600 hover:bg-gray-50 transition border-b border-gray-100">
+                    class="sidebar-toggle-expand hidden lg:flex items-center justify-center h-10 text-gray-400 hover:text-blue-600 hover:bg-gray-50 transition border-b border-gray-100">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
                 </svg>
@@ -188,7 +193,7 @@
                     @foreach($menuItems as $item)
                     <a href="{{ route($item['route']) }}" 
                        title="{{ $item['label'] }}"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs($item['check']) ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs($item['check']) ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}"/>
@@ -201,7 +206,7 @@
                     @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual())
                     <a href="{{ route('admin.receituarios.index') }}" 
                        title="Receituários"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.receituarios.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.receituarios.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
@@ -214,7 +219,7 @@
                     @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual() || auth('interno')->user()->isMunicipal())
                     <a href="{{ route('admin.ordens-servico.index') }}" 
                        title="Ordens de Serviço"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.ordens-servico.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.ordens-servico.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
@@ -225,7 +230,7 @@
                     {{-- Relatórios --}}
                     <a href="{{ route('admin.relatorios.index') }}" 
                        title="Relatórios"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.relatorios.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.relatorios.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -243,7 +248,7 @@
                     {{-- Usuários Internos --}}
                     <a href="{{ route('admin.usuarios-internos.index') }}" 
                        title="Usuários Internos"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.usuarios-internos.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.usuarios-internos.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -256,7 +261,7 @@
                     {{-- Usuários Externos --}}
                     <a href="{{ route('admin.usuarios-externos.index') }}" 
                        title="Usuários Externos"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.usuarios-externos.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.usuarios-externos.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -267,7 +272,7 @@
                     {{-- Diário Oficial --}}
                     <a href="{{ route('admin.diario-oficial.index') }}" 
                        title="Diário Oficial"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative {{ request()->routeIs('admin.diario-oficial.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative {{ request()->routeIs('admin.diario-oficial.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -292,7 +297,7 @@
                     @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->nivel_acesso->value === 'gestor_estadual')
                     <a href="{{ route('admin.configuracoes.index') }}" 
                        title="Configurações"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.configuracoes.*') ? 'bg-cyan-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.configuracoes.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                        :class="!showLabels() ? 'lg:justify-center' : ''">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -352,7 +357,7 @@
                     <div class="relative" @click.away="userMenuOpen = false">
                         <button @click="userMenuOpen = !userMenuOpen"
                                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-sm">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
                                 <span class="text-white font-semibold text-sm">{{ substr(auth('interno')->user()->nome, 0, 1) }}</span>
                             </div>
                             <span class="hidden md:block text-sm font-medium text-gray-700 max-w-[120px] truncate">

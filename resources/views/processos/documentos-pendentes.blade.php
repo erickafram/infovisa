@@ -59,56 +59,56 @@
         }
     @endphp
     
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-purple-700">{{ count($documentosPendentes) }}</p>
-                    <p class="text-xs text-purple-600">Arquivos do Processo</p>
+                    <p class="text-lg font-bold text-purple-700">{{ count($documentosPendentes) }}</p>
+                    <p class="text-xs text-purple-600">Arquivos</p>
                 </div>
             </div>
         </div>
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-blue-700">{{ count($respostasPendentes) }}</p>
-                    <p class="text-xs text-blue-600">Respostas a Documentos</p>
+                    <p class="text-lg font-bold text-blue-700">{{ count($respostasPendentes) }}</p>
+                    <p class="text-xs text-blue-600">Respostas</p>
                 </div>
             </div>
         </div>
-        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-orange-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-orange-700">{{ $totalUrgentes }}</p>
-                    <p class="text-xs text-orange-600">Urgentes (4-5 dias)</p>
+                    <p class="text-lg font-bold text-orange-700">{{ $totalUrgentes }}</p>
+                    <p class="text-xs text-orange-600">Urgentes</p>
                 </div>
             </div>
         </div>
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-red-700">{{ $totalAtrasados }}</p>
-                    <p class="text-xs text-red-600">Atrasados (+5 dias)</p>
+                    <p class="text-lg font-bold text-red-700">{{ $totalAtrasados }}</p>
+                    <p class="text-xs text-red-600">Atrasados</p>
                 </div>
             </div>
         </div>

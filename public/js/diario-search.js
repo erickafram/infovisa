@@ -88,7 +88,7 @@ class DiarioSearch {
         this.showLoading();
 
         try {
-            const response = await fetch('/admin/diario-oficial/buscar', {
+            const response = await fetch(window.APP_URL + '/admin/diario-oficial/buscar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ class DiarioSearch {
         }
 
         try {
-            const response = await fetch('/admin/diario-oficial/salvar-busca', {
+            const response = await fetch(window.APP_URL + '/admin/diario-oficial/salvar-busca', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -287,7 +287,7 @@ class DiarioSearch {
      */
     async loadSavedSearches() {
         try {
-            const response = await fetch('/admin/diario-oficial/buscas-salvas', {
+            const response = await fetch(window.APP_URL + '/admin/diario-oficial/buscas-salvas', {
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 }
@@ -438,7 +438,7 @@ class DiarioSearch {
         }
 
         try {
-            const response = await fetch(`/admin/diario-oficial/excluir-busca/${id}`, {
+            const response = await fetch(`${window.APP_URL}/admin/diario-oficial/excluir-busca/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content

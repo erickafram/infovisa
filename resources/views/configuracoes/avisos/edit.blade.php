@@ -35,7 +35,7 @@
             <div>
                 <label for="mensagem" class="block text-sm font-medium text-gray-700 mb-1">Mensagem *</label>
                 <textarea name="mensagem" id="mensagem" rows="3" required maxlength="1000"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                           placeholder="Descreva o aviso de forma clara e objetiva">{{ old('mensagem', $aviso->mensagem) }}</textarea>
                 <p class="mt-1 text-xs text-gray-500">Máximo 1000 caracteres</p>
                 @error('mensagem')

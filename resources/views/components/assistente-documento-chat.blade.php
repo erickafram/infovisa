@@ -538,7 +538,7 @@ function assistenteDocumento() {
             this.carregandoMultiplos = true;
             
             try {
-                const response = await fetch('/admin/ia/extrair-multiplos-pdfs', {
+                const response = await fetch(window.APP_URL + '/admin/ia/extrair-multiplos-pdfs', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

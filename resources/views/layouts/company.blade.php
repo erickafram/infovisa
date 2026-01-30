@@ -6,6 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - InfoVISA Empresa</title>
     
+    {{-- URL base para chamadas JavaScript --}}
+    <script>
+        window.APP_URL = '{{ url('/') }}';
+    </script>
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>

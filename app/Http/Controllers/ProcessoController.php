@@ -389,7 +389,7 @@ class ProcessoController extends Controller
             );
         }
 
-        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'statusDocsObrigatorios'));
+        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'processosComDocsPendentes', 'statusDocsObrigatorios'));
     }
 
     /**

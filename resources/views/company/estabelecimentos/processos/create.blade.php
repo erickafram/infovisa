@@ -54,7 +54,7 @@
                                         <span class="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">Único</span>
                                     @endif
                                     @if(isset($documentosObrigatorios[$tipo->id]) && count($documentosObrigatorios[$tipo->id]) > 0)
-                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-cyan-100 text-cyan-700 rounded">{{ count($documentosObrigatorios[$tipo->id]) }} doc(s)</span>
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-600 rounded">{{ count($documentosObrigatorios[$tipo->id]) }} doc(s)</span>
                                     @endif
                                 </div>
                                 @if($tipo->descricao)

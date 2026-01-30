@@ -358,7 +358,7 @@ function fecharModalGerenciarAssinantes() {
 
 function removerAssinante(assinaturaId) {
     if (confirm('Tem certeza que deseja remover este assinante?')) {
-        fetch(`/admin/documentos/assinaturas/${assinaturaId}`, {
+        fetch(`${window.APP_URL}/admin/documentos/assinaturas/${assinaturaId}`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
