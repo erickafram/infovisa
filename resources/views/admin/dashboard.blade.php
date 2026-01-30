@@ -193,6 +193,11 @@
                                     <template x-if="t.tipo === 'aprovacao'"><svg class="w-4 h-4" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
                                 </div>
                                 <div class="flex-1 min-w-0">
+                                    <template x-if="t.tipo_processo">
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded mb-0.5 inline-block"
+                                              :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
+                                              x-text="t.tipo_processo"></span>
+                                    </template>
                                     <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
                                     <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
                                 </div>

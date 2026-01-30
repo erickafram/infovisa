@@ -468,7 +468,7 @@ class DashboardController extends Controller
                     'tipo' => 'resposta',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
-                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento') . ' - ' . $tarefa['tipo_processo'],
+                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
                     'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
                     'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
                     'total' => $tarefa['total'],
@@ -476,6 +476,7 @@ class DashboardController extends Controller
                     'atrasado' => $tarefa['atrasado'],
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
+                    'tipo_processo' => $tarefa['tipo_processo'],
                     'ordem' => 1, // Respostas têm prioridade maior que aprovações normais
                 ]);
             } else {
@@ -483,7 +484,7 @@ class DashboardController extends Controller
                     'tipo' => 'aprovacao',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
-                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 25) . ' - ' . $tarefa['tipo_processo'],
+                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 30),
                     'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
                     'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
                     'total' => $tarefa['total'],
@@ -491,6 +492,7 @@ class DashboardController extends Controller
                     'atrasado' => $tarefa['atrasado'],
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
+                    'tipo_processo' => $tarefa['tipo_processo'],
                     'ordem' => 2,
                 ]);
             }
