@@ -350,6 +350,11 @@ class DashboardController extends Controller
         $tarefasArray = [];
         foreach($documentos_pendentes as $doc) {
             $key = 'processo_' . $doc->processo_id;
+            $tipoProcesso = $doc->processo->tipo ?? null;
+            $tipoProcessoNome = $doc->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
+            $isLicenciamento = $tipoProcesso === 'licenciamento';
+            
             if (!isset($tarefasArray[$key])) {
                 $diasPendente = (int) $doc->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
@@ -358,10 +363,12 @@ class DashboardController extends Controller
                     'estabelecimento_id' => $doc->processo->estabelecimento_id,
                     'estabelecimento' => $doc->processo->estabelecimento->nome_fantasia ?? $doc->processo->estabelecimento->razao_social ?? 'Estabelecimento',
                     'numero_processo' => $doc->processo->numero_processo,
+                    'tipo_processo' => $tipoProcessoNome,
+                    'is_licenciamento' => $isLicenciamento,
                     'primeiro_arquivo' => $doc->nome_original,
                     'total' => 1,
                     'dias_pendente' => $diasPendente,
-                    'atrasado' => $diasPendente > 5,
+                    'atrasado' => $isLicenciamento && $diasPendente > 5, // Só atrasado se for licenciamento
                     'created_at' => $doc->created_at,
                 ];
             } else {
@@ -370,7 +377,7 @@ class DashboardController extends Controller
                     $tarefasArray[$key]['created_at'] = $doc->created_at;
                     $diasPendente = (int) $doc->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
-                    $tarefasArray[$key]['atrasado'] = $diasPendente > 5;
+                    $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
                 }
             }
         }
@@ -379,6 +386,10 @@ class DashboardController extends Controller
         foreach($respostas_pendentes as $resposta) {
             $key = 'resposta_' . $resposta->documentoDigital->processo_id;
             $tipoDocumento = $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento';
+            $tipoProcesso = $resposta->documentoDigital->processo->tipo ?? null;
+            $tipoProcessoNome = $resposta->documentoDigital->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
+            $isLicenciamento = $tipoProcesso === 'licenciamento';
             
             if (!isset($tarefasArray[$key])) {
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
@@ -388,11 +399,13 @@ class DashboardController extends Controller
                     'estabelecimento_id' => $resposta->documentoDigital->processo->estabelecimento_id,
                     'estabelecimento' => $resposta->documentoDigital->processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
                     'numero_processo' => $resposta->documentoDigital->processo->numero_processo,
+                    'tipo_processo' => $tipoProcessoNome,
+                    'is_licenciamento' => $isLicenciamento,
                     'tipo_documento' => $tipoDocumento,
                     'primeiro_arquivo' => $resposta->nome_original,
                     'total' => 1,
                     'dias_pendente' => $diasPendente,
-                    'atrasado' => $diasPendente > 5,
+                    'atrasado' => $isLicenciamento && $diasPendente > 5, // Só atrasado se for licenciamento
                     'created_at' => $resposta->created_at,
                 ];
             } else {
@@ -401,7 +414,7 @@ class DashboardController extends Controller
                     $tarefasArray[$key]['created_at'] = $resposta->created_at;
                     $diasPendente = (int) $resposta->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
-                    $tarefasArray[$key]['atrasado'] = $diasPendente > 5;
+                    $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
                 }
             }
         }
@@ -446,7 +459,8 @@ class DashboardController extends Controller
         // Adicionar aprovações e respostas agrupadas
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
-            $diasRestantes = 5 - $tarefa['dias_pendente'];
+            // Prazo só existe para licenciamento
+            $diasRestantes = $tarefa['is_licenciamento'] ? (5 - $tarefa['dias_pendente']) : null;
             
             // Diferencia respostas de aprovações normais
             if ($tarefa['tipo'] === 'resposta') {
@@ -454,13 +468,14 @@ class DashboardController extends Controller
                     'tipo' => 'resposta',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
-                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
+                    'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento') . ' - ' . $tarefa['tipo_processo'],
                     'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
                     'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
                     'total' => $tarefa['total'],
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $tarefa['atrasado'],
                     'dias_pendente' => $tarefa['dias_pendente'],
+                    'is_licenciamento' => $tarefa['is_licenciamento'],
                     'ordem' => 1, // Respostas têm prioridade maior que aprovações normais
                 ]);
             } else {
@@ -468,13 +483,14 @@ class DashboardController extends Controller
                     'tipo' => 'aprovacao',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
-                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 30),
+                    'titulo' => \Str::limit($tarefa['primeiro_arquivo'], 25) . ' - ' . $tarefa['tipo_processo'],
                     'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
                     'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
                     'total' => $tarefa['total'],
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $tarefa['atrasado'],
                     'dias_pendente' => $tarefa['dias_pendente'],
+                    'is_licenciamento' => $tarefa['is_licenciamento'],
                     'ordem' => 2,
                 ]);
             }

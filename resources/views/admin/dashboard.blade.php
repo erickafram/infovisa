@@ -6,11 +6,16 @@
 @section('content')
 @php
     $docsAtrasados = 0;
+    // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
     foreach($documentos_pendentes_aprovacao ?? [] as $doc) {
-        if ((int) $doc->created_at->diffInDays(now()) > 5) $docsAtrasados++;
+        if ($doc->processo && $doc->processo->tipo === 'licenciamento') {
+            if ((int) $doc->created_at->diffInDays(now()) > 5) $docsAtrasados++;
+        }
     }
     foreach($respostas_pendentes_aprovacao ?? [] as $resp) {
-        if ((int) $resp->created_at->diffInDays(now()) > 5) $docsAtrasados++;
+        if ($resp->documentoDigital && $resp->documentoDigital->processo && $resp->documentoDigital->processo->tipo === 'licenciamento') {
+            if ((int) $resp->created_at->diffInDays(now()) > 5) $docsAtrasados++;
+        }
     }
 @endphp
 
@@ -420,6 +425,8 @@ function tarefasPaginadas() {
         prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
+            // Se não é licenciamento, não tem prazo - mostra cinza
+            if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
             if (t.atrasado) return 'bg-red-100 text-red-700';
             if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
             if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
@@ -428,6 +435,8 @@ function tarefasPaginadas() {
         },
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
+            // Se não é licenciamento, mostra "Verificar" (sem prazo)
+            if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
                 if (t.atrasado) return (t.dias_pendente - 5) + 'd';
                 if (t.dias_restantes === 0) return 'Hoje';
