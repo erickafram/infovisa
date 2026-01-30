@@ -961,15 +961,11 @@ class OrdemServicoController extends Controller
         // Query base
         $query = Estabelecimento::query();
         
-        // Filtro por competência
-        if ($usuario->isEstadual()) {
-            // Estadual vê apenas estabelecimentos estaduais
-            $query->where('competencia_manual', 'estadual');
-        } elseif ($usuario->isMunicipal()) {
-            // Municipal vê apenas estabelecimentos do seu município
+        // Filtro por município para usuário municipal
+        if ($usuario->isMunicipal() && $usuario->municipio_id) {
             $query->where('municipio_id', $usuario->municipio_id);
         }
-        // Admin vê todos
+        // Admin e Estadual veem todos inicialmente (filtro de competência será aplicado depois)
         
         // Busca por CNPJ/CPF, Nome Fantasia ou Razão Social
         if (!empty($termo)) {
@@ -989,12 +985,26 @@ class OrdemServicoController extends Controller
             });
         }
         
-        // Paginação
-        $total = $query->count();
-        $estabelecimentos = $query->orderBy('nome_fantasia')
-            ->skip(($page - 1) * $perPage)
-            ->take($perPage)
-            ->get();
+        // Busca todos os resultados para filtrar por competência
+        $estabelecimentosQuery = $query->orderBy('nome_fantasia')->get();
+        
+        // Filtra por competência baseado no tipo de usuário
+        if ($usuario->isEstadual()) {
+            // Estadual vê apenas estabelecimentos de competência estadual
+            $estabelecimentosQuery = $estabelecimentosQuery->filter(function($est) {
+                return $est->isCompetenciaEstadual();
+            });
+        } elseif ($usuario->isMunicipal()) {
+            // Municipal vê apenas estabelecimentos de competência municipal
+            $estabelecimentosQuery = $estabelecimentosQuery->filter(function($est) {
+                return $est->isCompetenciaMunicipal();
+            });
+        }
+        // Admin vê todos
+        
+        // Paginação manual após filtro
+        $total = $estabelecimentosQuery->count();
+        $estabelecimentos = $estabelecimentosQuery->slice(($page - 1) * $perPage, $perPage)->values();
         
         // Formata resultados para Select2
         $results = $estabelecimentos->map(function($estabelecimento) {
