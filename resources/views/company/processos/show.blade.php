@@ -257,10 +257,9 @@
             @endif
 
             {{-- Progresso dos Documentos Obrigatórios --}}
-            @if(isset($documentosObrigatorios) && $documentosObrigatorios->count() > 0)
             @php
-                $totalObrigatorios = $documentosObrigatorios->where('obrigatorio', true)->count();
-                $enviadosAprovados = $documentosObrigatorios->where('obrigatorio', true)->whereIn('status_envio', ['pendente', 'aprovado'])->count();
+                $totalObrigatorios = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->count() : 0;
+                $enviadosAprovados = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->whereIn('status_envio', ['pendente', 'aprovado'])->count() : 0;
                 $percentual = $totalObrigatorios > 0 ? round(($enviadosAprovados / $totalObrigatorios) * 100) : 0;
                 $faltam = $totalObrigatorios - $enviadosAprovados;
             @endphp
@@ -272,7 +271,7 @@
                         </svg>
                         Documentos Obrigatórios
                     </h3>
-                    <span class="text-xs font-bold {{ $percentual == 100 ? 'text-green-600' : 'text-blue-600' }}">
+                    <span class="text-xs font-bold {{ $percentual == 100 ? 'text-green-600' : ($totalObrigatorios == 0 ? 'text-gray-400' : 'text-blue-600') }}">
                         {{ $enviadosAprovados }}/{{ $totalObrigatorios }}
                     </span>
                 </div>
@@ -280,10 +279,14 @@
                 {{-- Barra de Progresso --}}
                 <div class="relative">
                     <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        @if($totalObrigatorios > 0)
                         <div class="h-full rounded-full transition-all duration-500 ease-out {{ $percentual == 100 ? 'bg-green-500' : 'bg-blue-500' }}" 
                              style="width: {{ $percentual }}%"></div>
+                        @else
+                        <div class="h-full rounded-full bg-gray-300" style="width: 100%"></div>
+                        @endif
                     </div>
-                    @if($percentual == 100)
+                    @if($percentual == 100 && $totalObrigatorios > 0)
                     <div class="absolute -top-1 -right-1">
                         <span class="flex h-5 w-5">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -299,7 +302,14 @@
                 
                 {{-- Status --}}
                 <div class="mt-3">
-                    @if($percentual == 100)
+                    @if($totalObrigatorios == 0)
+                    <p class="text-xs text-gray-500 flex items-center gap-1">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Nenhum documento obrigatório configurado
+                    </p>
+                    @elseif($percentual == 100)
                     <p class="text-xs text-green-600 font-medium flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -319,7 +329,6 @@
                     @endif
                 </div>
             </div>
-            @endif
 
             {{-- Menu de Opções --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
