@@ -454,6 +454,9 @@ class ProcessoController extends Controller
             ->paraTipoProcesso($processo->tipo)
             ->get();
         
+        // Verifica se o estabelecimento precisa cadastrar equipamentos de imagem para este tipo de processo
+        $precisaCadastrarEquipamentos = $processo->estabelecimento->precisaCadastrarEquipamentosImagemParaProcesso($processo->tipo);
+        
         return view('company.processos.show', compact(
             'processo',
             'documentosAprovados',
@@ -464,7 +467,8 @@ class ProcessoController extends Controller
             'alertas',
             'documentosObrigatorios',
             'pastas',
-            'documentosAjuda'
+            'documentosAjuda',
+            'precisaCadastrarEquipamentos'
         ));
     }
 

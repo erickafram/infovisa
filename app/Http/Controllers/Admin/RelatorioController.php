@@ -54,7 +54,13 @@ class RelatorioController extends Controller
         $todosEstabelecimentos = $query->orderBy('nome_fantasia')->get();
 
         // Filtrar estabelecimentos que têm atividades de radiação
+        // E EXCLUIR os que declararam não ter equipamentos
         $estabelecimentos = $todosEstabelecimentos->filter(function($est) use ($codigosAtividadesRadiacao) {
+            // Excluir estabelecimentos que declararam não ter equipamentos
+            if ($est->declaracao_sem_equipamentos_imagem) {
+                return false;
+            }
+            
             $atividadesEstabelecimento = $est->getTodasAtividades();
             foreach ($atividadesEstabelecimento as $codigo) {
                 if (in_array($codigo, $codigosAtividadesRadiacao)) {
@@ -81,12 +87,15 @@ class RelatorioController extends Controller
             return $est;
         })->values();
 
-        // Calcular totais
+        // Calcular totais (exclui os que declararam não ter equipamentos)
+        $totalDeclaracoesSemEquipamentos = $todosEstabelecimentos->where('declaracao_sem_equipamentos_imagem', true)->count();
+        
         $totais = [
             'total' => $estabelecimentos->count(),
             'com_equipamentos' => $estabelecimentos->where('equipamentos_count', '>', 0)->count(),
             'sem_equipamentos' => $estabelecimentos->where('equipamentos_count', 0)->count(),
             'total_equipamentos' => $estabelecimentos->sum('equipamentos_count'),
+            'declaracoes_sem_equipamentos' => $totalDeclaracoesSemEquipamentos,
         ];
 
         // Atividades que exigem equipamentos (para filtro)
@@ -252,4 +261,29 @@ class RelatorioController extends Controller
         
         return $stats;
     }
+
+    /**
+     * Listar estabelecimentos que declararam não ter equipamentos
+     */
+    public function declaracoesSemEquipamentos()
+    {
+        $usuario = auth('interno')->user();
+
+        $query = Estabelecimento::query()
+            ->where('declaracao_sem_equipamentos_imagem', true)
+            ->with(['municipio', 'declaracaoSemEquipamentosUsuario'])
+            ->orderBy('nome_fantasia');
+
+        // Filtro por município se for usuário municipal
+        if ($usuario->isMunicipal()) {
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+
+        $declaracoes = $query->paginate(15);
+
+        return view('admin.relatorios.declaracoes-sem-equipamentos', compact(
+            'declaracoes'
+        ));
+    }
 }
+

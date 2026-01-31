@@ -64,22 +64,67 @@ class EquipamentoRadiacao extends Model
     public static function getTiposEquipamento(): array
     {
         return [
+            // Raio-X Odontológico
             'Raio-X Odontológico Intraoral',
             'Raio-X Odontológico Panorâmico',
+            'Raio-X Odontológico Cefalométrico',
+            'Tomógrafo Computadorizado Cone Beam (CBCT)',
+            
+            // Raio-X Médico
             'Raio-X Médico Fixo',
             'Raio-X Médico Móvel',
+            'Raio-X Médico Portátil',
+            'Raio-X de Tórax',
+            'Raio-X de Coluna',
+            'Raio-X de Extremidades',
+            
+            // Tomografia e Diagnóstico
             'Tomógrafo Computadorizado (TC)',
-            'Mamógrafo',
-            'Densitômetro Ósseo',
+            'Tomógrafo Multislice',
+            'Ressonância Magnética (RM)',
+            
+            // Mamografia
+            'Mamógrafo Analógico',
+            'Mamógrafo Digital',
+            'Mamógrafo com Tomossíntese',
+            
+            // Densitometria
+            'Densitômetro Ósseo (DEXA)',
+            
+            // Fluoroscopia e Hemodinâmica
             'Fluoroscópio',
             'Angiografia',
+            'Hemodinâmica',
             'Arco Cirúrgico (C-Arm)',
-            'Equipamento de Radioterapia',
-            'Braquiterapia',
-            'Acelerador Linear',
-            'PET-CT',
-            'SPECT',
+            'Mini C-Arm',
+            
+            // Medicina Nuclear
             'Gama Câmara',
+            'SPECT',
+            'SPECT-CT',
+            'PET-CT',
+            'PET-RM',
+            'Cintilógrafo',
+            
+            // Radioterapia
+            'Equipamento de Radioterapia',
+            'Acelerador Linear (LINAC)',
+            'Braquiterapia HDR',
+            'Braquiterapia LDR',
+            'Cobalto-60',
+            'CyberKnife',
+            'Gamma Knife',
+            'Tomoterapia',
+            
+            // Ultrassom (para serviços de diagnóstico por imagem)
+            'Ultrassom Convencional',
+            'Ultrassom Doppler',
+            'Ultrassom 3D/4D',
+            'Ecocardiograma',
+            
+            // Outros
+            'Litotriptor',
+            'Equipamento de Radiologia Intervencionista',
             'Outro',
         ];
     }

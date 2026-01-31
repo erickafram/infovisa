@@ -1252,4 +1252,33 @@ class OrdemServicoController extends Controller
             'finalizadas' => count(array_filter($minhasAtividades, fn($a) => $a['status'] === 'finalizada')),
         ]);
     }
+
+    /**
+     * Gerar PDF da Ordem de Serviço
+     */
+    public function gerarPdf(OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Verifica permissão
+        if (!$this->podeVisualizarOS($usuario, $ordemServico)) {
+            abort(403, 'Você não tem permissão para gerar PDF desta ordem de serviço.');
+        }
+
+        $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
+
+        // Renderiza a view para PDF
+        $html = view('ordens-servico.pdf', compact('ordemServico'))->render();
+
+        // Gera PDF usando DomPDF
+        $pdf = \PDF::loadHTML($html)
+            ->setPaper('a4')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
+
+        return $pdf->download('OS-' . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . '.pdf');
+    }
 }
+

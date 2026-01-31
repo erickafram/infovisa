@@ -80,6 +80,11 @@ class Estabelecimento extends Model
         'motivo_rejeicao',
         'aprovado_por',
         'aprovado_em',
+        // Declaração sem equipamentos de imagem
+        'declaracao_sem_equipamentos_imagem',
+        'declaracao_sem_equipamentos_imagem_data',
+        'declaracao_sem_equipamentos_imagem_justificativa',
+        'declaracao_sem_equipamentos_imagem_usuario_id',
     ];
 
     /**
@@ -104,6 +109,8 @@ class Estabelecimento extends Model
         'tipo_setor' => TipoSetor::class,
         'aprovado_em' => 'datetime',
         'alterado_em' => 'datetime',
+        'declaracao_sem_equipamentos_imagem' => 'boolean',
+        'declaracao_sem_equipamentos_imagem_data' => 'datetime',
     ];
 
     /**
@@ -170,6 +177,68 @@ class Estabelecimento extends Model
     public function equipamentosRadiacao()
     {
         return $this->hasMany(EquipamentoRadiacao::class);
+    }
+
+    /**
+     * Relacionamento com usuário que fez a declaração de sem equipamentos
+     */
+    public function declaracaoSemEquipamentosUsuario()
+    {
+        return $this->belongsTo(UsuarioExterno::class, 'declaracao_sem_equipamentos_imagem_usuario_id');
+    }
+
+    /**
+     * Verifica se o estabelecimento declarou não possuir equipamentos de imagem
+     */
+    public function declarouSemEquipamentosImagem(): bool
+    {
+        return (bool) $this->declaracao_sem_equipamentos_imagem;
+    }
+
+    /**
+     * Verifica se precisa cadastrar equipamentos (exige equipamentos E não declarou que não tem E não tem equipamentos cadastrados)
+     */
+    public function precisaCadastrarEquipamentosImagem(): bool
+    {
+        // Se não exige equipamentos, não precisa cadastrar
+        if (!AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($this)) {
+            return false;
+        }
+
+        // Se declarou que não tem, não precisa cadastrar
+        if ($this->declarouSemEquipamentosImagem()) {
+            return false;
+        }
+
+        // Se já tem equipamentos cadastrados, não precisa mais
+        if ($this->equipamentosRadiacao()->count() > 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Verifica se precisa cadastrar equipamentos para um tipo de processo específico
+     */
+    public function precisaCadastrarEquipamentosImagemParaProcesso(string $tipoProcessoCodigo): bool
+    {
+        // Se não exige equipamentos para este tipo de processo, não precisa cadastrar
+        if (!AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentosParaProcesso($this, $tipoProcessoCodigo)) {
+            return false;
+        }
+
+        // Se declarou que não tem, não precisa cadastrar
+        if ($this->declarouSemEquipamentosImagem()) {
+            return false;
+        }
+
+        // Se já tem equipamentos cadastrados, não precisa mais
+        if ($this->equipamentosRadiacao()->count() > 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

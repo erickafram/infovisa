@@ -27,6 +27,33 @@
         </a>
     </div>
 
+    {{-- Alerta de Declaração de Não Possui Equipamentos --}}
+    @if($estabelecimento->declaracao_sem_equipamentos_imagem)
+    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+        <div class="flex items-start gap-3">
+            <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-sm font-semibold text-amber-800">Declaração de Não Possui Equipamentos</h3>
+                <p class="text-sm text-amber-700 mt-1">
+                    Este estabelecimento declarou que <strong>não possui equipamentos de imagem</strong>, mesmo possuindo atividades que normalmente exigem esse tipo de equipamento.
+                </p>
+                @if($estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
+                <div class="mt-2 p-2 bg-amber-100/50 rounded text-sm text-amber-800">
+                    <strong>Justificativa:</strong> {{ $estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}
+                </div>
+                @endif
+                <p class="text-xs text-amber-600 mt-2">
+                    Declaração feita em: {{ $estabelecimento->declaracao_sem_equipamentos_imagem_data?->format('d/m/Y H:i') }}
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Estatísticas --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">

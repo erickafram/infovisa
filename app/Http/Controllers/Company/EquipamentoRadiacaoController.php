@@ -192,4 +192,74 @@ class EquipamentoRadiacaoController extends Controller
 
         return back()->with('success', 'Equipamento removido com sucesso!');
     }
+
+    /**
+     * Registra declaração de que o estabelecimento não possui equipamentos de imagem
+     */
+    public function declararSemEquipamentos(Request $request, $estabelecimentoId)
+    {
+        $user = Auth::guard('externo')->user();
+        
+        $estabelecimento = Estabelecimento::where('id', $estabelecimentoId)
+            ->where(function($query) use ($user) {
+                $query->where('usuario_externo_id', $user->id)
+                      ->orWhereHas('usuariosVinculados', function($q) use ($user) {
+                          $q->where('usuario_externo_id', $user->id);
+                      });
+            })
+            ->firstOrFail();
+
+        // Verifica se o estabelecimento precisa cadastrar equipamentos
+        $exigeEquipamentos = AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
+        
+        if (!$exigeEquipamentos) {
+            return back()->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de imagem.');
+        }
+
+        $validated = $request->validate([
+            'justificativa' => 'required|string|min:30|max:1000',
+            'confirmacao' => 'required|accepted',
+        ], [
+            'justificativa.required' => 'A justificativa é obrigatória.',
+            'justificativa.min' => 'A justificativa deve ter pelo menos 30 caracteres.',
+            'confirmacao.required' => 'Você precisa confirmar a declaração.',
+            'confirmacao.accepted' => 'Você precisa confirmar a declaração.',
+        ]);
+
+        $estabelecimento->update([
+            'declaracao_sem_equipamentos_imagem' => true,
+            'declaracao_sem_equipamentos_imagem_data' => now(),
+            'declaracao_sem_equipamentos_imagem_justificativa' => $validated['justificativa'],
+            'declaracao_sem_equipamentos_imagem_usuario_id' => $user->id,
+        ]);
+
+        return back()->with('success', 'Declaração registrada com sucesso! O sistema reconhece que este estabelecimento não possui equipamentos de imagem.');
+    }
+
+    /**
+     * Revoga declaração de que o estabelecimento não possui equipamentos de imagem
+     */
+    public function revogarDeclaracao($estabelecimentoId)
+    {
+        $user = Auth::guard('externo')->user();
+        
+        $estabelecimento = Estabelecimento::where('id', $estabelecimentoId)
+            ->where(function($query) use ($user) {
+                $query->where('usuario_externo_id', $user->id)
+                      ->orWhereHas('usuariosVinculados', function($q) use ($user) {
+                          $q->where('usuario_externo_id', $user->id);
+                      });
+            })
+            ->firstOrFail();
+
+        $estabelecimento->update([
+            'declaracao_sem_equipamentos_imagem' => false,
+            'declaracao_sem_equipamentos_imagem_data' => null,
+            'declaracao_sem_equipamentos_imagem_justificativa' => null,
+            'declaracao_sem_equipamentos_imagem_usuario_id' => null,
+        ]);
+
+        return redirect()->route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimentoId)
+            ->with('success', 'Declaração revogada com sucesso! Você pode agora cadastrar equipamentos ou fazer uma nova declaração.');
+    }
 }

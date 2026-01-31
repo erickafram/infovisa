@@ -29,61 +29,61 @@
 
     {{-- Cards de Resumo --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-100 rounded-lg">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-1.5 bg-blue-100 rounded-lg">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-gray-900">{{ $totais['total'] }}</p>
-                    <p class="text-sm text-gray-500">Total de estabelecimentos</p>
+                    <p class="text-xl font-bold text-gray-900">{{ $totais['total'] }}</p>
+                    <p class="text-xs text-gray-500">Total de estabelecimentos</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-green-100 rounded-lg">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-1.5 bg-green-100 rounded-lg">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-green-600">{{ $totais['com_equipamentos'] }}</p>
-                    <p class="text-sm text-gray-500">Com equipamentos</p>
+                    <p class="text-xl font-bold text-green-600">{{ $totais['com_equipamentos'] }}</p>
+                    <p class="text-xs text-gray-500">Com equipamentos</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-red-100 rounded-lg">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-1.5 bg-red-100 rounded-lg">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-red-600">{{ $totais['sem_equipamentos'] }}</p>
-                    <p class="text-sm text-gray-500">Sem equipamentos</p>
+                    <p class="text-xl font-bold text-red-600">{{ $totais['sem_equipamentos'] }}</p>
+                    <p class="text-xs text-gray-500">Sem equipamentos</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <a href="{{ route('admin.relatorios.equipamentos-radiacao.declaracoes') }}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md hover:border-amber-300 transition-all cursor-pointer group">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-orange-100 rounded-lg">
-                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                <div class="p-1.5 bg-amber-100 rounded-lg group-hover:bg-amber-200 transition-colors">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-orange-600">{{ $totais['total_equipamentos'] }}</p>
-                    <p class="text-sm text-gray-500">Total de equipamentos</p>
+                    <p class="text-xl font-bold text-amber-600 group-hover:text-amber-700 transition-colors">{{ $totais['declaracoes_sem_equipamentos'] ?? 0 }}</p>
+                    <p class="text-xs text-gray-500 group-hover:text-amber-600 transition-colors">Declarou não ter</p>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     {{-- Toggle Visualização: Tabela / Mapa --}}
@@ -260,7 +260,7 @@
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="fecharModalCidade()"></div>
             
             {{-- Modal Content --}}
-            <div class="relative bg-white rounded-2xl shadow-xl transform transition-all sm:max-w-3xl sm:w-full mx-4"
+            <div class="relative bg-white rounded-lg shadow-lg transform transition-all sm:max-w-2xl sm:w-full mx-4"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                  x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -269,58 +269,53 @@
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                 
                 {{-- Header --}}
-                <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4 rounded-t-2xl">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-white/20 rounded-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white" x-text="cidadeModal"></h3>
-                                <p class="text-orange-100 text-sm">Estabelecimentos com equipamentos de imagem</p>
-                            </div>
+                <div class="bg-white border-b border-gray-200 px-5 py-3 rounded-t-lg flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900" x-text="cidadeModal"></h3>
+                            <p class="text-gray-400 text-xs">Estabelecimentos</p>
                         </div>
-                        <button @click="fecharModalCidade()" class="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
                     </div>
+                    <button @click="fecharModalCidade()" class="p-1 hover:bg-gray-100 rounded transition-colors">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
                 
                 {{-- Body --}}
-                <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                <div class="px-5 py-3 max-h-[50vh] overflow-y-auto">
                     <template x-if="estabelecimentosCidade.length > 0">
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             <template x-for="est in estabelecimentosCidade" :key="est.id">
-                                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <h4 class="font-semibold text-gray-900" x-text="est.nome"></h4>
-                                            <p class="text-sm text-gray-500 mt-1" x-text="est.cnpj"></p>
-                                            <div class="flex flex-wrap gap-2 mt-2">
+                                <div class="bg-gray-50 rounded p-3 border border-gray-200 hover:bg-white hover:border-gray-300 transition-all">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-medium text-gray-900 text-xs" x-text="est.nome"></h4>
+                                            <p class="text-xs text-gray-400 mt-0.5" x-text="est.cnpj"></p>
+                                            <div class="flex flex-wrap gap-1 mt-1.5">
                                                 <template x-for="ativ in est.atividades" :key="ativ">
-                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800" x-text="ativ"></span>
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700" x-text="ativ"></span>
                                                 </template>
                                             </div>
                                         </div>
-                                        <div class="flex flex-col items-end ml-4">
-                                            <span class="inline-flex items-center justify-center w-12 h-12 rounded-full text-lg font-bold text-white"
-                                                  :class="est.equipamentos > 10 ? 'bg-red-600' : (est.equipamentos > 5 ? 'bg-orange-600' : (est.equipamentos > 0 ? 'bg-yellow-500' : 'bg-gray-400'))"
+                                        <div class="flex flex-col items-end ml-2 flex-shrink-0">
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded text-xs font-bold text-gray-700 bg-gray-200"
                                                   x-text="est.equipamentos">
                                             </span>
-                                            <span class="text-xs text-gray-500 mt-1">equipamentos</span>
+                                            <span class="text-xs text-gray-400 mt-0.5">itens</span>
                                         </div>
                                     </div>
-                                    <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                                    <div class="mt-2 pt-2 border-t border-gray-300 flex items-center justify-between">
                                         <span class="text-xs text-gray-400" x-text="'ID: ' + est.id"></span>
                                         <a :href="'/admin/estabelecimentos/' + est.id + '/equipamentos-radiacao'" 
-                                           class="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium">
-                                            Ver equipamentos
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                           class="inline-flex items-center gap-0.5 text-xs text-gray-600 hover:text-gray-900">
+                                            Ver
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                             </svg>
                                         </a>
@@ -330,19 +325,19 @@
                         </div>
                     </template>
                     <template x-if="estabelecimentosCidade.length === 0">
-                        <div class="text-center py-8">
-                            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="text-center py-6">
+                            <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <p class="text-gray-500">Nenhum estabelecimento encontrado nesta cidade.</p>
+                            <p class="text-gray-500 text-xs">Nenhum estabelecimento encontrado.</p>
                         </div>
                     </template>
                 </div>
                 
                 {{-- Footer --}}
-                <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end">
+                <div class="bg-gray-50 px-5 py-2 rounded-b-lg border-t border-gray-200 flex justify-end">
                     <button @click="fecharModalCidade()" 
-                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors">
+                            class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors">
                         Fechar
                     </button>
                 </div>
@@ -432,12 +427,12 @@
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $estabelecimento) }}" 
-                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                     </svg>
-                                    Ver equipamentos
+                                    Ver
                                 </a>
                             </td>
                         </tr>

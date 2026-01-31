@@ -95,6 +95,10 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     // Estabelecimentos - Equipamentos de Radiação Ionizante
     Route::get('/estabelecimentos/{id}/equipamentos-radiacao', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'index'])->name('estabelecimentos.equipamentos-radiacao.index');
     Route::post('/estabelecimentos/{id}/equipamentos-radiacao', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'store'])->name('estabelecimentos.equipamentos-radiacao.store');
+    // Rotas específicas ANTES das rotas com parâmetros dinâmicos
+    Route::post('/estabelecimentos/{id}/equipamentos-radiacao/declarar-sem-equipamentos', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'declararSemEquipamentos'])->name('estabelecimentos.equipamentos-radiacao.declarar-sem-equipamentos');
+    Route::delete('/estabelecimentos/{id}/equipamentos-radiacao/revogar-declaracao', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'revogarDeclaracao'])->name('estabelecimentos.equipamentos-radiacao.revogar-declaracao');
+    // Rotas com parâmetros dinâmicos
     Route::put('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'update'])->name('estabelecimentos.equipamentos-radiacao.update');
     Route::patch('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}/status', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'updateStatus'])->name('estabelecimentos.equipamentos-radiacao.update-status');
     Route::delete('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'destroy'])->name('estabelecimentos.equipamentos-radiacao.destroy');
@@ -390,6 +394,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         [\App\Http\Controllers\OrdemServicoController::class, 'getMinhasAtividades']
     )->name('ordens-servico.minhas-atividades');
     
+    // Gerar PDF da OS
+    Route::get('ordens-servico/{ordemServico}/pdf', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'gerarPdf']
+    )->name('ordens-servico.pdf');
+    
     // Reiniciar OS
     Route::post('ordens-servico/{ordemServico}/reiniciar', 
         [\App\Http\Controllers\OrdemServicoController::class, 'reiniciar']
@@ -633,6 +642,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         Route::get('/', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('index');
         Route::get('/equipamentos-radiacao', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacao'])->name('equipamentos-radiacao');
         Route::get('/equipamentos-radiacao/export', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacaoExport'])->name('equipamentos-radiacao.export');
+        Route::get('/equipamentos-radiacao/declaracoes', [\App\Http\Controllers\Admin\RelatorioController::class, 'declaracoesSemEquipamentos'])->name('equipamentos-radiacao.declaracoes');
     });
     
     // Sugestões do Sistema

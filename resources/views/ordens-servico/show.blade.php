@@ -20,6 +20,14 @@
                 <div class="flex items-center gap-2">
                     {!! $ordemServico->status_badge !!}
                     {!! $ordemServico->competencia_badge !!}
+                    <a href="{{ route('admin.ordens-servico.pdf', $ordemServico) }}" 
+                       target="_blank"
+                       class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        Baixar PDF
+                    </a>
                 </div>
             </div>
         </div>
@@ -228,6 +236,84 @@
                             @if(is_object($ordemServico->estabelecimento->municipio)) - {{ $ordemServico->estabelecimento->municipio->nome }}/{{ $ordemServico->estabelecimento->municipio->uf }}@endif
                         </p>
                     </div>
+
+                    {{-- Status de Equipamentos de Imagem --}}
+                    @php
+                        $codigosAtividadesRadiacao = \App\Models\AtividadeEquipamentoRadiacao::where('ativo', true)
+                            ->pluck('codigo_atividade')
+                            ->map(fn($c) => preg_replace('/[^0-9]/', '', $c))
+                            ->unique()
+                            ->filter()
+                            ->toArray();
+                        
+                        $atividadesEstabelecimento = $ordemServico->estabelecimento->getTodasAtividades();
+                        $exigeEquipamentos = false;
+                        foreach ($atividadesEstabelecimento as $codigo) {
+                            if (in_array($codigo, $codigosAtividadesRadiacao)) {
+                                $exigeEquipamentos = true;
+                                break;
+                            }
+                        }
+                    @endphp
+
+                    @if($exigeEquipamentos)
+                    <div class="pt-2 border-t border-gray-100">
+                        @if($ordemServico->estabelecimento->equipamentosRadiacao()->count() > 0)
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-green-800">Equipamentos Registrados</p>
+                                        <p class="text-xs text-green-700 mt-1">Este estabelecimento possui <strong>{{ $ordemServico->estabelecimento->equipamentosRadiacao()->count() }}</strong> equipamento(s) de imagem cadastrado(s).</p>
+                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $ordemServico->estabelecimento->id) }}" 
+                                           class="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium mt-2">
+                                            Ver equipamentos
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem)
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-amber-800">Declaração: Não Possui Equipamentos</p>
+                                        <p class="text-xs text-amber-700 mt-1">O estabelecimento declarou formalmente que <strong>não possui equipamentos de imagem</strong>, mesmo possuindo atividades que normalmente exigem.</p>
+                                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
+                                        <p class="text-xs text-amber-700 mt-2"><strong>Justificativa:</strong> {{ $ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-red-800">Equipamentos Não Registrados</p>
+                                        <p class="text-xs text-red-700 mt-1">Este estabelecimento não possui equipamentos de imagem cadastrados e nem declaração formal.</p>
+                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $ordemServico->estabelecimento->id) }}" 
+                                           class="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium mt-2">
+                                            Cadastrar equipamentos
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                    @endif
 
                     {{-- Mapa de Localização --}}
                     <div class="bg-white rounded-lg p-3 border border-gray-200">

@@ -717,11 +717,15 @@ class EstabelecimentoController extends Controller
         // Verifica se o estabelecimento tem atividades que exigem equipamentos de radiação
         $exigeEquipamentos = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
         $temEquipamentosCadastrados = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)->exists();
+        $declarouSemEquipamentos = (bool) $estabelecimento->declaracao_sem_equipamentos_imagem;
         
         // Guarda info para usar no filtro de tipos de processo
         $equipamentosInfo = [
             'exige' => $exigeEquipamentos,
             'tem_cadastrados' => $temEquipamentosCadastrados,
+            'declarou_sem' => $declarouSemEquipamentos,
+            // Considera OK se: tem equipamentos OU declarou que não tem
+            'ok' => $temEquipamentosCadastrados || $declarouSemEquipamentos,
         ];
         // ========================================
 
@@ -840,7 +844,8 @@ class EstabelecimentoController extends Controller
         // TIPOS BLOQUEADOS POR FALTA DE EQUIPAMENTOS DE RADIAÇÃO
         // ========================================
         $tiposBloqueadosPorEquipamentos = [];
-        if ($equipamentosInfo['exige'] && !$equipamentosInfo['tem_cadastrados']) {
+        // Só bloqueia se exige equipamentos E não está OK (não tem cadastrados E não declarou que não tem)
+        if ($equipamentosInfo['exige'] && !$equipamentosInfo['ok']) {
             // Verifica quais tipos de processo exigem equipamentos para este estabelecimento
             foreach ($tiposProcesso as $tipo) {
                 if (\App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentosParaProcesso($estabelecimento, $tipo->codigo)) {
@@ -1111,10 +1116,12 @@ class EstabelecimentoController extends Controller
         // Validação de equipamentos de radiação obrigatórios
         if (\App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentosParaProcesso($estabelecimento, $tipoProcesso->codigo)) {
             $temEquipamentos = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)->exists();
+            $declarouSemEquipamentos = (bool) $estabelecimento->declaracao_sem_equipamentos_imagem;
             
-            if (!$temEquipamentos) {
+            // Só bloqueia se não tem equipamentos E não declarou que não tem
+            if (!$temEquipamentos && !$declarouSemEquipamentos) {
                 return redirect()->route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id)
-                    ->with('error', 'Para abrir um processo de ' . $tipoProcesso->nome . ', é obrigatório ter pelo menos um Equipamento de Radiação cadastrado. Por favor, cadastre os equipamentos primeiro.');
+                    ->with('error', 'Para abrir um processo de ' . $tipoProcesso->nome . ', é obrigatório ter pelo menos um Equipamento de Imagem cadastrado ou declarar que não possui. Por favor, cadastre os equipamentos ou faça a declaração.');
             }
         }
 
