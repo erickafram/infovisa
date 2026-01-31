@@ -43,9 +43,9 @@ class AtividadeEquipamentoRadiacaoController extends Controller
      */
     public function create()
     {
-        // Busca tipos de processo estaduais ativos
+        // Busca tipos de processo estaduais ativos (inclui estadual e estadual_exclusivo)
         $tiposProcesso = TipoProcesso::where('ativo', true)
-            ->where('competencia', 'estadual')
+            ->whereIn('competencia', ['estadual', 'estadual_exclusivo'])
             ->orderBy('ordem')
             ->orderBy('nome')
             ->get();
@@ -95,9 +95,9 @@ class AtividadeEquipamentoRadiacaoController extends Controller
      */
     public function edit(AtividadeEquipamentoRadiacao $equipamentos_radiacao)
     {
-        // Busca tipos de processo estaduais ativos
+        // Busca tipos de processo estaduais ativos (inclui estadual e estadual_exclusivo)
         $tiposProcesso = TipoProcesso::where('ativo', true)
-            ->where('competencia', 'estadual')
+            ->whereIn('competencia', ['estadual', 'estadual_exclusivo'])
             ->orderBy('ordem')
             ->orderBy('nome')
             ->get();
