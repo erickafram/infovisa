@@ -182,43 +182,47 @@
                     <div class="px-6 py-5 max-h-[60vh] overflow-y-auto">
                         {{-- Aviso para DARE --}}
                         <template x-if="avisoDareTipo === 'dare'">
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <p class="text-sm text-gray-700">
-                                    Conforme <strong>Art. 4º, parágrafo II da PORTARIA Nº 1153/2025/SES/GASEC</strong>, a taxa de licença sanitária é <strong>cumulativa</strong> para todas as atividades sujeitas ao controle sanitário.
+                                    Conforme Art. 4º, parágrafo II da PORTARIA Nº 1153/2025/SES/GASEC, a taxa de licença sanitária é cumulativa para todas as atividades sujeitas ao controle sanitário.
+                                </p>
+                                
+                                <p class="text-xs text-gray-600 bg-white border border-gray-300 p-3 rounded-lg">
+                                    <strong>Importante:</strong> Mesmo que as atividades não sejam exercidas pelo estabelecimento, você deve pagar a taxa DARE para cada atividade de interesse à Vigilância Sanitária constante no CNPJ.
                                 </p>
                                 
                                 @if(isset($processo) && $processo->estabelecimento && !empty($processo->estabelecimento->atividades_exercidas))
-                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                                    <p class="text-sm font-bold text-amber-800 mb-2">📋 Atividades exercidas neste estabelecimento:</p>
-                                    <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <p class="text-xs font-semibold text-gray-700 mb-2">Atividades exercidas ({{ count($processo->estabelecimento->atividades_exercidas) }}):</p>
+                                    <ul class="text-xs text-gray-600 space-y-1 list-disc list-inside">
                                         @foreach($processo->estabelecimento->atividades_exercidas as $atividade)
                                         <li>{{ is_array($atividade) ? ($atividade['codigo'] ?? '') . ' - ' . ($atividade['descricao'] ?? '') : $atividade }}</li>
                                         @endforeach
                                     </ul>
-                                    <p class="text-xs text-amber-600 mt-2 font-medium">Total: {{ count($processo->estabelecimento->atividades_exercidas) }} atividade(s)</p>
                                 </div>
                                 @endif
                                 
-                                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                                    <p class="text-sm font-bold text-red-800">📌 IMPORTANTE:</p>
-                                    <p class="text-sm text-red-700 mt-1">
-                                        Você deve anexar neste documento <strong>TODOS os boletos DARE</strong> (um para cada atividade exercida) em um <strong>único arquivo PDF</strong>.
-                                    </p>
+                                <div class="bg-white border border-gray-300 p-3 rounded-lg">
+                                    <p class="text-xs font-medium text-gray-700">Anexe todos os boletos DARE em um único PDF</p>
                                 </div>
                             </div>
                         </template>
                         
                         {{-- Aviso para Comprovante de Pagamento --}}
                         <template x-if="avisoDareTipo === 'comprovante'">
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <p class="text-sm text-gray-700">
-                                    Conforme a <strong>PORTARIA Nº 1153/2025/SES/GASEC</strong>, você deve pagar um DARE para cada atividade exercida pelo estabelecimento.
+                                    Conforme PORTARIA Nº 1153/2025, pague um DARE para cada atividade do estabelecimento.
+                                </p>
+                                
+                                <p class="text-xs text-gray-600 bg-white border border-gray-300 p-3 rounded-lg">
+                                    <strong>Importante:</strong> Mesmo que as atividades não sejam exercidas pelo estabelecimento, você deve pagar a taxa DARE para cada atividade de interesse à Vigilância Sanitária constante no CNPJ.
                                 </p>
                                 
                                 @if(isset($processo) && $processo->estabelecimento && !empty($processo->estabelecimento->atividades_exercidas))
-                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                                    <p class="text-sm font-bold text-amber-800 mb-2">📋 Atividades exercidas ({{ count($processo->estabelecimento->atividades_exercidas) }} atividade(s)):</p>
-                                    <ul class="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <p class="text-xs font-semibold text-gray-700 mb-2">Atividades ({{ count($processo->estabelecimento->atividades_exercidas) }}):</p>
+                                    <ul class="text-xs text-gray-600 space-y-1 list-disc list-inside">
                                         @foreach($processo->estabelecimento->atividades_exercidas as $atividade)
                                         <li>{{ is_array($atividade) ? ($atividade['codigo'] ?? '') . ' - ' . ($atividade['descricao'] ?? '') : $atividade }}</li>
                                         @endforeach
@@ -226,11 +230,8 @@
                                 </div>
                                 @endif
                                 
-                                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                                    <p class="text-sm font-bold text-red-800">📌 IMPORTANTE:</p>
-                                    <p class="text-sm text-red-700 mt-1">
-                                        Você deve anexar neste documento <strong>TODOS os comprovantes de pagamento</strong> (um para cada DARE pago) em um <strong>único arquivo PDF</strong>.
-                                    </p>
+                                <div class="bg-white border border-gray-300 p-3 rounded-lg">
+                                    <p class="text-xs font-medium text-gray-700">Anexe todos os comprovantes em um único PDF</p>
                                 </div>
                             </div>
                         </template>
