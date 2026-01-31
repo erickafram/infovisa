@@ -152,6 +152,24 @@
                 </div>
             </div>
         </a>
+
+        {{-- Equipamentos de Radiação Ionizante - Admin e Gestor Estadual --}}
+        <a href="{{ route('admin.configuracoes.equipamentos-radiacao.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-bold text-gray-900 mb-1">Equipamentos de Radiação</h3>
+                    <p class="text-xs text-gray-600">Configure atividades que exigem cadastro de equipamentos de radiação ionizante</p>
+                </div>
+            </div>
+        </a>
         @endif
 
         @if($isAdmin)

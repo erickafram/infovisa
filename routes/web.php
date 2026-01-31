@@ -92,6 +92,13 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     Route::post('/estabelecimentos/{id}/usuarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosStore'])->name('estabelecimentos.usuarios.store');
     Route::delete('/estabelecimentos/{id}/usuarios/{usuarioId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosDestroy'])->name('estabelecimentos.usuarios.destroy');
     
+    // Estabelecimentos - Equipamentos de Radiação Ionizante
+    Route::get('/estabelecimentos/{id}/equipamentos-radiacao', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'index'])->name('estabelecimentos.equipamentos-radiacao.index');
+    Route::post('/estabelecimentos/{id}/equipamentos-radiacao', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'store'])->name('estabelecimentos.equipamentos-radiacao.store');
+    Route::put('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'update'])->name('estabelecimentos.equipamentos-radiacao.update');
+    Route::patch('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}/status', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'updateStatus'])->name('estabelecimentos.equipamentos-radiacao.update-status');
+    Route::delete('/estabelecimentos/{id}/equipamentos-radiacao/{equipamentoId}', [\App\Http\Controllers\Company\EquipamentoRadiacaoController::class, 'destroy'])->name('estabelecimentos.equipamentos-radiacao.destroy');
+    
     // Estabelecimentos - Processos
     Route::get('/estabelecimentos/{id}/processos', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'processosIndex'])->name('estabelecimentos.processos.index');
     Route::get('/estabelecimentos/{id}/processos/create', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'processosCreate'])->name('estabelecimentos.processos.create');
@@ -201,6 +208,9 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::put('/estabelecimentos/{id}/usuarios/{usuario_id}', [EstabelecimentoController::class, 'atualizarVinculo'])->name('estabelecimentos.usuarios.atualizar');
     Route::delete('/estabelecimentos/{id}/remover-criador', [EstabelecimentoController::class, 'removerCriador'])->name('estabelecimentos.remover-criador');
     Route::get('/usuarios-externos/buscar', [EstabelecimentoController::class, 'buscarUsuarios'])->name('usuarios-externos.buscar');
+    
+    // Equipamentos de Radiação do Estabelecimento
+    Route::get('/estabelecimentos/{id}/equipamentos-radiacao', [EstabelecimentoController::class, 'equipamentosRadiacaoIndex'])->name('estabelecimentos.equipamentos-radiacao.index');
     
     // Responsáveis
     Route::get('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\ResponsavelController::class, 'index'])->name('estabelecimentos.responsaveis.index');
@@ -502,6 +512,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         
         // API: Buscar subações de uma ação
         Route::get('tipo-acoes/{tipoAcao}/sub-acoes/json', [\App\Http\Controllers\Admin\TipoAcaoController::class, 'getSubAcoes'])->name('tipo-acoes.sub-acoes.json');
+        
+        // Equipamentos de Radiação Ionizante - Admin e Gestor Estadual
+        Route::prefix('equipamentos-radiacao')->name('equipamentos-radiacao.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'index'])->name('index');
+            Route::get('create', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'store'])->name('store');
+            Route::get('{equipamentos_radiacao}/edit', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'edit'])->name('edit');
+            Route::put('{equipamentos_radiacao}', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'update'])->name('update');
+            Route::delete('{equipamentos_radiacao}', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'destroy'])->name('destroy');
+            Route::post('{equipamentos_radiacao}/toggle', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'toggleStatus'])->name('toggle');
+        });
     });
     
     // Configurações - RESTRITO APENAS A ADMINISTRADORES
@@ -608,7 +629,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     });
     
     // Relatórios
-    Route::get('/relatorios', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('relatorios.index');
+    Route::prefix('relatorios')->name('relatorios.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('index');
+        Route::get('/equipamentos-radiacao', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacao'])->name('equipamentos-radiacao');
+        Route::get('/equipamentos-radiacao/export', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacaoExport'])->name('equipamentos-radiacao.export');
+    });
     
     // Sugestões do Sistema
     Route::prefix('sugestoes')->name('sugestoes.')->group(function () {

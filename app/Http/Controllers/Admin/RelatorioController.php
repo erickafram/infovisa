@@ -9,21 +9,214 @@ use App\Models\Processo;
 use App\Models\OrdemServico;
 use App\Models\DocumentoDigital;
 use App\Models\UsuarioInterno;
+use App\Models\Atividade;
+use App\Models\AtividadeEquipamentoRadiacao;
+use App\Models\EquipamentoRadiacao;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RelatorioController extends Controller
 {
     /**
-     * Exibe a página de relatórios com Assistente de IA
+     * Exibe a página principal de relatórios
      */
     public function index()
     {
+        return view('admin.relatorios.index');
+    }
+
+    /**
+     * Relatório de Equipamentos de Radiação Ionizante
+     */
+    public function equipamentosRadiacao()
+    {
         $usuario = auth('interno')->user();
+
+        // Códigos das atividades que exigem equipamentos de radiação (normalizados)
+        $codigosAtividadesRadiacao = AtividadeEquipamentoRadiacao::where('ativo', true)
+            ->pluck('codigo_atividade')
+            ->map(fn($c) => preg_replace('/[^0-9]/', '', $c))
+            ->unique()
+            ->filter()
+            ->toArray();
+
+        // Buscar todos os estabelecimentos e filtrar por atividades em PHP
+        $query = Estabelecimento::query()
+            ->whereNotNull('atividades_exercidas')
+            ->with('municipio') // Carregar relacionamento para o mapa
+            ->withCount('equipamentosRadiacao as equipamentos_count');
+
+        // Filtro por município se for usuário municipal
+        if ($usuario->isMunicipal()) {
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+
+        $todosEstabelecimentos = $query->orderBy('nome_fantasia')->get();
+
+        // Filtrar estabelecimentos que têm atividades de radiação
+        $estabelecimentos = $todosEstabelecimentos->filter(function($est) use ($codigosAtividadesRadiacao) {
+            $atividadesEstabelecimento = $est->getTodasAtividades();
+            foreach ($atividadesEstabelecimento as $codigo) {
+                if (in_array($codigo, $codigosAtividadesRadiacao)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Adicionar as atividades de radiação encontradas em cada estabelecimento
+        $estabelecimentos = $estabelecimentos->map(function($est) use ($codigosAtividadesRadiacao) {
+            $atividadesEstabelecimento = $est->getTodasAtividades();
+            $codigosRadiacaoDoEst = array_intersect($atividadesEstabelecimento, $codigosAtividadesRadiacao);
+            
+            // Buscar as atividades de radiação correspondentes
+            $est->atividades_radiacao = AtividadeEquipamentoRadiacao::where('ativo', true)
+                ->where(function($q) use ($codigosRadiacaoDoEst) {
+                    foreach ($codigosRadiacaoDoEst as $codigo) {
+                        $q->orWhereRaw("REPLACE(REPLACE(codigo_atividade, '.', ''), '-', '') = ?", [$codigo]);
+                    }
+                })
+                ->get();
+            
+            return $est;
+        })->values();
+
+        // Calcular totais
+        $totais = [
+            'total' => $estabelecimentos->count(),
+            'com_equipamentos' => $estabelecimentos->where('equipamentos_count', '>', 0)->count(),
+            'sem_equipamentos' => $estabelecimentos->where('equipamentos_count', 0)->count(),
+            'total_equipamentos' => $estabelecimentos->sum('equipamentos_count'),
+        ];
+
+        // Atividades que exigem equipamentos (para filtro)
+        $atividades = AtividadeEquipamentoRadiacao::where('ativo', true)
+            ->orderBy('descricao_atividade')
+            ->get();
+
+        return view('admin.relatorios.equipamentos-radiacao', compact(
+            'estabelecimentos',
+            'totais',
+            'atividades'
+        ));
+    }
+
+    /**
+     * Exportar relatório de equipamentos de radiação para Excel
+     */
+    public function equipamentosRadiacaoExport(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        // Códigos das atividades que exigem equipamentos de radiação (normalizados)
+        $codigosAtividadesRadiacao = AtividadeEquipamentoRadiacao::where('ativo', true)
+            ->pluck('codigo_atividade')
+            ->map(fn($c) => preg_replace('/[^0-9]/', '', $c))
+            ->unique()
+            ->filter()
+            ->toArray();
+
+        // Filtro por atividade específica
+        if ($request->filled('atividade')) {
+            $atividadeFiltro = AtividadeEquipamentoRadiacao::find($request->atividade);
+            if ($atividadeFiltro) {
+                $codigosAtividadesRadiacao = [preg_replace('/[^0-9]/', '', $atividadeFiltro->codigo_atividade)];
+            }
+        }
+
+        // Buscar todos os estabelecimentos
+        $query = Estabelecimento::query()
+            ->whereNotNull('atividades_exercidas')
+            ->with('equipamentosRadiacao')
+            ->withCount('equipamentosRadiacao as equipamentos_count');
+
+        // Filtro por município
+        if ($usuario->isMunicipal()) {
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+
+        $todosEstabelecimentos = $query->orderBy('nome_fantasia')->get();
+
+        // Filtrar estabelecimentos que têm atividades de radiação
+        $estabelecimentos = $todosEstabelecimentos->filter(function($est) use ($codigosAtividadesRadiacao) {
+            $atividadesEstabelecimento = $est->getTodasAtividades();
+            foreach ($atividadesEstabelecimento as $codigo) {
+                if (in_array($codigo, $codigosAtividadesRadiacao)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Aplicar filtro de status
+        if ($request->filled('status')) {
+            if ($request->status === 'com') {
+                $estabelecimentos = $estabelecimentos->where('equipamentos_count', '>', 0);
+            } elseif ($request->status === 'sem') {
+                $estabelecimentos = $estabelecimentos->where('equipamentos_count', '=', 0);
+            }
+        }
+
+        // Adicionar as atividades de radiação encontradas
+        $estabelecimentos = $estabelecimentos->map(function($est) use ($codigosAtividadesRadiacao) {
+            $atividadesEstabelecimento = $est->getTodasAtividades();
+            $codigosRadiacaoDoEst = array_intersect($atividadesEstabelecimento, $codigosAtividadesRadiacao);
+            
+            $est->atividades_radiacao_nomes = AtividadeEquipamentoRadiacao::where('ativo', true)
+                ->where(function($q) use ($codigosRadiacaoDoEst) {
+                    foreach ($codigosRadiacaoDoEst as $codigo) {
+                        $q->orWhereRaw("REPLACE(REPLACE(codigo_atividade, '.', ''), '-', '') = ?", [$codigo]);
+                    }
+                })
+                ->pluck('descricao_atividade')
+                ->implode(', ');
+            
+            return $est;
+        })->values();
+
+        // Gerar CSV
+        $filename = 'relatorio-equipamentos-radiacao-' . now()->format('Y-m-d-His') . '.csv';
         
-        // Estatísticas gerais para exibir na tela
-        $estatisticas = $this->obterEstatisticasGerais($usuario);
-        
-        return view('admin.relatorios.index', compact('estatisticas'));
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($estabelecimentos) {
+            $file = fopen('php://output', 'w');
+            
+            // BOM para UTF-8
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Cabeçalho
+            fputcsv($file, [
+                'Estabelecimento',
+                'Razão Social',
+                'CNPJ',
+                'Atividades com Radiação',
+                'Qtd. Equipamentos',
+                'Status',
+            ], ';');
+
+            foreach ($estabelecimentos as $est) {
+                $cnpj = $est->cnpj ? preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $est->cnpj) : '';
+                $atividades = $est->atividades_radiacao_nomes ?? '';
+                $status = $est->equipamentos_count > 0 ? 'Cadastrado' : 'Pendente';
+
+                fputcsv($file, [
+                    $est->nome_fantasia ?? $est->razao_social,
+                    $est->razao_social,
+                    $cnpj,
+                    $atividades,
+                    $est->equipamentos_count,
+                    $status,
+                ], ';');
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
     
     /**

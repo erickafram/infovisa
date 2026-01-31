@@ -133,6 +133,25 @@
                         </svg>
                         Usuários Vinculados
                     </a>
+
+                    {{-- Equipamentos de Radiação (só aparece se o estabelecimento exige) --}}
+                    @if(\App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento))
+                    <a href="{{ route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id) }}" 
+                       class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-yellow-50 hover:text-yellow-700 rounded-lg transition-colors group">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Equipamentos de Radiação
+                        @php
+                            $qtdEquipamentos = $estabelecimento->equipamentosRadiacao()->count();
+                        @endphp
+                        @if($qtdEquipamentos > 0)
+                        <span class="ml-auto bg-yellow-100 text-yellow-600 text-xs font-semibold px-2 py-0.5 rounded-full">{{ $qtdEquipamentos }}</span>
+                        @else
+                        <span class="ml-auto bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">!</span>
+                        @endif
+                    </a>
+                    @endif
                 </nav>
 
                 {{-- Abrir Processo --}}

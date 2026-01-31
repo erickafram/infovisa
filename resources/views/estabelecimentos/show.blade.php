@@ -187,6 +187,20 @@
                         Usuários Vinculados
                     </a>
 
+                    {{-- Equipamentos de Radiação (apenas para estabelecimentos que exigem) --}}
+                    @if(isset($exigeEquipamentosRadiacao) && $exigeEquipamentosRadiacao)
+                    <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id) }}"
+                       class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors group">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                        <span class="flex-1 text-left">Equipamentos de Radiação</span>
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium {{ $totalEquipamentosRadiacao > 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700' }} rounded-full">
+                            {{ $totalEquipamentosRadiacao }}
+                        </span>
+                    </a>
+                    @endif
+
                     <hr class="my-4">
 
                     {{-- Ações de Aprovação --}}
@@ -301,152 +315,160 @@
         {{-- Coluna Direita - Dados do Estabelecimento --}}
         <div class="space-y-6" style="flex: 1;">
             {{-- Informações Gerais --}}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Informações Gerais
-                </h3>
-                <div class="grid grid-cols-2 gap-x-8">
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'Razão Social' : 'Nome Completo' }}</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->nome_razao_social }}</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Nome Fantasia</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->nome_fantasia ?? '-' }}</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}</label>
-                        <p class="text-sm text-gray-900 font-mono">{{ $estabelecimento->documento_formatado }}</p>
-                    </div>
-                    
-                    @if($estabelecimento->tipo_pessoa === 'fisica')
-                    {{-- Campos específicos de Pessoa Física --}}
-                    @if($estabelecimento->rg)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">RG</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->rg }}</p>
-                    </div>
-                    @endif
-                    @if($estabelecimento->orgao_emissor)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Órgão Emissor</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->orgao_emissor }}</p>
-                    </div>
-                    @endif
-                    @endif
-                    
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Tipo de Setor</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->tipo_setor ? ucfirst($estabelecimento->tipo_setor->value) : '-' }}</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Situação Cadastral</label>
-                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $estabelecimento->situacao_cor }}">
-                            {{ $estabelecimento->situacao_label }}
-                        </span>
-                    </div>
-                    @if($estabelecimento->natureza_juridica)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Natureza Jurídica</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->natureza_juridica }}</p>
-                    </div>
-                    @endif
-                    @if($estabelecimento->porte)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Porte</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->porte }}</p>
-                    </div>
-                    @endif
-                    @if($estabelecimento->descricao_situacao_cadastral)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Situação Cadastral</label>
-                        <p class="text-sm text-gray-900">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Informações Gerais
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'Razão Social' : 'Nome Completo' }}</label>
+                            <p class="text-sm font-medium text-gray-900">{{ $estabelecimento->nome_razao_social }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Nome Fantasia</label>
+                            <p class="text-sm font-medium text-gray-900">{{ $estabelecimento->nome_fantasia ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}</label>
+                            <p class="text-sm font-mono text-gray-900">{{ $estabelecimento->documento_formatado }}</p>
+                        </div>
+                        
+                        @if($estabelecimento->tipo_pessoa === 'fisica')
+                        {{-- Campos específicos de Pessoa Física --}}
+                        @if($estabelecimento->rg)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">RG</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->rg }}</p>
+                        </div>
+                        @endif
+                        @if($estabelecimento->orgao_emissor)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Órgão Emissor</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->orgao_emissor }}</p>
+                        </div>
+                        @endif
+                        @endif
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Tipo de Setor</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->tipo_setor ? ucfirst($estabelecimento->tipo_setor->value) : '-' }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Situação Cadastral</label>
+                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full {{ $estabelecimento->situacao_cor }}">
+                                {{ $estabelecimento->situacao_label }}
+                            </span>
+                        </div>
+                        @if($estabelecimento->natureza_juridica)
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Natureza Jurídica</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->natureza_juridica }}</p>
+                        </div>
+                        @endif
+                        @if($estabelecimento->porte)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Porte</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->porte }}</p>
+                        </div>
+                        @endif
+                        @if($estabelecimento->descricao_situacao_cadastral)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium 
                                 {{ $estabelecimento->descricao_situacao_cadastral === 'ATIVA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ $estabelecimento->descricao_situacao_cadastral }}
                             </span>
-                        </p>
-                        @if($estabelecimento->data_situacao_cadastral)
-                        <p class="text-xs text-gray-500 mt-1">Desde: {{ $estabelecimento->data_situacao_cadastral->format('d/m/Y') }}</p>
+                            @if($estabelecimento->data_situacao_cadastral)
+                            <p class="text-xs text-gray-500 mt-0.5">Desde: {{ $estabelecimento->data_situacao_cadastral->format('d/m/Y') }}</p>
+                            @endif
+                        </div>
+                        @endif
+                        @if($estabelecimento->telefone)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Telefone</label>
+                            <p class="text-sm font-mono text-gray-900">{{ $estabelecimento->telefone }}</p>
+                        </div>
+                        @endif
+                        @if($estabelecimento->telefone2)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Telefone 2</label>
+                            <p class="text-sm font-mono text-gray-900">{{ $estabelecimento->telefone2 }}</p>
+                        </div>
+                        @endif
+                        @if($estabelecimento->email)
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">E-mail</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->email }}</p>
+                        </div>
                         @endif
                     </div>
-                    @endif
-                    @if($estabelecimento->telefone)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Telefone Principal</label>
-                        <p class="text-sm text-gray-900 font-mono">{{ $estabelecimento->telefone }}</p>
-                    </div>
-                    @endif
-                    @if($estabelecimento->telefone2)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Telefone 2</label>
-                        <p class="text-sm text-gray-900 font-mono">{{ $estabelecimento->telefone2 }}</p>
-                    </div>
-                    @endif
-                    @if($estabelecimento->email)
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-500 mb-1">E-mail</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->email }}</p>
-                    </div>
-                    @endif
                 </div>
             </div>
 
             {{-- Endereço --}}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    Endereço
-                </h3>
-                <div class="grid grid-cols-2 gap-x-8">
-                    <div class="col-span-2 mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Logradouro</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}</p>
-                    </div>
-                    @if($estabelecimento->complemento)
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Complemento</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->complemento }}</p>
-                    </div>
-                    @endif
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Bairro</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->bairro }}</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Município</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->cidade }}</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-2">Estado</label>
-                        <p class="text-sm text-gray-900">{{ $estabelecimento->estado }}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-2">CEP</label>
-                        <p class="text-sm text-gray-900 font-mono">{{ $estabelecimento->cep }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-green-100 border-b border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Endereço
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Logradouro</label>
+                            <p class="text-sm font-medium text-gray-900">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}</p>
+                        </div>
+                        @if($estabelecimento->complemento)
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Complemento</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->complemento }}</p>
+                        </div>
+                        @endif
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Bairro</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->bairro }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Município</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->cidade }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->estado }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">CEP</label>
+                            <p class="text-sm font-mono text-gray-900">{{ $estabelecimento->cep }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {{-- Atividades Econômicas --}}
-            <div id="atividades" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                    </svg>
-                    Atividades Econômicas Exercidas
-                </h3>
-                
+            <div id="atividades" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-purple-100 border-b border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        Atividades Econômicas
+                    </h3>
+                </div>
+                <div class="p-6">
                 @if($estabelecimento->atividades_exercidas && count($estabelecimento->atividades_exercidas) > 0)
-                    <div class="grid grid-cols-1 gap-3">
+                    <div class="grid grid-cols-1 gap-2">
                         @foreach($estabelecimento->atividades_exercidas as $atividade)
-                        <div class="flex items-start gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow">
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                             @if(isset($atividade['principal']) && $atividade['principal'])
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500 text-white shadow-sm">
                                 ⭐ Principal
@@ -465,35 +487,39 @@
                     </div>
                 @else
                     <div class="text-center py-8">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
-                        <p class="mt-2 text-sm text-gray-500">Nenhuma atividade econômica cadastrada.</p>
-                        <p class="mt-1 text-xs text-gray-400">As atividades são selecionadas durante o cadastro do estabelecimento.</p>
+                        <p class="mt-2 text-xs text-gray-500">Nenhuma atividade cadastrada</p>
                     </div>
                 @endif
+                </div>
             </div>
 
             {{-- Informações do Sistema --}}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Informações do Sistema
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500">Cadastrado em</label>
-                        <p class="mt-1 text-sm text-gray-900">{{ $estabelecimento->created_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500">Última atualização</label>
-                        <p class="mt-1 text-sm text-gray-900">{{ $estabelecimento->updated_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500">ID do Sistema</label>
-                        <p class="mt-1 text-sm text-gray-900 font-mono">#{{ $estabelecimento->id }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Informações do Sistema
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Cadastrado em</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->created_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Última atualização</label>
+                            <p class="text-sm text-gray-900">{{ $estabelecimento->updated_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">ID do Sistema</label>
+                            <p class="text-sm font-mono text-gray-900">#{{ $estabelecimento->id }}</p>
+                        </div>
                     </div>
                 </div>
             </div>

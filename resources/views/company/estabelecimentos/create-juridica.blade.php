@@ -496,36 +496,6 @@
                         </label>
                         <p class="text-xs text-gray-500 mb-3">Marque apenas as atividades que serão efetivamente exercidas neste estabelecimento.</p>
                         
-                        {{-- Aviso sobre Taxa DARE Cumulativa (apenas para estabelecimentos privados) --}}
-                        <div x-show="dados.tipo_setor !== 'publico'" class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4">
-                            <div class="flex items-start gap-3">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                    </svg>
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="text-sm font-bold text-amber-900 mb-2">⚠️ ATENÇÃO: Taxa DARE é CUMULATIVA por Atividade</h4>
-                                    <div class="text-xs text-amber-800 space-y-2">
-                                        <p>
-                                            Conforme <strong>Art. 4º, parágrafo II da PORTARIA Nº 1153/2025/SES/GASEC</strong>, a taxa de licença sanitária é 
-                                            <strong>cumulativa</strong> para todas as atividades sujeitas ao controle sanitário constantes no CNPJ.
-                                        </p>
-                                        <p>
-                                            <strong>📌 Importante:</strong> Se o CNPJ da empresa tiver mais de uma atividade sujeita à Vigilância Sanitária, 
-                                            deve ser emitido <strong>um DARE para cada atividade</strong>. Todos os DAREs e seus respectivos comprovantes 
-                                            devem ser protocolados no processo de licenciamento sanitário.
-                                        </p>
-                                        <p class="bg-amber-100 p-2 rounded border border-amber-300">
-                                            <strong>💡 Dica:</strong> Selecione <strong>APENAS</strong> as atividades que serão efetivamente exercidas. 
-                                            Caso no CNPJ estejam relacionadas atividades sujeitas à VISA que <strong>não sejam exercidas</strong> pelo 
-                                            estabelecimento, sugerimos que sejam <strong>retiradas do CNPJ</strong> para não precisar pagar por atividades não executadas.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
                             {{-- Atividade Principal --}}
                             <label x-show="dados.cnae_fiscal" class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">

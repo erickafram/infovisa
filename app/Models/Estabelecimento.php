@@ -165,6 +165,14 @@ class Estabelecimento extends Model
     }
 
     /**
+     * Relacionamento com equipamentos de radiação ionizante
+     */
+    public function equipamentosRadiacao()
+    {
+        return $this->hasMany(EquipamentoRadiacao::class);
+    }
+
+    /**
      * Relacionamento com histórico
      */
     public function historicos()

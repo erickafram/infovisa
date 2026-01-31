@@ -712,6 +712,20 @@ class EstabelecimentoController extends Controller
         }
 
         // ========================================
+        // VERIFICA EQUIPAMENTOS DE RADIAÇÃO OBRIGATÓRIOS
+        // ========================================
+        // Verifica se o estabelecimento tem atividades que exigem equipamentos de radiação
+        $exigeEquipamentos = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
+        $temEquipamentosCadastrados = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)->exists();
+        
+        // Guarda info para usar no filtro de tipos de processo
+        $equipamentosInfo = [
+            'exige' => $exigeEquipamentos,
+            'tem_cadastrados' => $temEquipamentosCadastrados,
+        ];
+        // ========================================
+
+        // ========================================
         // VERIFICA SE TEM APENAS ATIVIDADES ESPECIAIS
         // ========================================
         $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
@@ -748,7 +762,7 @@ class EstabelecimentoController extends Controller
 
         // Filtra tipos de processo baseado nas regras de anual/único E atividades especiais
         $anoAtual = date('Y');
-        $tiposProcesso = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual, $apenasAtividadesEspeciais, $atividadesEspeciaisCodigos) {
+        $tiposProcesso = $tiposProcessoBase->filter(function($tipo) use ($estabelecimento, $anoAtual, $apenasAtividadesEspeciais, $atividadesEspeciaisCodigos, $equipamentosInfo) {
             // ========================================
             // FILTRO POR ATIVIDADES ESPECIAIS
             // ========================================
@@ -768,6 +782,13 @@ class EstabelecimentoController extends Controller
                     return false;
                 }
             }
+            // ========================================
+            
+            // ========================================
+            // FILTRO POR EQUIPAMENTOS DE RADIAÇÃO
+            // ========================================
+            // Não bloqueia mais aqui, só marca como bloqueado para mostrar na view
+            // A verificação será feita na view para exibir mensagem informativa
             // ========================================
             
             // Se é único por estabelecimento, verifica se já existe algum processo deste tipo
@@ -815,7 +836,27 @@ class EstabelecimentoController extends Controller
             return false;
         });
         
-        return view('company.estabelecimentos.processos.create', compact('estabelecimento', 'tiposProcesso', 'documentosObrigatorios', 'tiposBloqueados'));
+        // ========================================
+        // TIPOS BLOQUEADOS POR FALTA DE EQUIPAMENTOS DE RADIAÇÃO
+        // ========================================
+        $tiposBloqueadosPorEquipamentos = [];
+        if ($equipamentosInfo['exige'] && !$equipamentosInfo['tem_cadastrados']) {
+            // Verifica quais tipos de processo exigem equipamentos para este estabelecimento
+            foreach ($tiposProcesso as $tipo) {
+                if (\App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentosParaProcesso($estabelecimento, $tipo->codigo)) {
+                    $tiposBloqueadosPorEquipamentos[] = $tipo->codigo;
+                }
+            }
+        }
+        // ========================================
+        
+        return view('company.estabelecimentos.processos.create', compact(
+            'estabelecimento', 
+            'tiposProcesso', 
+            'documentosObrigatorios', 
+            'tiposBloqueados',
+            'tiposBloqueadosPorEquipamentos'
+        ));
     }
 
     /**
@@ -1064,6 +1105,16 @@ class EstabelecimentoController extends Controller
             
             if ($existeNoAno) {
                 return back()->withErrors(['tipo_processo_id' => 'Este estabelecimento já possui um processo de ' . $tipoProcesso->nome . ' aberto em ' . $anoAtual . '. Processos anuais só podem ser abertos uma vez por ano.']);
+            }
+        }
+
+        // Validação de equipamentos de radiação obrigatórios
+        if (\App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentosParaProcesso($estabelecimento, $tipoProcesso->codigo)) {
+            $temEquipamentos = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)->exists();
+            
+            if (!$temEquipamentos) {
+                return redirect()->route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id)
+                    ->with('error', 'Para abrir um processo de ' . $tipoProcesso->nome . ', é obrigatório ter pelo menos um Equipamento de Radiação cadastrado. Por favor, cadastre os equipamentos primeiro.');
             }
         }
 

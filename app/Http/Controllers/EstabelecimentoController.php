@@ -371,7 +371,24 @@ class EstabelecimentoController extends Controller
             }
         }
         
-        return view('estabelecimentos.show', compact('estabelecimento'));
+        // Verifica se o estabelecimento exige equipamentos de radiação
+        $exigeEquipamentosRadiacao = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
+        $equipamentosRadiacao = [];
+        $totalEquipamentosRadiacao = 0;
+        
+        if ($exigeEquipamentosRadiacao) {
+            $equipamentosRadiacao = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)
+                ->orderBy('tipo_equipamento')
+                ->get();
+            $totalEquipamentosRadiacao = $equipamentosRadiacao->count();
+        }
+        
+        return view('estabelecimentos.show', compact(
+            'estabelecimento',
+            'exigeEquipamentosRadiacao',
+            'equipamentosRadiacao',
+            'totalEquipamentosRadiacao'
+        ));
     }
 
     /**
@@ -1416,5 +1433,45 @@ class EstabelecimentoController extends Controller
                 ];
             })
         ]);
+    }
+
+    /**
+     * Lista equipamentos de radiação do estabelecimento
+     */
+    public function equipamentosRadiacaoIndex(string $id)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($id);
+        
+        // Verifica se o usuário tem permissão para acessar este estabelecimento
+        if (auth('interno')->check()) {
+            $usuario = auth('interno')->user();
+            
+            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual.');
+            }
+            
+            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
+                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal.');
+            }
+        }
+        
+        // Verifica se o estabelecimento exige equipamentos de radiação
+        $exigeEquipamentos = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
+        
+        if (!$exigeEquipamentos) {
+            return redirect()->route('admin.estabelecimentos.show', $estabelecimento->id)
+                ->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de radiação.');
+        }
+        
+        // Busca os equipamentos
+        $equipamentos = \App\Models\EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)
+            ->orderBy('tipo_equipamento')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Busca as atividades que exigem equipamentos
+        $atividadesQueExigem = \App\Models\AtividadeEquipamentoRadiacao::getAtividadesQueExigemEquipamentos($estabelecimento);
+        
+        return view('estabelecimentos.equipamentos-radiacao.index', compact('estabelecimento', 'equipamentos', 'atividadesQueExigem'));
     }
 }
