@@ -1,7 +1,7 @@
 @extends('layouts.company')
 
-@section('title', 'Equipamentos de Radiação')
-@section('page-title', 'Equipamentos de Radiação Ionizante')
+@section('title', 'Equipamentos de Imagem')
+@section('page-title', 'Equipamentos de Imagem')
 
 @section('content')
 <div class="space-y-6" x-data="equipamentosRadiacao()">
@@ -15,15 +15,15 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
-        <span class="text-gray-900 font-medium">Equipamentos de Radiação</span>
+        <span class="text-gray-900 font-medium">Equipamentos de Imagem</span>
     </div>
 
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-xl font-bold text-gray-900">Equipamentos de Radiação Ionizante</h2>
+            <h2 class="text-xl font-bold text-gray-900">Equipamentos de Imagem</h2>
             <p class="text-sm text-gray-500 mt-1">
-                Cadastre todos os equipamentos que emitem radiação ionizante deste estabelecimento
+                Cadastre todos os equipamentos de imagem deste estabelecimento
             </p>
         </div>
         <button type="button"
@@ -196,7 +196,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
             <h3 class="mt-2 text-sm font-semibold text-gray-900">Nenhum equipamento cadastrado</h3>
-            <p class="mt-1 text-sm text-gray-500">Comece cadastrando os equipamentos de radiação do estabelecimento.</p>
+            <p class="mt-1 text-sm text-gray-500">Comece cadastrando os equipamentos de imagem do estabelecimento.</p>
             <div class="mt-6">
                 <button type="button"
                         @click="modalAberto = true; resetForm()"

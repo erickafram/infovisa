@@ -15,7 +15,7 @@
     {{-- Grid de Relatórios Disponíveis --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         
-        {{-- Relatório: Equipamentos de Radiação Ionizante --}}
+        {{-- Relatório: Equipamentos de Imagem --}}
         <a href="{{ route('admin.relatorios.equipamentos-radiacao') }}" 
            class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-orange-300 transition-all group">
             <div class="flex items-start gap-3">
@@ -26,7 +26,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-base font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
-                        Equipamentos de Radiação
+                        Equipamentos de Imagem
                     </h3>
                     <p class="text-xs text-gray-500 mt-1">
                         Status de cadastro por estabelecimento

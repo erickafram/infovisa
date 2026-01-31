@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Relatório - Equipamentos de Radiação Ionizante')
+@section('title', 'Relatório - Equipamentos de Imagem')
 
 @section('content')
 <div class="space-y-6" x-data="relatorioEquipamentosRadiacao()">
@@ -14,8 +14,8 @@
                 </svg>
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Equipamentos de Radiação Ionizante</h1>
-                <p class="text-gray-500 mt-1">Estabelecimentos com atividades que exigem equipamentos de radiação</p>
+                <h1 class="text-2xl font-bold text-gray-900">Equipamentos de Imagem</h1>
+                <p class="text-gray-500 mt-1">Estabelecimentos com atividades que exigem equipamentos de imagem</p>
             </div>
         </div>
         <button @click="exportarExcel()" 
@@ -280,7 +280,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-bold text-white" x-text="cidadeModal"></h3>
-                                <p class="text-orange-100 text-sm">Estabelecimentos com equipamentos de radiação</p>
+                                <p class="text-orange-100 text-sm">Estabelecimentos com equipamentos de imagem</p>
                             </div>
                         </div>
                         <button @click="fecharModalCidade()" class="p-2 hover:bg-white/20 rounded-lg transition-colors">
@@ -448,7 +448,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                                 </svg>
                                 <p class="text-lg font-medium">Nenhum estabelecimento encontrado</p>
-                                <p class="text-sm">Não há estabelecimentos com atividades que exijam equipamentos de radiação.</p>
+                                <p class="text-sm">Não há estabelecimentos com atividades que exijam equipamentos de imagem.</p>
                             </td>
                         </tr>
                     @endforelse

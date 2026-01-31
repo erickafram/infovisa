@@ -1460,7 +1460,7 @@ class EstabelecimentoController extends Controller
         
         if (!$exigeEquipamentos) {
             return redirect()->route('admin.estabelecimentos.show', $estabelecimento->id)
-                ->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de radiação.');
+                ->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de imagem.');
         }
         
         // Busca os equipamentos

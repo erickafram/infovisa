@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Equipamentos de Radiação Ionizante')
-@section('page-title', 'Atividades com Equipamentos de Radiação')
+@section('title', 'Equipamentos de Imagem')
+@section('page-title', 'Atividades com Equipamentos de Imagem')
 
 @section('content')
 <div class="space-y-6">
@@ -12,9 +12,9 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div class="flex-1">
-                <h3 class="text-sm font-semibold text-blue-800 mb-1">Equipamentos de Radiação Ionizante</h3>
+                <h3 class="text-sm font-semibold text-blue-800 mb-1">Equipamentos de Imagem</h3>
                 <p class="text-sm text-blue-700">
-                    Configure quais atividades econômicas (CNAEs) exigem o cadastro obrigatório de equipamentos de radiação ionizante.
+                    Configure quais atividades econômicas (CNAEs) exigem o cadastro obrigatório de equipamentos de imagem.
                     Estabelecimentos que possuem essas atividades serão obrigados a cadastrar seus equipamentos no sistema.
                 </p>
             </div>
@@ -190,7 +190,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
             <h3 class="mt-2 text-sm font-semibold text-gray-900">Nenhuma atividade cadastrada</h3>
-            <p class="mt-1 text-sm text-gray-500">Comece adicionando atividades que exigem equipamentos de radiação.</p>
+            <p class="mt-1 text-sm text-gray-500">Comece adicionando atividades que exigem equipamentos de imagem.</p>
             <div class="mt-6">
                 <a href="{{ route('admin.configuracoes.equipamentos-radiacao.create') }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">

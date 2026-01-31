@@ -165,8 +165,8 @@
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-bold text-gray-900 mb-1">Equipamentos de Radiação</h3>
-                    <p class="text-xs text-gray-600">Configure atividades que exigem cadastro de equipamentos de radiação ionizante</p>
+                    <h3 class="text-base font-bold text-gray-900 mb-1">Equipamentos de Imagem</h3>
+                    <p class="text-xs text-gray-600">Configure atividades que exigem cadastro de equipamentos de imagem</p>
                 </div>
             </div>
         </a>

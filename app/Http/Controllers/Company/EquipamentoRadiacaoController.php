@@ -32,7 +32,7 @@ class EquipamentoRadiacaoController extends Controller
         
         if (!$exigeEquipamentos) {
             return redirect()->route('company.estabelecimentos.show', $estabelecimento->id)
-                ->with('info', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de radiação.');
+                ->with('info', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de imagem.');
         }
 
         $equipamentos = EquipamentoRadiacao::where('estabelecimento_id', $estabelecimento->id)
@@ -70,7 +70,7 @@ class EquipamentoRadiacaoController extends Controller
         $exigeEquipamentos = AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
         
         if (!$exigeEquipamentos) {
-            return back()->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de radiação.');
+            return back()->with('error', 'Este estabelecimento não possui atividades que exigem cadastro de equipamentos de imagem.');
         }
 
         $validated = $request->validate([

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Nova Atividade - Equipamentos de Radiação')
+@section('title', 'Nova Atividade - Equipamentos de Imagem')
 @section('page-title', 'Nova Atividade de Radiação')
 
 @section('content')
@@ -8,7 +8,7 @@
     {{-- Breadcrumb --}}
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <a href="{{ route('admin.configuracoes.equipamentos-radiacao.index') }}" class="hover:text-gray-700">
-            Equipamentos de Radiação
+            Equipamentos de Imagem
         </a>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -20,7 +20,7 @@
     <div>
         <h2 class="text-xl font-bold text-gray-900">Cadastrar Atividade</h2>
         <p class="text-sm text-gray-500 mt-1">
-            Adicione uma atividade econômica (CNAE) que exige cadastro de equipamentos de radiação ionizante.
+            Adicione uma atividade econômica (CNAE) que exige cadastro de equipamentos de imagem.
         </p>
     </div>
 
@@ -204,7 +204,7 @@
             <div>
                 <h4 class="text-sm font-semibold text-amber-800">Importante</h4>
                 <p class="text-sm text-amber-700 mt-1">
-                    Após cadastrar a atividade, todos os estabelecimentos que possuem essa atividade em seu CNAE serão obrigados a cadastrar seus equipamentos de radiação ionizante.
+                    Após cadastrar a atividade, todos os estabelecimentos que possuem essa atividade em seu CNAE serão obrigados a cadastrar seus equipamentos de imagem.
                 </p>
             </div>
         </div>

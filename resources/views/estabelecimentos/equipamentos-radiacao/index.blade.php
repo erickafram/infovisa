@@ -1,14 +1,14 @@
 @extends('layouts.admin')
 
-@section('title', 'Equipamentos de Radiação')
-@section('page-title', 'Equipamentos de Radiação Ionizante')
+@section('title', 'Equipamentos de Imagem')
+@section('page-title', 'Equipamentos de Imagem')
 
 @section('content')
 <div class="space-y-6">
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Equipamentos de Radiação Ionizante</h2>
+            <h2 class="text-2xl font-bold text-gray-900">Equipamentos de Imagem</h2>
             <p class="text-sm text-gray-600 mt-1">
                 <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}" class="text-blue-600 hover:text-blue-700">
                     {{ $estabelecimento->nome_razao_social }}
@@ -222,7 +222,7 @@
             </svg>
             <h3 class="mt-4 text-lg font-medium text-gray-900">Nenhum equipamento cadastrado</h3>
             <p class="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-                Este estabelecimento possui atividades que exigem o cadastro de equipamentos de radiação ionizante, 
+                Este estabelecimento possui atividades que exigem o cadastro de equipamentos de imagem, 
                 mas ainda não há equipamentos registrados pelo usuário externo.
             </p>
         </div>

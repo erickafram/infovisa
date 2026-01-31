@@ -187,14 +187,14 @@
                         Usuários Vinculados
                     </a>
 
-                    {{-- Equipamentos de Radiação (apenas para estabelecimentos que exigem) --}}
+                    {{-- Equipamentos de Imagem (apenas para estabelecimentos que exigem) --}}
                     @if(isset($exigeEquipamentosRadiacao) && $exigeEquipamentosRadiacao)
                     <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id) }}"
                        class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors group">
                         <svg class="w-5 h-5 text-gray-400 group-hover:text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                         </svg>
-                        <span class="flex-1 text-left">Equipamentos de Radiação</span>
+                        <span class="flex-1 text-left">Equipamentos de Imagem</span>
                         <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium {{ $totalEquipamentosRadiacao > 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700' }} rounded-full">
                             {{ $totalEquipamentosRadiacao }}
                         </span>

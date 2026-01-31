@@ -45,9 +45,9 @@
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h4 class="text-sm font-medium text-orange-800">Equipamentos de Radiação Obrigatórios</h4>
+                            <h4 class="text-sm font-medium text-orange-800">Equipamentos de Imagem Obrigatórios</h4>
                             <p class="mt-1 text-sm text-orange-700">
-                                Seu estabelecimento possui atividades que exigem o cadastro de equipamentos que emitem radiação ionizante. 
+                                Seu estabelecimento possui atividades que exigem o cadastro de equipamentos de imagem. 
                                 Para abrir alguns tipos de processo, você precisa primeiro cadastrar seus equipamentos.
                             </p>
                             <a href="{{ route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimento->id) }}" 
@@ -55,7 +55,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
-                                Cadastrar Equipamentos de Radiação
+                                Cadastrar Equipamentos de Imagem
                             </a>
                         </div>
                     </div>
@@ -92,7 +92,7 @@
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                                             </svg>
-                                            Requer equipamentos de radiação
+                                            Requer equipamentos de imagem
                                         </span>
                                     @endif
                                 </div>
@@ -100,7 +100,7 @@
                                     <p class="text-xs text-gray-500 mt-1">{{ $tipo->descricao }}</p>
                                 @endif
                                 @if($bloqueadoPorEquipamento)
-                                    <p class="text-xs text-orange-600 mt-1">Cadastre os equipamentos de radiação antes de abrir este tipo de processo.</p>
+                                    <p class="text-xs text-orange-600 mt-1">Cadastre os equipamentos de imagem antes de abrir este tipo de processo.</p>
                                 @endif
                             </div>
                         </label>

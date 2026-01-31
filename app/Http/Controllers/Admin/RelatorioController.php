@@ -26,7 +26,7 @@ class RelatorioController extends Controller
     }
 
     /**
-     * Relatório de Equipamentos de Radiação Ionizante
+     * Relatório de Equipamentos de Imagem
      */
     public function equipamentosRadiacao()
     {

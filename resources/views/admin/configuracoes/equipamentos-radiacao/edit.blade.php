@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Editar Atividade - Equipamentos de Radiação')
+@section('title', 'Editar Atividade - Equipamentos de Imagem')
 @section('page-title', 'Editar Atividade de Radiação')
 
 @section('content')
@@ -8,7 +8,7 @@
     {{-- Breadcrumb --}}
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <a href="{{ route('admin.configuracoes.equipamentos-radiacao.index') }}" class="hover:text-gray-700">
-            Equipamentos de Radiação
+            Equipamentos de Imagem
         </a>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
