@@ -703,8 +703,8 @@
                 {{-- Header da Lista de Documentos --}}
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
                             Lista de Documentos/Arquivos
@@ -713,14 +713,14 @@
                 </div>
 
                 {{-- Tabs de Documentos --}}
-                <div class="border-b border-gray-200">
+                <div class="border-b border-gray-200 bg-gray-50">
                     <nav class="flex px-6 overflow-x-auto" aria-label="Tabs">
                         <button @click="pastaAtiva = null" 
-                                :class="pastaAtiva === null ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
-                                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap">
+                                :class="pastaAtiva === null ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'"
+                                class="px-4 py-4 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap">
                             Todos
-                            <span class="ml-2 px-2 py-0.5 text-xs rounded-full"
-                                  :class="pastaAtiva === null ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'">
+                            <span class="ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full"
+                                  :class="pastaAtiva === null ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'">
                                 {{ $documentosDigitais->count() + $processo->documentos->where('tipo_documento', '!=', 'documento_digital')->count() }}
                             </span>
                         </button>
@@ -728,14 +728,14 @@
                         {{-- Pastas Dinâmicas --}}
                         <template x-for="pasta in pastas" :key="pasta.id">
                             <button @click="pastaAtiva = pasta.id"
-                                    :class="pastaAtiva === pasta.id ? 'border-b-2' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                                    :class="pastaAtiva === pasta.id ? 'border-b-2' : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'"
                                     :style="pastaAtiva === pasta.id ? `color: ${pasta.cor}; border-color: ${pasta.cor}` : ''"
-                                    class="px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2">
+                                    class="px-4 py-4 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                                 </svg>
                                 <span x-text="pasta.nome"></span>
-                                <span class="ml-1 px-2 py-0.5 text-xs rounded-full"
+                                <span class="ml-1 px-2.5 py-0.5 text-xs font-semibold rounded-full"
                                       :style="`background-color: ${pasta.cor}20; color: ${pasta.cor}`"
                                       x-text="contarDocumentosPorPasta(pasta.id)">
                                 </span>
@@ -747,14 +747,15 @@
                 {{-- Lista de Documentos --}}
                 <div class="p-6">
                     @if($todosDocumentos->isEmpty())
-                        <div class="text-center py-12">
+                        <div class="text-center py-16">
                             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
-                            <p class="text-sm font-medium text-gray-900 mb-1">Nenhum documento anexado</p>
+                            <p class="text-base font-semibold text-gray-700 mb-2">Nenhum documento anexado</p>
+                            <p class="text-sm text-gray-500">Comece a adicionar documentos usando o menu de opções</p>
                         </div>
                     @else
-                        <div class="space-y-3">
+                        <div class="space-y-4">
                             {{-- Lista Unificada de Documentos (Digitais e Arquivos Externos) --}}
                             @foreach($todosDocumentos as $item)
                                 @if($item['tipo'] === 'digital')
@@ -791,12 +792,13 @@
                                 @endphp
                                 <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-3 bg-gray-50 rounded-lg border-l-2 {{ $corBorda }} hover:bg-gray-100 transition-colors">
+                                     class="p-4 bg-white rounded-lg border border-gray-200 border-l-2 {{ $corBorda }} hover:shadow-md transition-all"
+                                     style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Linha Principal: Nome + Status + Ações --}}
                                     <div class="flex items-center gap-3">
                                         {{-- Ícone --}}
-                                        <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+                                        <div class="w-10 h-10 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
                                             <span class="text-lg">📄</span>
                                         </div>
                                         
@@ -810,22 +812,22 @@
                                         @endif
                                             <div class="flex items-center gap-2 flex-wrap">
                                                 <span class="text-sm font-semibold text-gray-900">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
-                                                <span class="text-xs text-gray-400">{{ $docDigital->numero_documento }}</span>
+                                                <span class="text-xs text-gray-500">{{ $docDigital->numero_documento }}</span>
                                                 
                                                 {{-- Badge de Status Principal --}}
                                                 @if($docDigital->status === 'rascunho')
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-medium">Rascunho</span>
+                                                    <span class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Rascunho</span>
                                                 @elseif($temAssinaturasPendentes)
                                                     <a href="{{ route('admin.documentos.show', $docDigital->id) }}#assinaturas" 
                                                        @click.stop
-                                                       class="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium hover:bg-orange-200 transition-colors"
+                                                       class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold hover:bg-orange-200 transition-colors"
                                                        title="Clique para ver detalhes das assinaturas">
                                                         Aguardando {{ $assinaturasPendentes }}/{{ $todasAssinaturas }} assinatura(s)
                                                     </a>
                                                 @else
                                                     <a href="{{ route('admin.documentos.show', $docDigital->id) }}#assinaturas" 
                                                        @click.stop
-                                                       class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium hover:bg-green-200 transition-colors"
+                                                       class="px-2.5 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold hover:bg-green-200 transition-colors"
                                                        title="Clique para ver detalhes das assinaturas">
                                                         {{ $todasAssinaturas }}/{{ $todasAssinaturas }} assinatura(s)
                                                     </a>
@@ -844,20 +846,20 @@
                                                         ];
                                                         $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
                                                     @endphp
-                                                    <span class="px-1.5 py-0.5 {{ $classeBadge }} rounded text-[10px] font-medium">{{ $docDigital->texto_status_prazo }}</span>
+                                                    <span class="px-2.5 py-1 {{ $classeBadge }} rounded text-xs font-semibold">{{ $docDigital->texto_status_prazo }}</span>
                                                 @endif
                                                 
                                                 {{-- Prazo em Aberto --}}
                                                 @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado')
-                                                    <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium animate-pulse">⚠ Prazo aberto</span>
+                                                    <span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold animate-pulse">⚠ Prazo aberto</span>
                                                 @endif
                                                 
                                                 {{-- Visualização --}}
                                                 @if($docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado')
                                                     @if($docDigital->primeiraVisualizacao)
-                                                        <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-medium" title="Visualizado por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}">👁 Visto</span>
+                                                        <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold" title="Visualizado por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}">👁 Visto</span>
                                                     @else
-                                                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-medium">Não visto</span>
+                                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold">Não visto</span>
                                                     @endif
                                                 @endif
                                                 
@@ -865,7 +867,7 @@
                                                 @if($docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0)
                                                     <button type="button"
                                                             @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
-                                                            class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-medium animate-pulse hover:bg-yellow-200 transition-colors cursor-pointer inline-flex items-center gap-1">
+                                                            class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold animate-pulse hover:bg-yellow-200 transition-colors cursor-pointer inline-flex items-center gap-1">
                                                         📎 {{ $docDigital->respostas->where('status', 'pendente')->count() }} resposta(s) pendente(s)
                                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -968,33 +970,33 @@
                                     
                                     {{-- Seção Expandível: Detalhes --}}
                                     <div x-show="expanded" x-collapse class="mt-3 pt-3 border-t border-gray-200">
-                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mb-2">
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mb-2">
                                             <span>📅 {{ $docDigital->created_at->format('d/m/Y H:i') }}</span>
                                             <span>👤 {{ $docDigital->usuarioCriador->nome }}</span>
-                                            <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">Interno</span>
+                                            <span class="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-semibold">Interno</span>
                                             @if($docDigital->primeiraVisualizacao)
-                                                <span class="text-emerald-600">👁 Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}</span>
+                                                <span class="text-emerald-600 font-medium">👁 Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}</span>
                                             @endif
                                         </div>
                                     
                                     {{-- Respostas do Estabelecimento a este documento --}}
                                     @if($docDigital->respostas && $docDigital->respostas->count() > 0)
-                                    <div class="mt-2" x-data="{ respostasAbertas: {{ $docDigital->respostas->where('status', 'pendente')->count() > 0 ? 'true' : 'false' }} }">
+                                    <div class="mt-3" x-data="{ respostasAbertas: {{ $docDigital->respostas->where('status', 'pendente')->count() > 0 ? 'true' : 'false' }} }">
                                         {{-- Cabeçalho colapsável --}}
                                         <div class="flex items-center justify-between">
                                             <button @click="respostasAbertas = !respostasAbertas" 
-                                                    class="flex items-center gap-2 text-xs font-semibold text-green-700 hover:text-green-800 transition-colors">
-                                                <svg class="w-3.5 h-3.5 transition-transform" :class="{ 'rotate-90': respostasAbertas }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    class="flex items-center gap-2 text-sm font-bold text-green-700 hover:text-green-800 transition-colors">
+                                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': respostasAbertas }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                 </svg>
                                                 <span>Respostas ({{ $docDigital->respostas->count() }})</span>
                                                 @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
-                                                    <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-yellow-200 text-yellow-800">
+                                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 text-yellow-800">
                                                         {{ $docDigital->respostas->where('status', 'pendente')->count() }} pendente(s)
                                                     </span>
                                                 @endif
                                                 @if($docDigital->respostas->where('status', 'aprovado')->count() > 0)
-                                                    <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-green-200 text-green-800">
+                                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-green-200 text-green-800">
                                                         {{ $docDigital->respostas->where('status', 'aprovado')->count() }} aprovado(s)
                                                     </span>
                                                 @endif
@@ -1004,8 +1006,8 @@
                                             @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
                                             <button type="button"
                                                     @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
-                                                    class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded transition-colors">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 rounded transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
                                                 </svg>
                                                 Ver lado a lado
@@ -1014,12 +1016,12 @@
                                         </div>
                                         
                                         {{-- Lista de respostas colapsável --}}
-                                        <div x-show="respostasAbertas" x-transition class="mt-2 space-y-1.5">
+                                        <div x-show="respostasAbertas" x-transition class="mt-3 space-y-2">
                                             @foreach($docDigital->respostas as $resposta)
                                             <div x-data="{ showRejeitar: false, showDetalhes: false }" 
                                                  class="bg-white rounded border {{ $resposta->status === 'pendente' ? 'border-yellow-300' : ($resposta->status === 'aprovado' ? 'border-green-300' : 'border-red-300') }}">
                                                 {{-- Linha compacta da resposta --}}
-                                                <div class="px-2.5 py-2 flex items-center gap-2">
+                                                <div class="px-3 py-2.5 flex items-center gap-2">
                                                     {{-- Ícone pequeno de status --}}
                                                     <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 {{ $resposta->status === 'pendente' ? 'bg-yellow-100' : ($resposta->status === 'aprovado' ? 'bg-green-100' : 'bg-red-100') }}">
                                                         @if($resposta->status === 'pendente')
@@ -1042,15 +1044,15 @@
                                                         <div class="flex items-center gap-1.5 flex-wrap">
                                                             <button type="button" 
                                                                     @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; modalVisualizador = true"
-                                                                    class="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline truncate max-w-[200px]">
+                                                                    class="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate max-w-[200px]">
                                                                 {{ $resposta->nome_original }}
                                                             </button>
-                                                            <span class="text-[10px] text-gray-400">{{ $resposta->tamanho_formatado }}</span>
+                                                            <span class="text-xs text-gray-500">{{ $resposta->tamanho_formatado }}</span>
                                                         </div>
-                                                        <p class="text-[10px] text-gray-500 truncate">
+                                                        <p class="text-xs text-gray-600 truncate">
                                                             {{ $resposta->created_at->format('d/m H:i') }} • {{ $resposta->usuarioExterno->nome ?? 'N/D' }}
                                                             @if($resposta->status === 'aprovado' && $resposta->avaliadoPor)
-                                                                • <span class="text-green-600">Aprovado por {{ $resposta->avaliadoPor->nome }}</span>
+                                                                • <span class="text-green-600 font-medium">Aprovado por {{ $resposta->avaliadoPor->nome }}</span>
                                                             @endif
                                                         </p>
                                                     </div>
@@ -1113,23 +1115,23 @@
                                                 </div>
                                                 
                                                 {{-- Detalhes expandíveis --}}
-                                                <div x-show="showDetalhes" x-transition class="px-2.5 pb-2 space-y-1.5" style="display: none;">
+                                                <div x-show="showDetalhes" x-transition class="px-3 pb-2 space-y-2" style="display: none;">
                                                     @if($resposta->observacoes)
-                                                    <p class="text-[10px] text-gray-600 italic bg-white p-1.5 rounded">"{{ $resposta->observacoes }}"</p>
+                                                    <p class="text-xs text-gray-600 italic bg-white p-1.5 rounded">"{{ $resposta->observacoes }}"</p>
                                                     @endif
                                                     
                                                     @if($resposta->status === 'rejeitado' && $resposta->motivo_rejeicao)
-                                                    <div class="p-1.5 bg-red-100 rounded text-[10px] text-red-700">
+                                                    <div class="p-2 bg-red-100 rounded text-xs text-red-700">
                                                         <strong>Motivo:</strong> {{ $resposta->motivo_rejeicao }}
                                                     </div>
                                                     @endif
                                                     
                                                     @if($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0)
-                                                    <div class="text-[10px]">
-                                                        <p class="font-medium text-gray-600 mb-1">Histórico ({{ count($resposta->historico_rejeicao) }}):</p>
+                                                    <div class="text-xs">
+                                                        <p class="font-semibold text-gray-700 mb-1">Histórico ({{ count($resposta->historico_rejeicao) }}):</p>
                                                         @foreach($resposta->historico_rejeicao as $index => $rejeicao)
                                                         <div class="p-1.5 bg-white rounded border border-gray-200 mb-1">
-                                                            <span class="text-gray-500">{{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m H:i') }}</span> - 
+                                                            <span class="text-gray-600">{{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m H:i') }}</span> - 
                                                             <span class="text-red-600">{{ Str::limit($rejeicao['motivo'], 50) }}</span>
                                                         </div>
                                                         @endforeach
@@ -1144,8 +1146,8 @@
                                                         @csrf
                                                         <textarea name="motivo_rejeicao" required rows="2" class="w-full px-2 py-1.5 text-xs border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500" placeholder="Motivo da rejeição..."></textarea>
                                                         <div class="flex gap-1.5 mt-1.5">
-                                                            <button type="submit" class="px-2 py-1 bg-red-600 text-white text-[10px] font-medium rounded hover:bg-red-700">Rejeitar</button>
-                                                            <button type="button" @click="showRejeitar = false" class="px-2 py-1 bg-white text-gray-700 text-[10px] font-medium rounded border border-gray-300 hover:bg-gray-50">Cancelar</button>
+                                                            <button type="submit" class="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">Rejeitar</button>
+                                                            <button type="button" @click="showRejeitar = false" class="px-2 py-1 bg-white text-gray-700 text-xs font-semibold rounded border border-gray-300 hover:bg-gray-50">Cancelar</button>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -1162,7 +1164,8 @@
                                     @php
                                         $os = $item['documento'];
                                     @endphp
-                                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-600 hover:bg-blue-100 transition-colors">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50 rounded-lg border border-gray-200 border-l-2 border-l-blue-600 hover:shadow-md transition-all"
+                                     style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     <a href="{{ route('admin.ordens-servico.show', $os) }}" 
                                        class="flex items-center gap-3 flex-1 min-w-0">
                                         {{-- Ícone da OS --}}
@@ -1180,9 +1183,9 @@
                                                 Ordem de Serviço #{{ $os->numero }}
                                                 {!! $os->status_badge !!}
                                             </p>
-                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-600">
+                                            <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-gray-700">
                                                 <span class="flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                     </svg>
                                                     {{ $os->created_at->format('d/m/Y H:i') }}
@@ -1204,8 +1207,8 @@
                                     {{-- Botão Ver OS --}}
                                     <div class="flex items-center gap-2">
                                         <a href="{{ route('admin.ordens-servico.show', $os) }}" 
-                                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                             </svg>
@@ -1221,7 +1224,8 @@
                                     @endphp
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-4 bg-gray-50 rounded-lg border-l-2 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-orange-500' : 'border-green-500') }} hover:bg-gray-100 transition-colors">
+                                     class="p-4 bg-white rounded-lg border border-gray-200 border-l-2 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : 'border-l-green-500') }} hover:shadow-md transition-all"
+                                     style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     <div class="flex items-start justify-between gap-3">
                                         {{-- Conteúdo Principal --}}
@@ -1238,7 +1242,7 @@
                                                 <p class="text-sm font-semibold text-gray-900 truncate">{{ $documento->nome_original }}</p>
                                                 
                                                 {{-- Linha 2: Meta info --}}
-                                                <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                                <div class="flex items-center gap-2 mt-1.5 text-sm text-gray-600">
                                                     <span>{{ $documento->created_at->format('d/m/Y H:i') }}</span>
                                                     <span>•</span>
                                                     <span>{{ $documento->tamanho_formatado }}</span>
@@ -1247,33 +1251,33 @@
                                                 </div>
                                                 
                                                 {{-- Linha 3: Badges --}}
-                                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
-                                                    <span class="px-2 py-0.5 text-xs rounded-full {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-700' }}">
+                                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                                    <span class="px-2.5 py-0.5 text-xs rounded-full {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700 font-semibold' : 'bg-blue-100 text-blue-700 font-semibold' }}">
                                                         {{ $documento->tipo_usuario === 'interno' ? 'Interno' : 'Externo' }}
                                                     </span>
                                                     
                                                     @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                                         @if($documento->status_aprovacao === 'pendente')
-                                                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Pendente</span>
+                                                            <span class="px-2.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-semibold">Pendente</span>
                                                             @if($isCorrecao)
-                                                                <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
+                                                                <span class="px-2.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'aprovado')
-                                                            <span class="relative group px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full cursor-help">
+                                                            <span class="relative group px-2.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-semibold cursor-help">
                                                                 ✓ Aprovado
                                                                 <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                                                                    <span class="block font-medium">Aprovado por: {{ $documento->aprovadoPor->nome ?? 'N/D' }}</span>
+                                                                    <span class="block font-semibold">Aprovado por: {{ $documento->aprovadoPor->nome ?? 'N/D' }}</span>
                                                                     <span class="block text-gray-300">{{ $documento->aprovado_em?->format('d/m/Y \à\s H:i') ?? 'Data não registrada' }}</span>
                                                                     <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
                                                                 </span>
                                                             </span>
                                                             @if($documento->aprovadoPor)
-                                                            <span class="text-[10px] text-green-600">
+                                                            <span class="text-xs text-green-600 font-medium">
                                                                 por {{ $documento->aprovadoPor->nome }} em {{ $documento->aprovado_em?->format('d/m/Y H:i') }}
                                                             </span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'rejeitado')
-                                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">Rejeitado</span>
+                                                            <span class="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-semibold">Rejeitado</span>
                                                         @endif
                                                     @endif
                                                     
@@ -1287,7 +1291,7 @@
                                                     @endif
                                                     
                                                     @if($documento->pasta_id)
-                                                        <span class="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full"
+                                                        <span class="flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full font-semibold"
                                                               x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
                                                               :style="pasta ? `background-color: ${pasta.cor}20; color: ${pasta.cor}` : ''">
                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1300,7 +1304,7 @@
                                                 
                                                 {{-- Botão Histórico --}}
                                                 @if($isCorrecao && $historicoRejeicoes->count() > 0)
-                                                <button @click.stop="showHistorico = !showHistorico" class="mt-2 text-xs text-red-600 hover:text-red-700 flex items-center gap-1">
+                                                <button @click.stop="showHistorico = !showHistorico" class="mt-2 text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                     </svg>
@@ -1314,18 +1318,18 @@
                                         </div>
                                         
                                         {{-- Ações --}}
-                                        <div class="flex items-center gap-1 flex-shrink-0">
+                                        <div class="flex items-center gap-2 flex-shrink-0">
                                             @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente')
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Aprovar">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                     </svg>
                                                 </button>
                                             </form>
-                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Rejeitar">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                                 </svg>
                                             </button>
@@ -1334,8 +1338,8 @@
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Revalidar (voltar para pendente)">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Revalidar (voltar para pendente)">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                                     </svg>
                                                 </button>
@@ -1345,24 +1349,24 @@
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento rejeitado? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Revalidar (voltar para pendente)">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Revalidar (voltar para pendente)">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                                     </svg>
                                                 </button>
                                             </form>
                                             @endif
                                             
-                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Download">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                                 </svg>
                                             </a>
                                             
                                             {{-- Menu 3 pontos --}}
                                             <div class="relative" x-data="{ menuAberto: false }">
-                                                <button @click.stop="menuAberto = !menuAberto" class="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                <button @click.stop="menuAberto = !menuAberto" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                                         <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                                                     </svg>
                                                 </button>
@@ -1387,11 +1391,11 @@
                                     {{-- Histórico Expandido --}}
                                     @if($isCorrecao && $historicoRejeicoes->count() > 0)
                                     <div x-show="showHistorico" x-transition class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg" style="display: none;">
-                                        <p class="text-xs font-medium text-red-700 mb-2">Histórico de Rejeições:</p>
+                                        <p class="text-xs font-semibold text-red-700 mb-2">Histórico de Rejeições:</p>
                                         @foreach($historicoRejeicoes as $docRejeitado)
                                         <div class="p-2 bg-white border border-red-100 rounded text-xs mb-2 last:mb-0">
                                             <div class="flex items-center justify-between">
-                                                <span class="font-medium text-gray-700">{{ $docRejeitado->nome_original }}</span>
+                                                <span class="font-semibold text-gray-700">{{ $docRejeitado->nome_original }}</span>
                                                 <span class="text-gray-500">{{ $docRejeitado->created_at ? $docRejeitado->created_at->format('d/m/Y H:i') : '' }}</span>
                                             </div>
                                             @if($docRejeitado->motivo_rejeicao)

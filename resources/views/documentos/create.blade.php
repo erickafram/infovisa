@@ -19,7 +19,7 @@
     <meta name="estabelecimento-id" content="{{ $processo->estabelecimento_id }}">
 @endif
 
-<div class="min-h-screen bg-gray-50" x-data="documentoEditor()">
+<div class="min-h-screen bg-gray-50" x-data="documentoEditor()" @keydown.escape="modalConfirmarFinalizacao = false">
     <div class="max-w-8xl mx-auto px-4 py-8">
         {{-- Mensagens de Erro --}}
         @if ($errors->any())
@@ -129,12 +129,15 @@
             @endif
         </div>
 
-    <form method="POST" action="{{ route('admin.documentos.store') }}" @submit="handleSubmit">
+    <form id="formDocumento" method="POST" action="{{ route('admin.documentos.store') }}" @submit="handleSubmit">
         @csrf
         
         @if(isset($processo))
             <input type="hidden" name="processo_id" value="{{ $processo->id }}">
         @endif
+        
+        {{-- Campo hidden para a ação (rascunho ou finalizar) --}}
+        <input type="hidden" name="acao" id="inputAcao" value="rascunho">
         
         {{-- Campo hidden para o conteúdo do editor --}}
         <input type="hidden" name="conteudo" x-model="conteudo">
@@ -834,9 +837,8 @@
                         Salvar Rascunho
                     </button>
                     
-                    <button type="submit" 
-                            name="acao" 
-                            value="finalizar"
+                    <button type="button"
+                            @click="modalConfirmarFinalizacao = true"
                             class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -938,9 +940,61 @@
     </div>
 </div>
 
+{{-- Modal de Confirmação para Finalizar Documento --}}
+<div x-show="modalConfirmarFinalizacao" 
+     class="fixed inset-0 z-50 flex items-center justify-center"
+     style="display: none;">
+    {{-- Backdrop --}}
+    <div x-show="modalConfirmarFinalizacao"
+         @click="modalConfirmarFinalizacao = false"
+         class="absolute inset-0 bg-black bg-opacity-40"
+         x-transition>
+    </div>
+
+    {{-- Modal Content --}}
+    <div x-show="modalConfirmarFinalizacao"
+         class="relative bg-white rounded-lg shadow-xl max-w-md mx-auto p-6"
+         x-transition>
+        
+        {{-- Icon and Title --}}
+        <div class="flex items-start gap-4 mb-4">
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100">
+                <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0-6a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Finalizar Documento
+                </h3>
+            </div>
+        </div>
+
+        {{-- Message --}}
+        <p class="text-gray-700 text-sm mb-6 leading-relaxed">
+            <span class="font-medium">Atenção:</span> Não será possível editar o documento após finalizar. Tem certeza de que deseja continuar?
+        </p>
+
+        {{-- Buttons --}}
+        <div class="flex gap-3 justify-end">
+            <button type="button" 
+                    @click="modalConfirmarFinalizacao = false"
+                    class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </button>
+            <button type="button"
+                    @click="confirmarFinalizacao()"
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition">
+                Finalizar
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 // Dados dos tipos de documento (prazo_notificacao)
 const tiposDocumentoData = {
+
     @foreach($tiposDocumento as $tipo)
     {{ $tipo->id }}: {
         prazo_notificacao: {{ $tipo->prazo_notificacao ? 'true' : 'false' }},
@@ -1003,6 +1057,8 @@ function documentoEditor() {
         timeoutSalvar: null,
         dadosRecuperados: false,
         modalPreview: false,
+        modalConfirmarFinalizacao: false,
+        confirmandoFinalizacao: false,
         contadorErros: 0,
         timeoutVerificacao: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
@@ -1145,6 +1201,11 @@ function documentoEditor() {
         },
 
         salvarAutomaticamente() {
+            // Não salva se a modal de confirmação de finalização está aberta
+            if (this.modalConfirmarFinalizacao) {
+                return;
+            }
+            
             clearTimeout(this.timeoutSalvar);
             this.salvandoAuto = true;
             
@@ -1531,6 +1592,18 @@ function documentoEditor() {
         contarPalavras() {
             const texto = this.conteudo.replace(/<[^>]*>/g, '').trim();
             return texto.split(/\s+/).filter(word => word.length > 0).length;
+        },
+
+        confirmarFinalizacao() {
+            // Fecha o modal
+            this.modalConfirmarFinalizacao = false;
+            this.confirmandoFinalizacao = true;
+            
+            // Define a ação como finalizar
+            document.getElementById('inputAcao').value = 'finalizar';
+            
+            // Submete o formulário
+            document.getElementById('formDocumento').submit();
         },
 
         handleSubmit(event) {
