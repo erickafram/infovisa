@@ -128,7 +128,7 @@ class ResponsavelGlobalController extends Controller
             $total,
             $perPage,
             $page,
-            ['path' => $request->url(), 'query' => $request->query()]
+            ['path' => route('admin.responsaveis.index'), 'query' => $request->query()]
         );
         
         return view('admin.responsaveis.index', compact('responsaveis'));
