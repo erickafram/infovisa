@@ -51,13 +51,25 @@ class AtividadeEquipamentoRadiacao extends Model
     }
 
     /**
+     * Normaliza um código CNAE removendo formatação (traços, barras, pontos)
+     */
+    public static function normalizarCodigo(string $codigo): string
+    {
+        return preg_replace('/[^0-9]/', '', $codigo);
+    }
+
+    /**
      * Verifica se um código de atividade está na lista de equipamentos obrigatórios
      */
     public static function atividadeExigeEquipamento(string $codigoAtividade): bool
     {
-        return self::where('codigo_atividade', $codigoAtividade)
-            ->where('ativo', true)
-            ->exists();
+        $codigoNormalizado = self::normalizarCodigo($codigoAtividade);
+        
+        return self::where('ativo', true)
+            ->get()
+            ->contains(function ($atividade) use ($codigoNormalizado) {
+                return self::normalizarCodigo($atividade->codigo_atividade) === $codigoNormalizado;
+            });
     }
 
     /**
@@ -72,15 +84,24 @@ class AtividadeEquipamentoRadiacao extends Model
         $codigosAtividades = collect($estabelecimento->atividades_exercidas)
             ->pluck('codigo')
             ->filter()
+            ->map(fn($codigo) => self::normalizarCodigo($codigo))
             ->toArray();
 
         if (empty($codigosAtividades)) {
             return false;
         }
 
-        return self::whereIn('codigo_atividade', $codigosAtividades)
-            ->where('ativo', true)
-            ->exists();
+        // Busca todas as atividades de equipamento ativas e normaliza os códigos
+        $atividadesEquipamento = self::where('ativo', true)->get();
+        
+        foreach ($atividadesEquipamento as $atividade) {
+            $codigoNormalizado = self::normalizarCodigo($atividade->codigo_atividade);
+            if (in_array($codigoNormalizado, $codigosAtividades)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -95,6 +116,7 @@ class AtividadeEquipamentoRadiacao extends Model
         $codigosAtividades = collect($estabelecimento->atividades_exercidas)
             ->pluck('codigo')
             ->filter()
+            ->map(fn($codigo) => self::normalizarCodigo($codigo))
             ->toArray();
 
         if (empty($codigosAtividades)) {
@@ -107,14 +129,22 @@ class AtividadeEquipamentoRadiacao extends Model
             return false;
         }
 
-        // Verifica se há alguma atividade que exige equipamentos para este tipo de processo
-        return self::whereIn('codigo_atividade', $codigosAtividades)
-            ->where('ativo', true)
+        // Busca todas as atividades de equipamento para este tipo de processo
+        $atividadesEquipamento = self::where('ativo', true)
             ->where('obrigatorio_processo', true)
             ->whereHas('tiposProcesso', function ($query) use ($tipoProcesso) {
                 $query->where('tipo_processo_id', $tipoProcesso->id);
             })
-            ->exists();
+            ->get();
+        
+        foreach ($atividadesEquipamento as $atividade) {
+            $codigoNormalizado = self::normalizarCodigo($atividade->codigo_atividade);
+            if (in_array($codigoNormalizado, $codigosAtividades)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -126,23 +156,26 @@ class AtividadeEquipamentoRadiacao extends Model
             return [];
         }
 
-        $codigosAtividades = collect($estabelecimento->atividades_exercidas)
+        $codigosAtividadesNormalizados = collect($estabelecimento->atividades_exercidas)
             ->pluck('codigo')
             ->filter()
+            ->mapWithKeys(fn($codigo) => [self::normalizarCodigo($codigo) => $codigo])
             ->toArray();
 
-        if (empty($codigosAtividades)) {
+        if (empty($codigosAtividadesNormalizados)) {
             return [];
         }
 
-        $atividadesObrigatorias = self::whereIn('codigo_atividade', $codigosAtividades)
-            ->where('ativo', true)
-            ->pluck('codigo_atividade')
+        // Busca todos os códigos de atividades de equipamento ativos
+        $atividadesObrigatoriasNormalizadas = self::where('ativo', true)
+            ->get()
+            ->map(fn($a) => self::normalizarCodigo($a->codigo_atividade))
             ->toArray();
 
         return collect($estabelecimento->atividades_exercidas)
-            ->filter(function ($atividade) use ($atividadesObrigatorias) {
-                return in_array($atividade['codigo'] ?? '', $atividadesObrigatorias);
+            ->filter(function ($atividade) use ($atividadesObrigatoriasNormalizadas) {
+                $codigoNormalizado = self::normalizarCodigo($atividade['codigo'] ?? '');
+                return in_array($codigoNormalizado, $atividadesObrigatoriasNormalizadas);
             })
             ->values()
             ->toArray();
@@ -157,12 +190,13 @@ class AtividadeEquipamentoRadiacao extends Model
             return [];
         }
 
-        $codigosAtividades = collect($estabelecimento->atividades_exercidas)
+        $codigosAtividadesNormalizados = collect($estabelecimento->atividades_exercidas)
             ->pluck('codigo')
             ->filter()
+            ->map(fn($codigo) => self::normalizarCodigo($codigo))
             ->toArray();
 
-        if (empty($codigosAtividades)) {
+        if (empty($codigosAtividadesNormalizados)) {
             return [];
         }
 
@@ -172,18 +206,19 @@ class AtividadeEquipamentoRadiacao extends Model
             return [];
         }
 
-        $atividadesObrigatorias = self::whereIn('codigo_atividade', $codigosAtividades)
-            ->where('ativo', true)
+        $atividadesObrigatoriasNormalizadas = self::where('ativo', true)
             ->where('obrigatorio_processo', true)
             ->whereHas('tiposProcesso', function ($query) use ($tipoProcesso) {
                 $query->where('tipo_processo_id', $tipoProcesso->id);
             })
-            ->pluck('codigo_atividade')
+            ->get()
+            ->map(fn($a) => self::normalizarCodigo($a->codigo_atividade))
             ->toArray();
 
         return collect($estabelecimento->atividades_exercidas)
-            ->filter(function ($atividade) use ($atividadesObrigatorias) {
-                return in_array($atividade['codigo'] ?? '', $atividadesObrigatorias);
+            ->filter(function ($atividade) use ($atividadesObrigatoriasNormalizadas) {
+                $codigoNormalizado = self::normalizarCodigo($atividade['codigo'] ?? '');
+                return in_array($codigoNormalizado, $atividadesObrigatoriasNormalizadas);
             })
             ->values()
             ->toArray();
