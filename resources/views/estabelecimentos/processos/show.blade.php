@@ -703,8 +703,8 @@
                 {{-- Header da Lista de Documentos --}}
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
                             Lista de Documentos/Arquivos
