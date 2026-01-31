@@ -10,15 +10,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Adiciona configuração para habilitar/desabilitar o chat interno
-        DB::table('configuracoes_sistema')->insert([
-            'chave' => 'chat_interno_ativo',
-            'valor' => 'true',
-            'tipo' => 'boolean',
-            'descricao' => 'Habilita ou desabilita o chat interno para comunicação entre usuários',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Verifica se já existe antes de inserir
+        $existe = DB::table('configuracoes_sistema')->where('chave', 'chat_interno_ativo')->exists();
+        
+        if (!$existe) {
+            // Adiciona configuração para habilitar/desabilitar o chat interno
+            DB::table('configuracoes_sistema')->insert([
+                'chave' => 'chat_interno_ativo',
+                'valor' => 'true',
+                'tipo' => 'boolean',
+                'descricao' => 'Habilita ou desabilita o chat interno para comunicação entre usuários',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     /**
