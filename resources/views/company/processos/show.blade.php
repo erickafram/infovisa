@@ -256,6 +256,71 @@
             </div>
             @endif
 
+            {{-- Progresso dos Documentos Obrigatórios --}}
+            @if(isset($documentosObrigatorios) && $documentosObrigatorios->count() > 0)
+            @php
+                $totalObrigatorios = $documentosObrigatorios->where('obrigatorio', true)->count();
+                $enviadosAprovados = $documentosObrigatorios->where('obrigatorio', true)->whereIn('status_envio', ['pendente', 'aprovado'])->count();
+                $percentual = $totalObrigatorios > 0 ? round(($enviadosAprovados / $totalObrigatorios) * 100) : 0;
+                $faltam = $totalObrigatorios - $enviadosAprovados;
+            @endphp
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Documentos Obrigatórios
+                    </h3>
+                    <span class="text-xs font-bold {{ $percentual == 100 ? 'text-green-600' : 'text-blue-600' }}">
+                        {{ $enviadosAprovados }}/{{ $totalObrigatorios }}
+                    </span>
+                </div>
+                
+                {{-- Barra de Progresso --}}
+                <div class="relative">
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500 ease-out {{ $percentual == 100 ? 'bg-green-500' : 'bg-blue-500' }}" 
+                             style="width: {{ $percentual }}%"></div>
+                    </div>
+                    @if($percentual == 100)
+                    <div class="absolute -top-1 -right-1">
+                        <span class="flex h-5 w-5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-5 w-5 bg-green-500 items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </span>
+                        </span>
+                    </div>
+                    @endif
+                </div>
+                
+                {{-- Status --}}
+                <div class="mt-3">
+                    @if($percentual == 100)
+                    <p class="text-xs text-green-600 font-medium flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Todos os documentos obrigatórios foram enviados!
+                    </p>
+                    @else
+                    <p class="text-xs text-gray-500">
+                        <span class="font-medium text-amber-600">{{ $faltam }}</span> documento(s) obrigatório(s) pendente(s)
+                    </p>
+                    <button @click="modalUpload = true" class="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Enviar documentos
+                    </button>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             {{-- Menu de Opções --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="text-sm font-semibold text-gray-900 uppercase mb-3 flex items-center gap-2">
