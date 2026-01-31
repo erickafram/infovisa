@@ -3,27 +3,28 @@
 @section('title', 'Login - InfoVISA')
 
 @section('content')
-<div class="max-w-md mx-auto">
-    {{-- Card de Login --}}
-    <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-        {{-- Logo e Título --}}
-        <div class="text-center mb-6">
-        
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">Bem-vindo de volta</h1>
-            <p class="text-gray-600 text-sm">Entre com suas credenciais para acessar o sistema</p>
-        </div>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 font-sans antialiased">
+    <div class="w-full max-w-md p-4">
+        {{-- Card de Login --}}
+        <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 backdrop-blur-sm">
+            {{-- Logo e Cabeçalho --}}
+            <div class="text-center mb-8">
+                <img src="{{ asset('img/logo.png') }}" alt="InfoVISA" class="h-12 w-auto mx-auto mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-1">Bem-vindo de volta</h1>
+                <p class="text-gray-600 text-sm">Entre com suas credenciais para acessar</p>
+            </div>
 
             {{-- Mensagens de Erro --}}
             @if ($errors->any())
-                <div class="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+                <div class="mb-5 bg-red-50 border border-red-200 rounded-lg p-4 shadow-sm">
                     <div class="flex">
-                        <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="h-5 w-5 text-red-400 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                         </svg>
                         <div>
                             <h3 class="text-sm font-medium text-red-800">Erro ao fazer login</h3>
-                            <div class="mt-1 text-sm text-red-700">
-                                <ul class="list-disc list-inside">
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
                                     @foreach ($errors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
@@ -34,11 +35,11 @@
                 </div>
             @endif
 
-            {{-- Mensagem de Sucesso (se houver) --}}
+            {{-- Mensagem de Sucesso --}}
             @if (session('success'))
-                <div class="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
+                <div class="mb-5 bg-green-50 border border-green-200 rounded-lg p-4 shadow-sm">
                     <div class="flex">
-                        <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="h-5 w-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
                         <p class="text-sm text-green-800">{{ session('success') }}</p>
@@ -51,8 +52,8 @@
                 @csrf
 
                 {{-- CPF --}}
-                <div class="mb-3">
-                    <label for="cpf" class="block text-sm font-medium text-gray-700 mb-1">
+                <div class="mb-4">
+                    <label for="cpf" class="block text-sm font-semibold text-gray-800 mb-2">
                         CPF
                     </label>
                     <input 
@@ -63,15 +64,18 @@
                         required
                         autofocus
                         maxlength="14"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('cpf') border-red-300 @enderror"
+                        class="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-lg shadow-sm transition-all duration-200 @error('cpf') border-red-300 focus:ring-red-500 @enderror"
                         placeholder="000.000.000-00"
                         oninput="formatCPF(this)"
                     >
+                    @error('cpf')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Senha --}}
-                <div class="mb-3">
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                <div class="mb-5">
+                    <label for="password" class="block text-sm font-semibold text-gray-800 mb-2">
                         Senha
                     </label>
                     <div class="relative">
@@ -80,13 +84,13 @@
                             id="password" 
                             name="password" 
                             required
-                            class="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('password') border-red-300 @enderror"
+                            class="w-full px-4 py-3 pr-12 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-lg shadow-sm transition-all duration-200 @error('password') border-red-300 focus:ring-red-500 @enderror"
                             placeholder="••••••••"
                         >
                         <button 
                             type="button" 
                             onclick="togglePassword()"
-                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors"
                             title="Mostrar/ocultar senha"
                         >
                             <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,21 +102,24 @@
                             </svg>
                         </button>
                     </div>
+                    @error('password')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Lembrar-me e Esqueci a senha --}}
-                <div class="flex items-center justify-between mb-4">
-                    <label class="flex items-center">
+                <div class="flex items-center justify-between mb-6">
+                    <label class="flex items-center cursor-pointer">
                         <input 
                             type="checkbox" 
                             name="remember" 
                             id="remember"
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors"
                         >
-                        <span class="ml-2 text-sm text-gray-600">Lembrar-me</span>
+                        <span class="ml-2 text-sm text-gray-700">Lembrar-me</span>
                     </label>
 
-                    <a href="#" class="text-sm text-blue-600 hover:text-blue-500">
+                    <a href="#" onclick="abrirModalRecuperacao(event)" class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
                         Esqueci minha senha
                     </a>
                 </div>
@@ -120,7 +127,7 @@
                 {{-- Botão de Entrar --}}
                 <button 
                     type="submit"
-                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 transform hover:scale-[1.02]"
+                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-2xl flex items-center justify-center space-x-2 transform hover:scale-[1.01] active:scale-95"
                 >
                     <span>Entrar no Sistema</span>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,10 +137,10 @@
             </form>
 
             {{-- Link para cadastro --}}
-             <div class="mt-6 text-center">
+            <div class="mt-6 text-center border-t border-gray-100 pt-6">
                 <p class="text-sm text-gray-600">
                     Não tem uma conta? 
-                    <a href="{{ route('registro') }}" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                    <a href="{{ route('registro') }}" class="text-blue-600 hover:text-blue-700 font-bold transition-colors">
                         Cadastre-se aqui
                     </a>
                 </p>
@@ -149,6 +156,60 @@
                 Voltar para página inicial
             </a>
         </div>
+    </div>
+</div>
+
+{{-- Modal de Recuperação de Senha --}}
+<div id="modalRecuperacaoSenha" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Recuperação de Senha</h3>
+            <p class="text-sm text-gray-600">Entre em contato conosco para recuperar sua senha</p>
+        </div>
+
+        <div class="space-y-4 mb-6">
+            {{-- Telefones --}}
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 mb-1">Telefones</p>
+                        <p class="text-sm text-gray-700">(63) 3027-4486</p>
+                        <p class="text-sm text-gray-700">(63) 3027-4484</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Email --}}
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 mb-1">Email</p>
+                        <a href="mailto:licenciamento.visato@gmail.com" class="text-sm text-blue-600 hover:text-blue-700 hover:underline">
+                            licenciamento.visato@gmail.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button 
+            type="button"
+            onclick="fecharModalRecuperacao()"
+            class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
+            Fechar
+        </button>
     </div>
 </div>
 
@@ -200,6 +261,15 @@
 </div>
 
 <script>
+function abrirModalRecuperacao(event) {
+    event.preventDefault();
+    document.getElementById('modalRecuperacaoSenha').classList.remove('hidden');
+}
+
+function fecharModalRecuperacao() {
+    document.getElementById('modalRecuperacaoSenha').classList.add('hidden');
+}
+
 function togglePassword() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');

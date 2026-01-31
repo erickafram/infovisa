@@ -41,6 +41,42 @@
                 <p class="text-sm text-amber-700 mt-1">
                     Este estabelecimento declarou que <strong>não possui equipamentos de imagem</strong>, mesmo possuindo atividades que normalmente exigem esse tipo de equipamento.
                 </p>
+                
+                @if($estabelecimento->declaracao_sem_equipamentos_opcoes)
+                <div class="mt-2 p-2 bg-amber-100/50 rounded">
+                    <p class="text-xs font-medium text-amber-800 mb-1.5">Confirmações:</p>
+                    <div class="space-y-1">
+                        @php
+                            $opcoes = json_decode($estabelecimento->declaracao_sem_equipamentos_opcoes, true) ?? [];
+                        @endphp
+                        @if(in_array('opcao_1', $opcoes))
+                        <div class="flex items-start gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Não executa atividades de diagnóstico por imagem neste estabelecimento</span>
+                        </div>
+                        @endif
+                        @if(in_array('opcao_2', $opcoes))
+                        <div class="flex items-start gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Não possui equipamentos de diagnóstico por imagem instalados no local</span>
+                        </div>
+                        @endif
+                        @if(in_array('opcao_3', $opcoes))
+                        <div class="flex items-start gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Os exames são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                
                 @if($estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
                 <div class="mt-2 p-2 bg-amber-100/50 rounded text-sm text-amber-800">
                     <strong>Justificativa:</strong> {{ $estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}

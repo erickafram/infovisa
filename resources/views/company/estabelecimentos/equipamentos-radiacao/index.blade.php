@@ -5,6 +5,17 @@
 
 @section('content')
 <div class="space-y-6" x-data="equipamentosRadiacao()">
+    {{-- Botão Voltar --}}
+    <div>
+        <a href="{{ route('company.estabelecimentos.show', $estabelecimento->id) }}" 
+           class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Voltar
+        </a>
+    </div>
+
     {{-- Breadcrumb --}}
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <a href="{{ route('company.estabelecimentos.index') }}" class="hover:text-gray-700">Estabelecimentos</a>
@@ -32,6 +43,47 @@
                 <p class="text-sm text-amber-700 mt-1">
                     Você declarou que este estabelecimento <strong>não possui equipamentos de imagem</strong>.
                 </p>
+                
+                @php
+                    $opcoes = is_array($estabelecimento->declaracao_sem_equipamentos_opcoes) 
+                        ? $estabelecimento->declaracao_sem_equipamentos_opcoes 
+                        : (is_string($estabelecimento->declaracao_sem_equipamentos_opcoes) 
+                            ? json_decode($estabelecimento->declaracao_sem_equipamentos_opcoes, true) 
+                            : []);
+                @endphp
+                
+                @if(!empty($opcoes))
+                <div class="mt-3 p-3 bg-white/60 rounded-lg border border-amber-200">
+                    <p class="text-xs font-medium text-amber-800 uppercase tracking-wider mb-2">Confirmações:</p>
+                    <div class="space-y-1.5">
+                        @if(in_array('opcao_1', $opcoes))
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Não executa atividades de diagnóstico por imagem neste estabelecimento</span>
+                        </div>
+                        @endif
+                        @if(in_array('opcao_2', $opcoes))
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Não possui equipamentos de diagnóstico por imagem instalados no local</span>
+                        </div>
+                        @endif
+                        @if(in_array('opcao_3', $opcoes))
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-xs text-amber-800">Os exames, quando necessários, são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                
                 @if($estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
                 <div class="mt-3 p-3 bg-white/60 rounded-lg border border-amber-200">
                     <p class="text-xs font-medium text-amber-800 uppercase tracking-wider mb-1">Justificativa informada:</p>
@@ -528,16 +580,25 @@
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="modalDeclaracaoAberto = false"></div>
 
             {{-- Modal --}}
-            <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full mx-auto z-10" x-data="{ justificativa: '', confirmado: false }">
+            <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-auto z-10" x-data="{ 
+                justificativa: '', 
+                confirmado: false,
+                opcao1: false,
+                opcao2: false,
+                opcao3: false,
+                algumaMarcada() {
+                    return this.opcao1 || this.opcao2 || this.opcao3;
+                }
+            }">
                 <form action="{{ route('company.estabelecimentos.equipamentos-radiacao.declarar-sem-equipamentos', $estabelecimento->id) }}" method="POST">
                     @csrf
                     
                     {{-- Header --}}
-                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-900">Declaração de Não Possui Equipamentos</h3>
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-gray-900 leading-tight">Declaração – Atividade de Diagnóstico por Imagem Não Executada no Local</h3>
                         <button type="button" 
                                 @click="modalDeclaracaoAberto = false"
-                                class="text-gray-400 hover:text-gray-500 transition-colors">
+                                class="text-gray-400 hover:text-gray-500 transition-colors ml-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -545,68 +606,88 @@
                     </div>
 
                     {{-- Body --}}
-                    <div class="px-6 py-5 space-y-5">
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <div class="flex gap-3">
-                                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                <div class="text-sm text-amber-800">
-                                    <p class="font-medium mb-1">Atenção!</p>
-                                    <p>Este estabelecimento possui atividades econômicas que normalmente exigem equipamentos de imagem. Ao fazer esta declaração, você confirma que:</p>
-                                    <ul class="list-disc list-inside mt-2 space-y-1">
-                                        <li>Não possui nenhum equipamento de imagem (Raio-X, Tomógrafo, etc.)</li>
-                                        <li>Não executa atividades que utilizam esses equipamentos no local</li>
-                                    </ul>
+                    <div class="px-4 py-4 space-y-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-700 mb-2">Ao declarar, você confirma que:</p>
+                            <div class="space-y-2.5">
+                                <div class="flex items-start gap-2.5">
+                                    <input type="checkbox" 
+                                           name="opcao_1"
+                                           id="opcao-1"
+                                           x-model="opcao1"
+                                           value="1"
+                                           class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="opcao-1" class="text-xs text-gray-700 leading-relaxed cursor-pointer">
+                                        Não executa atividades de diagnóstico por imagem neste estabelecimento
+                                    </label>
+                                </div>
+
+                                <div class="flex items-start gap-2.5">
+                                    <input type="checkbox" 
+                                           name="opcao_2"
+                                           id="opcao-2"
+                                           x-model="opcao2"
+                                           value="1"
+                                           class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="opcao-2" class="text-xs text-gray-700 leading-relaxed cursor-pointer">
+                                        Não possui equipamentos de diagnóstico por imagem instalados no local
+                                    </label>
+                                </div>
+
+                                <div class="flex items-start gap-2.5">
+                                    <input type="checkbox" 
+                                           name="opcao_3"
+                                           id="opcao-3"
+                                           x-model="opcao3"
+                                           value="1"
+                                           class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="opcao-3" class="text-xs text-gray-700 leading-relaxed cursor-pointer">
+                                        Os exames, quando necessários, são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado
+                                    </label>
                                 </div>
                             </div>
+                            <p class="text-xs text-red-600 mt-2" x-show="!algumaMarcada()" x-cloak>
+                                * Marque pelo menos uma opção acima
+                            </p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Justificativa <span class="text-red-500">*</span>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                                Justificativa (opcional)
                             </label>
                             <textarea name="justificativa"
                                       x-model="justificativa"
-                                      required
                                       minlength="30"
-                                      rows="4"
-                                      placeholder="Explique por que este estabelecimento não possui equipamentos de imagem, mesmo tendo atividades que normalmente exigem..."
-                                      class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm resize-none"
-                                      :class="{ 'border-red-300': justificativa.length > 0 && justificativa.length < 30, 'border-green-300': justificativa.length >= 30 }"></textarea>
-                            <div class="flex justify-between items-center mt-1">
-                                <p class="text-xs text-gray-500">Ex: "Somente realizo consultas clínicas, os exames de imagem são terceirizados"</p>
-                                <span class="text-xs" :class="justificativa.length >= 30 ? 'text-green-600' : 'text-red-500'">
-                                    <span x-text="justificativa.length"></span>/30 caracteres
-                                </span>
-                            </div>
+                                      rows="3"
+                                      placeholder="Ex.: Atendo apenas consultas clínicas. Exames de imagem são realizados em clínica terceirizada devidamente licenciada."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs resize-none"></textarea>
                         </div>
 
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-2.5">
                             <input type="checkbox" 
                                    name="confirmacao"
                                    id="confirmacao-declaracao"
                                    x-model="confirmado"
                                    required
-                                   class="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded">
-                            <label for="confirmacao-declaracao" class="text-sm text-gray-700">
-                                Declaro sob minha responsabilidade que as informações acima são verdadeiras e estou ciente de que declarações falsas podem acarretar sanções legais.
+                                   class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="confirmacao-declaracao" class="text-xs text-gray-700 leading-relaxed cursor-pointer">
+                                Declaro que as informações são verdadeiras e estou ciente das sanções legais em caso de falsidade.
                             </label>
                         </div>
                     </div>
 
                     {{-- Footer --}}
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex items-center justify-end gap-3">
+                    <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg flex items-center justify-end gap-2">
                         <button type="button"
                                 @click="modalDeclaracaoAberto = false"
-                                class="px-4 py-2.5 text-gray-700 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                class="px-3 py-2 text-gray-700 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit"
-                                :disabled="justificativa.length < 30 || !confirmado"
-                                :class="justificativa.length >= 30 && confirmado ? 'bg-amber-600 hover:bg-amber-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'"
-                                class="px-6 py-2.5 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
-                            Confirmar Declaração
+                                :disabled="!confirmado || !algumaMarcada()"
+                                :class="(confirmado && algumaMarcada()) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'"
+                                class="px-4 py-2 text-white text-sm font-semibold rounded-lg transition-colors">
+                            Confirmar
                         </button>
                     </div>
                 </form>

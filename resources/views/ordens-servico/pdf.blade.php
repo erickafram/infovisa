@@ -330,8 +330,27 @@
                     <div class="alert alert-amber">
                         <strong>⚠ Declaração: Não Possui Equipamentos</strong><br>
                         O estabelecimento declarou formalmente que NÃO POSSUI equipamentos de imagem.
+                        
+                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes)
+                        @php
+                            $opcoes = json_decode($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes, true) ?? [];
+                        @endphp
+                        @if(count($opcoes) > 0)
+                        <br><br><strong>Confirmações:</strong><br>
+                        @if(in_array('opcao_1', $opcoes))
+                        ✓ Não executa atividades de diagnóstico por imagem neste estabelecimento<br>
+                        @endif
+                        @if(in_array('opcao_2', $opcoes))
+                        ✓ Não possui equipamentos de diagnóstico por imagem instalados no local<br>
+                        @endif
+                        @if(in_array('opcao_3', $opcoes))
+                        ✓ Os exames, quando necessários, são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado<br>
+                        @endif
+                        @endif
+                        @endif
+                        
                         @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
-                        <br><br><strong>Justificativa:</strong> {{ $ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}
+                        <br><strong>Justificativa:</strong> {{ $ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}
                         @endif
                     </div>
                 @else

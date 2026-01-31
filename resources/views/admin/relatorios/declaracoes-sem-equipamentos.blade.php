@@ -115,9 +115,48 @@
                 <div class="flex-1">
                     <p class="font-semibold text-gray-900">{{ $estabelecimento->nome_fantasia ?: $estabelecimento->nome_razao_social }}</p>
                     <p class="text-xs text-gray-500 mb-3">{{ $estabelecimento->cnpj_formatado }}</p>
+                    
+                    @if($estabelecimento->declaracao_sem_equipamentos_opcoes)
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                        <p class="text-xs font-medium text-blue-800 mb-2">Confirmações marcadas:</p>
+                        <div class="space-y-1.5">
+                            @php
+                                $opcoes = json_decode($estabelecimento->declaracao_sem_equipamentos_opcoes, true) ?? [];
+                            @endphp
+                            @if(in_array('opcao_1', $opcoes))
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span class="text-xs text-blue-800">Não executa atividades de diagnóstico por imagem neste estabelecimento</span>
+                            </div>
+                            @endif
+                            @if(in_array('opcao_2', $opcoes))
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span class="text-xs text-blue-800">Não possui equipamentos de diagnóstico por imagem instalados no local</span>
+                            </div>
+                            @endif
+                            @if(in_array('opcao_3', $opcoes))
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span class="text-xs text-blue-800">Os exames são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado</span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                    
+                    @if($estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
                     <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                        <p class="text-xs font-medium text-amber-800 mb-1">Justificativa:</p>
                         <p class="text-gray-700">{{ $estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}</p>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

@@ -13,9 +13,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 font-sans antialiased">
-    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        @yield('content')
+
+    <div id="app">
+        <main>
+            @yield('content')
+        </main>
     </div>
+
 </body>
 </html>
 

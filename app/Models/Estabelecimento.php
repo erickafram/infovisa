@@ -85,6 +85,7 @@ class Estabelecimento extends Model
         'declaracao_sem_equipamentos_imagem_data',
         'declaracao_sem_equipamentos_imagem_justificativa',
         'declaracao_sem_equipamentos_imagem_usuario_id',
+        'declaracao_sem_equipamentos_opcoes',
     ];
 
     /**
@@ -98,6 +99,7 @@ class Estabelecimento extends Model
         'data_situacao_cadastral' => 'date',
         'data_inicio_atividade' => 'date',
         'cnaes_secundarios' => 'array',
+        'declaracao_sem_equipamentos_opcoes' => 'array',
         'qsa' => 'array',
         'capital_social' => 'decimal:2',
         'opcao_pelo_mei' => 'boolean',

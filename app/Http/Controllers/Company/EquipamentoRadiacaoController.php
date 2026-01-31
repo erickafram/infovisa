@@ -217,20 +217,29 @@ class EquipamentoRadiacaoController extends Controller
         }
 
         $validated = $request->validate([
-            'justificativa' => 'required|string|min:30|max:1000',
+            'justificativa' => 'nullable|string|min:30|max:1000',
             'confirmacao' => 'required|accepted',
+            'opcao_1' => 'nullable',
+            'opcao_2' => 'nullable',
+            'opcao_3' => 'nullable',
         ], [
-            'justificativa.required' => 'A justificativa é obrigatória.',
             'justificativa.min' => 'A justificativa deve ter pelo menos 30 caracteres.',
             'confirmacao.required' => 'Você precisa confirmar a declaração.',
             'confirmacao.accepted' => 'Você precisa confirmar a declaração.',
         ]);
+
+        // Salva as opções marcadas
+        $opcoesMarcadas = [];
+        if ($request->has('opcao_1')) $opcoesMarcadas[] = 'opcao_1';
+        if ($request->has('opcao_2')) $opcoesMarcadas[] = 'opcao_2';
+        if ($request->has('opcao_3')) $opcoesMarcadas[] = 'opcao_3';
 
         $estabelecimento->update([
             'declaracao_sem_equipamentos_imagem' => true,
             'declaracao_sem_equipamentos_imagem_data' => now(),
             'declaracao_sem_equipamentos_imagem_justificativa' => $validated['justificativa'],
             'declaracao_sem_equipamentos_imagem_usuario_id' => $user->id,
+            'declaracao_sem_equipamentos_opcoes' => json_encode($opcoesMarcadas),
         ]);
 
         return back()->with('success', 'Declaração registrada com sucesso! O sistema reconhece que este estabelecimento não possui equipamentos de imagem.');
@@ -257,6 +266,7 @@ class EquipamentoRadiacaoController extends Controller
             'declaracao_sem_equipamentos_imagem_data' => null,
             'declaracao_sem_equipamentos_imagem_justificativa' => null,
             'declaracao_sem_equipamentos_imagem_usuario_id' => null,
+            'declaracao_sem_equipamentos_opcoes' => null,
         ]);
 
         return redirect()->route('company.estabelecimentos.equipamentos-radiacao.index', $estabelecimentoId)
