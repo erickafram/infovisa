@@ -584,10 +584,28 @@
                                 </template>
                             </div>
                         </div>
+
+                        {{-- Mensagem informativa quando atividades estão selecionadas --}}
+                        <div x-show="atividadePrincipalMarcada || atividadesExercidas.length > 0" 
+                             x-cloak
+                             class="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <div class="text-xs text-green-800">
+                                    <p class="font-semibold">✓ Atividade(s) selecionada(s) para licenciamento sanitário</p>
+                                    <p class="mt-1">Com atividades econômicas marcadas, você poderá solicitar <strong>Licenciamento Sanitário</strong> para este estabelecimento.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Seção: Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem) --}}
-                    <div class="mb-6 mt-6">
+                    {{-- SÓ APARECE se NENHUMA atividade do CNPJ estiver marcada --}}
+                    <div class="mb-6 mt-6" 
+                         x-show="!atividadePrincipalMarcada && atividadesExercidas.length === 0"
+                         x-cloak>
                         <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
                             <div class="flex items-start gap-3 mb-4">
                                 <div class="flex-shrink-0">
@@ -598,10 +616,10 @@
                                     </div>
                                 </div>
                                 <div class="flex-1">
-                                    <h4 class="text-sm font-bold text-indigo-900 mb-1">📋 Deseja abrir apenas Projeto Arquitetônico e/ou Análise de Rotulagem?</h4>
+                                    <h4 class="text-sm font-bold text-indigo-900 mb-1">📋 Não deseja licenciamento sanitário?</h4>
                                     <p class="text-xs text-indigo-700">
-                                        Se você deseja <strong>apenas</strong> abrir processo de Projeto Arquitetônico ou Análise de Rotulagem 
-                                        (sem licenciamento sanitário), marque a opção abaixo. As atividades do CNPJ serão desmarcadas automaticamente.
+                                        Se você deseja <strong>apenas</strong> abrir processo de <strong>Projeto Arquitetônico</strong> ou <strong>Análise de Rotulagem</strong> 
+                                        (sem licenciamento sanitário), marque a opção abaixo.
                                     </p>
                                 </div>
                             </div>
@@ -614,8 +632,8 @@
                                            @change="toggleAtividadesEspeciais()"
                                            class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                                     <div class="flex-1">
-                                        <span class="text-sm font-semibold text-indigo-900">Sim, desejo abrir apenas processos de Projeto e/ou Análise de Rotulagem</span>
-                                        <p class="text-xs text-indigo-600 mt-0.5">Isso desmarcará todas as atividades do CNPJ acima</p>
+                                        <span class="text-sm font-semibold text-indigo-900">Sim, desejo abrir apenas Projeto Arquitetônico e/ou Análise de Rotulagem</span>
+                                        <p class="text-xs text-indigo-600 mt-0.5">Não será necessário selecionar atividades econômicas</p>
                                     </div>
                                 </label>
                             </div>
@@ -1104,13 +1122,21 @@ function estabelecimentoFormCompany() {
 
         init() {
             // Watchers para verificar competência quando atividades mudarem
-            this.$watch('atividadesExercidas', () => {
+            this.$watch('atividadesExercidas', (value) => {
                 this.verificarCompetencia();
                 this.buscarQuestionarios();
+                // Se marcou alguma atividade, desmarcar automaticamente o modo de atividades especiais
+                if (value.length > 0) {
+                    this.desmarcarAtividadesEspeciais();
+                }
             });
-            this.$watch('atividadePrincipalMarcada', () => {
+            this.$watch('atividadePrincipalMarcada', (value) => {
                 this.verificarCompetencia();
                 this.buscarQuestionarios();
+                // Se marcou a atividade principal, desmarcar automaticamente o modo de atividades especiais
+                if (value) {
+                    this.desmarcarAtividadesEspeciais();
+                }
             });
             // Recalcula competência quando as respostas mudam
             this.$watch('respostasQuestionario', () => {
@@ -1362,6 +1388,16 @@ function estabelecimentoFormCompany() {
         },
 
         // Funções para Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem)
+        desmarcarAtividadesEspeciais() {
+            // Desmarca o modo de atividades especiais quando o usuário marca uma atividade do CNPJ
+            if (this.apenasAtividadesEspeciais || this.atividadeEspecialProjetoArq || this.atividadeEspecialRotulagem) {
+                this.apenasAtividadesEspeciais = false;
+                this.atividadeEspecialProjetoArq = false;
+                this.atividadeEspecialRotulagem = false;
+                console.log('🔄 Atividades especiais desmarcadas automaticamente (usuário selecionou atividade do CNPJ)');
+            }
+        },
+
         toggleAtividadesEspeciais() {
             if (this.apenasAtividadesEspeciais) {
                 // Desmarca todas as atividades do CNPJ
