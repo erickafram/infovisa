@@ -159,29 +159,6 @@
                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
-
-                <!-- Vínculo com Estabelecimento -->
-                <div>
-                    <label for="vinculo_estabelecimento" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Vínculo <span class="text-red-500">*</span>
-                    </label>
-                    <select 
-                        id="vinculo_estabelecimento" 
-                        name="vinculo_estabelecimento" 
-                        required
-                        class="w-full px-4 py-2.5 border-2 @error('vinculo_estabelecimento') border-red-300 @else border-gray-300 @enderror rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    >
-                        <option value="">Selecione...</option>
-                        @foreach($vinculos as $value => $label)
-                            <option value="{{ $value }}" {{ old('vinculo_estabelecimento') == $value ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('vinculo_estabelecimento')
-                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
             </div>
 
             <!-- Senha e Confirmar Senha (duas colunas) -->

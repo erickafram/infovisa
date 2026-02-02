@@ -31,7 +31,6 @@ class RegistroUsuarioExternoRequest extends FormRequest
             }],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:usuarios_externos,email'],
             'telefone' => ['required', 'string', 'min:14', 'max:15', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'],
-            'vinculo_estabelecimento' => ['required', Rule::enum(VinculoEstabelecimento::class)],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()],
             'aceite_termos' => ['required', 'accepted'],
         ];
@@ -101,8 +100,6 @@ class RegistroUsuarioExternoRequest extends FormRequest
             
             'telefone.required' => 'O telefone é obrigatório.',
             'telefone.regex' => 'O telefone deve estar no formato: (00) 00000-0000',
-            
-            'vinculo_estabelecimento.required' => 'Selecione o seu vínculo com o estabelecimento.',
             
             'password.required' => 'A senha é obrigatória.',
             'password.confirmed' => 'As senhas não conferem.',

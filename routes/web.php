@@ -84,7 +84,9 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     // Estabelecimentos - Responsáveis
     Route::get('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisIndex'])->name('estabelecimentos.responsaveis.index');
     Route::get('/estabelecimentos/{id}/responsaveis/create/{tipo?}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisCreate'])->name('estabelecimentos.responsaveis.create');
+    Route::get('/estabelecimentos/{id}/responsaveis/{responsavelId}/edit/{tipo?}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisEdit'])->name('estabelecimentos.responsaveis.edit');
     Route::post('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisStore'])->name('estabelecimentos.responsaveis.store');
+    Route::put('/estabelecimentos/{id}/responsaveis/{responsavelId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisUpdate'])->name('estabelecimentos.responsaveis.update');
     Route::delete('/estabelecimentos/{id}/responsaveis/{responsavelId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'responsaveisDestroy'])->name('estabelecimentos.responsaveis.destroy');
     
     // Estabelecimentos - Usuários Vinculados

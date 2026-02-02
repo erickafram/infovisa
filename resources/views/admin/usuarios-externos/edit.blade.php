@@ -104,20 +104,20 @@
                     {{-- Vínculo com Estabelecimento --}}
                     <div>
                         <label for="vinculo_estabelecimento" class="block text-sm font-medium text-gray-700 mb-1">
-                            Vínculo com Estabelecimento <span class="text-red-500">*</span>
+                            Vínculo com Estabelecimento
                         </label>
                         <select id="vinculo_estabelecimento" 
                                 name="vinculo_estabelecimento" 
-                                required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('vinculo_estabelecimento') border-red-500 @enderror">
-                            <option value="">Selecione um vínculo</option>
+                            <option value="">Não informado</option>
                             @foreach(\App\Enums\VinculoEstabelecimento::cases() as $vinculo)
                                 <option value="{{ $vinculo->value }}" 
-                                        {{ old('vinculo_estabelecimento', $usuarioExterno->vinculo_estabelecimento->value) == $vinculo->value ? 'selected' : '' }}>
+                                        {{ old('vinculo_estabelecimento', $usuarioExterno->vinculo_estabelecimento?->value) == $vinculo->value ? 'selected' : '' }}>
                                     {{ $vinculo->label() }}
                                 </option>
                             @endforeach
                         </select>
+                        <p class="text-xs text-gray-500 mt-1">O vínculo principal do usuário. Os vínculos específicos por estabelecimento são gerenciados no cadastro de cada estabelecimento.</p>
                         @error('vinculo_estabelecimento')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror

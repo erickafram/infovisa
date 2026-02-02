@@ -166,6 +166,7 @@ class EstabelecimentoController extends Controller
             'cep' => 'required|string',
             'telefone' => 'required|string',
             'email' => 'required|email|max:255',
+            'vinculo_usuario' => 'required|in:responsavel_legal,responsavel_tecnico,funcionario,contador',
             'natureza_juridica' => 'nullable|string',
             'porte' => 'nullable|string',
             'situacao_cadastral' => 'nullable|string',
@@ -347,6 +348,41 @@ class EstabelecimentoController extends Controller
 
         try {
             $estabelecimento = Estabelecimento::create($validated);
+
+            // Vincula o usuário criador ao estabelecimento na tabela pivot
+            $vinculoUsuario = $request->input('vinculo_usuario');
+            if ($vinculoUsuario) {
+                $estabelecimento->usuariosVinculados()->attach(auth('externo')->id(), [
+                    'tipo_vinculo' => $vinculoUsuario,
+                    'observacao' => 'Vínculo informado no cadastro do estabelecimento',
+                    'vinculado_por' => null,
+                ]);
+                
+                // Se for responsável legal ou técnico, cria também na tabela de responsáveis
+                if (in_array($vinculoUsuario, ['responsavel_legal', 'responsavel_tecnico'])) {
+                    $usuarioExterno = auth('externo')->user();
+                    $tipoVinculo = $vinculoUsuario === 'responsavel_legal' ? 'legal' : 'tecnico';
+                    
+                    // Busca ou cria o responsável com base no CPF do usuário
+                    $responsavel = \App\Models\Responsavel::where('cpf', $usuarioExterno->cpf)->first();
+                    
+                    if (!$responsavel) {
+                        $responsavel = \App\Models\Responsavel::create([
+                            'cpf' => $usuarioExterno->cpf,
+                            'tipo' => $tipoVinculo,
+                            'nome' => $usuarioExterno->nome,
+                            'email' => $usuarioExterno->email,
+                            'telefone' => $usuarioExterno->telefone,
+                        ]);
+                    }
+                    
+                    // Vincula o responsável ao estabelecimento (documentos serão adicionados depois)
+                    $estabelecimento->responsaveis()->attach($responsavel->id, [
+                        'tipo_vinculo' => $tipoVinculo,
+                        'ativo' => true
+                    ]);
+                }
+            }
 
             return redirect()->route('company.estabelecimentos.show', $estabelecimento->id)
                 ->with('success', 'Estabelecimento cadastrado com sucesso! Aguarde a aprovação da Vigilância Sanitária.');
@@ -608,6 +644,116 @@ class EstabelecimentoController extends Controller
     }
 
     /**
+     * Formulário de edição de responsável
+     */
+    public function responsaveisEdit($id, $responsavelId, $tipo = 'legal')
+    {
+        $estabelecimento = $this->estabelecimentosDoUsuario()
+            ->where('status', 'aprovado')
+            ->findOrFail($id);
+        
+        $responsavel = \App\Models\Responsavel::findOrFail($responsavelId);
+        
+        // Verifica se o responsável está vinculado ao estabelecimento
+        if (!$estabelecimento->responsaveis()->where('responsavel_id', $responsavelId)->exists()) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', 'Responsável não encontrado para este estabelecimento.');
+        }
+        
+        return view('company.estabelecimentos.responsaveis.edit', compact('estabelecimento', 'responsavel', 'tipo'));
+    }
+
+    /**
+     * Atualiza responsável (principalmente para completar documentos)
+     */
+    public function responsaveisUpdate(Request $request, $id, $responsavelId)
+    {
+        $estabelecimento = $this->estabelecimentosDoUsuario()
+            ->where('status', 'aprovado')
+            ->findOrFail($id);
+        
+        $responsavel = \App\Models\Responsavel::findOrFail($responsavelId);
+        
+        // Verifica se o responsável está vinculado ao estabelecimento
+        if (!$estabelecimento->responsaveis()->where('responsavel_id', $responsavelId)->exists()) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', 'Responsável não encontrado para este estabelecimento.');
+        }
+        
+        // Guarda se o documento estava pendente antes da atualização
+        $tipo = $request->input('tipo_vinculo', 'legal');
+        $documentoEstaPendente = ($tipo === 'legal' && empty($responsavel->documento_identificacao)) ||
+                                  ($tipo === 'tecnico' && empty($responsavel->carteirinha_conselho));
+        
+        $rules = [
+            'nome' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'telefone' => 'nullable|string|max:20',
+        ];
+
+        // Campos específicos para responsável técnico
+        if ($tipo === 'tecnico') {
+            $rules['conselho'] = 'required|string|max:100';
+            $rules['numero_registro'] = 'required|string|max:50';
+            $rules['carteirinha_conselho'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        } else {
+            $rules['documento_identificacao'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Limpa formatação
+        if (isset($validated['telefone'])) {
+            $validated['telefone'] = preg_replace('/\D/', '', $validated['telefone']);
+        }
+
+        // Upload de arquivos
+        $documentoFoiEnviado = false;
+        if ($request->hasFile('carteirinha_conselho')) {
+            $carteirinhaPath = $request->file('carteirinha_conselho')->store('responsaveis/carteirinhas', 'public');
+            $validated['carteirinha_conselho'] = $carteirinhaPath;
+            $documentoFoiEnviado = true;
+        }
+        
+        if ($request->hasFile('documento_identificacao')) {
+            $documentoPath = $request->file('documento_identificacao')->store('responsaveis/documentos', 'public');
+            $validated['documento_identificacao'] = $documentoPath;
+            $documentoFoiEnviado = true;
+        }
+
+        // Atualiza dados do responsável
+        $updateData = [
+            'nome' => $validated['nome'],
+            'email' => $validated['email'] ?? null,
+            'telefone' => $validated['telefone'] ?? null,
+        ];
+        
+        if (isset($validated['conselho'])) {
+            $updateData['conselho'] = $validated['conselho'];
+        }
+        if (isset($validated['numero_registro'])) {
+            $updateData['numero_registro_conselho'] = $validated['numero_registro'];
+        }
+        if (isset($validated['carteirinha_conselho'])) {
+            $updateData['carteirinha_conselho'] = $validated['carteirinha_conselho'];
+        }
+        if (isset($validated['documento_identificacao'])) {
+            $updateData['documento_identificacao'] = $validated['documento_identificacao'];
+        }
+        
+        $responsavel->update($updateData);
+
+        // Se o documento estava pendente e foi enviado agora, redireciona para criação de processo
+        if ($documentoEstaPendente && $documentoFoiEnviado && $tipo === 'legal') {
+            return redirect()->route('company.estabelecimentos.processos.create', $estabelecimento->id)
+                ->with('success', 'Documento do Responsável Legal cadastrado com sucesso! Agora você pode abrir um processo.');
+        }
+
+        return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+            ->with('success', 'Responsável atualizado com sucesso!');
+    }
+
+    /**
      * Lista de usuários vinculados ao estabelecimento
      */
     public function usuariosIndex($id)
@@ -709,6 +855,19 @@ class EstabelecimentoController extends Controller
         if ($estabelecimento->responsaveisLegais->isEmpty()) {
             return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
                 ->with('error', 'Para abrir um processo, é obrigatório ter pelo menos um Responsável Legal cadastrado. Por favor, cadastre o responsável legal primeiro.');
+        }
+
+        // Verifica se o responsável legal tem documento de identificação cadastrado
+        $responsavelLegalSemDocumento = $estabelecimento->responsaveisLegais->first(function ($responsavel) {
+            return empty($responsavel->documento_identificacao);
+        });
+        
+        if ($responsavelLegalSemDocumento) {
+            return redirect()->route('company.estabelecimentos.responsaveis.edit', [
+                $estabelecimento->id, 
+                $responsavelLegalSemDocumento->id, 
+                'legal'
+            ])->with('error', 'Para abrir um processo, é obrigatório que o Responsável Legal tenha o documento de identificação cadastrado. Por favor, faça o upload do documento.');
         }
 
         // ========================================
@@ -1073,7 +1232,26 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
+            ->with(['responsaveisLegais'])
             ->findOrFail($id);
+
+        // Verifica se tem responsável legal com documento
+        if ($estabelecimento->responsaveisLegais->isEmpty()) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', 'Para abrir um processo, é obrigatório ter pelo menos um Responsável Legal cadastrado.');
+        }
+
+        $responsavelLegalSemDocumento = $estabelecimento->responsaveisLegais->first(function ($responsavel) {
+            return empty($responsavel->documento_identificacao);
+        });
+        
+        if ($responsavelLegalSemDocumento) {
+            return redirect()->route('company.estabelecimentos.responsaveis.edit', [
+                $estabelecimento->id, 
+                $responsavelLegalSemDocumento->id, 
+                'legal'
+            ])->with('error', 'Para abrir um processo, é obrigatório que o Responsável Legal tenha o documento de identificação cadastrado.');
+        }
 
         $validated = $request->validate([
             'tipo_processo_id' => 'required|exists:tipo_processos,id',

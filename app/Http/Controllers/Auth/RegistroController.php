@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enums\VinculoEstabelecimento;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegistroUsuarioExternoRequest;
 use App\Models\UsuarioExterno;
@@ -19,9 +18,7 @@ class RegistroController extends Controller
         // Cadastro habilitado para todos os CPFs
         $cpfFornecido = $request->query('cpf');
         
-        $vinculos = VinculoEstabelecimento::toArray();
-        
-        return view('auth.registro', compact('vinculos', 'cpfFornecido'));
+        return view('auth.registro', compact('cpfFornecido'));
     }
 
     /**

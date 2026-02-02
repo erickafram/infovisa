@@ -932,6 +932,24 @@
                         </div>
                     </div>
 
+                    {{-- Vínculo com Estabelecimento --}}
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Seu vínculo com este estabelecimento <span class="text-red-500">*</span>
+                        </label>
+                        <select name="vinculo_usuario" x-model="dados.vinculo_usuario" required
+                                class="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Selecione seu vínculo...</option>
+                            <option value="responsavel_legal">Responsável Legal</option>
+                            <option value="responsavel_tecnico">Responsável Técnico</option>
+                            <option value="funcionario">Funcionário</option>
+                            <option value="contador">Contador</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Informe qual é a sua relação com este estabelecimento
+                        </p>
+                    </div>
+
                     {{-- Resumo --}}
                     <div class="bg-gray-50 rounded-lg p-4 mb-6">
                         <h4 class="text-sm font-semibold text-gray-900 mb-3">Resumo do Cadastro</h4>
@@ -1117,7 +1135,8 @@ function estabelecimentoFormCompany() {
             codigo_municipio_ibge: '',
             telefone: '',
             email: '',
-            tipo_setor: 'privado'
+            tipo_setor: 'privado',
+            vinculo_usuario: ''
         },
 
         init() {
@@ -1639,6 +1658,9 @@ function estabelecimentoFormCompany() {
             let erros = [];
             
             // Validar aba de contato
+            if (!this.dados.vinculo_usuario) {
+                erros.push('Selecione o seu vínculo com o estabelecimento');
+            }
             if (!this.dados.telefone) {
                 erros.push('Telefone é obrigatório');
             }

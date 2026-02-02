@@ -160,6 +160,17 @@
                     <input type="text" id="telefone" name="telefone" value="{{ old('telefone') }}" placeholder="(00) 00000-0000" maxlength="15" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Seu vínculo com o estabelecimento <span class="text-red-500">*</span></label>
+                    <select name="vinculo_usuario" id="vinculo_usuario" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="">Selecione...</option>
+                        <option value="responsavel_legal" {{ old('vinculo_usuario') == 'responsavel_legal' ? 'selected' : '' }}>Responsável Legal</option>
+                        <option value="responsavel_tecnico" {{ old('vinculo_usuario') == 'responsavel_tecnico' ? 'selected' : '' }}>Responsável Técnico</option>
+                        <option value="funcionario" {{ old('vinculo_usuario') == 'funcionario' ? 'selected' : '' }}>Funcionário</option>
+                        <option value="contador" {{ old('vinculo_usuario') == 'contador' ? 'selected' : '' }}>Contador</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Qual é a sua relação com este estabelecimento?</p>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Início de Funcionamento <span class="text-red-500">*</span></label>
                     <input type="date" name="data_inicio_atividade" value="{{ old('data_inicio_atividade') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                 </div>
@@ -542,6 +553,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Validação do formulário antes de enviar
     document.getElementById('formPessoaFisica').addEventListener('submit', function(e) {
+        // Verifica se o vínculo foi selecionado
+        const vinculo = document.getElementById('vinculo_usuario').value;
+        if (!vinculo) {
+            e.preventDefault();
+            mostrarModalErro('Selecione o seu vínculo com o estabelecimento.');
+            document.getElementById('vinculo_usuario').focus();
+            return false;
+        }
+        
         // Verifica se há pelo menos um CNAE adicionado
         if (cnaes.length === 0) {
             e.preventDefault();

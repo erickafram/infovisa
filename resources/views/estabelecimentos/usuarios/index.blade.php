@@ -107,12 +107,10 @@
                     <select id="tipo_vinculo" name="tipo_vinculo" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Selecione</option>
-                        <option value="proprietario">Proprietário</option>
                         <option value="responsavel_legal">Responsável Legal</option>
                         <option value="responsavel_tecnico">Responsável Técnico</option>
+                        <option value="funcionario">Funcionário</option>
                         <option value="contador">Contador</option>
-                        <option value="procurador">Procurador</option>
-                        <option value="outro">Outro</option>
                     </select>
                     @error('tipo_vinculo')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -261,12 +259,10 @@
                                     <p class="font-medium text-gray-900">
                                         @php
                                             $tipos = [
-                                                'proprietario' => 'Proprietário',
                                                 'responsavel_legal' => 'Responsável Legal',
                                                 'responsavel_tecnico' => 'Responsável Técnico',
-                                                'contador' => 'Contador',
-                                                'procurador' => 'Procurador',
-                                                'outro' => 'Outro'
+                                                'funcionario' => 'Funcionário',
+                                                'contador' => 'Contador'
                                             ];
                                         @endphp
                                         <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
@@ -334,12 +330,10 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Vínculo *</label>
                                     <select name="tipo_vinculo" required
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="proprietario" {{ $usuario->pivot->tipo_vinculo === 'proprietario' ? 'selected' : '' }}>Proprietário</option>
                                         <option value="responsavel_legal" {{ $usuario->pivot->tipo_vinculo === 'responsavel_legal' ? 'selected' : '' }}>Responsável Legal</option>
                                         <option value="responsavel_tecnico" {{ $usuario->pivot->tipo_vinculo === 'responsavel_tecnico' ? 'selected' : '' }}>Responsável Técnico</option>
+                                        <option value="funcionario" {{ $usuario->pivot->tipo_vinculo === 'funcionario' ? 'selected' : '' }}>Funcionário</option>
                                         <option value="contador" {{ $usuario->pivot->tipo_vinculo === 'contador' ? 'selected' : '' }}>Contador</option>
-                                        <option value="procurador" {{ $usuario->pivot->tipo_vinculo === 'procurador' ? 'selected' : '' }}>Procurador</option>
-                                        <option value="outro" {{ $usuario->pivot->tipo_vinculo === 'outro' ? 'selected' : '' }}>Outro</option>
                                     </select>
                                 </div>
                                 <div class="mb-4">

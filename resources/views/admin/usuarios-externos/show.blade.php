@@ -58,9 +58,13 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Vínculo</label>
-                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {{ $usuarioExterno->vinculo_estabelecimento->label() }}
-                        </span>
+                        @if($usuarioExterno->vinculo_estabelecimento)
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                {{ $usuarioExterno->vinculo_estabelecimento->label() }}
+                            </span>
+                        @else
+                            <span class="text-gray-500 text-sm">-</span>
+                        @endif
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Status</label>

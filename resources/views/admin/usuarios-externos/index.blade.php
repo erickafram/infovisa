@@ -135,9 +135,13 @@
                             <td class="px-4 py-3 text-sm text-gray-700">{{ $usuario->email }}</td>
                             <td class="px-4 py-3 text-sm text-gray-700">{{ $usuario->telefone_formatado ?? '-' }}</td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                    {{ $usuario->vinculo_estabelecimento->label() }}
-                                </span>
+                                @if($usuario->vinculo_estabelecimento)
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                        {{ $usuario->vinculo_estabelecimento->label() }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400 text-sm">-</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 @if($usuario->aceitouTermos())

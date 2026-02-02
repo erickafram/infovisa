@@ -45,6 +45,30 @@
     </div>
     @endif
 
+    {{-- Alerta de documento pendente para abertura de processos --}}
+    @php
+        $responsavelLegalSemDocumento = $estabelecimento->responsaveisLegais->first(function ($r) {
+            return empty($r->documento_identificacao);
+        });
+    @endphp
+    @if($responsavelLegalSemDocumento)
+    <div class="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-amber-800">Documento pendente para abertura de processos</p>
+                <p class="text-sm text-amber-700 mt-1">
+                    O responsável legal <strong>{{ $responsavelLegalSemDocumento->nome }}</strong> precisa ter o documento de identificação cadastrado para que você possa abrir processos.
+                    <a href="{{ route('company.estabelecimentos.responsaveis.edit', [$estabelecimento->id, $responsavelLegalSemDocumento->id, 'legal']) }}" 
+                       class="font-semibold underline hover:text-amber-900">Clique aqui para completar</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- Responsáveis Legais --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -84,12 +108,13 @@
                                         Documento cadastrado
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2">
+                                    <a href="{{ route('company.estabelecimentos.responsaveis.edit', [$estabelecimento->id, $responsavel->id, 'legal']) }}" 
+                                       class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2 hover:text-yellow-800">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                         </svg>
-                                        Documento pendente
-                                    </span>
+                                        Documento pendente - Clique para completar
+                                    </a>
                                 @endif
                             </div>
                             <form method="POST" action="{{ route('company.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 
@@ -157,12 +182,13 @@
                                         Carteirinha cadastrada
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2">
+                                    <a href="{{ route('company.estabelecimentos.responsaveis.edit', [$estabelecimento->id, $responsavel->id, 'tecnico']) }}" 
+                                       class="inline-flex items-center gap-1 text-sm text-yellow-600 mt-2 hover:text-yellow-800">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                         </svg>
-                                        Carteirinha pendente
-                                    </span>
+                                        Carteirinha pendente - Clique para completar
+                                    </a>
                                 @endif
                             </div>
                             <form method="POST" action="{{ route('company.estabelecimentos.responsaveis.destroy', [$estabelecimento->id, $responsavel->id]) }}" 

@@ -84,7 +84,7 @@ class UsuarioExternoController extends Controller
             'cpf' => 'required|string|size:11|unique:usuarios_externos,cpf',
             'email' => 'required|email|unique:usuarios_externos,email',
             'telefone' => 'nullable|string|max:20',
-            'vinculo_estabelecimento' => 'required|string',
+            'vinculo_estabelecimento' => 'nullable|string',
             'password' => 'required|string|min:8|confirmed',
             'ativo' => 'boolean',
         ]);
@@ -129,7 +129,7 @@ class UsuarioExternoController extends Controller
             'cpf' => 'required|string|size:11|unique:usuarios_externos,cpf,' . $usuarioExterno->id,
             'email' => 'required|email|unique:usuarios_externos,email,' . $usuarioExterno->id,
             'telefone' => 'nullable|string|max:20',
-            'vinculo_estabelecimento' => 'required|string',
+            'vinculo_estabelecimento' => 'nullable|string',
             'password' => 'nullable|string|min:8|confirmed',
             'ativo' => 'boolean',
         ]);
