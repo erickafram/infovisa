@@ -757,6 +757,9 @@ class Estabelecimento extends Model
     {
         $atividades = [];
         
+        // Códigos especiais que não são CNAEs numéricos (Tabela VI - Atividades de Processo)
+        $codigosEspeciais = ['PROJ_ARQ', 'ANAL_ROT'];
+        
         // Retorna APENAS as atividades exercidas (marcadas pelo estabelecimento)
         if ($this->atividades_exercidas && is_array($this->atividades_exercidas)) {
             foreach ($this->atividades_exercidas as $atividade) {
@@ -771,8 +774,12 @@ class Estabelecimento extends Model
                     $codigo = $atividade;
                 }
                 
-                // Normaliza o código removendo formatação (pontos, traços, etc)
-                if ($codigo) {
+                // Verifica se é um código especial (PROJ_ARQ, ANAL_ROT)
+                if ($codigo && in_array($codigo, $codigosEspeciais)) {
+                    $atividades[] = $codigo;
+                }
+                // Normaliza o código CNAE removendo formatação (pontos, traços, etc)
+                elseif ($codigo) {
                     $codigo = preg_replace('/[^0-9]/', '', $codigo);
                     if (!empty($codigo)) {
                         $atividades[] = $codigo;
