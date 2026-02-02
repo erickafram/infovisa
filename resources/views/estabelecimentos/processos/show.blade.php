@@ -1239,7 +1239,7 @@
                                             {{-- Info --}}
                                             <div class="flex-1 min-w-0">
                                                 {{-- Linha 1: Nome --}}
-                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $documento->nome_original }}</p>
+                                                <p class="text-sm font-semibold text-gray-900 break-words">{{ $documento->nome_original }}</p>
                                                 
                                                 {{-- Linha 2: Meta info --}}
                                                 <div class="flex items-center gap-2 mt-1.5 text-sm text-gray-600">

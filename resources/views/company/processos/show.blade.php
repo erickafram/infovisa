@@ -437,17 +437,17 @@
                 </div>
                 <div class="divide-y divide-yellow-200">
                     @foreach($documentosPendentes as $documento)
-                    <div class="px-4 py-3 flex items-center justify-between hover:bg-yellow-100/50">
+                    <div class="px-4 py-3 flex items-start justify-between hover:bg-yellow-100/50 gap-3">
                         <button type="button" 
                                 @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
-                                class="flex items-center gap-3 text-left flex-1">
-                            <span class="text-xl">{{ $documento->icone }}</span>
-                            <div>
-                                <p class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $documento->nome_original }}</p>
+                                class="flex items-start gap-3 text-left flex-1 min-w-0">
+                            <span class="text-xl flex-shrink-0">{{ $documento->icone }}</span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 hover:text-blue-600 break-words">{{ $documento->nome_original }}</p>
                                 <p class="text-xs text-gray-500">{{ $documento->tamanho_formatado }} • {{ $documento->created_at->format('d/m/Y H:i') }}</p>
                             </div>
                         </button>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-shrink-0">
                             <span class="px-2 py-1 bg-yellow-200 text-yellow-800 text-xs font-medium rounded">Pendente</span>
                             @if($documento->usuario_externo_id == auth('externo')->id())
                             <form action="{{ route('company.processos.documento.delete', [$processo->id, $documento->id]) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este arquivo?')">
@@ -482,19 +482,19 @@
                 <div class="divide-y divide-red-200">
                     @foreach($documentosRejeitados as $documento)
                     <div class="px-4 py-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">{{ $documento->icone }}</span>
-                                <div>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-3 min-w-0 flex-1">
+                                <span class="text-xl flex-shrink-0">{{ $documento->icone }}</span>
+                                <div class="min-w-0">
                                     <button type="button"
                                             @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
-                                            class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left">
+                                            class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left break-words">
                                         {{ $documento->nome_original }}
                                     </button>
                                     <p class="text-xs text-gray-500">{{ $documento->tamanho_formatado }} • {{ $documento->created_at->format('d/m/Y H:i') }}</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-shrink-0">
                                 <span class="px-2 py-1 bg-red-200 text-red-800 text-xs font-medium rounded">Rejeitado</span>
                                 @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
                                 <button @click="docReenvioId = {{ $documento->id }}; docReenvioNome = '{{ addslashes($documento->nome_original) }}'; docReenvioMotivo = '{{ addslashes($documento->motivo_rejeicao ?? '') }}'; modalReenvio = true" 
@@ -845,30 +845,32 @@
                                 }
                             @endphp
                             <div x-show="pastaAtiva === null || pastaAtiva === {{ $item['pasta_id'] ?? 'null' }}"
-                                 class="px-4 py-3 flex items-center justify-between hover:bg-gray-50 border-l-4 {{ $corBordaArquivo }}">
+                                 class="px-4 py-3 flex items-start justify-between hover:bg-gray-50 border-l-4 {{ $corBordaArquivo }} gap-3">
                                 <button type="button" 
                                         @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
-                                        class="flex items-center gap-3 text-left flex-1">
-                                    <span class="text-xl">{{ $documento->icone }}</span>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $documento->nome_original }}</p>
+                                        class="flex items-start gap-3 text-left flex-1 min-w-0">
+                                    <span class="text-xl flex-shrink-0">{{ $documento->icone }}</span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 hover:text-blue-600 break-words">{{ $documento->nome_original }}</p>
                                         <p class="text-xs text-gray-500">
                                             {{ $documento->tamanho_formatado }} • {{ $documento->created_at->format('d/m/Y H:i') }}
                                             @if($documento->tipo_usuario === 'externo')
-                                            <span class="text-green-600 font-medium">• Enviado por você</span>
+                                            <span class="text-green-600 font-medium">• Usuário Externo</span>
                                             @else
                                             <span class="text-blue-600 font-medium">• Vigilância Sanitária</span>
                                             @endif
                                         </p>
                                     </div>
                                 </button>
-                                <a href="{{ route('company.processos.download', [$processo->id, $documento->id]) }}" 
-                                   class="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    Download
-                                </a>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <a href="{{ route('company.processos.download', [$processo->id, $documento->id]) }}" 
+                                       class="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                </div>
                             </div>
                         @endif
                     @endforeach
