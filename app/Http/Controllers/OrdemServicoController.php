@@ -1111,7 +1111,7 @@ class OrdemServicoController extends Controller
     /**
      * Buscar processos ativos de um estabelecimento
      */
-    public function getProcessosEstabelecimento($estabelecimentoId)
+    public function getProcessosEstabelecimento($estabelecimentoId, Request $request = null)
     {
         try {
             $statusLabels = [
@@ -1123,8 +1123,18 @@ class OrdemServicoController extends Controller
                 'arquivado' => 'Arquivado',
             ];
 
+            // Pega o processo atual da OS (se estiver editando)
+            $processoAtualId = request()->query('processo_atual_id');
+
             $processos = \App\Models\Processo::where('estabelecimento_id', $estabelecimentoId)
-                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->where(function($query) use ($processoAtualId) {
+                    // Busca processos ativos OU o processo atual da OS
+                    $query->whereIn('status', ['aberto', 'em_analise', 'pendente']);
+                    
+                    if ($processoAtualId) {
+                        $query->orWhere('id', $processoAtualId);
+                    }
+                })
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function($processo) use ($statusLabels) {

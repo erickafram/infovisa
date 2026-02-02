@@ -1043,7 +1043,13 @@
             processoSelect.disabled = true;
 
             try {
-                const response = await fetch(`${window.APP_URL}/admin/ordens-servico/estabelecimento/${estabelecimentoId}/processos`);
+                // Passa o processo atual como parâmetro para garantir que ele apareça na lista
+                let url = `${window.APP_URL}/admin/ordens-servico/estabelecimento/${estabelecimentoId}/processos`;
+                if (processoAtualId) {
+                    url += `?processo_atual_id=${processoAtualId}`;
+                }
+                
+                const response = await fetch(url);
                 const data = await response.json();
 
                 // Limpa select
