@@ -2482,6 +2482,26 @@
                         @csrf
                         <div class="px-6 py-4">
                             <p class="text-sm text-gray-600 mb-4">Informe o motivo da rejeição do documento. O usuário externo será notificado.</p>
+                            
+                            {{-- Dropdown de textos predefinidos --}}
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Texto Predefinido</label>
+                                <select @change="if($event.target.value !== 'personalizado') { motivoRejeicao = $event.target.value }"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="personalizado">Personalizado (digite abaixo)</option>
+                                    <option value="Conforme o art. 4º, inciso II, alínea &quot;d&quot;, da Portaria nº 1153/2025/SES/GASEC, a taxa de licença sanitária é cumulativa para todas as atividades sujeitas ao controle sanitário constantes no CNPJ, independentemente de serem exercidas ou não.
+
+Verificou-se pagamento de DARE referente a apenas uma atividade. É obrigatória a emissão e o pagamento de DARE para todas as atividades de interesse à saúde constantes no CNPJ.
+
+Todos os boletos do DARE deverão ser enviados em um único arquivo.">Boleto DARE</option>
+                                    <option value="Conforme o art. 4º, inciso II, alínea &quot;d&quot;, da Portaria nº 1153/2025/SES/GASEC, a taxa de licença sanitária é cumulativa para todas as atividades sujeitas ao controle sanitário constantes no CNPJ, independentemente de serem exercidas ou não.
+
+Verificou-se comprovante de pagamento referente a apenas uma atividade. É obrigatório o pagamento do DARE para todas as atividades de interesse à saúde constantes no CNPJ.
+
+Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo.">Comprovante de Pagamento DARE</option>
+                                </select>
+                            </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Motivo da Rejeição *</label>
                                 <textarea name="motivo_rejeicao" x-model="motivoRejeicao" rows="4" required
