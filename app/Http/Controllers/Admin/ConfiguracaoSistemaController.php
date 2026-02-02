@@ -58,45 +58,68 @@ class ConfiguracaoSistemaController extends Controller
             'ia_api_url.url' => 'A URL da API deve ser válida',
         ]);
         
-        // Atualiza configurações da IA
-        // Checkbox desmarcado não envia valor, então sempre atualiza
-        ConfiguracaoSistema::updateOrCreate(
-            ['chave' => 'ia_ativa'],
-            ['valor' => $request->has('ia_ativa') ? 'true' : 'false']
-        );
+        // Identifica qual formulário foi submetido baseado nos campos presentes
+        $isFormularioIA = $request->has('_form_ia') || 
+                          $request->filled('ia_api_key') || 
+                          $request->filled('ia_api_url') || 
+                          $request->filled('ia_model');
         
-        if ($request->filled('ia_api_key')) {
-            ConfiguracaoSistema::where('chave', 'ia_api_key')
-                ->update(['valor' => $request->ia_api_key]);
+        $isFormularioChat = $request->has('_form_chat');
+        
+        $isFormularioLogomarca = $request->hasFile('logomarca_estadual') || 
+                                  $request->has('remover_logomarca_estadual');
+        
+        // Atualiza configurações da IA apenas se for o formulário de IA
+        if ($isFormularioIA) {
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_ativa'],
+                ['valor' => $request->has('ia_ativa') ? 'true' : 'false']
+            );
+            
+            if ($request->filled('ia_api_key')) {
+                ConfiguracaoSistema::where('chave', 'ia_api_key')
+                    ->update(['valor' => $request->ia_api_key]);
+            }
+            
+            if ($request->filled('ia_api_url')) {
+                ConfiguracaoSistema::where('chave', 'ia_api_url')
+                    ->update(['valor' => $request->ia_api_url]);
+            }
+            
+            if ($request->filled('ia_model')) {
+                ConfiguracaoSistema::where('chave', 'ia_model')
+                    ->update(['valor' => $request->ia_model]);
+            }
+            
+            // Busca na web
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_busca_web'],
+                ['valor' => $request->has('ia_busca_web') ? 'true' : 'false']
+            );
+            
+            return redirect()
+                ->route('admin.configuracoes.sistema.index')
+                ->with('success', 'Configurações do Assistente de IA atualizadas com sucesso!');
         }
         
-        if ($request->filled('ia_api_url')) {
-            ConfiguracaoSistema::where('chave', 'ia_api_url')
-                ->update(['valor' => $request->ia_api_url]);
+        // Atualiza configurações do Chat Interno apenas se for o formulário de Chat
+        if ($isFormularioChat) {
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'chat_interno_ativo'],
+                ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
+            );
+            
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'assistente_redacao_ativo'],
+                ['valor' => $request->has('assistente_redacao_ativo') ? 'true' : 'false']
+            );
+            
+            return redirect()
+                ->route('admin.configuracoes.sistema.index')
+                ->with('success', 'Configurações do Chat Interno atualizadas com sucesso!');
         }
         
-        if ($request->filled('ia_model')) {
-            ConfiguracaoSistema::where('chave', 'ia_model')
-                ->update(['valor' => $request->ia_model]);
-        }
-        
-        // Busca na web
-        ConfiguracaoSistema::where('chave', 'ia_busca_web')
-            ->update(['valor' => $request->has('ia_busca_web') ? 'true' : 'false']);
-        
-        // Atualiza configuração do Chat Interno
-        ConfiguracaoSistema::updateOrCreate(
-            ['chave' => 'chat_interno_ativo'],
-            ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
-        );
-        
-        // Atualiza configuração do Assistente de Redação
-        ConfiguracaoSistema::updateOrCreate(
-            ['chave' => 'assistente_redacao_ativo'],
-            ['valor' => $request->has('assistente_redacao_ativo') ? 'true' : 'false']
-        );
-        
-        // Verifica se foi apenas atualização de IA (sem logomarca)
+        // Verifica se foi apenas atualização de IA (sem logomarca) - fallback para compatibilidade
         $atualizouIA = $request->has('ia_ativa') || 
                        $request->filled('ia_api_key') || 
                        $request->filled('ia_api_url') || 

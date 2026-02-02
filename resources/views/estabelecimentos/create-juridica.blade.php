@@ -1836,6 +1836,7 @@ function estabelecimentoForm() {
             if (cnaes.length === 0) {
                 this.questionarios = [];
                 this.respostasQuestionario = {};
+                this.respostasQuestionario2 = {};
                 return;
             }
             
@@ -1858,6 +1859,11 @@ function estabelecimentoForm() {
                     Object.keys(this.respostasQuestionario).forEach(cnae => {
                         if (!cnaesComQuestionario.includes(cnae)) {
                             delete this.respostasQuestionario[cnae];
+                        }
+                    });
+                    Object.keys(this.respostasQuestionario2).forEach(cnae => {
+                        if (!cnaesComQuestionario.includes(cnae)) {
+                            delete this.respostasQuestionario2[cnae];
                         }
                     });
                     

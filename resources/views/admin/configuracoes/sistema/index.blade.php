@@ -170,6 +170,7 @@
             <form action="{{ route('admin.configuracoes.sistema.update') }}" method="POST">
                 @csrf
                 @method('PUT')
+                <input type="hidden" name="_form_ia" value="1">
 
                 <div class="space-y-6">
                     {{-- Ativar/Desativar IA --}}
@@ -304,6 +305,7 @@
             <form action="{{ route('admin.configuracoes.sistema.update') }}" method="POST">
                 @csrf
                 @method('PUT')
+                <input type="hidden" name="_form_chat" value="1">
 
                 <div class="space-y-6">
                     {{-- Ativar/Desativar Chat Interno --}}
