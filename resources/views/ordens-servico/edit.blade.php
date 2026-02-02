@@ -379,50 +379,104 @@
     <div id="modal-tecnicos-atividade-edit" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="fecharModalTecnicosAtividadeEdit()"></div>
-            <div class="relative bg-white rounded-xl shadow-xl transform transition-all sm:max-w-2xl sm:w-full mx-auto">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900" id="modal-atividade-titulo-edit">Atribuir Técnicos</h3>
-                    <button type="button" onclick="fecharModalTecnicosAtividadeEdit()" class="text-gray-400 hover:text-gray-600">
+            <div class="relative bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-2xl sm:w-full mx-auto overflow-hidden">
+                {{-- Header com Gradient --}}
+                <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-green-600 to-green-700 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-white" id="modal-atividade-titulo-edit">Atribuir Técnicos</h3>
+                    </div>
+                    <button type="button" onclick="fecharModalTecnicosAtividadeEdit()" class="text-white/70 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
                 
-                <div class="px-6 py-4">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Técnico Responsável <span class="text-red-500">*</span>
-                        </label>
-                        <select id="responsavel-select-edit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Selecione o responsável...</option>
-                            @foreach($tecnicos as $tecnico)
-                            <option value="{{ $tecnico->id }}">{{ $tecnico->nome }}</option>
-                            @endforeach
-                        </select>
+                <div class="px-6 py-5">
+                    {{-- Instrução com Ícone --}}
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 mb-5">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="text-sm text-green-800">
+                                <p class="font-semibold mb-1">Como funciona:</p>
+                                <p>Marque os técnicos que participarão desta atividade. O primeiro marcado será automaticamente definido como responsável.</p>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Técnicos Adicionais <span class="text-gray-500">(Opcional)</span>
+                    {{-- Lista de Técnicos com Checkboxes --}}
+                    <div class="mb-5">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                            </svg>
+                            Selecione os Técnicos <span class="text-red-500">*</span>
                         </label>
-                        <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                        
+                        {{-- Campo de Busca --}}
+                        <div class="relative mb-3">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <input type="text" id="busca-tecnicos-edit" 
+                                   placeholder="Buscar técnico por nome..." 
+                                   class="w-full pl-10 pr-4 py-2.5 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+                                   oninput="filtrarTecnicosEdit(this.value)">
+                        </div>
+                        
+                        <div id="lista-tecnicos-container-edit" class="max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gradient-to-b from-gray-50 to-white">
                             @foreach($tecnicos as $tecnico)
-                            <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
-                                <input type="checkbox" class="tecnico-adicional-checkbox-edit rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                                       value="{{ $tecnico->id }}" data-nome="{{ $tecnico->nome }}">
-                                <span class="ml-3 text-sm text-gray-700">{{ $tecnico->nome }}</span>
+                            <label class="flex items-center p-4 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0 tecnico-item-label-edit transition-colors group" data-tecnico-id="{{ $tecnico->id }}" data-tecnico-nome="{{ strtolower($tecnico->nome) }}">
+                                <input type="checkbox" class="tecnico-checkbox-edit rounded border-gray-300 text-green-600 focus:ring-green-500 w-5 h-5" 
+                                       value="{{ $tecnico->id }}" data-nome="{{ $tecnico->nome }}"
+                                       onchange="atualizarResponsavelAutomaticoEdit()">
+                                <span class="ml-3 text-sm text-gray-700 group-hover:text-green-700 transition-colors flex-1 font-medium">{{ $tecnico->nome }}</span>
+                                <span class="responsavel-badge-edit hidden ml-2 px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></path></svg>
+                                    Responsável
+                                </span>
                             </label>
                             @endforeach
                         </div>
+                        <p id="nenhum-tecnico-encontrado-edit" class="hidden text-sm text-gray-500 text-center py-4">Nenhum técnico encontrado.</p>
+                    </div>
+                    
+                    {{-- Seleção do Responsável (aparece quando há mais de 1 técnico) --}}
+                    <div id="responsavel-container-edit" class="hidden mb-5">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Técnico Responsável <span class="text-red-500">*</span>
+                        </label>
+                        <select id="responsavel-select-edit" class="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white hover:border-gray-300 transition-all"
+                                onchange="atualizarBadgeResponsavelEdit()">
+                            <option value="">Selecione o responsável...</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2 ml-1">Escolha quem será o técnico responsável principal por esta atividade.</p>
                     </div>
                 </div>
                 
-                <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-                    <button type="button" onclick="fecharModalTecnicosAtividadeEdit()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                {{-- Footer com Botões --}}
+                <div class="px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-end gap-3">
+                    <button type="button" onclick="fecharModalTecnicosAtividadeEdit()" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all">
                         Cancelar
                     </button>
-                    <button type="button" onclick="confirmarTecnicosAtividadeEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <button type="button" onclick="confirmarTecnicosAtividadeEdit()" class="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
                         Confirmar
                     </button>
                 </div>
@@ -908,19 +962,132 @@
             atividadeAtualModalEdit = atividadeId;
             document.getElementById('modal-atividade-titulo-edit').textContent = `Atribuir Técnicos - ${atividadeNome}`;
             
+            // Limpa busca
+            document.getElementById('busca-tecnicos-edit').value = '';
+            filtrarTecnicosEdit('');
+            
             // Carrega dados existentes
             const tecnicosAtribuidos = atividadesTecnicosEdit[atividadeId] || { responsavel: null, tecnicos: [] };
             
-            // Define responsável
-            document.getElementById('responsavel-select-edit').value = tecnicosAtribuidos.responsavel || '';
-            
-            // Define técnicos adicionais
-            document.querySelectorAll('.tecnico-adicional-checkbox-edit').forEach(cb => {
-                cb.checked = tecnicosAtribuidos.tecnicos.includes(parseInt(cb.value));
+            // Desmarca todos os checkboxes primeiro
+            document.querySelectorAll('.tecnico-checkbox-edit').forEach(cb => {
+                cb.checked = false;
             });
+            
+            // Marca os técnicos atribuídos
+            tecnicosAtribuidos.tecnicos.forEach(tecnicoId => {
+                const cb = document.querySelector(`.tecnico-checkbox-edit[value="${tecnicoId}"]`);
+                if (cb) cb.checked = true;
+            });
+            
+            // Atualiza o select de responsável e badges
+            atualizarResponsavelAutomaticoEdit();
+            
+            // Se já tinha responsável definido, seleciona ele
+            if (tecnicosAtribuidos.responsavel) {
+                document.getElementById('responsavel-select-edit').value = tecnicosAtribuidos.responsavel;
+                atualizarBadgeResponsavelEdit();
+            }
             
             document.getElementById('modal-tecnicos-atividade-edit').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+        };
+
+        // Função para filtrar técnicos por nome
+        window.filtrarTecnicosEdit = function(termo) {
+            const termoLower = termo.toLowerCase().trim();
+            const labels = document.querySelectorAll('.tecnico-item-label-edit');
+            const container = document.getElementById('lista-tecnicos-container-edit');
+            const nenhumEncontrado = document.getElementById('nenhum-tecnico-encontrado-edit');
+            let encontrados = 0;
+            
+            labels.forEach(label => {
+                const nome = label.dataset.tecnicoNome || '';
+                if (termoLower === '' || nome.includes(termoLower)) {
+                    label.style.display = 'flex';
+                    encontrados++;
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+            
+            // Mostra mensagem se nenhum técnico foi encontrado
+            if (encontrados === 0 && termoLower !== '') {
+                container.style.display = 'none';
+                nenhumEncontrado.classList.remove('hidden');
+            } else {
+                container.style.display = 'block';
+                nenhumEncontrado.classList.add('hidden');
+            }
+        };
+
+        // Função para atualizar automaticamente o responsável quando técnicos são marcados
+        window.atualizarResponsavelAutomaticoEdit = function() {
+            const checkboxesMarcados = Array.from(document.querySelectorAll('.tecnico-checkbox-edit:checked'));
+            const responsavelSelect = document.getElementById('responsavel-select-edit');
+            const responsavelContainer = document.getElementById('responsavel-container-edit');
+            
+            // Limpa o select
+            responsavelSelect.innerHTML = '<option value="">Selecione o responsável...</option>';
+            
+            // Esconde todos os badges
+            document.querySelectorAll('.responsavel-badge-edit').forEach(badge => {
+                badge.classList.add('hidden');
+            });
+            
+            if (checkboxesMarcados.length === 0) {
+                responsavelContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Adiciona opções ao select
+            checkboxesMarcados.forEach(cb => {
+                const option = document.createElement('option');
+                option.value = cb.value;
+                option.textContent = cb.dataset.nome;
+                responsavelSelect.appendChild(option);
+            });
+            
+            // Se só tem 1 técnico, ele é automaticamente o responsável
+            if (checkboxesMarcados.length === 1) {
+                responsavelSelect.value = checkboxesMarcados[0].value;
+                responsavelContainer.classList.add('hidden');
+                
+                // Mostra badge no único técnico
+                const label = document.querySelector(`.tecnico-item-label-edit[data-tecnico-id="${checkboxesMarcados[0].value}"]`);
+                if (label) {
+                    label.querySelector('.responsavel-badge-edit').classList.remove('hidden');
+                }
+            } else {
+                // Se tem mais de 1, mostra o select para escolher
+                responsavelContainer.classList.remove('hidden');
+                
+                // Se não tinha responsável definido, seleciona o primeiro
+                const responsavelAtual = responsavelSelect.value;
+                if (!responsavelAtual && checkboxesMarcados.length > 0) {
+                    responsavelSelect.value = checkboxesMarcados[0].value;
+                }
+                
+                atualizarBadgeResponsavelEdit();
+            }
+        };
+
+        // Função para atualizar o badge de responsável
+        window.atualizarBadgeResponsavelEdit = function() {
+            const responsavelId = document.getElementById('responsavel-select-edit').value;
+            
+            // Esconde todos os badges
+            document.querySelectorAll('.responsavel-badge-edit').forEach(badge => {
+                badge.classList.add('hidden');
+            });
+            
+            // Mostra badge no responsável selecionado
+            if (responsavelId) {
+                const label = document.querySelector(`.tecnico-item-label-edit[data-tecnico-id="${responsavelId}"]`);
+                if (label) {
+                    label.querySelector('.responsavel-badge-edit').classList.remove('hidden');
+                }
+            }
         };
 
         window.fecharModalTecnicosAtividadeEdit = function() {
@@ -932,20 +1099,25 @@
         window.confirmarTecnicosAtividadeEdit = function() {
             if (!atividadeAtualModalEdit) return;
             
+            const checkboxesMarcados = Array.from(document.querySelectorAll('.tecnico-checkbox-edit:checked'));
+            
+            if (checkboxesMarcados.length === 0) {
+                alert('Selecione pelo menos um técnico.');
+                return;
+            }
+            
             const responsavelId = document.getElementById('responsavel-select-edit').value;
             if (!responsavelId) {
                 alert('Selecione um técnico responsável.');
                 return;
             }
             
-            const tecnicosAdicionais = Array.from(document.querySelectorAll('.tecnico-adicional-checkbox-edit:checked'))
-                .map(cb => parseInt(cb.value))
-                .filter(id => id !== parseInt(responsavelId)); // Remove o responsável dos adicionais
+            const tecnicosIds = checkboxesMarcados.map(cb => parseInt(cb.value));
             
             // Salva na estrutura
             atividadesTecnicosEdit[atividadeAtualModalEdit] = {
                 responsavel: parseInt(responsavelId),
-                tecnicos: [parseInt(responsavelId), ...tecnicosAdicionais] // Responsável sempre está incluído
+                tecnicos: tecnicosIds
             };
             
             // Atualiza interface
