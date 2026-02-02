@@ -2249,11 +2249,11 @@ Acesso: Menu lateral > Ícone de engrenagem
             'documentos_contexto' => 'nullable|array',
         ]);
 
-        // Verifica se IA está ativa
-        $iaAtiva = ConfiguracaoSistema::where('chave', 'ia_ativa')->value('valor');
-        if ($iaAtiva !== 'true') {
+        // Verifica se o Assistente de Redação está ativo (independente do Assistente de IA geral)
+        $assistenteRedacaoAtivo = ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->value('valor');
+        if ($assistenteRedacaoAtivo !== 'true') {
             return response()->json([
-                'error' => 'Assistente de IA está desativado'
+                'error' => 'Assistente de Redação está desativado'
             ], 403);
         }
 

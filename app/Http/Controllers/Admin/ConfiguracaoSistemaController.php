@@ -26,6 +26,9 @@ class ConfiguracaoSistemaController extends Controller
         // Configurações do Chat Interno
         $chatInternoAtivo = ConfiguracaoSistema::where('chave', 'chat_interno_ativo')->first();
         
+        // Configuração do Assistente de Redação
+        $assistenteRedacaoAtivo = ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->first();
+        
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
             'iaAtiva',
@@ -33,7 +36,8 @@ class ConfiguracaoSistemaController extends Controller
             'iaApiUrl',
             'iaModel',
             'iaBuscaWeb',
-            'chatInternoAtivo'
+            'chatInternoAtivo',
+            'assistenteRedacaoAtivo'
         ));
     }
 

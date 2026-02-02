@@ -159,7 +159,7 @@ class OrdemServicoController extends Controller
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'required|json',
             'observacoes' => 'nullable|string',
-            'data_inicio' => 'required|date|after_or_equal:today',
+            'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'documento_anexo' => 'nullable|file|mimes:pdf|max:10240',
         ];
@@ -176,7 +176,6 @@ class OrdemServicoController extends Controller
             'atividades_tecnicos.required' => 'Atribua técnicos para todas as atividades selecionadas.',
             'atividades_tecnicos.json' => 'Estrutura de técnicos por atividade inválida.',
             'data_inicio.required' => 'Informe a data de início da ordem de serviço.',
-            'data_inicio.after_or_equal' => 'A data de início deve ser hoje ou uma data futura.',
             'data_fim.required' => 'Informe a data de término da ordem de serviço.',
             'data_fim.after_or_equal' => 'A data de término não pode ser anterior à data de início.',
         ];
@@ -363,7 +362,7 @@ class OrdemServicoController extends Controller
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'required|json',
             'observacoes' => 'nullable|string',
-            'data_inicio' => 'required|date|after_or_equal:today',
+            'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
         ];
         

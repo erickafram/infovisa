@@ -188,7 +188,6 @@
                                name="data_inicio" 
                                value="{{ old('data_inicio', $ordemServico->data_inicio?->format('Y-m-d')) }}"
                                required
-                               min="{{ now()->format('Y-m-d') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_inicio') border-red-500 @enderror">
                         @error('data_inicio')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -205,7 +204,6 @@
                                name="data_fim" 
                                value="{{ old('data_fim', $ordemServico->data_fim?->format('Y-m-d')) }}"
                                required
-                               min="{{ old('data_inicio', $ordemServico->data_inicio?->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('data_fim') border-red-500 @enderror">
                         @error('data_fim')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -218,7 +216,7 @@
                             <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            A data inicial deve ser hoje ou posterior e o término não pode ser anterior ao início.
+                            A data de término não pode ser anterior à data de início. Datas retroativas são permitidas.
                         </p>
                     </div>
 
@@ -567,13 +565,16 @@
 
         // Variáveis globais para controle da nova estrutura
         let atividadesSelecionadasEdit = [];
-        let atividadesTecnicosEdit = {};
+        let atividadesTecnicosEdit = {}; // Chave: índice único da atividade
         let atividadeAtualModalEdit = null;
 
         // Carrega dados existentes da OS
         const osAtividadesTecnicos = @json($ordemServico->atividades_tecnicos ?? []);
         const osTiposAcaoIds = @json($ordemServico->tipos_acao_ids ?? []);
         const tiposAcaoDisponiveis = @json($tiposAcao->keyBy('id')->toArray());
+        
+        // Mapa de técnicos disponíveis para busca de nomes
+        const tecnicosDisponiveis = @json($tecnicos->keyBy('id')->map(fn($t) => $t->nome)->toArray());
 
         // ========================================
         // Funções do Modal de Tipos de Ação
@@ -615,30 +616,44 @@
         window.confirmarTiposAcaoEdit = function() {
             const checkboxes = document.querySelectorAll('.tipo-acao-checkbox-edit:checked');
             
+            // Guarda mapa de técnicos existentes por tipo_acao + subacao
+            const tecnicosExistentes = {};
+            atividadesSelecionadasEdit.forEach(a => {
+                if (a.uniqueKey && atividadesTecnicosEdit[a.uniqueKey]) {
+                    const key = `${a.id}_${a.subAcaoId || 'main'}`;
+                    tecnicosExistentes[key] = atividadesTecnicosEdit[a.uniqueKey];
+                }
+            });
+            
             // Limpa seleções anteriores
             atividadesSelecionadasEdit = [];
+            atividadesTecnicosEdit = {};
             
             // Processa cada checkbox marcado
+            let index = 0;
             checkboxes.forEach(cb => {
                 const tipoAcaoId = parseInt(cb.value);
                 const subAcaoId = cb.dataset.subAcaoId;
                 const isAcaoPrincipal = cb.dataset.isAcaoPrincipal === 'true';
                 const label = cb.dataset.subAcaoLabel || cb.dataset.label;
                 
+                const uniqueKey = `${tipoAcaoId}_${subAcaoId || 'main'}_${index}`;
+                const lookupKey = `${tipoAcaoId}_${subAcaoId || 'main'}`;
+                
                 atividadesSelecionadasEdit.push({
                     id: tipoAcaoId,
                     nome: label,
                     subAcaoId: subAcaoId ? parseInt(subAcaoId) : null,
-                    isAcaoPrincipal: isAcaoPrincipal || !subAcaoId
+                    isAcaoPrincipal: isAcaoPrincipal || !subAcaoId,
+                    uniqueKey: uniqueKey
                 });
-            });
-            
-            // Remove técnicos de atividades desmarcadas
-            const idsAtuais = atividadesSelecionadasEdit.map(a => a.id);
-            Object.keys(atividadesTecnicosEdit).forEach(atividadeId => {
-                if (!idsAtuais.includes(parseInt(atividadeId))) {
-                    delete atividadesTecnicosEdit[atividadeId];
+                
+                // Restaura técnicos existentes se houver
+                if (tecnicosExistentes[lookupKey]) {
+                    atividadesTecnicosEdit[uniqueKey] = tecnicosExistentes[lookupKey];
                 }
+                
+                index++;
             });
             
             atualizarBadgesTiposAcaoEdit();
@@ -691,6 +706,22 @@
         }
 
         window.removerTipoAcaoEdit = function(tipoAcaoId, subAcaoId, isAcaoPrincipal) {
+            // Encontra a atividade a ser removida e sua chave única
+            const atividadeRemovida = atividadesSelecionadasEdit.find(a => {
+                if (isAcaoPrincipal) {
+                    return a.id === tipoAcaoId && a.isAcaoPrincipal;
+                }
+                if (subAcaoId) {
+                    return a.id === tipoAcaoId && a.subAcaoId === subAcaoId;
+                }
+                return a.id === tipoAcaoId;
+            });
+            
+            // Remove técnicos da atividade removida
+            if (atividadeRemovida && atividadeRemovida.uniqueKey) {
+                delete atividadesTecnicosEdit[atividadeRemovida.uniqueKey];
+            }
+            
             // Remove da lista
             atividadesSelecionadasEdit = atividadesSelecionadasEdit.filter(a => {
                 if (isAcaoPrincipal) {
@@ -717,12 +748,6 @@
                 }
             });
             
-            // Remove técnicos se não houver mais atividades com esse tipo
-            const temOutraAtividade = atividadesSelecionadasEdit.some(a => a.id === tipoAcaoId);
-            if (!temOutraAtividade) {
-                delete atividadesTecnicosEdit[tipoAcaoId];
-            }
-            
             atualizarBadgesTiposAcaoEdit();
             atualizarInterfaceTecnicosEdit();
         };
@@ -730,20 +755,26 @@
         // Inicializa estrutura com dados existentes e marca checkboxes
         function inicializarDadosExistentes() {
             if (osAtividadesTecnicos && osAtividadesTecnicos.length > 0) {
-                // Usa nova estrutura
-                osAtividadesTecnicos.forEach(atividade => {
+                // Usa nova estrutura - cada atividade tem seu índice único
+                osAtividadesTecnicos.forEach((atividade, index) => {
                     if (tiposAcaoDisponiveis[atividade.tipo_acao_id]) {
                         const tipoAcao = tiposAcaoDisponiveis[atividade.tipo_acao_id];
                         const nomeAtividade = atividade.nome_atividade || tipoAcao.descricao;
+                        
+                        // Cria chave única para cada atividade
+                        const uniqueKey = `${atividade.tipo_acao_id}_${atividade.sub_acao_id || 'main'}_${index}`;
                         
                         atividadesSelecionadasEdit.push({
                             id: atividade.tipo_acao_id,
                             nome: nomeAtividade,
                             subAcaoId: atividade.sub_acao_id || null,
-                            isAcaoPrincipal: !atividade.sub_acao_id
+                            isAcaoPrincipal: !atividade.sub_acao_id,
+                            uniqueKey: uniqueKey,
+                            status: atividade.status || 'pendente'
                         });
                         
-                        atividadesTecnicosEdit[atividade.tipo_acao_id] = {
+                        // Salva técnicos usando a chave única
+                        atividadesTecnicosEdit[uniqueKey] = {
                             responsavel: atividade.responsavel_id,
                             tecnicos: atividade.tecnicos || []
                         };
@@ -772,15 +803,18 @@
                 // Migra da estrutura antiga
                 const osTecnicosIds = @json($ordemServico->tecnicos_ids ?? []);
                 
-                osTiposAcaoIds.forEach(tipoAcaoId => {
+                osTiposAcaoIds.forEach((tipoAcaoId, index) => {
                     if (tiposAcaoDisponiveis[tipoAcaoId]) {
+                        const uniqueKey = `${tipoAcaoId}_main_${index}`;
+                        
                         atividadesSelecionadasEdit.push({
                             id: tipoAcaoId,
                             nome: tiposAcaoDisponiveis[tipoAcaoId].descricao,
-                            isAcaoPrincipal: true
+                            isAcaoPrincipal: true,
+                            uniqueKey: uniqueKey
                         });
                         
-                        atividadesTecnicosEdit[tipoAcaoId] = {
+                        atividadesTecnicosEdit[uniqueKey] = {
                             responsavel: osTecnicosIds.length > 0 ? osTecnicosIds[0] : null,
                             tecnicos: osTecnicosIds || []
                         };
@@ -816,20 +850,24 @@
             
             container.innerHTML = '';
             
-            atividadesSelecionadasEdit.forEach(atividade => {
+            atividadesSelecionadasEdit.forEach((atividade, index) => {
                 const atividadeDiv = document.createElement('div');
                 atividadeDiv.className = 'border border-gray-200 rounded-lg p-4 bg-gray-50';
                 
-                const tecnicosAtribuidos = atividadesTecnicosEdit[atividade.id] || { responsavel: null, tecnicos: [] };
+                // Usa índice único da atividade
+                const atividadeKey = atividade.uniqueKey || `${atividade.id}_${atividade.subAcaoId || 'main'}_${index}`;
+                const tecnicosAtribuidos = atividadesTecnicosEdit[atividadeKey] || { responsavel: null, tecnicos: [] };
+                
+                // Busca nome do responsável no mapa de técnicos
                 const responsavelNome = tecnicosAtribuidos.responsavel ? 
-                    document.querySelector(`#responsavel-select-edit option[value="${tecnicosAtribuidos.responsavel}"]`)?.textContent || 'Técnico não encontrado' : 
+                    (tecnicosDisponiveis[tecnicosAtribuidos.responsavel] || 'Técnico não encontrado') : 
                     'Não definido';
                 
-                const tecnicosAdicionais = tecnicosAtribuidos.tecnicos.length > 0 ? 
-                    tecnicosAtribuidos.tecnicos.map(id => {
-                        const option = document.querySelector(`#responsavel-select-edit option[value="${id}"]`);
-                        return option ? option.textContent : 'Técnico não encontrado';
-                    }).join(', ') : 'Nenhum';
+                // Busca nomes dos técnicos adicionais (excluindo o responsável)
+                const tecnicosAdicionaisIds = tecnicosAtribuidos.tecnicos.filter(id => id !== tecnicosAtribuidos.responsavel);
+                const tecnicosAdicionais = tecnicosAdicionaisIds.length > 0 ? 
+                    tecnicosAdicionaisIds.map(id => tecnicosDisponiveis[id] || 'Técnico não encontrado').join(', ') : 
+                    'Nenhum';
                 
                 // Se tem subação, mostra a subação como título principal; se é ação principal, mostra badge
                 let tituloAtividade;
@@ -841,10 +879,13 @@
                     tituloAtividade = atividade.nome;
                 }
                 
+                // Salva a chave única na atividade para referência
+                atividade.uniqueKey = atividadeKey;
+                
                 atividadeDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="font-medium text-gray-900">${tituloAtividade}</h4>
-                        <button type="button" onclick="abrirModalTecnicosAtividadeEdit(${atividade.id}, '${atividade.nome}')" 
+                        <button type="button" onclick="abrirModalTecnicosAtividadeEdit('${atividadeKey}', '${atividade.nome.replace(/'/g, "\\'")}')" 
                                 class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">
                             ${tecnicosAtribuidos.responsavel ? 'Editar' : 'Atribuir'} Técnicos
                         </button>
@@ -919,7 +960,8 @@
             
             // Cria a estrutura atividades_tecnicos
             const estrutura = atividadesSelecionadasEdit.map(atividade => {
-                const tecnicosAtribuidos = atividadesTecnicosEdit[atividade.id];
+                const atividadeKey = atividade.uniqueKey;
+                const tecnicosAtribuidos = atividadesTecnicosEdit[atividadeKey];
                 if (!tecnicosAtribuidos || !tecnicosAtribuidos.responsavel) {
                     return null; // Pula atividades sem técnicos atribuídos
                 }
@@ -930,7 +972,7 @@
                     nome_atividade: atividade.nome,
                     tecnicos: tecnicosAtribuidos.tecnicos,
                     responsavel_id: tecnicosAtribuidos.responsavel,
-                    status: 'pendente'
+                    status: atividade.status || 'pendente'
                 };
             }).filter(item => item !== null);
             
@@ -967,13 +1009,14 @@
         const processoLoading = document.getElementById('processo-loading');
         const processoObrigatorioLabel = document.getElementById('processo-obrigatorio-label');
         const processoAtualId = {{ $ordemServico->processo_id ?? 'null' }};
+        const estabelecimentoAtualId = {{ $ordemServico->estabelecimento_id ?? 'null' }};
 
-        // Mostra container se já tem estabelecimento selecionado
-        if (estabelecimentoSelect.value) {
+        // Mostra container se já tem estabelecimento selecionado (verifica via PHP)
+        if (estabelecimentoAtualId) {
             processoContainer.style.display = 'block';
             processoObrigatorioLabel.style.display = 'inline';
             processoSelect.required = true;
-            buscarProcessos(estabelecimentoSelect.value, processoAtualId);
+            buscarProcessos(estabelecimentoAtualId, processoAtualId);
         }
 
         // Listener do Select2 para estabelecimento

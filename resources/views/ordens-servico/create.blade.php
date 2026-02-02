@@ -455,7 +455,7 @@
                                     </svg>
                                     Início <span class="text-red-500">*</span>
                                 </label>
-                                <input type="date" id="data_inicio" name="data_inicio" value="{{ old('data_inicio') }}" required min="{{ now()->format('Y-m-d') }}"
+                                <input type="date" id="data_inicio" name="data_inicio" value="{{ old('data_inicio') }}" required
                                        class="w-full px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-300 transition-all">
                                 @error('data_inicio') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -468,8 +468,9 @@
                                     </svg>
                                     Término <span class="text-red-500">*</span>
                                 </label>
-                                <input type="date" id="data_fim" name="data_fim" value="{{ old('data_fim') }}" required min="{{ old('data_inicio', now()->format('Y-m-d')) }}"
+                                <input type="date" id="data_fim" name="data_fim" value="{{ old('data_fim') }}" required
                                        class="w-full px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-300 transition-all">
+                                <p class="mt-1 text-xs text-gray-500">💡 Datas retroativas são permitidas</p>
                                 @error('data_fim') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>

@@ -333,9 +333,6 @@
                     </div>
 
                     {{-- Assistente de Redação --}}
-                    @php
-                        $assistenteRedacaoAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->first();
-                    @endphp
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div class="flex-1">
                             <label class="text-sm font-medium text-gray-900 flex items-center gap-2">
