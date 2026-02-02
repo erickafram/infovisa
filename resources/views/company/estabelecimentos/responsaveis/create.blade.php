@@ -295,6 +295,10 @@ async function buscarResponsavelPorCpf(cpf) {
         const data = await response.json();
         
         if (data.encontrado) {
+            // Identifica a fonte dos dados
+            const fonte = data.fonte || 'responsavel';
+            const isFromUsuarioExterno = fonte === 'usuario_externo';
+            
             // Preenche os campos automaticamente
             if (data.dados.nome) nomeInput.value = data.dados.nome;
             if (data.dados.email) emailInput.value = data.dados.email;
@@ -309,12 +313,14 @@ async function buscarResponsavelPorCpf(cpf) {
                 telefoneInput.value = tel;
             }
             
-            // Campos específicos de RT
-            if (conselhoInput && data.dados.conselho) {
-                conselhoInput.value = data.dados.conselho;
-            }
-            if (numeroRegistroInput && data.dados.numero_registro) {
-                numeroRegistroInput.value = data.dados.numero_registro;
+            // Campos específicos de RT (só preenche se não vier de usuario_externo)
+            if (!isFromUsuarioExterno) {
+                if (conselhoInput && data.dados.conselho) {
+                    conselhoInput.value = data.dados.conselho;
+                }
+                if (numeroRegistroInput && data.dados.numero_registro) {
+                    numeroRegistroInput.value = data.dados.numero_registro;
+                }
             }
             
             // Controla exibição dos campos de documento
@@ -324,8 +330,12 @@ async function buscarResponsavelPorCpf(cpf) {
             cpfInput.classList.remove('bg-yellow-50');
             cpfInput.classList.add('bg-green-50', 'border-green-500');
             
-            // Mostra mensagem
-            mostrarMensagem('Dados encontrados e preenchidos automaticamente!', 'success');
+            // Mostra mensagem diferente se veio de usuario_externo
+            if (isFromUsuarioExterno) {
+                mostrarMensagem('Usuário encontrado no sistema! Dados básicos preenchidos. Complete as informações específicas.', 'success');
+            } else {
+                mostrarMensagem('Dados encontrados e preenchidos automaticamente!', 'success');
+            }
         } else {
             cpfInput.classList.remove('bg-yellow-50');
             // Mostra campos de upload quando CPF não encontrado

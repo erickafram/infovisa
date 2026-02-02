@@ -1238,6 +1238,7 @@ class EstabelecimentoController extends Controller
 
     /**
      * Busca responsável por CPF para preenchimento automático
+     * Primeiro busca em responsaveis, depois em usuarios_externos
      */
     public function buscarResponsavelPorCpf(Request $request)
     {
@@ -1247,24 +1248,46 @@ class EstabelecimentoController extends Controller
             return response()->json(['encontrado' => false]);
         }
 
+        // Primeiro busca em responsaveis
         $responsavel = \App\Models\Responsavel::where('cpf', $cpf)->first();
 
-        if (!$responsavel) {
-            return response()->json(['encontrado' => false]);
+        if ($responsavel) {
+            return response()->json([
+                'encontrado' => true,
+                'fonte' => 'responsavel',
+                'dados' => [
+                    'nome' => $responsavel->nome,
+                    'email' => $responsavel->email,
+                    'telefone' => $responsavel->telefone,
+                    'conselho' => $responsavel->conselho,
+                    'numero_registro' => $responsavel->numero_registro_conselho,
+                    // Indica se já tem documento (não envia o documento em si por segurança)
+                    'tem_documento_identificacao' => !empty($responsavel->documento_identificacao),
+                    'tem_carteirinha_conselho' => !empty($responsavel->carteirinha_conselho),
+                ]
+            ]);
         }
 
-        return response()->json([
-            'encontrado' => true,
-            'dados' => [
-                'nome' => $responsavel->nome,
-                'email' => $responsavel->email,
-                'telefone' => $responsavel->telefone,
-                'conselho' => $responsavel->conselho,
-                'numero_registro' => $responsavel->numero_registro_conselho,
-                // Indica se já tem documento (não envia o documento em si por segurança)
-                'tem_documento_identificacao' => !empty($responsavel->documento_identificacao),
-                'tem_carteirinha_conselho' => !empty($responsavel->carteirinha_conselho),
-            ]
-        ]);
+        // Se não encontrou em responsaveis, busca em usuarios_externos
+        $usuarioExterno = \App\Models\UsuarioExterno::where('cpf', $cpf)->first();
+
+        if ($usuarioExterno) {
+            return response()->json([
+                'encontrado' => true,
+                'fonte' => 'usuario_externo',
+                'dados' => [
+                    'nome' => $usuarioExterno->nome,
+                    'email' => $usuarioExterno->email,
+                    'telefone' => $usuarioExterno->telefone,
+                    'conselho' => null,
+                    'numero_registro' => null,
+                    // Usuário externo não tem documentos de responsável
+                    'tem_documento_identificacao' => false,
+                    'tem_carteirinha_conselho' => false,
+                ]
+            ]);
+        }
+
+        return response()->json(['encontrado' => false]);
     }
 }

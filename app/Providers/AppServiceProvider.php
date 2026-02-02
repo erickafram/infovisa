@@ -37,14 +37,17 @@ class AppServiceProvider extends ServiceProvider
                        str_contains($host, '.test') ||
                        str_contains($host, '.local');
         
-        $isProductionUrl = str_contains($appUrl, 'sistemas.saude.to.gov.br');
+        $isProductionUrl = str_contains($appUrl, 'sistemas.saude.to.gov.br') || 
+                           str_contains($appUrl, 'infovisacore');
         
         // Detecta se está acessando via IP (ex: 10.48.208.42)
         $isAccessingViaIP = filter_var($host, FILTER_VALIDATE_IP) !== false;
         
         // Aplica se APP_URL é de produção E (não está acessando via localhost OU está acessando via IP)
         if ($isProductionUrl && (!$isLocalhost || $isAccessingViaIP)) {
-            URL::forceScheme('https');
+            // Extrai scheme da APP_URL
+            $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?: 'https';
+            URL::forceScheme($scheme);
             URL::forceRootUrl($appUrl);
             
             // Força o Paginator a usar a URL correta

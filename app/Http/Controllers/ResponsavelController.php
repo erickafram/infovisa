@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Responsavel;
 use App\Models\Estabelecimento;
+use App\Models\UsuarioExterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,13 +22,14 @@ class ResponsavelController extends Controller
 
     /**
      * Busca responsável por CPF (qualquer tipo)
+     * Também busca em usuarios_externos para preencher dados básicos
      */
     public function buscarPorCpf(Request $request)
     {
         $cpf = preg_replace('/[^0-9]/', '', $request->cpf);
         $tipo = $request->tipo;
         
-        // Primeiro busca pelo CPF e tipo específico
+        // Primeiro busca pelo CPF e tipo específico em responsaveis
         $responsavel = Responsavel::where('cpf', $cpf)
                                    ->where('tipo', $tipo)
                                    ->first();
@@ -40,8 +42,32 @@ class ResponsavelController extends Controller
         if ($responsavel) {
             return response()->json([
                 'encontrado' => true,
+                'fonte' => 'responsavel',
                 'responsavel' => $responsavel,
                 'mesmo_tipo' => $responsavel->tipo === $tipo
+            ]);
+        }
+        
+        // Se não encontrou em responsáveis, busca em usuarios_externos
+        $usuarioExterno = UsuarioExterno::where('cpf', $cpf)->first();
+        
+        if ($usuarioExterno) {
+            return response()->json([
+                'encontrado' => true,
+                'fonte' => 'usuario_externo',
+                'mesmo_tipo' => false, // Sempre false pois não tem tipo definido
+                'responsavel' => [
+                    'nome' => $usuarioExterno->nome,
+                    'email' => $usuarioExterno->email,
+                    'telefone' => $usuarioExterno->telefone ?? '',
+                    'cpf' => $cpf,
+                    // Campos que precisam ser preenchidos
+                    'tipo_documento' => null,
+                    'documento_identificacao' => null,
+                    'conselho' => null,
+                    'numero_registro_conselho' => null,
+                    'carteirinha_conselho' => null,
+                ]
             ]);
         }
         

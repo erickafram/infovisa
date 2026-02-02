@@ -399,6 +399,7 @@ function responsavelForm(tipo) {
         mensagemBusca: '',
         responsavelEncontrado: false,
         cpfJaCadastrado: false, // CPF encontrado (qualquer tipo)
+        fonteEncontrada: '', // 'responsavel' ou 'usuario_externo'
         mostrarFormulario: false,
         dados: {
             cpf: '',
@@ -472,6 +473,9 @@ function responsavelForm(tipo) {
                 const data = await response.json();
 
                 if (data.encontrado) {
+                    // Guarda a fonte dos dados
+                    this.fonteEncontrada = data.fonte || 'responsavel';
+                    
                     // Marca que CPF foi encontrado (para readonly dos dados básicos)
                     this.cpfJaCadastrado = true;
                     
@@ -479,10 +483,16 @@ function responsavelForm(tipo) {
                     this.dados.cpf = this.cpfBusca;
                     this.dados.nome = data.responsavel.nome;
                     this.dados.email = data.responsavel.email;
-                    this.dados.telefone = this.formatarTelefone(data.responsavel.telefone);
+                    this.dados.telefone = data.responsavel.telefone ? this.formatarTelefone(data.responsavel.telefone) : '';
                     
-                    // Se for do mesmo tipo, marca como encontrado (readonly também nos específicos)
-                    if (data.mesmo_tipo) {
+                    // Se veio de usuario_externo, nunca marca como encontrado completo
+                    // pois sempre precisa preencher documentos específicos
+                    if (this.fonteEncontrada === 'usuario_externo') {
+                        this.responsavelEncontrado = false;
+                        this.mensagemBusca = '✓ Usuário encontrado no sistema! Dados básicos preenchidos automaticamente. Complete as informações específicas abaixo.';
+                    }
+                    // Se for do mesmo tipo em responsaveis, marca como encontrado (readonly também nos específicos)
+                    else if (data.mesmo_tipo) {
                         this.responsavelEncontrado = true;
                         
                         // Preencher dados específicos se for legal
@@ -507,6 +517,7 @@ function responsavelForm(tipo) {
                 } else {
                     this.responsavelEncontrado = false;
                     this.cpfJaCadastrado = false;
+                    this.fonteEncontrada = '';
                     this.dados.cpf = this.cpfBusca;
                     this.mensagemBusca = 'CPF não encontrado. Preencha todos os dados abaixo para cadastrar.';
                 }
