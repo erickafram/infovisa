@@ -535,8 +535,8 @@
                         </div>
                         
                         {{-- Nome do Documento --}}
-                        <div class="flex-1 min-w-0">
-                            <span class="text-gray-900 truncate block">{{ $doc['nome'] }}</span>
+                        <div class="flex-1">
+                            <span class="text-gray-900 block text-sm leading-tight break-words">{{ $doc['nome'] }}</span>
                             @if($doc['obrigatorio'])
                             <span class="text-[10px] text-red-500">Obrigatório</span>
                             @endif
