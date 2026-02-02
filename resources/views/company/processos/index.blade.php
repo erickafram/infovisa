@@ -11,25 +11,25 @@
     </div>
 
     {{-- Estatísticas --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs font-medium text-gray-500 mb-1">Total</p>
-            <p class="text-2xl font-bold text-gray-900">{{ $estatisticas['total'] }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Total</p>
+            <p class="text-xl font-bold text-gray-800">{{ $estatisticas['total'] }}</p>
         </div>
         <a href="{{ route('company.processos.index', ['status' => 'em_andamento']) }}" 
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Em Andamento</p>
-            <p class="text-2xl font-bold text-blue-600">{{ $estatisticas['em_andamento'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Em Andamento</p>
+            <p class="text-xl font-bold text-blue-600">{{ $estatisticas['em_andamento'] }}</p>
         </a>
         <a href="{{ route('company.processos.index', ['status' => 'concluido']) }}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Concluídos</p>
-            <p class="text-2xl font-bold text-green-600">{{ $estatisticas['concluidos'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Concluídos</p>
+            <p class="text-xl font-bold text-green-600">{{ $estatisticas['concluidos'] }}</p>
         </a>
         <a href="{{ route('company.processos.index', ['status' => 'arquivado']) }}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Arquivados</p>
-            <p class="text-2xl font-bold text-gray-600">{{ $estatisticas['arquivados'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Arquivados</p>
+            <p class="text-xl font-bold text-gray-600">{{ $estatisticas['arquivados'] }}</p>
         </a>
     </div>
 

@@ -283,53 +283,55 @@
                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                 
                 {{-- Header --}}
-                <div class="bg-white border-b border-gray-200 px-5 py-3 rounded-t-lg flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 border-b border-blue-700 px-6 py-4 rounded-t-lg flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
                         <div>
-                            <h3 class="text-base font-semibold text-gray-900" x-text="cidadeModal"></h3>
-                            <p class="text-gray-400 text-xs">Estabelecimentos</p>
+                            <h3 class="text-lg font-bold text-white" x-text="cidadeModal"></h3>
+                            <p class="text-blue-100 text-sm mt-0.5">Estabelecimentos</p>
                         </div>
                     </div>
-                    <button @click="fecharModalCidade()" class="p-1 hover:bg-gray-100 rounded transition-colors">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button @click="fecharModalCidade()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
                 
                 {{-- Body --}}
-                <div class="px-5 py-3 max-h-[50vh] overflow-y-auto">
+                <div class="px-6 py-4 max-h-[50vh] overflow-y-auto bg-gray-50">
                     <template x-if="estabelecimentosCidade.length > 0">
-                        <div class="space-y-2">
+                        <div class="space-y-3">
                             <template x-for="est in estabelecimentosCidade" :key="est.id">
-                                <div class="bg-gray-50 rounded p-3 border border-gray-200 hover:bg-white hover:border-gray-300 transition-all">
-                                    <div class="flex items-start justify-between gap-3">
+                                <div class="bg-white rounded-lg p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all">
+                                    <div class="flex items-start justify-between gap-4">
                                         <div class="flex-1 min-w-0">
-                                            <h4 class="font-medium text-gray-900 text-xs" x-text="est.nome"></h4>
-                                            <p class="text-xs text-gray-400 mt-0.5" x-text="est.cnpj"></p>
-                                            <div class="flex flex-wrap gap-1 mt-1.5">
+                                            <h4 class="font-semibold text-gray-900" x-text="est.nome"></h4>
+                                            <p class="text-sm text-gray-600 mt-1" x-text="est.cnpj"></p>
+                                            <div class="flex flex-wrap gap-1.5 mt-3">
                                                 <template x-for="ativ in est.atividades" :key="ativ">
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700" x-text="ativ"></span>
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700" x-text="ativ"></span>
                                                 </template>
                                             </div>
                                         </div>
-                                        <div class="flex flex-col items-end ml-2 flex-shrink-0">
-                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded text-xs font-bold text-gray-700 bg-gray-200"
+                                        <div class="flex flex-col items-center flex-shrink-0">
+                                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-lg font-bold text-white bg-blue-600"
                                                   x-text="est.equipamentos">
                                             </span>
-                                            <span class="text-xs text-gray-400 mt-0.5">itens</span>
+                                            <span class="text-xs text-gray-500 mt-1">itens</span>
                                         </div>
                                     </div>
-                                    <div class="mt-2 pt-2 border-t border-gray-300 flex items-center justify-between">
-                                        <span class="text-xs text-gray-400" x-text="'ID: ' + est.id"></span>
+                                    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+                                        <span class="text-xs text-gray-500 font-medium" x-text="'ID: ' + est.id"></span>
                                         <a :href="'/admin/estabelecimentos/' + est.id + '/equipamentos-radiacao'" 
-                                           class="inline-flex items-center gap-0.5 text-xs text-gray-600 hover:text-gray-900">
+                                           class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
                                             Ver
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                             </svg>
                                         </a>
@@ -339,11 +341,11 @@
                         </div>
                     </template>
                     <template x-if="estabelecimentosCidade.length === 0">
-                        <div class="text-center py-6">
-                            <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="text-center py-12">
+                            <svg class="w-14 h-14 text-blue-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <p class="text-gray-500 text-xs">Nenhum estabelecimento encontrado.</p>
+                            <p class="text-gray-600 text-sm font-medium">Nenhum estabelecimento encontrado.</p>
                         </div>
                     </template>
                 </div>

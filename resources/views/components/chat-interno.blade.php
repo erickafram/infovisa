@@ -2,6 +2,12 @@
     // Verifica se o Chat Interno está ativo nas configurações
     $chatInternoAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'chat_interno_ativo')->first();
     $chatAtivo = $chatInternoAtivo && $chatInternoAtivo->valor === 'true';
+    
+    // Não mostra chat na página de criação/edição de documentos
+    $rotaAtual = Route::currentRouteName();
+    if (str_contains($rotaAtual, 'documentos.create') || str_contains($rotaAtual, 'documentos.edit')) {
+        $chatAtivo = false;
+    }
 @endphp
 
 @if($chatAtivo)
@@ -167,7 +173,7 @@
                     <template x-for="msg in suporteMensagens" :key="msg.id">
                         <div class="flex justify-start">
                             <div class="bg-white max-w-[85%] px-3 py-2 rounded-lg shadow">
-                                <div x-show="msg.tipo === 'texto'" class="text-sm whitespace-pre-wrap break-words text-gray-800" x-text="msg.conteudo"></div>
+                                <div x-show="msg.tipo === 'texto'" class="text-sm whitespace-pre-wrap break-words text-gray-800" x-html="formatarMensagem(msg.conteudo)"></div>
                                 <img x-show="msg.tipo === 'imagem'" :src="msg.arquivo_url" class="max-w-full rounded">
                                 <a x-show="msg.tipo === 'arquivo'" :href="msg.arquivo_url" target="_blank" class="flex items-center gap-2 text-blue-600 hover:underline text-sm" x-text="'📎 ' + (msg.arquivo_nome || 'Arquivo')"></a>
                                 <p class="text-[10px] text-gray-500 text-right mt-1" x-text="msg.data"></p>
@@ -196,7 +202,7 @@
                                     Mensagem apagada
                                 </div>
                                 <div x-show="!msg.deletada">
-                                    <div x-show="msg.tipo === 'texto'" class="text-sm whitespace-pre-wrap break-words text-gray-800" x-text="msg.conteudo"></div>
+                                    <div x-show="msg.tipo === 'texto'" class="text-sm whitespace-pre-wrap break-words text-gray-800" x-html="formatarMensagem(msg.conteudo)"></div>
                                     <img x-show="msg.tipo === 'imagem'" :src="msg.arquivo_url" class="max-w-full rounded cursor-pointer" @click="window.open(msg.arquivo_url, '_blank')">
                                     <audio x-show="msg.tipo === 'audio'" :src="msg.arquivo_url" controls class="max-w-full"></audio>
                                     <a x-show="msg.tipo === 'arquivo'" :href="msg.arquivo_url" target="_blank" class="flex items-center gap-2 text-blue-600 hover:underline text-sm" x-text="'📎 ' + (msg.arquivo_nome || 'Arquivo')"></a>
@@ -260,14 +266,32 @@ function chatInterno() {
         cache: { conversas: null, conversasTime: 0 },
         documentVisible: true,
 
+        // Função para formatar mensagem com links clicáveis
+        formatarMensagem(texto) {
+            if (!texto) return '';
+            // Escapa HTML para segurança
+            let html = texto
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            // Converte URLs em links clicáveis
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            html = html.replace(urlRegex, '<a href="$1" target="_blank" class="text-blue-600 hover:underline break-all">$1</a>');
+            // Converte *texto* em negrito
+            html = html.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+            return html;
+        },
+
         init() {
             this.carregarConversas();
+            this.verificarNovas(); // Verifica imediatamente ao carregar
             this.startPolling();
             
             // Pausa polling quando aba não está visível
             document.addEventListener('visibilitychange', () => {
                 this.documentVisible = !document.hidden;
                 if (this.documentVisible) {
+                    this.verificarNovas(); // Verifica ao voltar para a aba
                     this.startPolling();
                 } else {
                     this.stopPolling();
@@ -277,8 +301,8 @@ function chatInterno() {
         
         startPolling() {
             if (this.pollingInterval) return;
-            // Polling mais frequente se chat aberto (3s), senão mais lento (8s)
-            const interval = this.isOpen ? 3000 : 8000;
+            // Polling mais frequente se chat aberto (3s), senão mais lento (5s)
+            const interval = this.isOpen ? 3000 : 5000;
             this.pollingInterval = setInterval(() => this.verificarNovas(), interval);
         },
         
@@ -293,6 +317,38 @@ function chatInterno() {
             this.stopPolling();
             if (this.documentVisible) {
                 this.startPolling();
+            }
+        },
+        
+        // Notifica o usuário sobre nova mensagem
+        notificarNovaMensagem() {
+            // Som de notificação
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj2a2teleVtSu+bw1HQQAGvt+vaOLQBM0uv7tlwAAKLs//+xMwAAsuv8/7I4AAC27Pv/sjkAALrr+f+1PAAAvur3/7k/AACq4OLqpT8AAH3P0dyPNAAAV7e9x3UrAAA7oqOwYCMAAC6RmZ1WHAAAJYWMj04XAAB/hIV8MQ4AAJmYl4oeAwAApaOfjwAAAAAA');
+                audio.volume = 0.3;
+                audio.play().catch(() => {}); // Ignora erro se autoplay bloqueado
+            } catch (e) {}
+            
+            // Pisca o título da página
+            if (document.hidden) {
+                let originalTitle = document.title;
+                let blink = setInterval(() => {
+                    document.title = document.title === '💬 Nova mensagem!' ? originalTitle : '💬 Nova mensagem!';
+                }, 1000);
+                
+                // Para de piscar quando a página ficar visível
+                const stopBlink = () => {
+                    clearInterval(blink);
+                    document.title = originalTitle;
+                    document.removeEventListener('visibilitychange', stopBlink);
+                };
+                document.addEventListener('visibilitychange', stopBlink);
+                
+                // Para após 10 segundos
+                setTimeout(() => {
+                    clearInterval(blink);
+                    document.title = originalTitle;
+                }, 10000);
             }
         },
 
@@ -464,10 +520,19 @@ function chatInterno() {
                 const r = await fetch(`{{ route("admin.chat.verificar-novas") }}?${params}`);
                 const data = await r.json();
                 
+                // Verifica se tem mensagens novas (para notificação)
+                const tinhaAntes = this.totalNaoLidas + this.suporteNaoLidos;
+                
                 // Atualiza contadores (sempre)
                 this.totalNaoLidas = data.total_nao_lidas || 0;
                 if (data.suporte_nao_lidos !== undefined) {
                     this.suporteNaoLidos = data.suporte_nao_lidos;
+                }
+                
+                // Se tem mais mensagens não lidas que antes, notifica
+                const temAgora = this.totalNaoLidas + this.suporteNaoLidos;
+                if (temAgora > tinhaAntes && !this.isOpen) {
+                    this.notificarNovaMensagem();
                 }
                 
                 // Se chat fechado, para aqui

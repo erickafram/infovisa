@@ -50,6 +50,7 @@ class ConfiguracaoSistemaController extends Controller
             'ia_api_url' => 'nullable|url',
             'ia_model' => 'nullable|string',
             'chat_interno_ativo' => 'nullable|boolean',
+            'assistente_redacao_ativo' => 'nullable|boolean',
         ], [
             'logomarca_estadual.image' => 'O arquivo deve ser uma imagem',
             'logomarca_estadual.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
@@ -89,13 +90,20 @@ class ConfiguracaoSistemaController extends Controller
             ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
         );
         
+        // Atualiza configuração do Assistente de Redação
+        ConfiguracaoSistema::updateOrCreate(
+            ['chave' => 'assistente_redacao_ativo'],
+            ['valor' => $request->has('assistente_redacao_ativo') ? 'true' : 'false']
+        );
+        
         // Verifica se foi apenas atualização de IA (sem logomarca)
         $atualizouIA = $request->has('ia_ativa') || 
                        $request->filled('ia_api_key') || 
                        $request->filled('ia_api_url') || 
                        $request->filled('ia_model') ||
                        $request->has('ia_busca_web') ||
-                       $request->has('chat_interno_ativo');
+                       $request->has('chat_interno_ativo') ||
+                       $request->has('assistente_redacao_ativo');
 
         $config = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         

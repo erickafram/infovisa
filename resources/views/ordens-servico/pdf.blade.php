@@ -20,51 +20,50 @@
         
         .page {
             max-width: 210mm;
-            height: 297mm;
             margin: 0 auto;
-            padding: 15mm;
+            padding: 10mm;
             background: white;
         }
         
         .header {
             border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
         }
         
         .header-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             color: #000;
         }
         
         .header-subtitle {
-            font-size: 10px;
+            font-size: 9px;
             color: #666;
-            margin-top: 3px;
+            margin-top: 2px;
         }
         
         .section {
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
         
         .section-title {
             background-color: #f0f0f0;
-            padding: 6px 8px;
+            padding: 4px 6px;
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 8px;
+            font-size: 11px;
+            margin-bottom: 5px;
             border-left: 3px solid #333;
         }
         
         .section-content {
-            padding: 8px;
+            padding: 5px;
         }
         
         .info-row {
             display: table;
             width: 100%;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             table-layout: fixed;
         }
         
@@ -78,14 +77,14 @@
         .label {
             font-weight: bold;
             color: #555;
-            font-size: 9px;
+            font-size: 8px;
             text-transform: uppercase;
         }
         
         .value {
             color: #000;
-            margin-top: 2px;
-            font-size: 11px;
+            margin-top: 1px;
+            font-size: 10px;
         }
         
         .status-badge {
@@ -164,29 +163,29 @@
         
         .atividade {
             background-color: #f9fafb;
-            padding: 10px;
-            margin-bottom: 8px;
+            padding: 7px;
+            margin-bottom: 5px;
             border-left: 3px solid #3b82f6;
         }
         
         .atividade-titulo {
             font-weight: bold;
             color: #1f2937;
-            font-size: 11px;
-            margin-bottom: 4px;
+            font-size: 10px;
+            margin-bottom: 3px;
         }
         
         .atividade-info {
-            font-size: 10px;
+            font-size: 9px;
             color: #666;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
         
         .footer {
             border-top: 1px solid #ddd;
-            margin-top: 20px;
-            padding-top: 10px;
-            font-size: 9px;
+            margin-top: 8px;
+            padding-top: 5px;
+            font-size: 8px;
             color: #999;
             text-align: center;
         }
@@ -285,12 +284,14 @@
                 ->filter()
                 ->toArray();
             
-            $atividadesEstabelecimento = $ordemServico->estabelecimento->getTodasAtividades();
             $exigeEquipamentos = false;
-            foreach ($atividadesEstabelecimento as $codigo) {
-                if (in_array($codigo, $codigosAtividadesRadiacao)) {
-                    $exigeEquipamentos = true;
-                    break;
+            if ($ordemServico->estabelecimento) {
+                $atividadesEstabelecimento = $ordemServico->estabelecimento->getTodasAtividades();
+                foreach ($atividadesEstabelecimento as $codigo) {
+                    if (in_array($codigo, $codigosAtividadesRadiacao)) {
+                        $exigeEquipamentos = true;
+                        break;
+                    }
                 }
             }
         @endphp
@@ -338,13 +339,13 @@
                         @if(count($opcoes) > 0)
                         <br><br><strong>Confirmações:</strong><br>
                         @if(in_array('opcao_1', $opcoes))
-                        ✓ Não executa atividades de diagnóstico por imagem neste estabelecimento<br>
+                        [X] Não executa atividades de diagnóstico por imagem neste estabelecimento<br>
                         @endif
                         @if(in_array('opcao_2', $opcoes))
-                        ✓ Não possui equipamentos de diagnóstico por imagem instalados no local<br>
+                        [X] Não possui equipamentos de diagnóstico por imagem instalados no local<br>
                         @endif
                         @if(in_array('opcao_3', $opcoes))
-                        ✓ Os exames, quando necessários, são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado<br>
+                        [X] Os exames, quando necessários, são integralmente terceirizados ou realizados em outro estabelecimento regularmente licenciado<br>
                         @endif
                         @endif
                         @endif
@@ -364,27 +365,61 @@
         @endif
 
         {{-- Ações Executadas --}}
-        @if($ordemServico->atividades && count($ordemServico->atividades) > 0)
+        @if($ordemServico->atividades_tecnicos && count($ordemServico->atividades_tecnicos) > 0)
         <div class="section">
-            <div class="section-title">AÇÕES EXECUTADAS</div>
+            <div class="section-title">DETALHAMENTO DAS AÇÕES E TÉCNICOS RESPONSÁVEIS</div>
             <div class="section-content">
-                @foreach($ordemServico->atividades as $index => $atividade)
+                @foreach($ordemServico->atividades_tecnicos as $index => $atividade)
                 <div class="atividade">
-                    <div class="atividade-titulo">{{ $index + 1 }}. {{ $atividade['tipo_acao'] ?? 'Ação Desconhecida' }}</div>
+                    <div class="atividade-titulo">{{ $index + 1 }}. {{ $atividade['nome_atividade'] ?? 'Atividade Desconhecida' }}</div>
+                    
+                    {{-- Técnicos Atribuídos --}}
+                    @php
+                        $responsavelId = $atividade['responsavel_id'] ?? null;
+                        $tecnicosIds = $atividade['tecnicos'] ?? [];
+                        $tecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosIds)->get();
+                        $tecnicosListados = [];
+                        
+                        // Primeiro adiciona o responsável com destaque
+                        if ($responsavelId) {
+                            $responsavel = $tecnicos->firstWhere('id', $responsavelId);
+                            if ($responsavel) {
+                                $tecnicosListados[] = $responsavel->nome . ' - Técnico Responsável';
+                            }
+                        }
+                        
+                        // Depois adiciona os outros técnicos
+                        foreach ($tecnicos as $tec) {
+                            if ($tec->id != $responsavelId) {
+                                $tecnicosListados[] = $tec->nome;
+                            }
+                        }
+                    @endphp
+                    
+                    @if(count($tecnicosListados) > 0)
                     <div class="atividade-info">
-                        <strong>Sub-ação:</strong> {{ $atividade['sub_acao'] ?? '-' }}
+                        <strong>Técnicos:</strong> {{ implode(', ', $tecnicosListados) }}
                     </div>
+                    @endif
+                    
+                    {{-- Status --}}
+                    @php
+                        $statusAtividade = $atividade['status'] ?? 'pendente';
+                        $statusLabel = $statusAtividade === 'finalizada' ? 'Finalizada' : 'Pendente';
+                    @endphp
                     <div class="atividade-info">
-                        <strong>Responsável:</strong> {{ $atividade['responsavel_nome'] ?? '-' }}
+                        <strong>Status:</strong> {{ $statusLabel }}
                     </div>
+                    
                     @if(isset($atividade['observacoes']) && $atividade['observacoes'])
                     <div class="atividade-info">
                         <strong>Observações:</strong> {{ $atividade['observacoes'] }}
                     </div>
                     @endif
-                    @if(isset($atividade['status']) && $atividade['status'] === 'finalizada')
+                    
+                    @if($statusAtividade === 'finalizada' && isset($atividade['finalizada_em']))
                     <div class="atividade-info">
-                        <strong>Data de Finalização:</strong> {{ isset($atividade['finalizada_em']) ? \Carbon\Carbon::parse($atividade['finalizada_em'])->format('d/m/Y H:i') : '-' }}
+                        <strong>Data de Finalização:</strong> {{ \Carbon\Carbon::parse($atividade['finalizada_em'])->format('d/m/Y H:i') }}
                     </div>
                     @endif
                 </div>
@@ -392,6 +427,8 @@
             </div>
         </div>
         @endif
+
+        {{-- Ações Executadas (Compatibilidade com formato antigo) --}}
 
         {{-- Footer --}}
         <div class="footer">

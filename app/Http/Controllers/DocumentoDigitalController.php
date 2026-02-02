@@ -77,7 +77,7 @@ class DocumentoDigitalController extends Controller
             }
         }
         
-        $documentos = $query->orderBy('created_at', 'desc')->paginate(20);
+        $documentos = $query->orderBy('created_at', 'desc')->paginate(10);
         
         // Busca todos os tipos de documento para o filtro
         $tiposDocumento = \App\Models\TipoDocumento::where('ativo', true)

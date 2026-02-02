@@ -84,7 +84,26 @@
                             </div>
                             @endif
                         @else
-                            {{-- Botão Editar --}}
+                            @php
+                                $usuarioLogado = auth('interno')->user();
+                                $ehTecnico = in_array($usuarioLogado->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']);
+                                
+                                // Verifica se o técnico está vinculado a alguma atividade pendente
+                                $tecnicoTemAtividadePendente = false;
+                                if ($ehTecnico && $ordemServico->atividades_tecnicos) {
+                                    foreach ($ordemServico->atividades_tecnicos as $ativ) {
+                                        $statusAtiv = $ativ['status'] ?? 'pendente';
+                                        $tecnicosAtiv = $ativ['tecnicos'] ?? [];
+                                        if ($statusAtiv !== 'finalizada' && in_array($usuarioLogado->id, $tecnicosAtiv)) {
+                                            $tecnicoTemAtividadePendente = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            @endphp
+                            
+                            @if(!$ehTecnico)
+                            {{-- Botão Editar - Apenas para Admin e Gestores --}}
                             <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,8 +111,21 @@
                                 </svg>
                                 Editar OS
                             </a>
+                            @endif
                             
-                            {{-- Botão Cancelar OS --}}
+                            @if($ehTecnico && $tecnicoTemAtividadePendente && $ordemServico->status === 'em_andamento')
+                            {{-- Botão Finalizar Atividades - Apenas para Técnicos vinculados a atividades pendentes --}}
+                            <a href="#secao-atividades" 
+                               class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Finalizar Atividade
+                            </a>
+                            @endif
+                            
+                            @if(!$ehTecnico)
+                            {{-- Botão Cancelar OS - Apenas para Admin e Gestores --}}
                             <button type="button" 
                                     onclick="abrirModalCancelarOS()"
                                     class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
@@ -102,6 +134,7 @@
                                 </svg>
                                 Cancelar OS
                             </button>
+                            @endif
                         @endif
                         
                         {{-- Botão Voltar --}}
@@ -229,11 +262,10 @@
                     <div class="pt-2 border-t border-gray-100">
                         <label class="text-xs text-gray-500">Endereço</label>
                         <p class="text-sm font-medium text-gray-900" id="endereco-completo">
-                            {{ $ordemServico->estabelecimento->logradouro }}
-                            @if($ordemServico->estabelecimento->numero), {{ $ordemServico->estabelecimento->numero }}@endif
+                            {{ $ordemServico->estabelecimento->logradouro ?? $ordemServico->estabelecimento->endereco ?? '-' }}
                             @if($ordemServico->estabelecimento->complemento) - {{ $ordemServico->estabelecimento->complemento }}@endif
                             , {{ $ordemServico->estabelecimento->bairro }}
-                            @if(is_object($ordemServico->estabelecimento->municipio)) - {{ $ordemServico->estabelecimento->municipio->nome }}/{{ $ordemServico->estabelecimento->municipio->uf }}@endif
+                            - {{ $ordemServico->estabelecimento->cidade }}/{{ $ordemServico->estabelecimento->estado }}
                         </p>
                     </div>
 
@@ -362,16 +394,35 @@
                                 Localização
                             </label>
                             @php
-                                // Usa 'endereco' se disponível, senão usa 'logradouro'
-                                $rua = $ordemServico->estabelecimento->endereco ?? $ordemServico->estabelecimento->logradouro ?? '';
-                                $numero = $ordemServico->estabelecimento->numero ?? 'S/N';
+                                // Usa logradouro como prioridade (campo da API), senão usa endereco
+                                $logradouro = $ordemServico->estabelecimento->logradouro ?? $ordemServico->estabelecimento->endereco ?? '';
+                                $numero = $ordemServico->estabelecimento->numero ?? '';
                                 $bairro = $ordemServico->estabelecimento->bairro ?? '';
-                                $cidade = $ordemServico->estabelecimento->cidade ?? ($ordemServico->estabelecimento->municipio->nome ?? '');
-                                $estado = $ordemServico->estabelecimento->estado ?? ($ordemServico->estabelecimento->municipio->uf ?? '');
+                                $cidade = $ordemServico->estabelecimento->cidade ?? '';
+                                $estado = $ordemServico->estabelecimento->estado ?? 'TO';
                                 $cep = $ordemServico->estabelecimento->cep ?? '';
                                 
-                                // Monta o endereço completo
-                                $enderecoCompleto = trim("$rua, $numero, $bairro, $cidade - $estado, CEP: $cep, Brasil");
+                                // Monta o endereço completo para o Google Maps
+                                $partes = [];
+                                if ($logradouro) {
+                                    // Se o logradouro já contém número (ex: "07 DE SETEMBRO, 340-B"), usa direto
+                                    $partes[] = $logradouro;
+                                }
+                                if ($bairro) {
+                                    $partes[] = $bairro;
+                                }
+                                if ($cidade) {
+                                    $partes[] = $cidade;
+                                }
+                                if ($estado) {
+                                    $partes[] = $estado;
+                                }
+                                if ($cep) {
+                                    $partes[] = preg_replace('/[^0-9]/', '', $cep);
+                                }
+                                $partes[] = 'Brasil';
+                                
+                                $enderecoCompleto = implode(', ', $partes);
                                 $endereco = urlencode($enderecoCompleto);
                                 
                                 $googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" . $endereco;
@@ -443,7 +494,7 @@
 
             {{-- Atividades por Técnico (Nova Seção) --}}
             @if($ordemServico->atividades_tecnicos && count($ordemServico->atividades_tecnicos) > 0)
-            <div class="bg-white rounded-lg border border-gray-200">
+            <div id="secao-atividades" class="bg-white rounded-lg border border-gray-200">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
                         <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -176,24 +176,24 @@
     @endif
 
     {{-- Estatísticas --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs font-medium text-gray-500 mb-1">Total</p>
-            <p class="text-2xl font-bold text-gray-900">{{ $estatisticas['total'] }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Total</p>
+            <p class="text-xl font-bold text-gray-800">{{ $estatisticas['total'] }}</p>
         </div>
         <a href="{{ route('company.alertas.index', ['status' => 'pendente']) }}" 
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow {{ request('status') === 'pendente' ? 'ring-2 ring-orange-500' : '' }}">
-            <p class="text-xs font-medium text-gray-500 mb-1">Pendentes</p>
-            <p class="text-2xl font-bold text-orange-600">{{ $estatisticas['pendentes'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow {{ request('status') === 'pendente' ? 'ring-2 ring-orange-500' : '' }}">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Pendentes</p>
+            <p class="text-xl font-bold text-orange-600">{{ $estatisticas['pendentes'] }}</p>
         </a>
-        <div class="bg-white rounded-lg shadow-sm border border-red-200 p-4">
-            <p class="text-xs font-medium text-gray-500 mb-1">Vencidos</p>
-            <p class="text-2xl font-bold text-red-600">{{ $estatisticas['vencidos'] }}</p>
+        <div class="bg-white rounded-lg p-3 border border-red-200 shadow-sm">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Vencidos</p>
+            <p class="text-xl font-bold text-red-600">{{ $estatisticas['vencidos'] }}</p>
         </div>
         <a href="{{ route('company.alertas.index', ['status' => 'concluido']) }}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow {{ request('status') === 'concluido' ? 'ring-2 ring-green-500' : '' }}">
-            <p class="text-xs font-medium text-gray-500 mb-1">Concluídos</p>
-            <p class="text-2xl font-bold text-green-600">{{ $estatisticas['concluidos'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow {{ request('status') === 'concluido' ? 'ring-2 ring-green-500' : '' }}">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Concluídos</p>
+            <p class="text-xl font-bold text-green-600">{{ $estatisticas['concluidos'] }}</p>
         </a>
     </div>
 

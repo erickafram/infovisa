@@ -117,15 +117,26 @@
                 <div class="p-4 space-y-3">
                     {{-- Busca Rápida --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">🔍 Buscar</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Buscar</label>
                         <input type="text" name="busca" value="{{ request('busca') }}" 
                                placeholder="Nº ou estabelecimento"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                     </div>
 
+                    {{-- Tipo de Processo --}}
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Tipo de Processo</label>
+                        <select name="tipo" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                            <option value="">Todos</option>
+                            @foreach($tiposProcesso as $tipo)
+                            <option value="{{ $tipo->codigo }}" {{ request('tipo') == $tipo->codigo ? 'selected' : '' }}>{{ $tipo->nome }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     {{-- Status --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">📊 Status</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Status</label>
                         <select name="status" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                             <option value="">Todos</option>
                             @foreach($statusDisponiveis as $key => $nome)
@@ -136,11 +147,11 @@
 
                     {{-- Documentação --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">📄 Documentação</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Documentação</label>
                         <select name="docs_obrigatorios" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                             <option value="">Todos</option>
-                            <option value="completos" {{ request('docs_obrigatorios') == 'completos' ? 'selected' : '' }}>✅ Completos</option>
-                            <option value="pendentes" {{ request('docs_obrigatorios') == 'pendentes' ? 'selected' : '' }}>⏳ Pendentes</option>
+                            <option value="completos" {{ request('docs_obrigatorios') == 'completos' ? 'selected' : '' }}>Completos</option>
+                            <option value="pendentes" {{ request('docs_obrigatorios') == 'pendentes' ? 'selected' : '' }}>Pendentes</option>
                         </select>
                     </div>
                 </div>
@@ -158,17 +169,6 @@
                     </summary>
 
                     <div class="px-4 py-3 space-y-3 border-t border-gray-100 bg-gray-50">
-                        {{-- Tipo --}}
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tipo de Processo</label>
-                            <select name="tipo" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                                <option value="">Todos</option>
-                                @foreach($tiposProcesso as $tipo)
-                                <option value="{{ $tipo->codigo }}" {{ request('tipo') == $tipo->codigo ? 'selected' : '' }}>{{ $tipo->nome }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
                         {{-- Ano --}}
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Ano</label>
@@ -185,11 +185,11 @@
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Responsável</label>
                             <select name="responsavel" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                                 <option value="">Todos</option>
-                                <option value="meus" {{ request('responsavel') == 'meus' ? 'selected' : '' }}>📌 Meus processos</option>
+                                <option value="meus" {{ request('responsavel') == 'meus' ? 'selected' : '' }}>Meus processos</option>
                                 @if(auth('interno')->user()->setor)
-                                <option value="meu_setor" {{ request('responsavel') == 'meu_setor' ? 'selected' : '' }}>🏢 Meu setor</option>
+                                <option value="meu_setor" {{ request('responsavel') == 'meu_setor' ? 'selected' : '' }}>Meu setor</option>
                                 @endif
-                                <option value="nao_atribuido" {{ request('responsavel') == 'nao_atribuido' ? 'selected' : '' }}>⚠️ Não atribuídos</option>
+                                <option value="nao_atribuido" {{ request('responsavel') == 'nao_atribuido' ? 'selected' : '' }}>Não atribuídos</option>
                             </select>
                         </div>
 

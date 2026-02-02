@@ -32,25 +32,25 @@
     </div>
 
     {{-- Estatísticas --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs font-medium text-gray-500 mb-1">Total</p>
-            <p class="text-2xl font-bold text-gray-900">{{ $estatisticas['total'] }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Total</p>
+            <p class="text-xl font-bold text-gray-800">{{ $estatisticas['total'] }}</p>
         </div>
         <a href="{{ route('company.estabelecimentos.index', ['status' => 'pendente']) }}" 
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Pendentes</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ $estatisticas['pendentes'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Pendentes</p>
+            <p class="text-xl font-bold text-yellow-600">{{ $estatisticas['pendentes'] }}</p>
         </a>
         <a href="{{ route('company.estabelecimentos.index', ['status' => 'aprovado']) }}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Aprovados</p>
-            <p class="text-2xl font-bold text-green-600">{{ $estatisticas['aprovados'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Aprovados</p>
+            <p class="text-xl font-bold text-green-600">{{ $estatisticas['aprovados'] }}</p>
         </a>
         <a href="{{ route('company.estabelecimentos.index', ['status' => 'rejeitado']) }}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <p class="text-xs font-medium text-gray-500 mb-1">Rejeitados</p>
-            <p class="text-2xl font-bold text-red-600">{{ $estatisticas['rejeitados'] }}</p>
+           class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Rejeitados</p>
+            <p class="text-xl font-bold text-red-600">{{ $estatisticas['rejeitados'] }}</p>
         </a>
     </div>
 

@@ -3,13 +3,72 @@
 @section('title', 'Ordens de Serviço')
 
 @section('content')
-<div class="container-fluid px-4 py-6">
+<div class="container-fluid px-4 py-6" x-data="{
+    modalExcluir: false,
+    osId: null,
+    osNumero: '',
+    senhaAssinatura: '',
+    erro: '',
+    carregando: false,
+    
+    abrirModalExcluir(id, numero) {
+        this.osId = id;
+        this.osNumero = numero;
+        this.senhaAssinatura = '';
+        this.erro = '';
+        this.carregando = false;
+        this.modalExcluir = true;
+        this.$nextTick(() => {
+            this.$refs.senhaInput?.focus();
+        });
+    },
+    
+    async executarExclusao() {
+        if (!this.senhaAssinatura) {
+            this.erro = 'Digite sua senha de assinatura digital';
+            return;
+        }
+        
+        this.carregando = true;
+        this.erro = '';
+        
+        try {
+            const response = await fetch(`{{ url('/admin/ordens-servico') }}/${this.osId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=&quot;csrf-token&quot;]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    _method: 'DELETE',
+                    senha_assinatura: this.senhaAssinatura
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.modalExcluir = false;
+                window.location.reload();
+            } else {
+                this.erro = data.message || 'Erro ao excluir ordem de serviço';
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            this.erro = 'Erro ao processar exclusão';
+        } finally {
+            this.carregando = false;
+        }
+    }
+}" @excluir-os.window="abrirModalExcluir($event.detail.id, $event.detail.numero)">
     {{-- Cabeçalho --}}
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Ordens de Serviço</h1>
             <p class="text-sm text-gray-600 mt-1">Gerencie as ordens de serviço do sistema</p>
         </div>
+        @if(!in_array(auth('interno')->user()->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']))
         <a href="{{ route('admin.ordens-servico.create') }}" 
            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,6 +76,7 @@
             </svg>
             Nova Ordem de Serviço
         </a>
+        @endif
     </div>
 
     {{-- Filtros --}}
@@ -180,6 +240,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                     </svg>
                                 </a>
+                                @if(!in_array(auth('interno')->user()->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']))
                                 <a href="{{ route('admin.ordens-servico.edit', $os) }}" 
                                    class="text-blue-600 hover:text-blue-900"
                                    title="Editar">
@@ -187,20 +248,17 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
-                                <form action="{{ route('admin.ordens-servico.destroy', $os) }}" 
-                                      method="POST" 
-                                      class="inline"
-                                      onsubmit="return confirm('Tem certeza que deseja excluir esta ordem de serviço?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="text-red-600 hover:text-red-900"
-                                            title="Excluir">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </form>
+                                @endif
+                                @if(!in_array(auth('interno')->user()->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']))
+                                <button type="button"
+                                        @click.stop="$dispatch('excluir-os', { id: {{ $os->id }}, numero: '{{ $os->numero }}' })"
+                                        class="text-red-600 hover:text-red-900"
+                                        title="Excluir">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -220,6 +278,7 @@
             </svg>
             <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma ordem de serviço</h3>
             <p class="mt-1 text-sm text-gray-500">Comece criando uma nova ordem de serviço.</p>
+            @if(!in_array(auth('interno')->user()->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']))
             <div class="mt-6">
                 <a href="{{ route('admin.ordens-servico.create') }}" 
                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
@@ -229,8 +288,91 @@
                     Nova Ordem de Serviço
                 </a>
             </div>
+            @endif
         </div>
         @endif
+    </div>
+    
+    {{-- Modal de Confirmação de Exclusão --}}
+    <div x-show="modalExcluir" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalExcluir = false"></div>
+
+            {{-- Modal --}}
+            <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                {{-- Header --}}
+                <div class="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Confirmar Exclusão
+                    </h3>
+                    <button type="button" @click="modalExcluir = false" class="text-white hover:text-gray-200 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Conteúdo --}}
+                <div class="px-6 py-6">
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4">
+                        <div class="flex">
+                            <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="ml-3">
+                                <p class="text-sm font-bold text-red-800">Atenção!</p>
+                                <p class="text-sm text-red-700 mt-1">Esta ação não pode ser desfeita. A ordem de serviço será excluída permanentemente.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-gray-600 mb-4">
+                        Você está prestes a excluir a Ordem de Serviço: <strong class="text-red-600" x-text="osNumero"></strong>
+                    </p>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Senha de Assinatura Digital <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" 
+                               x-ref="senhaInput"
+                               x-model="senhaAssinatura"
+                               @keyup.enter="executarExclusao()"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                               :class="{ 'border-red-500': erro }"
+                               placeholder="Digite sua senha de assinatura">
+                        <p class="mt-1 text-xs text-gray-500">
+                            Use a mesma senha configurada em <a href="{{ route('admin.assinatura.configurar-senha') }}" class="text-blue-600 hover:underline" target="_blank">Configurar Senha de Assinatura</a>
+                        </p>
+                        <p x-show="erro" x-text="erro" class="mt-1 text-sm text-red-600"></p>
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                    <button type="button" 
+                            @click="modalExcluir = false" 
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            :disabled="carregando">
+                        Cancelar
+                    </button>
+                    <button type="button" 
+                            @click="executarExclusao()"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                            :disabled="carregando || !senhaAssinatura">
+                        <svg x-show="carregando" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="carregando ? 'Excluindo...' : 'Confirmar Exclusão'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

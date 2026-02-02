@@ -330,6 +330,33 @@
                         </label>
                     </div>
 
+                    {{-- Assistente de Redação --}}
+                    @php
+                        $assistenteRedacaoAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->first();
+                    @endphp
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Assistente de Redação
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1">Ative ou desative o assistente de IA para redação de documentos</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="assistente_redacao_ativo" 
+                                   value="1"
+                                   {{ $assistenteRedacaoAtivo && $assistenteRedacaoAtivo->valor === 'true' ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-teal-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900">
+                                {{ $assistenteRedacaoAtivo && $assistenteRedacaoAtivo->valor === 'true' ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </label>
+                    </div>
+
                     {{-- Informações --}}
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-start gap-3">

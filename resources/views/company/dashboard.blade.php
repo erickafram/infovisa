@@ -333,85 +333,85 @@
     {{-- =====================================================
          SEÇÃO: RESUMO GERAL (Cards de Status)
          ===================================================== --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {{-- Card 1: Total Estabelecimentos --}}
-        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-medium text-gray-500 uppercase">Estabelecimentos</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $estatisticasEstabelecimentos['total'] }}</p>
+        <div class="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Estabelecimentos</p>
+                    <p class="text-lg font-bold text-gray-800">{{ $estatisticasEstabelecimentos['total'] }}</p>
                 </div>
-                <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                 </div>
             </div>
-            <div class="mt-2 flex items-center gap-1 flex-wrap">
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700">{{ $estatisticasEstabelecimentos['aprovados'] }} aprov.</span>
+            <div class="mt-1 flex items-center gap-1 flex-wrap">
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-green-100 text-green-700">{{ $estatisticasEstabelecimentos['aprovados'] }} aprov.</span>
                 @if($estatisticasEstabelecimentos['pendentes'] > 0)
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{{ $estatisticasEstabelecimentos['pendentes'] }} pend.</span>
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700">{{ $estatisticasEstabelecimentos['pendentes'] }} pend.</span>
                 @endif
             </div>
         </div>
 
         {{-- Card 2: Processos Ativos --}}
-        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-medium text-gray-500 uppercase">Processos</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $estatisticasProcessos['total'] }}</p>
+        <div class="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Processos</p>
+                    <p class="text-lg font-bold text-gray-800">{{ $estatisticasProcessos['total'] }}</p>
                 </div>
-                <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                 </div>
             </div>
-            <div class="mt-2 flex items-center gap-1 flex-wrap">
+            <div class="mt-1 flex items-center gap-1 flex-wrap">
                 @if($estatisticasProcessos['em_andamento'] > 0)
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{{ $estatisticasProcessos['em_andamento'] }} andamento</span>
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-blue-100 text-blue-700">{{ $estatisticasProcessos['em_andamento'] }} andamento</span>
                 @endif
                 @if($estatisticasProcessos['concluidos'] > 0)
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700">{{ $estatisticasProcessos['concluidos'] }} concl.</span>
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-green-100 text-green-700">{{ $estatisticasProcessos['concluidos'] }} concl.</span>
                 @endif
             </div>
         </div>
 
         {{-- Card 3: Pendências --}}
-        <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm {{ $totalAlertas > 0 ? 'border-amber-300' : '' }}">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-medium text-gray-500 uppercase">Pendências</p>
-                    <p class="text-xl font-bold {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }}">{{ $totalAlertas }}</p>
+        <div class="bg-white rounded-lg p-2 border border-gray-200 shadow-sm {{ $totalAlertas > 0 ? 'border-amber-300' : '' }}">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Pendências</p>
+                    <p class="text-lg font-bold {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }}">{{ $totalAlertas }}</p>
                 </div>
-                <div class="w-9 h-9 {{ $totalAlertas > 0 ? 'bg-amber-100' : 'bg-green-100' }} rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 {{ $totalAlertas > 0 ? 'bg-amber-100' : 'bg-green-100' }} rounded-lg flex items-center justify-center flex-shrink-0">
                     @if($totalAlertas > 0)
-                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                     @else
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     @endif
                 </div>
             </div>
-            <div class="mt-2">
+            <div class="mt-1">
                 @if($totalAlertas > 0)
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Requer atenção</span>
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-amber-100 text-amber-700">Requer atenção</span>
                 @else
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700">✓ Em dia</span>
+                <span class="text-[8px] font-medium px-1 py-0.5 rounded bg-green-100 text-green-700">✓ Em dia</span>
                 @endif
             </div>
         </div>
 
         {{-- Card 4: Status Geral --}}
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 shadow-sm text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-medium text-blue-100 uppercase">Situação</p>
-                    <p class="text-sm font-bold mt-0.5">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2 shadow-sm text-white">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-[9px] font-medium text-blue-100 uppercase">Situação</p>
+                    <p class="text-xs font-bold mt-0.5">
                         @if($totalAlertas == 0 && $estatisticasEstabelecimentos['pendentes'] == 0)
                             Tudo certo! 🎉
                         @elseif($totalAlertas > 0)
@@ -421,13 +421,13 @@
                         @endif
                     </p>
                 </div>
-                <div class="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     @if($totalAlertas == 0 && $estatisticasEstabelecimentos['pendentes'] == 0)
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     @else
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     @endif

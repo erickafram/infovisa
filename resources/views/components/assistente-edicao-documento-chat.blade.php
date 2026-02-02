@@ -1,4 +1,11 @@
 {{-- Assistente IA para Edição/Criação de Documentos --}}
+@php
+    // Verifica se o assistente de redação está ativo nas configurações
+    $assistenteRedacaoAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->first();
+    $redacaoAtiva = $assistenteRedacaoAtivo && $assistenteRedacaoAtivo->valor === 'true';
+@endphp
+
+@if($redacaoAtiva)
 <style>
 /* Estilos do chat de edição */
 .assistente-edicao-mensagem {
@@ -1039,4 +1046,5 @@ window.aplicarParagrafoNoEditor = function(numParagrafo, textoCorrigido) {
     }
 };
 </script>
+@endif
 

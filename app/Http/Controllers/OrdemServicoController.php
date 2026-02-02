@@ -8,8 +8,12 @@ use App\Models\Processo;
 use App\Models\TipoAcao;
 use App\Models\UsuarioInterno;
 use App\Models\Municipio;
+use App\Models\ChatConversa;
+use App\Models\ChatMensagem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class OrdemServicoController extends Controller
 {
@@ -275,6 +279,9 @@ class OrdemServicoController extends Controller
             return OrdemServico::create($validated);
         });
         
+        // Envia notificação no chat para os técnicos atribuídos
+        $this->enviarNotificacaoTecnicos($ordemServico, $usuario);
+        
         return redirect()->route('admin.ordens-servico.index')
             ->with('success', "Ordem de Serviço {$ordemServico->numero} criada com sucesso!");
     }
@@ -444,17 +451,65 @@ class OrdemServicoController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(OrdemServico $ordemServico)
+    public function destroy(Request $request, OrdemServico $ordemServico)
     {
         $usuario = Auth::guard('interno')->user();
         
         // Verifica permissão
         if (!$this->podeExcluirOS($usuario, $ordemServico)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Você não tem permissão para excluir esta ordem de serviço.'
+                ], 403);
+            }
             abort(403, 'Você não tem permissão para excluir esta ordem de serviço.');
+        }
+        
+        // Valida senha de assinatura digital
+        $senhaAssinatura = $request->input('senha_assinatura');
+        
+        if (!$senhaAssinatura) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A senha de assinatura digital é obrigatória.'
+                ], 422);
+            }
+            return back()->withErrors(['senha_assinatura' => 'A senha de assinatura digital é obrigatória.']);
+        }
+        
+        // Verifica se o usuário tem senha de assinatura configurada
+        if (!$usuario->senha_assinatura_digital) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Você não possui senha de assinatura digital configurada. Configure em "Configurar Senha de Assinatura".'
+                ], 422);
+            }
+            return back()->withErrors(['senha_assinatura' => 'Você não possui senha de assinatura digital configurada.']);
+        }
+        
+        // Valida a senha
+        if (!Hash::check($senhaAssinatura, $usuario->senha_assinatura_digital)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Senha de assinatura digital incorreta.'
+                ], 422);
+            }
+            return back()->withErrors(['senha_assinatura' => 'Senha de assinatura digital incorreta.']);
         }
         
         $numero = $ordemServico->numero;
         $ordemServico->delete();
+        
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Ordem de Serviço {$numero} excluída com sucesso!"
+            ]);
+        }
         
         return redirect()->route('admin.ordens-servico.index')
             ->with('success', "Ordem de Serviço {$numero} excluída com sucesso!");
@@ -614,17 +669,37 @@ class OrdemServicoController extends Controller
 
     /**
      * Verifica se usuário pode editar a OS
+     * Técnicos não podem editar
      */
     private function podeEditarOS($usuario, $ordemServico)
     {
+        // Técnicos não podem editar OS
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual ||
+            $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
+            return false;
+        }
+        
         return $this->podeVisualizarOS($usuario, $ordemServico);
     }
 
     /**
      * Verifica se usuário pode excluir a OS
+     * Apenas Administrador e Gestores podem excluir
      */
     private function podeExcluirOS($usuario, $ordemServico)
     {
+        // Técnicos não podem excluir OS
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual ||
+            $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
+            return false;
+        }
+        
+        // Admin pode excluir qualquer OS
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::Administrador) {
+            return true;
+        }
+        
+        // Gestores podem excluir se tiverem acesso à OS
         return $this->podeVisualizarOS($usuario, $ordemServico);
     }
 
@@ -1279,6 +1354,162 @@ class OrdemServicoController extends Controller
             ->setOption('margin-right', 10);
 
         return $pdf->download('OS-' . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . '.pdf');
+    }
+    
+    /**
+     * Envia notificação no chat interno para os técnicos atribuídos
+     */
+    private function enviarNotificacaoTecnicos(OrdemServico $ordemServico, $remetente)
+    {
+        try {
+            \Log::info('OS Notificação: Iniciando envio de notificações', [
+                'os_id' => $ordemServico->id,
+                'remetente_id' => $remetente->id,
+                'remetente_nome' => $remetente->nome,
+            ]);
+            
+            // Verifica se o chat interno está ativo
+            $chatAtivo = \App\Models\ConfiguracaoSistema::where('chave', 'chat_interno_ativo')->first();
+            if (!$chatAtivo || $chatAtivo->valor !== 'true') {
+                \Log::info('OS Notificação: Chat interno está DESATIVADO');
+                return;
+            }
+            
+            \Log::info('OS Notificação: Chat interno está ATIVO');
+            
+            // Carrega dados completos da OS
+            $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
+            
+            // Extrai técnicos únicos de todas as atividades
+            $tecnicosNotificados = [];
+            $atividadesTecnicos = $ordemServico->atividades_tecnicos ?? [];
+            
+            \Log::info('OS Notificação: Atividades encontradas', [
+                'total' => count($atividadesTecnicos),
+                'atividades' => $atividadesTecnicos,
+            ]);
+            
+            // Agrupa atividades por técnico
+            $atividadesPorTecnico = [];
+            foreach ($atividadesTecnicos as $atividade) {
+                $nomeAtividade = $atividade['nome_atividade'] ?? 'Atividade';
+                $tecnicosIds = $atividade['tecnicos'] ?? [];
+                $responsavelId = $atividade['responsavel_id'] ?? null;
+                
+                foreach ($tecnicosIds as $tecnicoId) {
+                    if (!isset($atividadesPorTecnico[$tecnicoId])) {
+                        $atividadesPorTecnico[$tecnicoId] = [
+                            'atividades' => [],
+                            'eh_responsavel' => false,
+                        ];
+                    }
+                    $atividadesPorTecnico[$tecnicoId]['atividades'][] = $nomeAtividade;
+                    if ($tecnicoId == $responsavelId) {
+                        $atividadesPorTecnico[$tecnicoId]['eh_responsavel'] = true;
+                    }
+                }
+            }
+            
+            // Dados do estabelecimento
+            $estabelecimentoNome = $ordemServico->estabelecimento 
+                ? ($ordemServico->estabelecimento->nome_fantasia ?? $ordemServico->estabelecimento->razao_social)
+                : 'Não vinculado';
+            
+            $estabelecimentoEndereco = '';
+            if ($ordemServico->estabelecimento) {
+                $est = $ordemServico->estabelecimento;
+                $estabelecimentoEndereco = $est->logradouro;
+                if ($est->numero) $estabelecimentoEndereco .= ', ' . $est->numero;
+                if ($est->bairro) $estabelecimentoEndereco .= ' - ' . $est->bairro;
+                if ($est->municipio) $estabelecimentoEndereco .= ' - ' . $est->municipio->nome . '/' . $est->municipio->uf;
+            }
+            
+            $estabelecimentoCnpj = '';
+            if ($ordemServico->estabelecimento) {
+                $estabelecimentoCnpj = $ordemServico->estabelecimento->cnpj_formatado ?? $ordemServico->estabelecimento->cpf_formatado ?? '';
+            }
+            
+            // URL do PDF (rota correta)
+            $pdfUrl = route('admin.ordens-servico.pdf', $ordemServico->id);
+            $osUrl = route('admin.ordens-servico.show', $ordemServico->id);
+            
+            foreach ($atividadesPorTecnico as $tecnicoId => $dados) {
+                \Log::info('OS Notificação: Verificando técnico', [
+                    'tecnico_id' => $tecnicoId,
+                    'remetente_id' => $remetente->id,
+                ]);
+                
+                // Busca o técnico
+                $tecnico = UsuarioInterno::find($tecnicoId);
+                if (!$tecnico) {
+                    \Log::warning('OS Notificação: Técnico não encontrado', ['tecnico_id' => $tecnicoId]);
+                    continue;
+                }
+                
+                \Log::info('OS Notificação: Enviando mensagem para técnico', [
+                    'tecnico_id' => $tecnicoId,
+                    'tecnico_nome' => $tecnico->nome,
+                ]);
+                
+                // Tipo de atribuição
+                $tipoTecnico = $dados['eh_responsavel'] ? 'Técnico Responsável' : 'Técnico';
+                
+                // Lista de atividades
+                $listaAtividades = implode("\n• ", $dados['atividades']);
+                
+                // Monta a mensagem
+                $mensagemTexto = "📋 *NOVA ORDEM DE SERVIÇO*\n\n";
+                $mensagemTexto .= "Olá {$tecnico->nome}!\n\n";
+                $mensagemTexto .= "Você foi atribuído como *{$tipoTecnico}* em uma nova Ordem de Serviço.\n\n";
+                $mensagemTexto .= "═══════════════════════════\n";
+                $mensagemTexto .= "📌 *OS Nº:* " . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . "\n";
+                $mensagemTexto .= "🏢 *Estabelecimento:* {$estabelecimentoNome}\n";
+                if ($estabelecimentoCnpj) {
+                    $mensagemTexto .= "📄 *CNPJ/CPF:* {$estabelecimentoCnpj}\n";
+                }
+                if ($estabelecimentoEndereco) {
+                    $mensagemTexto .= "📍 *Endereço:* {$estabelecimentoEndereco}\n";
+                }
+                $mensagemTexto .= "📅 *Período:* " . \Carbon\Carbon::parse($ordemServico->data_inicio)->format('d/m/Y') . " a " . \Carbon\Carbon::parse($ordemServico->data_fim)->format('d/m/Y') . "\n";
+                $mensagemTexto .= "═══════════════════════════\n\n";
+                $mensagemTexto .= "📝 *Ações a executar:*\n• {$listaAtividades}\n\n";
+                $mensagemTexto .= "🔗 *Acessar OS:* {$osUrl}\n";
+                $mensagemTexto .= "📎 *Baixar PDF:* {$pdfUrl}\n\n";
+                $mensagemTexto .= "— Suporte INFOVISA";
+                
+                // Encontra ou cria conversa entre remetente e técnico
+                $conversa = ChatConversa::encontrarOuCriar($remetente->id, $tecnicoId);
+                
+                \Log::info('OS Notificação: Conversa encontrada/criada', [
+                    'conversa_id' => $conversa->id,
+                ]);
+                
+                // Cria a mensagem de TEXTO (não arquivo)
+                $mensagem = ChatMensagem::create([
+                    'conversa_id' => $conversa->id,
+                    'remetente_id' => $remetente->id,
+                    'conteudo' => $mensagemTexto,
+                    'tipo' => 'texto',
+                ]);
+                
+                \Log::info('OS Notificação: Mensagem criada com sucesso', [
+                    'mensagem_id' => $mensagem->id,
+                ]);
+                
+                // Atualiza timestamp da conversa
+                $conversa->update(['ultima_mensagem_at' => now()]);
+            }
+            
+            \Log::info('OS Notificação: Processo finalizado', [
+                'total_notificados' => count($atividadesPorTecnico),
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('OS Notificação: ERRO ao enviar notificações', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
     }
 }
 
