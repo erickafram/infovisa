@@ -217,7 +217,12 @@
                             class="px-4 py-3 font-medium text-sm focus:outline-none transition-colors">
                         Endereço
                     </button>
-                    <button type="button" @click="abaAtiva = 'atividades'"
+                    <button type="button" @click="abaAtiva = 'tipo-processo'"
+                            :class="abaAtiva === 'tipo-processo' ? 'bg-white border-b-2 border-blue-500 text-blue-600' : 'bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700'"
+                            class="px-4 py-3 font-medium text-sm focus:outline-none transition-colors">
+                        Tipo de Processo
+                    </button>
+                    <button type="button" @click="abaAtiva = 'atividades'" x-show="!apenasAtividadesEspeciais"
                             :class="abaAtiva === 'atividades' ? 'bg-white border-b-2 border-blue-500 text-blue-600' : 'bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700'"
                             class="px-4 py-3 font-medium text-sm focus:outline-none transition-colors">
                         Atividades
@@ -234,17 +239,17 @@
             <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-semibold text-gray-800">
-                        Etapa <span x-text="getEtapaAtual()"></span> de 4 - <span x-text="getNomeAba(abaAtiva)"></span>
+                        Etapa <span x-text="getEtapaAtual()"></span> de <span x-text="getTotalEtapas()"></span> - <span x-text="getNomeAba(abaAtiva)"></span>
                     </span>
                     <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                          :class="getEtapaAtual() === 4 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'"
-                          x-text="Math.round((getEtapaAtual() / 4) * 100) + '%'"></span>
+                          :class="getEtapaAtual() === getTotalEtapas() ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'"
+                          x-text="Math.round((getEtapaAtual() / getTotalEtapas()) * 100) + '%'"></span>
                 </div>
                 
                 <div class="w-full bg-gray-200 rounded-full h-2 mb-5 overflow-hidden">
                     <div class="h-2 rounded-full transition-all duration-700"
-                         :class="getEtapaAtual() === 4 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'"
-                         :style="'width: ' + (getEtapaAtual() / 4) * 100 + '%'">
+                         :class="getEtapaAtual() === getTotalEtapas() ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'"
+                         :style="'width: ' + (getEtapaAtual() / getTotalEtapas()) * 100 + '%'">
                     </div>
                 </div>
                 
@@ -252,14 +257,14 @@
                 <div class="relative">
                     <div class="absolute top-4 left-0 right-0 h-0.5 bg-gray-300" style="margin: 0 5%;"></div>
                     <div class="absolute top-4 left-0 h-0.5 transition-all duration-700"
-                         :class="getEtapaAtual() === 4 ? 'bg-green-500' : 'bg-blue-500'"
-                         :style="'width: ' + ((getEtapaAtual() - 1) / 3) * 90 + '%; margin-left: 5%;'"></div>
+                         :class="getEtapaAtual() === getTotalEtapas() ? 'bg-green-500' : 'bg-blue-500'"
+                         :style="'width: ' + ((getEtapaAtual() - 1) / (getTotalEtapas() - 1)) * 90 + '%; margin-left: 5%;'"></div>
                     
                     <div class="flex justify-between items-start relative">
-                        <template x-for="(aba, index) in ['dados-gerais', 'endereco', 'atividades', 'contato']" :key="index">
-                            <div class="flex flex-col items-center" style="width: 25%;">
+                        <template x-for="(etapa, index) in getEtapasVisiveis()" :key="index">
+                            <div class="flex flex-col items-center" :style="'width: ' + (100 / getTotalEtapas()) + '%'">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-white border-2"
-                                     :class="getEtapaAtual() > index + 1 ? 'border-green-500 text-green-600' : (abaAtiva === aba ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-400')">
+                                     :class="getEtapaAtual() > index + 1 ? 'border-green-500 text-green-600' : (abaAtiva === etapa.aba ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-400')">
                                     <template x-if="getEtapaAtual() > index + 1">
                                         <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
@@ -270,8 +275,8 @@
                                     </template>
                                 </div>
                                 <span class="text-[9px] mt-1.5 font-medium text-center" 
-                                      :class="getEtapaAtual() > index + 1 ? 'text-green-600' : (abaAtiva === aba ? 'text-blue-600' : 'text-gray-500')"
-                                      x-text="['Dados', 'Endereço', 'Atividades', 'Contato'][index]"></span>
+                                      :class="getEtapaAtual() > index + 1 ? 'text-green-600' : (abaAtiva === etapa.aba ? 'text-blue-600' : 'text-gray-500')"
+                                      x-text="etapa.nome"></span>
                             </div>
                         </template>
                     </div>
@@ -475,12 +480,113 @@
                             ← Voltar
                         </button>
                         <button type="button" @click="proximaAba('endereco')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                            Próximo: Atividades →
+                            Próximo: Tipo de Processo →
                         </button>
                     </div>
                 </div>
 
-                {{-- Aba: Atividades --}}
+                {{-- Aba: Tipo de Processo (PASSO 3) --}}
+                <div x-show="abaAtiva === 'tipo-processo'" x-cloak>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Tipo de Cadastro</h3>
+                    <p class="text-sm text-gray-500 mb-6">Escolha uma das opções abaixo para prosseguir:</p>
+
+                    <div class="space-y-4">
+                        {{-- Opção 1: Cadastro Completo --}}
+                        <label class="block p-4 border-2 rounded-lg cursor-pointer transition-all"
+                               :class="!apenasAtividadesEspeciais ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" 
+                                       name="tipo_cadastro"
+                                       :checked="!apenasAtividadesEspeciais"
+                                       @change="apenasAtividadesEspeciais = false; atividadeEspecialProjetoArq = false; atividadeEspecialRotulagem = false;"
+                                       class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-semibold text-gray-900">Cadastro Completo</span>
+                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">Recomendado</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">
+                                        Permite abrir todos os tipos de processos:
+                                    </p>
+                                    <div class="flex flex-wrap gap-2 text-xs">
+                                        <span class="text-gray-600">📋 Licenciamento</span>
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-gray-600">📐 Projeto Arquitetônico</span>
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-gray-600">🏷️ Análise de Rotulagem</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        {{-- Opção 2: Apenas Projeto/Rotulagem --}}
+                        <label class="block p-4 border-2 rounded-lg cursor-pointer transition-all"
+                               :class="apenasAtividadesEspeciais ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-gray-300'">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" 
+                                       name="tipo_cadastro"
+                                       :checked="apenasAtividadesEspeciais"
+                                       @change="apenasAtividadesEspeciais = true; atividadePrincipalMarcada = false; atividadesExercidas = [];"
+                                       class="mt-1 h-4 w-4 text-amber-600 border-gray-300 focus:ring-amber-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-semibold text-gray-900">Apenas Projeto Arquitetônico e/ou Análise de Rotulagem</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">
+                                        Abrir apenas Projeto Arquitetônico e/ou Análise de Rotulagem.
+                                    </p>
+                                </div>
+                            </div>
+                        </label>
+
+                        {{-- Subopções quando escolhe Projeto/Rotulagem --}}
+                        <div x-show="apenasAtividadesEspeciais" x-cloak 
+                             x-transition:enter="transition ease-out duration-200"
+                             class="ml-7 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <p class="text-sm font-medium text-gray-700 mb-3">Qual tipo de processo deseja abrir?</p>
+                            
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-100"
+                                       :class="atividadeEspecialProjetoArq ? 'bg-blue-50' : ''">
+                                    <input type="checkbox" 
+                                           x-model="atividadeEspecialProjetoArq"
+                                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">📐 Projeto Arquitetônico</span>
+                                </label>
+
+                                <label class="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-100"
+                                       :class="atividadeEspecialRotulagem ? 'bg-blue-50' : ''">
+                                    <input type="checkbox" 
+                                           x-model="atividadeEspecialRotulagem"
+                                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">🏷️ Análise de Rotulagem</span>
+                                </label>
+                            </div>
+
+                            <p x-show="!atividadeEspecialProjetoArq && !atividadeEspecialRotulagem" class="mt-2 text-xs text-red-500">
+                                Selecione pelo menos uma opção
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Hidden inputs para atividades especiais --}}
+                    <input type="hidden" name="apenas_atividades_especiais" :value="apenasAtividadesEspeciais ? '1' : '0'">
+                    <input type="hidden" name="atividade_especial_projeto_arq" :value="atividadeEspecialProjetoArq ? '1' : '0'">
+                    <input type="hidden" name="atividade_especial_rotulagem" :value="atividadeEspecialRotulagem ? '1' : '0'">
+
+                    {{-- Botões de Navegação --}}
+                    <div class="flex justify-between pt-6 mt-6 border-t border-gray-200">
+                        <button type="button" @click="abaAtiva = 'endereco'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                            ← Voltar
+                        </button>
+                        <button type="button" @click="proximaAba('tipo-processo')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                            <span x-show="!apenasAtividadesEspeciais">Próximo: Atividades →</span>
+                            <span x-show="apenasAtividadesEspeciais">Próximo: Contato →</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Aba: Atividades (PASSO 4 - só aparece se NÃO for apenas projeto/rotulagem) --}}
                 <div x-show="abaAtiva === 'atividades'" x-cloak>
                     <h3 class="text-lg font-medium text-gray-900 mb-6">Atividades Econômicas</h3>
                     
@@ -490,7 +596,7 @@
                     <input type="hidden" name="cnaes_secundarios" :value="JSON.stringify(dados.cnaes_secundarios)">
 
                     {{-- Lista de Atividades (Principal + Secundárias) --}}
-                    <div class="mb-6" x-show="!apenasAtividadesEspeciais" x-cloak>
+                    <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Selecione as atividades que o estabelecimento exerce <span class="text-red-500">*</span>
                         </label>
@@ -600,106 +706,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {{-- Seção: Atividades Especiais (Projeto Arquitetônico / Análise de Rotulagem) --}}
-                    {{-- SÓ APARECE se NENHUMA atividade do CNPJ estiver marcada --}}
-                    <div class="mb-6 mt-6" 
-                         x-show="!atividadePrincipalMarcada && atividadesExercidas.length === 0"
-                         x-cloak>
-                        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
-                            <div class="flex items-start gap-3 mb-4">
-                                <div class="flex-shrink-0">
-                                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="text-sm font-bold text-indigo-900 mb-1">📋 Não deseja licenciamento sanitário?</h4>
-                                    <p class="text-xs text-indigo-700">
-                                        Se você deseja <strong>apenas</strong> abrir processo de <strong>Projeto Arquitetônico</strong> ou <strong>Análise de Rotulagem</strong> 
-                                        (sem licenciamento sanitário), marque a opção abaixo.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- Toggle para ativar modo de atividades especiais --}}
-                            <div class="mb-4">
-                                <label class="flex items-center gap-3 p-3 bg-white border-2 border-indigo-200 rounded-lg cursor-pointer hover:bg-indigo-50 transition-colors">
-                                    <input type="checkbox" 
-                                           x-model="apenasAtividadesEspeciais"
-                                           @change="toggleAtividadesEspeciais()"
-                                           class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                    <div class="flex-1">
-                                        <span class="text-sm font-semibold text-indigo-900">Sim, desejo abrir apenas Projeto Arquitetônico e/ou Análise de Rotulagem</span>
-                                        <p class="text-xs text-indigo-600 mt-0.5">Não será necessário selecionar atividades econômicas</p>
-                                    </div>
-                                </label>
-                            </div>
-
-                            {{-- Opções de atividades especiais --}}
-                            <div x-show="apenasAtividadesEspeciais" x-cloak class="space-y-3 pt-3 border-t border-indigo-200">
-                                <p class="text-xs font-medium text-indigo-800 mb-2">Selecione o(s) tipo(s) de processo que deseja abrir:</p>
-                                
-                                {{-- Projeto Arquitetônico --}}
-                                <label class="flex items-start gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all"
-                                       :class="atividadeEspecialProjetoArq ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300'">
-                                    <input type="checkbox" 
-                                           x-model="atividadeEspecialProjetoArq"
-                                           @change="atualizarAtividadesEspeciais()"
-                                           class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded">PROJ_ARQ</span>
-                                            <span class="text-sm font-semibold text-gray-900">Projeto Arquitetônico</span>
-                                        </div>
-                                        <p class="text-xs text-gray-600">Análise de projeto arquitetônico para adequação sanitária</p>
-                                        <p class="text-xs text-indigo-600 mt-1">📍 Competência: Estadual (pode ser descentralizado para alguns municípios)</p>
-                                    </div>
-                                </label>
-
-                                {{-- Análise de Rotulagem --}}
-                                <label class="flex items-start gap-3 p-3 bg-white border-2 rounded-lg cursor-pointer transition-all"
-                                       :class="atividadeEspecialRotulagem ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300'">
-                                    <input type="checkbox" 
-                                           x-model="atividadeEspecialRotulagem"
-                                           @change="atualizarAtividadesEspeciais()"
-                                           class="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded">ANAL_ROT</span>
-                                            <span class="text-sm font-semibold text-gray-900">Análise de Rotulagem</span>
-                                        </div>
-                                        <p class="text-xs text-gray-600">Análise e aprovação de rótulos de produtos</p>
-                                        <p class="text-xs text-indigo-600 mt-1">📍 Competência: Estadual (pode ser descentralizado para alguns municípios)</p>
-                                    </div>
-                                </label>
-
-                                {{-- Aviso importante --}}
-                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
-                                    <div class="flex items-start gap-2">
-                                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <div class="text-xs text-amber-800">
-                                            <p class="font-semibold mb-1">⚠️ Importante:</p>
-                                            <ul class="list-disc list-inside space-y-1">
-                                                <li>Ao marcar esta opção, você <strong>não poderá</strong> abrir processo de Licenciamento Sanitário</li>
-                                                <li>Se precisar de licenciamento no futuro, deverá atualizar o cadastro com as atividades do CNPJ</li>
-                                                <li>A competência (Estado ou Município) será definida conforme a pactuação vigente</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Hidden inputs para atividades especiais --}}
-                    <input type="hidden" name="apenas_atividades_especiais" :value="apenasAtividadesEspeciais ? '1' : '0'">
-                    <input type="hidden" name="atividade_especial_projeto_arq" :value="atividadeEspecialProjetoArq ? '1' : '0'">
-                    <input type="hidden" name="atividade_especial_rotulagem" :value="atividadeEspecialRotulagem ? '1' : '0'">
 
                     {{-- Questionários Dinâmicos --}}
                     <div x-show="questionarios.length > 0 && !apenasAtividadesEspeciais" class="mt-6 space-y-4">
@@ -889,7 +895,7 @@
 
                     {{-- Botões de Navegação --}}
                     <div class="flex justify-between pt-4 border-t border-gray-200">
-                        <button type="button" @click="abaAtiva = 'endereco'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                        <button type="button" @click="abaAtiva = 'tipo-processo'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
                             ← Voltar
                         </button>
                         <button type="button" 
@@ -990,7 +996,7 @@
 
                     {{-- Botões de Navegação --}}
                     <div class="flex justify-between pt-4 border-t border-gray-200">
-                        <button type="button" @click="abaAtiva = 'atividades'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                        <button type="button" @click="abaAtiva = apenasAtividadesEspeciais ? 'tipo-processo' : 'atividades'" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
                             ← Voltar
                         </button>
                         <button type="submit" 
@@ -1392,14 +1398,44 @@ function estabelecimentoFormCompany() {
         },
 
         getEtapaAtual() {
-            const abas = ['dados-gerais', 'endereco', 'atividades', 'contato'];
-            return abas.indexOf(this.abaAtiva) + 1;
+            // Etapas variam dependendo se é cadastro completo ou apenas projeto/rotulagem
+            if (this.apenasAtividadesEspeciais) {
+                const abas = ['dados-gerais', 'endereco', 'tipo-processo', 'contato'];
+                return abas.indexOf(this.abaAtiva) + 1;
+            } else {
+                const abas = ['dados-gerais', 'endereco', 'tipo-processo', 'atividades', 'contato'];
+                return abas.indexOf(this.abaAtiva) + 1;
+            }
+        },
+
+        getTotalEtapas() {
+            return this.apenasAtividadesEspeciais ? 4 : 5;
+        },
+
+        getEtapasVisiveis() {
+            if (this.apenasAtividadesEspeciais) {
+                return [
+                    { aba: 'dados-gerais', nome: 'Dados' },
+                    { aba: 'endereco', nome: 'Endereço' },
+                    { aba: 'tipo-processo', nome: 'Tipo' },
+                    { aba: 'contato', nome: 'Contato' }
+                ];
+            } else {
+                return [
+                    { aba: 'dados-gerais', nome: 'Dados' },
+                    { aba: 'endereco', nome: 'Endereço' },
+                    { aba: 'tipo-processo', nome: 'Tipo' },
+                    { aba: 'atividades', nome: 'Atividades' },
+                    { aba: 'contato', nome: 'Contato' }
+                ];
+            }
         },
 
         getNomeAba(aba) {
             const nomes = {
                 'dados-gerais': 'Dados Gerais',
                 'endereco': 'Endereço',
+                'tipo-processo': 'Tipo de Processo',
                 'atividades': 'Atividades',
                 'contato': 'Contato'
             };
@@ -1603,30 +1639,32 @@ function estabelecimentoFormCompany() {
                 if (!this.dados.estado) erros.push('Estado é obrigatório');
             }
             
-            if (aba === 'atividades') {
+            if (aba === 'tipo-processo') {
                 // Se está no modo de atividades especiais, valida se pelo menos uma foi selecionada
                 if (this.apenasAtividadesEspeciais) {
                     if (!this.atividadeEspecialProjetoArq && !this.atividadeEspecialRotulagem) {
-                        erros.push('Selecione pelo menos uma atividade especial (Projeto Arquitetônico ou Análise de Rotulagem)');
+                        erros.push('Selecione pelo menos uma opção: Projeto Arquitetônico ou Análise de Rotulagem');
                     }
-                } else {
-                    // Validar se pelo menos uma atividade foi selecionada
-                    if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
-                        erros.push('Selecione pelo menos uma atividade que será exercida');
+                }
+            }
+            
+            if (aba === 'atividades') {
+                // Validar se pelo menos uma atividade foi selecionada
+                if (!this.atividadePrincipalMarcada && this.atividadesExercidas.length === 0) {
+                    erros.push('Selecione pelo menos uma atividade que será exercida');
+                }
+                
+                // Validar questionários
+                if (this.questionarios.length > 0) {
+                    const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
+                    if (questionariosNaoRespondidos.length > 0) {
+                        erros.push('Responda todos os questionários obrigatórios');
                     }
                     
-                    // Validar questionários
-                    if (this.questionarios.length > 0) {
-                        const questionariosNaoRespondidos = this.questionarios.filter(q => !this.respostasQuestionario[q.cnae]);
-                        if (questionariosNaoRespondidos.length > 0) {
-                            erros.push('Responda todos os questionários obrigatórios');
-                        }
-                        
-                        // Validar segunda pergunta (se existir)
-                        const questionarios2NaoRespondidos = this.questionarios.filter(q => q.pergunta2 && !this.respostasQuestionario2[q.cnae]);
-                        if (questionarios2NaoRespondidos.length > 0) {
-                            erros.push('Responda todas as perguntas dos questionários (incluindo a segunda pergunta)');
-                        }
+                    // Validar segunda pergunta (se existir)
+                    const questionarios2NaoRespondidos = this.questionarios.filter(q => q.pergunta2 && !this.respostasQuestionario2[q.cnae]);
+                    if (questionarios2NaoRespondidos.length > 0) {
+                        erros.push('Responda todas as perguntas dos questionários (incluindo a segunda pergunta)');
                     }
                 }
             }
@@ -1642,7 +1680,14 @@ function estabelecimentoFormCompany() {
                 return;
             }
             
-            const abas = ['dados-gerais', 'endereco', 'atividades', 'contato'];
+            // Define as abas dependendo do tipo de cadastro
+            let abas;
+            if (this.apenasAtividadesEspeciais) {
+                abas = ['dados-gerais', 'endereco', 'tipo-processo', 'contato'];
+            } else {
+                abas = ['dados-gerais', 'endereco', 'tipo-processo', 'atividades', 'contato'];
+            }
+            
             const indexAtual = abas.indexOf(abaAtual);
             if (indexAtual < abas.length - 1) {
                 this.abaAtiva = abas[indexAtual + 1];

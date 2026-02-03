@@ -373,8 +373,10 @@ class DashboardController extends Controller
                 ];
             } else {
                 $tarefasArray[$key]['total']++;
-                if ($doc->created_at < $tarefasArray[$key]['created_at']) {
+                // Usar o documento mais RECENTE para calcular o prazo (cada novo documento reinicia o prazo)
+                if ($doc->created_at > $tarefasArray[$key]['created_at']) {
                     $tarefasArray[$key]['created_at'] = $doc->created_at;
+                    $tarefasArray[$key]['primeiro_arquivo'] = $doc->nome_original;
                     $diasPendente = (int) $doc->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
                     $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
@@ -410,8 +412,10 @@ class DashboardController extends Controller
                 ];
             } else {
                 $tarefasArray[$key]['total']++;
-                if ($resposta->created_at < $tarefasArray[$key]['created_at']) {
+                // Usar a resposta mais RECENTE para calcular o prazo (cada nova resposta reinicia o prazo)
+                if ($resposta->created_at > $tarefasArray[$key]['created_at']) {
                     $tarefasArray[$key]['created_at'] = $resposta->created_at;
+                    $tarefasArray[$key]['primeiro_arquivo'] = $resposta->nome_original;
                     $diasPendente = (int) $resposta->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
                     $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
@@ -685,8 +689,10 @@ class DashboardController extends Controller
                 ];
             } else {
                 $tarefasArray[$key]['total']++;
-                if ($doc->created_at < $tarefasArray[$key]['created_at']) {
+                // Usar o documento mais RECENTE para calcular o prazo (cada novo documento reinicia o prazo)
+                if ($doc->created_at > $tarefasArray[$key]['created_at']) {
                     $tarefasArray[$key]['created_at'] = $doc->created_at;
+                    $tarefasArray[$key]['primeiro_arquivo'] = $doc->nome_original;
                     $diasPendente = (int) $doc->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
                     $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
@@ -721,8 +727,10 @@ class DashboardController extends Controller
                 ];
             } else {
                 $tarefasArray[$key]['total']++;
-                if ($resposta->created_at < $tarefasArray[$key]['created_at']) {
+                // Usar a resposta mais RECENTE para calcular o prazo (cada nova resposta reinicia o prazo)
+                if ($resposta->created_at > $tarefasArray[$key]['created_at']) {
                     $tarefasArray[$key]['created_at'] = $resposta->created_at;
+                    $tarefasArray[$key]['primeiro_arquivo'] = $resposta->nome_original;
                     $diasPendente = (int) $resposta->created_at->diffInDays(now());
                     $tarefasArray[$key]['dias_pendente'] = $diasPendente;
                     $tarefasArray[$key]['atrasado'] = $isLicenciamento && $diasPendente > 5;
