@@ -533,8 +533,15 @@ class DashboardController extends Controller
         $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
 
-        // Mostra apenas processos onde o usuário é o responsável direto
-        $query->where('responsavel_atual_id', $usuario->id);
+        // Mostra processos onde o usuário é responsável direto OU que estão no setor do usuário
+        $query->where(function($q) use ($usuario) {
+            $q->where('responsavel_atual_id', $usuario->id);
+            
+            // Inclui também processos do setor do usuário (sem responsável direto ou com qualquer responsável)
+            if ($usuario->setor) {
+                $q->orWhere('setor_atual', $usuario->setor);
+            }
+        });
 
         // Filtrar por competência
         if ($usuario->isEstadual()) {
@@ -574,6 +581,10 @@ class DashboardController extends Controller
                 ];
             }
             
+            // Verifica se é processo direto do usuário ou apenas do setor
+            $isMeuDireto = $proc->responsavel_atual_id === $usuario->id;
+            $isDoSetor = !$isMeuDireto && $usuario->setor && $proc->setor_atual === $usuario->setor;
+            
             return [
                 'id' => $proc->id,
                 'numero_processo' => $proc->numero_processo,
@@ -581,7 +592,9 @@ class DashboardController extends Controller
                 'estabelecimento' => $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? '-',
                 'status' => $proc->status,
                 'status_nome' => $proc->status_nome,
-                'is_meu_direto' => $proc->responsavel_atual_id === $usuario->id,
+                'is_meu_direto' => $isMeuDireto,
+                'is_do_setor' => $isDoSetor,
+                'setor_atual' => $proc->setor_atual,
                 'responsavel_desde' => $proc->responsavel_desde ? $proc->responsavel_desde->diffForHumans() : null,
                 'prazo' => $prazoInfo,
                 'url' => route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]),

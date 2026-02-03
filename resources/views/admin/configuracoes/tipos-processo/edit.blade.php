@@ -111,6 +111,29 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                {{-- Setor Responsável --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Setor Responsável pela Análise Inicial
+                    </label>
+                    <select name="tipo_setor_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_setor_id') border-red-500 @enderror">
+                        <option value="">-- Selecione um setor (opcional) --</option>
+                        @foreach($tiposSetor as $setor)
+                            <option value="{{ $setor->id }}" {{ old('tipo_setor_id', $tipoProcesso->tipo_setor_id) == $setor->id ? 'selected' : '' }}>
+                                {{ $setor->nome }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Quando um processo deste tipo for criado, será automaticamente encaminhado para este setor.
+                        Os usuários vinculados ao setor receberão notificação do novo processo.
+                    </p>
+                    @error('tipo_setor_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
         </div>
 

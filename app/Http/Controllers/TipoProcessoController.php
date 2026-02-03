@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TipoProcesso;
 use App\Models\Municipio;
+use App\Models\TipoSetor;
 use Illuminate\Http\Request;
 
 class TipoProcessoController extends Controller
@@ -13,7 +14,7 @@ class TipoProcessoController extends Controller
      */
     public function index()
     {
-        $tiposProcesso = TipoProcesso::ordenado()->get();
+        $tiposProcesso = TipoProcesso::with('tipoSetor')->ordenado()->get();
         return view('admin.configuracoes.tipos-processo.index', compact('tiposProcesso'));
     }
 
@@ -23,7 +24,8 @@ class TipoProcessoController extends Controller
     public function create()
     {
         $municipios = Municipio::orderBy('nome')->get();
-        return view('admin.configuracoes.tipos-processo.create', compact('municipios'));
+        $tiposSetor = TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        return view('admin.configuracoes.tipos-processo.create', compact('municipios', 'tiposSetor'));
     }
 
     /**
@@ -37,6 +39,7 @@ class TipoProcessoController extends Controller
             'descricao' => 'nullable|string',
             'ordem' => 'nullable|integer|min:0',
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
+            'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -47,6 +50,11 @@ class TipoProcessoController extends Controller
         $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        
+        // Trata o tipo_setor_id vazio
+        if (empty($validated['tipo_setor_id'])) {
+            $validated['tipo_setor_id'] = null;
+        }
         
         // Processa municípios descentralizados (apenas para tipos estaduais)
         if ($validated['competencia'] === 'estadual' && $request->filled('municipios_descentralizados')) {
@@ -80,7 +88,8 @@ class TipoProcessoController extends Controller
     public function edit(TipoProcesso $tipoProcesso)
     {
         $municipios = Municipio::orderBy('nome')->get();
-        return view('admin.configuracoes.tipos-processo.edit', compact('tipoProcesso', 'municipios'));
+        $tiposSetor = TipoSetor::where('ativo', true)->orderBy('nome')->get();
+        return view('admin.configuracoes.tipos-processo.edit', compact('tipoProcesso', 'municipios', 'tiposSetor'));
     }
 
     /**
@@ -94,6 +103,7 @@ class TipoProcessoController extends Controller
             'descricao' => 'nullable|string',
             'ordem' => 'nullable|integer|min:0',
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
+            'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -104,6 +114,11 @@ class TipoProcessoController extends Controller
         $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        
+        // Trata o tipo_setor_id vazio
+        if (empty($validated['tipo_setor_id'])) {
+            $validated['tipo_setor_id'] = null;
+        }
         
         // Processa municípios descentralizados (apenas para tipos estaduais)
         if ($validated['competencia'] === 'estadual' && $request->filled('municipios_descentralizados')) {

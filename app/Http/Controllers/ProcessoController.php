@@ -556,12 +556,12 @@ class ProcessoController extends Controller
         
         // Usa transaction para evitar duplicação de número
         try {
-            $processo = \DB::transaction(function () use ($estabelecimento, $validated) {
+            $processo = \DB::transaction(function () use ($estabelecimento, $validated, $tipoProcesso) {
                 // Gera número do processo dentro da transaction
                 $numeroData = Processo::gerarNumeroProcesso();
                 
-                // Cria o processo
-                return Processo::create([
+                // Prepara dados do processo
+                $dadosProcesso = [
                     'estabelecimento_id' => $estabelecimento->id,
                     'usuario_id' => Auth::guard('interno')->user()->id,
                     'tipo' => $validated['tipo'],
@@ -570,7 +570,15 @@ class ProcessoController extends Controller
                     'numero_processo' => $numeroData['numero_processo'],
                     'status' => 'aberto',
                     'observacoes' => $validated['observacoes'] ?? null,
-                ]);
+                ];
+                
+                // Se o tipo de processo tem setor configurado, atribui automaticamente
+                if ($tipoProcesso && $tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
+                    $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                }
+                
+                // Cria o processo
+                return Processo::create($dadosProcesso);
             });
             
             return redirect()

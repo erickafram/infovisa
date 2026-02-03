@@ -1418,7 +1418,8 @@ class EstabelecimentoController extends Controller
                 $ano = date('Y');
                 $dadosNumero = \App\Models\Processo::gerarNumeroProcesso($ano);
 
-                $processo = \App\Models\Processo::create([
+                // Prepara dados do processo
+                $dadosProcesso = [
                     'estabelecimento_id' => $estabelecimento->id,
                     'usuario_externo_id' => auth('externo')->id(),
                     'aberto_por_externo' => true,
@@ -1428,7 +1429,14 @@ class EstabelecimentoController extends Controller
                     'numero_processo' => $dadosNumero['numero_processo'],
                     'status' => 'aberto',
                     'observacoes' => $validated['observacao'] ?? null,
-                ]);
+                ];
+                
+                // Se o tipo de processo tem setor configurado, atribui automaticamente
+                if ($tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
+                    $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                }
+
+                $processo = \App\Models\Processo::create($dadosProcesso);
 
                 // Salva os documentos enviados
                 if ($request->hasFile('documentos')) {

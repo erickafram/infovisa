@@ -20,6 +20,7 @@ class TipoProcesso extends Model
         'competencia',
         'municipios_descentralizados',
         'municipios_descentralizados_ids',
+        'tipo_setor_id',
     ];
 
     protected $casts = [
@@ -33,6 +34,14 @@ class TipoProcesso extends Model
         'municipios_descentralizados' => 'array',
         'municipios_descentralizados_ids' => 'array',
     ];
+
+    /**
+     * Relacionamento com o setor responsável pela análise inicial
+     */
+    public function tipoSetor()
+    {
+        return $this->belongsTo(TipoSetor::class);
+    }
 
     /**
      * Scope para tipos ativos

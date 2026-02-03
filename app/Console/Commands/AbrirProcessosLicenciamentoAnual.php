@@ -86,8 +86,12 @@ class AbrirProcessosLicenciamentoAnual extends Command
                     // Cria o processo dentro de uma transação
                     DB::transaction(function () use ($estabelecimento, $ano, &$sucessos) {
                         $numeroProcesso = Processo::gerarNumeroProcesso($ano);
-
-                        Processo::create([
+                        
+                        // Busca o tipo de processo de licenciamento para pegar o setor configurado
+                        $tipoProcesso = \App\Models\TipoProcesso::where('codigo', 'licenciamento')->first();
+                        
+                        // Prepara dados do processo
+                        $dadosProcesso = [
                             'estabelecimento_id' => $estabelecimento->id,
                             'usuario_id' => null, // Sistema automático
                             'tipo' => 'licenciamento',
@@ -96,7 +100,14 @@ class AbrirProcessosLicenciamentoAnual extends Command
                             'numero_processo' => $numeroProcesso['numero_processo'],
                             'status' => 'aberto',
                             'observacoes' => 'Processo aberto automaticamente pelo sistema para renovação anual de licenciamento sanitário.',
-                        ]);
+                        ];
+                        
+                        // Se o tipo de processo tem setor configurado, atribui automaticamente
+                        if ($tipoProcesso && $tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
+                            $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                        }
+
+                        Processo::create($dadosProcesso);
 
                         $sucessos++;
                     });
