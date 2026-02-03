@@ -328,7 +328,7 @@
                                     </div>
                                     <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
                                         <span class="text-xs text-gray-500 font-medium" x-text="'ID: ' + est.id"></span>
-                                        <a :href="'/admin/estabelecimentos/' + est.id + '/equipamentos-radiacao'" 
+                                        <a :href="'{{ url('/admin/estabelecimentos') }}/' + est.id + '/equipamentos-radiacao'" 
                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
                                             Ver
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
