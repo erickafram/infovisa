@@ -458,6 +458,17 @@ class ProcessoController extends Controller
             });
         }
         
+        // Filtro por tipo de processo
+        if ($request->filled('tipo_processo')) {
+            $tipoProcesso = $request->tipo_processo;
+            $docsQuery->whereHas('processo', function($q) use ($tipoProcesso) {
+                $q->where('tipo', $tipoProcesso);
+            });
+            $respostasQuery->whereHas('documentoDigital.processo', function($q) use ($tipoProcesso) {
+                $q->where('tipo', $tipoProcesso);
+            });
+        }
+        
         $documentosPendentes = $docsQuery->orderBy('created_at', 'desc')->get();
         $respostasPendentes = $respostasQuery->orderBy('created_at', 'desc')->get();
         
@@ -470,7 +481,10 @@ class ProcessoController extends Controller
             $respostasPendentes = $respostasPendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
         }
         
-        return view('processos.documentos-pendentes', compact('documentosPendentes', 'respostasPendentes'));
+        // Buscar tipos de processo ativos para o filtro
+        $tiposProcesso = TipoProcesso::ativos()->ordenado()->get();
+        
+        return view('processos.documentos-pendentes', compact('documentosPendentes', 'respostasPendentes', 'tiposProcesso'));
     }
 
     /**

@@ -27,12 +27,24 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.documentos-pendentes.index') }}" class="flex gap-4 items-end">
-            <div class="flex-1">
+        <form method="GET" action="{{ route('admin.documentos-pendentes.index') }}" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
                 <label for="estabelecimento" class="block text-sm font-medium text-gray-700 mb-1">Estabelecimento</label>
                 <input type="text" id="estabelecimento" name="estabelecimento" value="{{ request('estabelecimento') }}"
                        placeholder="Nome ou CNPJ"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+            </div>
+            <div class="w-48">
+                <label for="tipo_processo" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Processo</label>
+                <select id="tipo_processo" name="tipo_processo"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+                    <option value="">Todos</option>
+                    @foreach($tiposProcesso as $tipo)
+                        <option value="{{ $tipo->codigo }}" {{ request('tipo_processo') == $tipo->codigo ? 'selected' : '' }}>
+                            {{ $tipo->nome }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">
                 Filtrar
