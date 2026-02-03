@@ -26,6 +26,22 @@ class EstabelecimentoController extends Controller
     }
 
     /**
+     * Verifica se o usuário tem acesso de gestor ao estabelecimento.
+     * Se não tiver, redireciona com mensagem de erro.
+     * 
+     * @param Estabelecimento $estabelecimento
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    private function verificarAcessoGestor(Estabelecimento $estabelecimento)
+    {
+        if ($estabelecimento->usuarioEhVisualizador()) {
+            return redirect()->route('company.estabelecimentos.show', $estabelecimento->id)
+                ->with('error', 'Acesso restrito: sua conta possui permissão apenas para visualização. Entre em contato com o responsável do estabelecimento para solicitar permissões de edição.');
+        }
+        return null;
+    }
+
+    /**
      * Busca CNAEs por código ou descrição
      */
     public function buscarCnaes(Request $request)
@@ -405,6 +421,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
         
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+        
         return view('company.estabelecimentos.edit', compact('estabelecimento'));
     }
 
@@ -416,6 +437,11 @@ class EstabelecimentoController extends Controller
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         $rules = [
             'nome_fantasia' => 'required|string|max:255',
@@ -510,6 +536,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
         
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+        
         // Valida o tipo
         if (!in_array($tipo, ['legal', 'tecnico'])) {
             $tipo = 'legal';
@@ -526,6 +557,11 @@ class EstabelecimentoController extends Controller
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         $rules = [
             'nome' => 'required|string|max:255',
@@ -637,6 +673,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         $estabelecimento->responsaveis()->detach($responsavelId);
 
         return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
@@ -651,6 +692,11 @@ class EstabelecimentoController extends Controller
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
+        
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
         
         $responsavel = \App\Models\Responsavel::findOrFail($responsavelId);
         
@@ -671,6 +717,11 @@ class EstabelecimentoController extends Controller
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
             ->findOrFail($id);
+        
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
         
         $responsavel = \App\Models\Responsavel::findOrFail($responsavelId);
         
@@ -767,7 +818,11 @@ class EstabelecimentoController extends Controller
         $criador = $estabelecimento->usuarioExterno;
         $criadorVinculado = $estabelecimento->usuariosVinculados->contains('id', $criador?->id);
         
-        return view('company.estabelecimentos.usuarios.index', compact('estabelecimento', 'criador', 'criadorVinculado'));
+        // Verifica se o usuário atual é visualizador
+        $ehVisualizador = $estabelecimento->usuarioEhVisualizador();
+        $usuarioAtualId = auth('externo')->id();
+        
+        return view('company.estabelecimentos.usuarios.index', compact('estabelecimento', 'criador', 'criadorVinculado', 'ehVisualizador', 'usuarioAtualId'));
     }
 
     /**
@@ -779,9 +834,15 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         $validated = $request->validate([
             'email' => 'required|email',
             'tipo_vinculo' => 'required|string|max:50',
+            'nivel_acesso' => 'required|in:gestor,visualizador',
             'observacao' => 'nullable|string|max:255',
         ]);
 
@@ -798,6 +859,7 @@ class EstabelecimentoController extends Controller
         $estabelecimento->usuariosVinculados()->syncWithoutDetaching([
             $usuario->id => [
                 'tipo_vinculo' => $validated['tipo_vinculo'],
+                'nivel_acesso' => $validated['nivel_acesso'],
                 'observacao' => $validated['observacao'] ?? null,
                 'vinculado_por' => auth('externo')->id(),
             ]
@@ -816,6 +878,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->findOrFail($id);
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         // Bloqueia exclusão do usuário criador do estabelecimento
         if ($estabelecimento->usuario_externo_id == $usuarioId) {
             return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
@@ -826,6 +893,38 @@ class EstabelecimentoController extends Controller
 
         return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
             ->with('success', 'Vínculo removido com sucesso!');
+    }
+
+    /**
+     * Atualiza o nível de acesso de um usuário vinculado
+     */
+    public function usuariosUpdate(Request $request, $id, $usuarioId)
+    {
+        $estabelecimento = $this->estabelecimentosDoUsuario()
+            ->where('status', 'aprovado')
+            ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
+        $validated = $request->validate([
+            'nivel_acesso' => 'required|in:gestor,visualizador',
+        ]);
+
+        // Não permite alterar o nível de acesso do criador do estabelecimento
+        if ($estabelecimento->usuario_externo_id == $usuarioId) {
+            return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
+                ->with('error', 'Não é possível alterar o nível de acesso do criador do estabelecimento.');
+        }
+
+        $estabelecimento->usuariosVinculados()->updateExistingPivot($usuarioId, [
+            'nivel_acesso' => $validated['nivel_acesso'],
+        ]);
+
+        return redirect()->route('company.estabelecimentos.usuarios.index', $estabelecimento->id)
+            ->with('success', 'Nível de acesso atualizado com sucesso!');
     }
 
     /**
@@ -850,6 +949,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->with(['responsaveisLegais'])
             ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         // Verifica se tem responsável legal cadastrado
         if ($estabelecimento->responsaveisLegais->isEmpty()) {
@@ -1234,6 +1338,11 @@ class EstabelecimentoController extends Controller
             ->where('status', 'aprovado')
             ->with(['responsaveisLegais'])
             ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         // Verifica se tem responsável legal com documento
         if ($estabelecimento->responsaveisLegais->isEmpty()) {

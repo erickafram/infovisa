@@ -265,8 +265,73 @@ class Estabelecimento extends Model
     public function usuariosVinculados()
     {
         return $this->belongsToMany(UsuarioExterno::class, 'estabelecimento_usuario_externo')
-                    ->withPivot('tipo_vinculo', 'observacao', 'vinculado_por')
+                    ->withPivot('tipo_vinculo', 'observacao', 'vinculado_por', 'nivel_acesso')
                     ->withTimestamps();
+    }
+
+    /**
+     * Verifica se o usuário tem acesso de gestor (pode editar) no estabelecimento
+     * Retorna true se:
+     * - É o criador do estabelecimento
+     * - É um usuário vinculado com nivel_acesso = 'gestor'
+     * 
+     * @param int|null $usuarioId ID do usuário externo (se null, usa o usuário logado)
+     * @return bool
+     */
+    public function usuarioTemAcessoGestor(?int $usuarioId = null): bool
+    {
+        $usuarioId = $usuarioId ?? auth('externo')->id();
+        
+        if (!$usuarioId) {
+            return false;
+        }
+        
+        // Criador do estabelecimento sempre tem acesso total
+        if ($this->usuario_externo_id == $usuarioId) {
+            return true;
+        }
+        
+        // Verifica se é um usuário vinculado com nível 'gestor'
+        $vinculo = $this->usuariosVinculados()
+            ->where('usuario_externo_id', $usuarioId)
+            ->first();
+        
+        if ($vinculo && ($vinculo->pivot->nivel_acesso ?? 'gestor') === 'gestor') {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Verifica se o usuário é apenas visualizador no estabelecimento
+     * 
+     * @param int|null $usuarioId ID do usuário externo (se null, usa o usuário logado)
+     * @return bool
+     */
+    public function usuarioEhVisualizador(?int $usuarioId = null): bool
+    {
+        $usuarioId = $usuarioId ?? auth('externo')->id();
+        
+        if (!$usuarioId) {
+            return false;
+        }
+        
+        // Criador do estabelecimento nunca é visualizador
+        if ($this->usuario_externo_id == $usuarioId) {
+            return false;
+        }
+        
+        // Verifica se é um usuário vinculado com nível 'visualizador'
+        $vinculo = $this->usuariosVinculados()
+            ->where('usuario_externo_id', $usuarioId)
+            ->first();
+        
+        if ($vinculo && ($vinculo->pivot->nivel_acesso ?? 'gestor') === 'visualizador') {
+            return true;
+        }
+        
+        return false;
     }
 
     /**

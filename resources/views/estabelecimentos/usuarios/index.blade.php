@@ -107,8 +107,6 @@
                     <select id="tipo_vinculo" name="tipo_vinculo" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Selecione</option>
-                        <option value="responsavel_legal">Responsável Legal</option>
-                        <option value="responsavel_tecnico">Responsável Técnico</option>
                         <option value="funcionario">Funcionário</option>
                         <option value="contador">Contador</option>
                     </select>
@@ -118,6 +116,24 @@
                 </div>
 
                 <div>
+                    <label for="nivel_acesso" class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso *</label>
+                    <select id="nivel_acesso" name="nivel_acesso" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="gestor">Gestor (Acesso Total)</option>
+                        <option value="visualizador">Visualizador (Somente Leitura)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        <strong>Gestor:</strong> pode criar processos, editar cadastro, anexar documentos.<br>
+                        <strong>Visualizador:</strong> apenas visualiza informações.
+                    </p>
+                    @error('nivel_acesso')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="md:col-span-3">
                     <label for="observacao" class="block text-sm font-medium text-gray-700 mb-2">Observação</label>
                     <input type="text" id="observacao" name="observacao" maxlength="500"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -249,7 +265,7 @@
                                 </div>
                             </div>
 
-                            <div class="ml-13 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div class="ml-13 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
                                     <span class="text-gray-500">Telefone:</span>
                                     <p class="font-medium text-gray-900">{{ $usuario->telefone_formatado ?? '-' }}</p>
@@ -269,6 +285,23 @@
                                             {{ $tipos[$usuario->pivot->tipo_vinculo] ?? $usuario->pivot->tipo_vinculo }}
                                         </span>
                                     </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Nível de Acesso:</span>
+                                    @if($isCriador)
+                                        <p class="font-medium">
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                Acesso Total (Criador)
+                                            </span>
+                                        </p>
+                                    @else
+                                        @php $nivelAcesso = $usuario->pivot->nivel_acesso ?? 'gestor'; @endphp
+                                        <p class="font-medium">
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ $nivelAcesso === 'gestor' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                                {{ $nivelAcesso === 'gestor' ? 'Gestor (Acesso Total)' : 'Visualizador (Somente Leitura)' }}
+                                            </span>
+                                        </p>
+                                    @endif
                                 </div>
                                 <div>
                                     <span class="text-gray-500">Vinculado em:</span>
@@ -330,10 +363,17 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Vínculo *</label>
                                     <select name="tipo_vinculo" required
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="responsavel_legal" {{ $usuario->pivot->tipo_vinculo === 'responsavel_legal' ? 'selected' : '' }}>Responsável Legal</option>
-                                        <option value="responsavel_tecnico" {{ $usuario->pivot->tipo_vinculo === 'responsavel_tecnico' ? 'selected' : '' }}>Responsável Técnico</option>
                                         <option value="funcionario" {{ $usuario->pivot->tipo_vinculo === 'funcionario' ? 'selected' : '' }}>Funcionário</option>
                                         <option value="contador" {{ $usuario->pivot->tipo_vinculo === 'contador' ? 'selected' : '' }}>Contador</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso *</label>
+                                    @php $nivelAcessoAtual = $usuario->pivot->nivel_acesso ?? 'gestor'; @endphp
+                                    <select name="nivel_acesso" required
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="gestor" {{ $nivelAcessoAtual === 'gestor' ? 'selected' : '' }}>Gestor (Acesso Total)</option>
+                                        <option value="visualizador" {{ $nivelAcessoAtual === 'visualizador' ? 'selected' : '' }}>Visualizador (Somente Leitura)</option>
                                     </select>
                                 </div>
                                 <div class="mb-4">

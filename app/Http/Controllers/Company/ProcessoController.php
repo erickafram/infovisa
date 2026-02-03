@@ -39,6 +39,35 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Verifica se o usuário tem acesso de gestor ao estabelecimento do processo.
+     * Se não tiver, retorna resposta de erro (JSON para AJAX, redirect para normal).
+     * 
+     * @param Processo $processo
+     * @param bool $isAjax Se a requisição é AJAX
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse|null
+     */
+    private function verificarAcessoGestorProcesso(Processo $processo, bool $isAjax = false)
+    {
+        $estabelecimento = $processo->estabelecimento;
+        
+        if ($estabelecimento && $estabelecimento->usuarioEhVisualizador()) {
+            $mensagem = 'Acesso restrito: sua conta possui permissão apenas para visualização. Entre em contato com o responsável do estabelecimento para solicitar permissões de edição.';
+            
+            if ($isAjax) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $mensagem
+                ], 403);
+            }
+            
+            return redirect()->route('company.processos.show', $processo->id)
+                ->with('error', $mensagem);
+        }
+        
+        return null;
+    }
+
+    /**
      * Busca documentos obrigatórios para um processo baseado nas atividades exercidas do estabelecimento
      * ou diretamente pelo tipo de processo (para processos especiais como Projeto Arquitetônico e Análise de Rotulagem)
      */
@@ -478,7 +507,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($id);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo, $request->ajax())) {
+            return $redirect;
+        }
 
         $request->validate([
             'arquivo' => 'required|file|max:30720|mimes:pdf',
@@ -658,7 +693,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($processoId);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
 
         // Só pode excluir documentos pendentes que foram enviados pelo próprio usuário
         $documento = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
@@ -689,7 +730,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($processoId);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
 
         // Busca o documento rejeitado
         $documentoRejeitado = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
@@ -840,7 +887,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($processoId);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
 
         $alerta = ProcessoAlerta::where('processo_id', $processo->id)
             ->where('status', '!=', 'concluido')
@@ -862,7 +915,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($processoId);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
 
         $documento = \App\Models\DocumentoDigital::where('processo_id', $processo->id)
             ->where('status', 'assinado')
@@ -1013,7 +1072,13 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with('estabelecimento')
             ->findOrFail($processoId);
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
 
         $documento = \App\Models\DocumentoDigital::where('processo_id', $processo->id)
             ->findOrFail($documentoId);

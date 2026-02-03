@@ -1170,7 +1170,8 @@ class EstabelecimentoController extends Controller
 
         $validated = $request->validate([
             'usuario_externo_id' => 'required|exists:usuarios_externos,id',
-            'tipo_vinculo' => 'required|in:proprietario,responsavel_legal,responsavel_tecnico,contador,procurador,outro',
+            'tipo_vinculo' => 'required|in:funcionario,contador',
+            'nivel_acesso' => 'required|in:gestor,visualizador',
             'observacao' => 'nullable|string|max:500',
         ]);
 
@@ -1182,6 +1183,7 @@ class EstabelecimentoController extends Controller
         // Vincula
         $estabelecimento->usuariosVinculados()->attach($validated['usuario_externo_id'], [
             'tipo_vinculo' => $validated['tipo_vinculo'],
+            'nivel_acesso' => $validated['nivel_acesso'],
             'observacao' => $validated['observacao'] ?? null,
             'vinculado_por' => auth('interno')->id(),
         ]);
@@ -1275,12 +1277,14 @@ class EstabelecimentoController extends Controller
         $estabelecimento = Estabelecimento::findOrFail($id);
 
         $validated = $request->validate([
-            'tipo_vinculo' => 'required|in:proprietario,responsavel_legal,responsavel_tecnico,contador,procurador,outro',
+            'tipo_vinculo' => 'required|in:funcionario,contador',
+            'nivel_acesso' => 'required|in:gestor,visualizador',
             'observacao' => 'nullable|string|max:500',
         ]);
 
         $estabelecimento->usuariosVinculados()->updateExistingPivot($usuario_id, [
             'tipo_vinculo' => $validated['tipo_vinculo'],
+            'nivel_acesso' => $validated['nivel_acesso'],
             'observacao' => $validated['observacao'] ?? null,
         ]);
 

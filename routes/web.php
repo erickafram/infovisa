@@ -92,6 +92,7 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     // Estabelecimentos - Usuários Vinculados
     Route::get('/estabelecimentos/{id}/usuarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosIndex'])->name('estabelecimentos.usuarios.index');
     Route::post('/estabelecimentos/{id}/usuarios', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosStore'])->name('estabelecimentos.usuarios.store');
+    Route::put('/estabelecimentos/{id}/usuarios/{usuarioId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosUpdate'])->name('estabelecimentos.usuarios.update');
     Route::delete('/estabelecimentos/{id}/usuarios/{usuarioId}', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'usuariosDestroy'])->name('estabelecimentos.usuarios.destroy');
     
     // Estabelecimentos - Equipamentos de Radiação Ionizante

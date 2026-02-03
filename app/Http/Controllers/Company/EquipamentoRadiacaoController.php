@@ -12,6 +12,22 @@ use Illuminate\Support\Facades\Auth;
 class EquipamentoRadiacaoController extends Controller
 {
     /**
+     * Verifica se o usuário tem acesso de gestor ao estabelecimento.
+     * Se não tiver, redireciona com mensagem de erro.
+     * 
+     * @param Estabelecimento $estabelecimento
+     * @return \Illuminate\Http\RedirectResponse|null
+     */
+    private function verificarAcessoGestor(Estabelecimento $estabelecimento)
+    {
+        if ($estabelecimento->usuarioEhVisualizador()) {
+            return redirect()->route('company.estabelecimentos.show', $estabelecimento->id)
+                ->with('error', 'Acesso restrito: sua conta possui permissão apenas para visualização. Entre em contato com o responsável do estabelecimento para solicitar permissões de edição.');
+        }
+        return null;
+    }
+
+    /**
      * Lista equipamentos de radiação do estabelecimento
      */
     public function index($estabelecimentoId)
@@ -66,6 +82,11 @@ class EquipamentoRadiacaoController extends Controller
             })
             ->firstOrFail();
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         // Verifica se o estabelecimento precisa cadastrar equipamentos
         $exigeEquipamentos = AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
         
@@ -114,6 +135,11 @@ class EquipamentoRadiacaoController extends Controller
             })
             ->firstOrFail();
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         $equipamento = EquipamentoRadiacao::where('id', $equipamentoId)
             ->where('estabelecimento_id', $estabelecimento->id)
             ->firstOrFail();
@@ -151,6 +177,11 @@ class EquipamentoRadiacaoController extends Controller
             })
             ->firstOrFail();
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         $equipamento = EquipamentoRadiacao::where('id', $equipamentoId)
             ->where('estabelecimento_id', $estabelecimento->id)
             ->firstOrFail();
@@ -184,6 +215,11 @@ class EquipamentoRadiacaoController extends Controller
             })
             ->firstOrFail();
 
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
+
         $equipamento = EquipamentoRadiacao::where('id', $equipamentoId)
             ->where('estabelecimento_id', $estabelecimento->id)
             ->firstOrFail();
@@ -208,6 +244,11 @@ class EquipamentoRadiacaoController extends Controller
                       });
             })
             ->firstOrFail();
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         // Verifica se o estabelecimento precisa cadastrar equipamentos
         $exigeEquipamentos = AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
@@ -260,6 +301,11 @@ class EquipamentoRadiacaoController extends Controller
                       });
             })
             ->firstOrFail();
+
+        // Verifica se o usuário tem permissão de edição
+        if ($redirect = $this->verificarAcessoGestor($estabelecimento)) {
+            return $redirect;
+        }
 
         $estabelecimento->update([
             'declaracao_sem_equipamentos_imagem' => false,

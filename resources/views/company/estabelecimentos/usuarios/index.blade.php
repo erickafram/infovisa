@@ -44,7 +44,8 @@
     </div>
     @endif
 
-    {{-- Vincular Novo Usuário --}}
+    {{-- Vincular Novo Usuário - Apenas para gestores --}}
+    @if(!$ehVisualizador)
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +56,7 @@
 
         <form action="{{ route('company.estabelecimentos.usuarios.store', $estabelecimento->id) }}" method="POST">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-1">
                     <label for="busca_usuario" class="block text-sm font-medium text-gray-700 mb-2">Usuário *</label>
                     <div class="relative">
@@ -130,13 +131,8 @@
                     <select id="tipo_vinculo" name="tipo_vinculo" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Selecione</option>
-                        <option value="proprietario">Proprietário</option>
-                        <option value="responsavel_legal">Responsável Legal</option>
-                        <option value="responsavel_tecnico">Responsável Técnico</option>
+                        <option value="funcionario">Funcionário</option>
                         <option value="contador">Contador</option>
-                        <option value="procurador">Procurador</option>
-                        <option value="colaborador">Colaborador</option>
-                        <option value="outro">Outro</option>
                     </select>
                     @error('tipo_vinculo')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -144,11 +140,17 @@
                 </div>
 
                 <div>
-                    <label for="observacao" class="block text-sm font-medium text-gray-700 mb-2">Observação</label>
-                    <input type="text" id="observacao" name="observacao" maxlength="500"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="Informações adicionais (opcional)">
-                    @error('observacao')
+                    <label for="nivel_acesso" class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso *</label>
+                    <select id="nivel_acesso" name="nivel_acesso" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="gestor">Gestor (Acesso Total)</option>
+                        <option value="visualizador">Visualizador (Somente Leitura)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        <strong>Gestor:</strong> pode criar processos, editar cadastro, anexar documentos.<br>
+                        <strong>Visualizador:</strong> apenas visualiza informações.
+                    </p>
+                    @error('nivel_acesso')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
@@ -165,6 +167,7 @@
             </div>
         </form>
     </div>
+    @endif
 
     {{-- Lista de Usuários Vinculados --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -181,6 +184,10 @@
                 <div class="p-6 hover:bg-gray-50 transition-colors bg-amber-50">
                     <div class="flex items-start justify-between gap-4">
                         {{-- Informações do Usuário Criador --}}
+                        @php
+                            $ehProprioUsuarioCriador = $criador->id == $usuarioAtualId;
+                            $podeVerDadosCriador = !$ehVisualizador || $ehProprioUsuarioCriador;
+                        @endphp
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-2">
                                 <div class="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
@@ -190,20 +197,37 @@
                                 </div>
                                 <div>
                                     <h4 class="text-base font-semibold text-gray-900">{{ $criador->nome }}</h4>
-                                    <p class="text-sm text-gray-600">{{ $criador->email }}</p>
+                                    @if($podeVerDadosCriador)
+                                        <p class="text-sm text-gray-600">{{ $criador->email }}</p>
+                                        <p class="text-sm text-gray-500">CPF: {{ $criador->cpf_formatado ?? $criador->cpf ?? '-' }}</p>
+                                    @else
+                                        <p class="text-sm text-gray-400 italic">Dados protegidos</p>
+                                    @endif
                                 </div>
                             </div>
 
-                            <div class="ml-13 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div class="ml-13 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
                                     <span class="text-gray-500">Telefone:</span>
-                                    <p class="font-medium text-gray-900">{{ $criador->telefone_formatado ?? $criador->telefone ?? '-' }}</p>
+                                    @if($podeVerDadosCriador)
+                                        <p class="font-medium text-gray-900">{{ $criador->telefone_formatado ?? $criador->telefone ?? '-' }}</p>
+                                    @else
+                                        <p class="font-medium text-gray-400 italic">***</p>
+                                    @endif
                                 </div>
                                 <div>
                                     <span class="text-gray-500">Tipo de Vínculo:</span>
                                     <p class="font-medium text-gray-900">
                                         <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
                                             Criador do Cadastro
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Nível de Acesso:</span>
+                                    <p class="font-medium">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                            Acesso Total (Criador)
                                         </span>
                                     </p>
                                 </div>
@@ -230,6 +254,8 @@
                 @foreach($estabelecimento->usuariosVinculados as $usuario)
                 @php
                     $isCriador = $usuario->id == $estabelecimento->usuario_externo_id;
+                    $ehProprioUsuario = $usuario->id == $usuarioAtualId;
+                    $podeVerDadosUsuario = !$ehVisualizador || $ehProprioUsuario;
                 @endphp
                 <div class="p-6 hover:bg-gray-50 transition-colors {{ $isCriador ? 'bg-amber-50' : '' }}">
                     <div class="flex items-start justify-between gap-4">
@@ -249,15 +275,29 @@
                                                 Criador
                                             </span>
                                         @endif
+                                        @if($ehProprioUsuario)
+                                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                                Você
+                                            </span>
+                                        @endif
                                     </h4>
-                                    <p class="text-sm text-gray-600">{{ $usuario->email }}</p>
+                                    @if($podeVerDadosUsuario)
+                                        <p class="text-sm text-gray-600">{{ $usuario->email }}</p>
+                                        <p class="text-sm text-gray-500">CPF: {{ $usuario->cpf_formatado ?? $usuario->cpf ?? '-' }}</p>
+                                    @else
+                                        <p class="text-sm text-gray-400 italic">Dados protegidos</p>
+                                    @endif
                                 </div>
                             </div>
 
-                            <div class="ml-13 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div class="ml-13 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
                                     <span class="text-gray-500">Telefone:</span>
-                                    <p class="font-medium text-gray-900">{{ $usuario->telefone_formatado ?? $usuario->telefone ?? '-' }}</p>
+                                    @if($podeVerDadosUsuario)
+                                        <p class="font-medium text-gray-900">{{ $usuario->telefone_formatado ?? $usuario->telefone ?? '-' }}</p>
+                                    @else
+                                        <p class="font-medium text-gray-400 italic">***</p>
+                                    @endif
                                 </div>
                                 <div>
                                     <span class="text-gray-500">Tipo de Vínculo:</span>
@@ -270,6 +310,7 @@
                                                 'contador' => 'Contador',
                                                 'procurador' => 'Procurador',
                                                 'colaborador' => 'Colaborador',
+                                                'funcionario' => 'Funcionário',
                                                 'socio' => 'Sócio',
                                                 'representante' => 'Representante',
                                                 'outro' => 'Outro'
@@ -279,6 +320,25 @@
                                             {{ $tipos[$usuario->pivot->tipo_vinculo] ?? ucfirst($usuario->pivot->tipo_vinculo) }}
                                         </span>
                                     </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Nível de Acesso:</span>
+                                    @if($isCriador)
+                                        <p class="font-medium">
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                Acesso Total (Criador)
+                                            </span>
+                                        </p>
+                                    @else
+                                        @php
+                                            $nivelAcesso = $usuario->pivot->nivel_acesso ?? 'gestor';
+                                        @endphp
+                                        <p class="font-medium">
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ $nivelAcesso === 'gestor' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                                {{ $nivelAcesso === 'gestor' ? 'Gestor (Acesso Total)' : 'Visualizador (Somente Leitura)' }}
+                                            </span>
+                                        </p>
+                                    @endif
                                 </div>
                                 <div>
                                     <span class="text-gray-500">Vinculado em:</span>
@@ -294,7 +354,8 @@
                             @endif
                         </div>
 
-                        {{-- Ações --}}
+                        {{-- Ações - Apenas para gestores --}}
+                        @if(!$ehVisualizador)
                         <div class="flex gap-2">
                             @if($isCriador)
                                 <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-500 text-sm font-medium rounded cursor-not-allowed" title="O criador do cadastro não pode ser desvinculado">
@@ -304,6 +365,16 @@
                                     Protegido
                                 </span>
                             @else
+                                {{-- Botão Editar Nível de Acesso --}}
+                                <button type="button"
+                                        @click="modalUsuario = { id: {{ $usuario->id }}, nome: '{{ $usuario->nome }}', nivelAcesso: '{{ $usuario->pivot->nivel_acesso ?? 'gestor' }}' }; showModalNivelAcesso = true"
+                                        class="inline-flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    Editar
+                                </button>
+                                
                                 <form action="{{ route('company.estabelecimentos.usuarios.destroy', [$estabelecimento->id, $usuario->id]) }}" 
                                       method="POST"
                                       onsubmit="return confirm('Tem certeza que deseja desvincular este usuário?');">
@@ -319,6 +390,7 @@
                                 </form>
                             @endif
                         </div>
+                        @endif
                     </div>
                 </div>
                 @endforeach
@@ -335,6 +407,102 @@
             </div>
         @endif
     </div>
+
+    {{-- Modal de Edição de Nível de Acesso --}}
+    <div x-show="showModalNivelAcesso" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-black/50" @click="showModalNivelAcesso = false"></div>
+        
+        {{-- Modal --}}
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md transform transition-all"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 @click.away="showModalNivelAcesso = false">
+                
+                {{-- Header --}}
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Editar Nível de Acesso</h3>
+                    <button type="button" @click="showModalNivelAcesso = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                {{-- Body --}}
+                <form :action="`{{ url('company/estabelecimentos/' . $estabelecimento->id . '/usuarios') }}/${modalUsuario?.id}`" method="POST">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div class="p-4 space-y-4">
+                        <div class="text-center mb-4">
+                            <p class="text-sm text-gray-600">Usuário:</p>
+                            <p class="font-semibold text-gray-900" x-text="modalUsuario?.nome"></p>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all"
+                                   :class="modalUsuario?.nivelAcesso === 'gestor' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'">
+                                <input type="radio" 
+                                       name="nivel_acesso" 
+                                       value="gestor"
+                                       x-model="modalUsuario.nivelAcesso"
+                                       class="mt-0.5 h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <div>
+                                    <span class="font-semibold text-gray-900">Gestor (Acesso Total)</span>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Pode criar processos, editar cadastro, anexar documentos e realizar todas as ações no estabelecimento.
+                                    </p>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all"
+                                   :class="modalUsuario?.nivelAcesso === 'visualizador' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'">
+                                <input type="radio" 
+                                       name="nivel_acesso" 
+                                       value="visualizador"
+                                       x-model="modalUsuario.nivelAcesso"
+                                       class="mt-0.5 h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500">
+                                <div>
+                                    <span class="font-semibold text-gray-900">Visualizador (Somente Leitura)</span>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Pode apenas visualizar informações. Não pode editar, anexar documentos ou abrir processos.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    {{-- Footer --}}
+                    <div class="flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                        <button type="button" 
+                                @click="showModalNivelAcesso = false"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -349,6 +517,10 @@ function usuariosVinculo() {
         usuarioSelecionadoEmail: '',
         timeoutBusca: null,
         estabelecimentoId: {{ $estabelecimento->id }},
+        
+        // Modal de nível de acesso
+        showModalNivelAcesso: false,
+        modalUsuario: null,
 
         buscarUsuarios() {
             // Limpa timeout anterior
