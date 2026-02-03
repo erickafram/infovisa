@@ -188,7 +188,7 @@
                 <template x-if="!loading && tarefas.length > 0">
                     <div>
                         <template x-for="t in tarefas" :key="t.tipo + (t.id || t.processo_id)">
-                            <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition" :class="t.atrasado ? 'bg-red-50/50' : ''">
+                            <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.tipo === 'assinatura' ? 'bg-amber-100' : (t.tipo === 'os' ? 'bg-blue-100' : (t.tipo === 'resposta' ? (t.atrasado ? 'bg-red-100' : 'bg-green-100') : (t.atrasado ? 'bg-red-100' : 'bg-purple-100')))">
                                     <template x-if="t.tipo === 'assinatura'"><svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></template>
                                     <template x-if="t.tipo === 'os'"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></template>
@@ -196,11 +196,17 @@
                                     <template x-if="t.tipo === 'aprovacao'"><svg class="w-4 h-4" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <template x-if="t.tipo_processo">
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded mb-0.5 inline-block"
-                                              :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
-                                              x-text="t.tipo_processo"></span>
-                                    </template>
+                                    <div class="flex items-center gap-2">
+                                        <template x-if="t.tipo_processo">
+                                            <span class="text-[10px] px-1.5 py-0.5 rounded inline-block"
+                                                  :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
+                                                  x-text="t.tipo_processo"></span>
+                                        </template>
+                                        <template x-if="t.total && t.total > 1">
+                                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
+                                                  x-text="'+' + (t.total - 1) + ' pendente' + (t.total > 2 ? 's' : '')"></span>
+                                        </template>
+                                    </div>
                                     <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
                                     <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
                                 </div>
