@@ -362,6 +362,8 @@ class ProcessoController extends Controller
 
         // Calcula status de documentos obrigatórios para cada processo
         $statusDocsObrigatorios = [];
+        $prazoFilaPublica = []; // Armazena dias restantes para fila pública
+        
         foreach ($processos as $processo) {
             $docsObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
             if ($docsObrigatorios->count() > 0) {
@@ -379,6 +381,41 @@ class ProcessoController extends Controller
                     'nao_enviado' => $totalNaoEnviado,
                     'completo' => $totalOk === $total,
                 ];
+                
+                // Calcula prazo da fila pública se aplicável
+                if ($totalOk === $total && 
+                    $processo->tipoProcesso && 
+                    $processo->tipoProcesso->exibir_fila_publica && 
+                    $processo->tipoProcesso->prazo_fila_publica > 0) {
+                    
+                    // Filtra apenas obrigatórios para pegar a data
+                    $docsObrigatoriosAprovados = $docsObrigatorios->where('obrigatorio', true)->where('status', 'aprovado');
+                    $dataDocumentosCompletos = null;
+                    
+                    foreach ($docsObrigatoriosAprovados as $docObrig) {
+                        $docProcesso = $processo->documentos
+                            ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
+                            ->where('status_aprovacao', 'aprovado')
+                            ->sortByDesc('updated_at')
+                            ->first();
+                            
+                        if ($docProcesso && (!$dataDocumentosCompletos || $docProcesso->updated_at > $dataDocumentosCompletos)) {
+                            $dataDocumentosCompletos = $docProcesso->updated_at;
+                        }
+                    }
+                    
+                    if ($dataDocumentosCompletos) {
+                        $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                        $dataLimite = \Carbon\Carbon::parse($dataDocumentosCompletos)->addDays($prazo);
+                        $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
+                        
+                        $prazoFilaPublica[$processo->id] = [
+                            'prazo' => $prazo,
+                            'dias_restantes' => $diasRestantes,
+                            'atrasado' => $diasRestantes < 0,
+                        ];
+                    }
+                }
             }
         }
 
@@ -402,7 +439,7 @@ class ProcessoController extends Controller
             );
         }
 
-        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'processosComDocsPendentes', 'statusDocsObrigatorios'));
+        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'processosComDocsPendentes', 'statusDocsObrigatorios', 'prazoFilaPublica'));
     }
 
     /**
@@ -623,6 +660,7 @@ class ProcessoController extends Controller
         $processo = Processo::with([
                 'usuario', 
                 'estabelecimento', 
+                'tipoProcesso',
                 'documentos' => function($query) {
                     $query->with(['documentoSubstituido'])->orderBy('created_at', 'desc');
                 },
@@ -711,7 +749,62 @@ class ProcessoController extends Controller
         // Busca documentos obrigatórios baseados nas atividades do estabelecimento
         $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios'));
+        // Calcula informações do prazo de fila pública se aplicável
+        $avisoFilaPublica = null;
+        if ($processo->tipoProcesso && 
+            $processo->tipoProcesso->exibir_fila_publica && 
+            $processo->tipoProcesso->exibir_aviso_prazo_fila && 
+            $processo->tipoProcesso->prazo_fila_publica > 0) {
+            
+            // Verifica se todos os documentos obrigatórios estão aprovados
+            $todosAprovados = true;
+            $dataDocumentosCompletos = null;
+            
+            // Filtra apenas os documentos obrigatórios
+            $docsObrigatorios = $documentosObrigatorios->where('obrigatorio', true);
+            
+            // Se não há documentos obrigatórios configurados, considera como completo
+            if ($docsObrigatorios->isEmpty()) {
+                $todosAprovados = true;
+                // Usa a data de criação do processo como base
+                $dataDocumentosCompletos = $processo->created_at;
+            } else {
+                foreach ($docsObrigatorios as $docObrig) {
+                    if ($docObrig['status'] !== 'aprovado') {
+                        $todosAprovados = false;
+                        break;
+                    }
+                    
+                    // Pega a maior data de aprovação (usando tipo_documento_obrigatorio_id)
+                    $docProcesso = $processo->documentos
+                        ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
+                        ->where('status_aprovacao', 'aprovado')
+                        ->sortByDesc('updated_at')
+                        ->first();
+                        
+                    if ($docProcesso && (!$dataDocumentosCompletos || $docProcesso->updated_at > $dataDocumentosCompletos)) {
+                        $dataDocumentosCompletos = $docProcesso->updated_at;
+                    }
+                }
+            }
+            
+            if ($todosAprovados && $dataDocumentosCompletos) {
+                $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                $dataLimite = \Carbon\Carbon::parse($dataDocumentosCompletos)->addDays($prazo);
+                $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
+                $atrasado = $diasRestantes < 0;
+                
+                $avisoFilaPublica = [
+                    'prazo' => $prazo,
+                    'data_documentos_completos' => $dataDocumentosCompletos,
+                    'data_limite' => $dataLimite,
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $atrasado,
+                ];
+            }
+        }
+        
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios', 'avisoFilaPublica'));
     }
 
     /**

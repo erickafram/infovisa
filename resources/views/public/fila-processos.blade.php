@@ -212,8 +212,8 @@
                     <div>
                         <h4 class="text-sm font-bold text-gray-900 mb-1">Como funciona a fila?</h4>
                         <p class="text-xs text-gray-700 leading-relaxed">
-                            Os processos são ordenados por <strong>data de criação</strong> (mais antigo primeiro). 
-                            Use os filtros acima para visualizar apenas os status desejados.
+                            O processo entra na fila <strong>após todos os documentos obrigatórios serem enviados e aprovados</strong>. 
+                            A contagem do prazo inicia a partir da aprovação do último documento obrigatório.
                         </p>
                     </div>
                 </div>
@@ -231,7 +231,10 @@
                                     {{ $fila['tipo'] }}
                                 </h3>
                                 <p class="text-xs text-purple-100 mt-1">
-                                    {{ count($fila['processos']) }} processo(s) em fila
+                                    {{ count($fila['processos']) }} processo(s) na fila
+                                    @if($fila['prazo_analise'])
+                                        • Prazo: {{ $fila['prazo_analise'] }} dias
+                                    @endif
                                 </p>
                             </div>
                             <div class="text-right">
@@ -259,16 +262,21 @@
                                         Status
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        <div class="flex items-center gap-1" title="Ordenado do mais antigo para o mais recente">
-                                            Data Abertura
+                                        <div class="flex items-center gap-1" title="Data em que todos os documentos obrigatórios foram aprovados">
+                                            Docs Completos
                                             <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
                                         </div>
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Tempo na Fila
                                     </th>
+                                    @if($fila['prazo_analise'])
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Prazo
+                                    </th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
@@ -314,13 +322,38 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                                        {{ $processo['data_abertura'] }}
+                                        {{ $processo['data_documentos_completos'] }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-xs font-medium text-gray-900">
+                                        <span class="text-xs font-medium {{ $processo['atrasado'] ? 'text-red-600' : 'text-gray-900' }}">
                                             {{ $processo['tempo_formatado'] }}
                                         </span>
                                     </td>
+                                    @if($fila['prazo_analise'])
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($processo['atrasado'])
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                {{ abs($processo['dias_restantes']) }}d atrasado
+                                            </span>
+                                        @elseif($processo['dias_restantes'] !== null && $processo['dias_restantes'] <= 2)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ $processo['dias_restantes'] }}d restante(s)
+                                            </span>
+                                        @elseif($processo['dias_restantes'] !== null)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                                                {{ $processo['dias_restantes'] }}d restante(s)
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    @endif
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -331,10 +364,10 @@
                     <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
                         <div class="flex items-center justify-between text-xs text-gray-600">
                             <span>
-                                <strong>Total:</strong> {{ count($fila['processos']) }} processos
+                                <strong>Total:</strong> {{ count($fila['processos']) }} processos com documentação completa
                             </span>
                             <span class="text-gray-500">
-                                Ordenado por data de abertura (mais antigo primeiro)
+                                Ordenado pela data de aprovação dos documentos
                             </span>
                         </div>
                     </div>
@@ -384,7 +417,7 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
                 <h3 class="text-base font-semibold text-gray-900 mb-2">Nenhum processo na fila</h3>
                 <p class="text-xs text-gray-600 max-w-md mx-auto mb-6">
-                    Não há processos em andamento no momento. Processos aparecerão aqui quando forem criados e estiverem com status de aberto, em análise, pendente ou parado.
+                    Não há processos com documentação completa no momento. Processos aparecerão aqui quando todos os documentos obrigatórios forem enviados e aprovados.
                 </p>
                 <a href="{{ route('home') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
                     Voltar para Home

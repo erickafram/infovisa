@@ -312,6 +312,22 @@
                                             @endif
                                             {{ $docs['ok'] }}/{{ $docs['total'] }}
                                         </span>
+                                        
+                                        {{-- Prazo Fila Pública --}}
+                                        @if(isset($prazoFilaPublica[$processo->id]))
+                                            @php $prazo = $prazoFilaPublica[$processo->id]; @endphp
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded
+                                                {{ $prazo['atrasado'] ? 'bg-red-100 text-red-700' : ($prazo['dias_restantes'] <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700') }}">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                @if($prazo['atrasado'])
+                                                    {{ abs($prazo['dias_restantes']) }}d atrasado
+                                                @else
+                                                    {{ $prazo['dias_restantes'] }}d restantes
+                                                @endif
+                                            </span>
+                                        @endif
                                     @endif
 
                                     {{-- Data --}}

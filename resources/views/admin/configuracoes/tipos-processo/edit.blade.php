@@ -315,25 +315,70 @@
                 </label>
 
                 {{-- Exibir Fila Pública --}}
-                <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border-2 border-purple-200 bg-purple-50">
-                    <input type="checkbox" 
-                           name="exibir_fila_publica" 
-                           id="exibir_fila_publica"
-                           {{ old('exibir_fila_publica', $tipoProcesso->exibir_fila_publica) ? 'checked' : '' }}
-                           class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-                    <div class="flex-1">
-                        <span class="text-sm font-medium text-gray-900 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            Exibir Fila Pública
-                        </span>
-                        <p class="text-xs text-gray-600 mt-0.5">
-                            <strong>Processos deste tipo serão exibidos na página inicial pública</strong> para consulta sem login. 
-                            Ideal para processos arquitetônicos onde é necessário mostrar a ordem de chegada e status atual.
-                        </p>
+                <div x-data="{ filaPublica: {{ old('exibir_fila_publica', $tipoProcesso->exibir_fila_publica) ? 'true' : 'false' }} }">
+                    <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border-2 border-purple-200 bg-purple-50">
+                        <input type="checkbox" 
+                               name="exibir_fila_publica" 
+                               id="exibir_fila_publica"
+                               x-model="filaPublica"
+                               {{ old('exibir_fila_publica', $tipoProcesso->exibir_fila_publica) ? 'checked' : '' }}
+                               class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                        <div class="flex-1">
+                            <span class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                Exibir Fila Pública
+                            </span>
+                            <p class="text-xs text-gray-600 mt-0.5">
+                                Processos deste tipo serão exibidos na página inicial pública <strong>após todos os documentos obrigatórios serem aprovados</strong>.
+                                O prazo de análise começa a contar a partir da aprovação do último documento obrigatório.
+                            </p>
+                        </div>
+                    </label>
+                    
+                    {{-- Campo de Prazo (visível apenas quando fila pública está marcada) --}}
+                    <div x-show="filaPublica" x-transition class="mt-3 ml-7 p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-4">
+                        <div>
+                            <label for="prazo_fila_publica" class="block text-sm font-medium text-gray-900 mb-1.5">
+                                <svg class="w-4 h-4 inline-block text-purple-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Prazo para análise (em dias)
+                            </label>
+                            <input type="number" 
+                                   name="prazo_fila_publica" 
+                                   id="prazo_fila_publica"
+                                   value="{{ old('prazo_fila_publica', $tipoProcesso->prazo_fila_publica) }}"
+                                   min="1" max="365"
+                                   placeholder="Ex: 30"
+                                   class="w-32 px-3 py-2 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <p class="text-xs text-gray-500 mt-1.5">
+                                Prazo em dias úteis que a equipe da vigilância tem para analisar o processo após todos os documentos obrigatórios estarem <strong>completos e aprovados</strong>.
+                            </p>
+                        </div>
+                        
+                        {{-- Checkbox para exibir aviso no processo --}}
+                        <label class="flex items-start gap-3 p-2 hover:bg-purple-100/50 rounded-lg cursor-pointer transition-colors">
+                            <input type="checkbox" 
+                                   name="exibir_aviso_prazo_fila" 
+                                   id="exibir_aviso_prazo_fila"
+                                   {{ old('exibir_aviso_prazo_fila', $tipoProcesso->exibir_aviso_prazo_fila) ? 'checked' : '' }}
+                                   class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <div class="flex-1">
+                                <span class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                    </svg>
+                                    Exibir aviso de prazo no processo
+                                </span>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    Quando a documentação estiver completa e aprovada, exibe um aviso na página do processo informando quantos dias faltam para o prazo de análise.
+                                </p>
+                            </div>
+                        </label>
                     </div>
-                </label>
+                </div>
 
                 {{-- Ativo --}}
                 <label class="flex items-start gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">

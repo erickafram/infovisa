@@ -40,6 +40,7 @@ class TipoProcessoController extends Controller
             'ordem' => 'nullable|integer|min:0',
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
+            'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -47,7 +48,14 @@ class TipoProcessoController extends Controller
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
         $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
         $validated['exibir_fila_publica'] = $request->has('exibir_fila_publica');
+        $validated['exibir_aviso_prazo_fila'] = $request->has('exibir_aviso_prazo_fila');
         $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
+        
+        // Se fila pública não está marcada, limpa o prazo e aviso
+        if (!$validated['exibir_fila_publica']) {
+            $validated['prazo_fila_publica'] = null;
+            $validated['exibir_aviso_prazo_fila'] = false;
+        }
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         
@@ -104,6 +112,7 @@ class TipoProcessoController extends Controller
             'ordem' => 'nullable|integer|min:0',
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
+            'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -111,7 +120,14 @@ class TipoProcessoController extends Controller
         $validated['usuario_externo_pode_abrir'] = $request->has('usuario_externo_pode_abrir');
         $validated['usuario_externo_pode_visualizar'] = $request->has('usuario_externo_pode_visualizar');
         $validated['exibir_fila_publica'] = $request->has('exibir_fila_publica');
+        $validated['exibir_aviso_prazo_fila'] = $request->has('exibir_aviso_prazo_fila');
         $validated['unico_por_estabelecimento'] = $request->has('unico_por_estabelecimento');
+        
+        // Se fila pública não está marcada, limpa o prazo e aviso
+        if (!$validated['exibir_fila_publica']) {
+            $validated['prazo_fila_publica'] = null;
+            $validated['exibir_aviso_prazo_fila'] = false;
+        }
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
         
