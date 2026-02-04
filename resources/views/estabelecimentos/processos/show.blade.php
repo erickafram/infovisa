@@ -1265,7 +1265,7 @@
                                                                 <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] rounded font-semibold">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'aprovado')
-                                                            <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-semibold">✓ Aprovado</span>
+                                                            <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-semibold" title="{{ $documento->aprovadoPor ? 'Aprovado por ' . $documento->aprovadoPor->nome : '' }}">✓ Aprovado{{ $documento->aprovadoPor ? ' - ' . Str::words($documento->aprovadoPor->nome, 1, '') : '' }}</span>
                                                         @elseif($documento->status_aprovacao === 'rejeitado')
                                                             <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] rounded font-semibold">Rejeitado</span>
                                                         @endif
