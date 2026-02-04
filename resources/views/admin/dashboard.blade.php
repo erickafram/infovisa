@@ -170,10 +170,18 @@
         {{-- Coluna 1: Minhas Tarefas --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="tarefasPaginadas()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-900">Minhas Tarefas</h3>
-                <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400" x-show="total > 0" x-text="total + ' itens'"></span>
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Minhas Tarefas</h3>
+                        <p class="text-xs text-gray-400">Atividades pendentes</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
                     <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                    <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium" x-text="total"></span>
                 </div>
             </div>
             <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
@@ -240,7 +248,10 @@
                         <p class="text-xs text-gray-400">Atribuídos ao seu setor</p>
                     </div>
                 </div>
-                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium" x-text="total"></span>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                    <span class="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-medium" x-text="total"></span>
+                </div>
             </div>
             <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
                 <template x-if="loading">
@@ -299,22 +310,49 @@
             {{-- Monitorando --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900">Monitorando</h3>
-                    <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Monitorando</h3>
+                            <p class="text-xs text-gray-400">Processos em observação</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
+                        ver todos
+                        <span class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">{{ count($processos_acompanhados ?? []) }}</span>
+                    </a>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto">
                     @forelse(($processos_acompanhados ?? collect())->take(5) as $proc)
                     <a href="{{ route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                        <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900">{{ $proc->numero_processo }}</p>
+                            <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                {{ $proc->numero_processo }}
+                                @if($proc->tipoProcesso)
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{{ $proc->tipoProcesso->nome }}</span>
+                                @endif
+                            </p>
                             <p class="text-xs text-gray-500 truncate">{{ $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? '-' }}</p>
                         </div>
+                        <span class="text-xs font-medium px-2 py-1 rounded-full {{ $proc->status === 'aberto' ? 'bg-blue-100 text-blue-700' : ($proc->status === 'arquivado' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700') }}">
+                            {{ ucfirst($proc->status) }}
+                        </span>
                     </a>
                     @empty
-                    <div class="p-6 text-center text-sm text-gray-400">Nenhum processo monitorado</div>
+                    <div class="p-6 text-center">
+                        <svg class="w-10 h-10 text-gray-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <p class="text-sm text-gray-400">Nenhum processo monitorado</p>
+                        <p class="text-xs text-gray-300 mt-1">Clique em "Acompanhar" nos processos que deseja monitorar</p>
+                    </div>
                     @endforelse
                 </div>
             </div>
