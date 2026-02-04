@@ -145,6 +145,9 @@ class AssinaturaDigitalController extends Controller
 
         // Verifica se a senha de assinatura está correta
         if (!Hash::check($request->senha_assinatura, $usuario->senha_assinatura_digital)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Senha de assinatura incorreta'], 422);
+            }
             return back()->withErrors(['senha_assinatura' => 'Senha de assinatura incorreta'])->withInput();
         }
 
@@ -184,6 +187,15 @@ class AssinaturaDigitalController extends Controller
                 $this->gerarPdfComAssinaturas($documento);
             }
 
+            // Retorna JSON se for requisição AJAX
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Documento assinado com sucesso!',
+                    'todas_assinadas' => $todasAssinadas
+                ]);
+            }
+
             // Redireciona para a lista de documentos pendentes
             return redirect()
                 ->route('admin.documentos.index')
@@ -197,6 +209,11 @@ class AssinaturaDigitalController extends Controller
             // Atualiza status do documento para "recusado"
             $documento->status = 'recusado';
             $documento->save();
+
+            // Retorna JSON se for requisição AJAX
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Documento recusado.']);
+            }
 
             return redirect()
                 ->route('admin.assinatura.pendentes')

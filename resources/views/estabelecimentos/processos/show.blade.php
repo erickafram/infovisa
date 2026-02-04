@@ -771,7 +771,7 @@
                 </div>
 
                 {{-- Lista de Documentos --}}
-                <div class="p-6">
+                <div class="p-4">
                     @if($todosDocumentos->isEmpty())
                         <div class="text-center py-16">
                             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -781,7 +781,7 @@
                             <p class="text-sm text-gray-500">Comece a adicionar documentos usando o menu de opções</p>
                         </div>
                     @else
-                        <div class="space-y-4">
+                        <div class="space-y-2">
                             {{-- Lista Unificada de Documentos (Digitais e Arquivos Externos) --}}
                             @foreach($todosDocumentos as $item)
                                 @if($item['tipo'] === 'digital')
@@ -803,443 +803,430 @@
                                     // Determinar cor da borda baseado no status do documento
                                     $temPrazoAberto = $docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado';
                                     $temRespostasPendentes = $docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0;
+                                    $temRespostasAprovadas = $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0;
+                                    $totalRespostas = $docDigital->respostas ? $docDigital->respostas->count() : 0;
+                                    $prazoFinalizado = $docDigital->isPrazoFinalizado();
                                     
+                                    // Definir status geral do documento para exibição
                                     if ($docDigital->status === 'rascunho') {
-                                        $corBorda = 'border-gray-300'; // Rascunho
+                                        $corBorda = 'border-gray-300';
+                                        $statusGeral = 'rascunho';
                                     } elseif ($temAssinaturasPendentes) {
-                                        $corBorda = 'border-orange-500'; // Aguardando assinaturas
-                                    } elseif ($temPrazoAberto || $temRespostasPendentes) {
-                                        $corBorda = 'border-orange-500'; // Prazo aberto ou respostas pendentes
+                                        $corBorda = 'border-orange-500';
+                                        $statusGeral = 'aguardando_assinatura';
+                                    } elseif ($temRespostasPendentes) {
+                                        $corBorda = 'border-yellow-500';
+                                        $statusGeral = 'resposta_pendente';
+                                    } elseif ($temPrazoAberto) {
+                                        $corBorda = 'border-amber-500';
+                                        $statusGeral = 'prazo_aberto';
+                                    } elseif ($prazoFinalizado && $temRespostasAprovadas) {
+                                        $corBorda = 'border-green-500';
+                                        $statusGeral = 'resolvido';
                                     } elseif ($docDigital->status === 'assinado' && $docDigital->todasAssinaturasCompletas()) {
-                                        $corBorda = 'border-green-500'; // Documento OK
+                                        $corBorda = 'border-green-500';
+                                        $statusGeral = 'concluido';
                                     } else {
-                                        $corBorda = 'border-gray-300'; // Outros casos
+                                        $corBorda = 'border-gray-300';
+                                        $statusGeral = 'outros';
                                     }
                                 @endphp
                                 <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-4 bg-white rounded-lg border border-gray-200 border-l-2 {{ $corBorda }} hover:shadow-md transition-all"
+                                     class="bg-white rounded-lg border border-gray-200 border-l-4 {{ $corBorda }} hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
-                                    {{-- Linha Principal: Nome + Status + Ações --}}
-                                    <div class="flex items-center gap-3">
-                                        {{-- Ícone --}}
-                                        <div class="w-10 h-10 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
-                                            <span class="text-lg">📄</span>
+                                    {{-- Layout Flex Principal --}}
+                                    <div class="p-3 flex items-center justify-between gap-3">
+                                        {{-- ESQUERDA: Ícone + Nome + Data --}}
+                                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                                            {{-- Ícone com indicador de status --}}
+                                            <div class="relative flex-shrink-0">
+                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center
+                                                    @if($statusGeral === 'resolvido') bg-green-100
+                                                    @elseif($statusGeral === 'resposta_pendente') bg-yellow-100
+                                                    @elseif($statusGeral === 'prazo_aberto') bg-amber-100
+                                                    @elseif($statusGeral === 'aguardando_assinatura') bg-orange-100
+                                                    @else bg-gray-100
+                                                    @endif">
+                                                    @if($statusGeral === 'resolvido')
+                                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                    @elseif($totalRespostas > 0)
+                                                        <svg class="w-5 h-5 {{ $temRespostasPendentes ? 'text-yellow-600' : 'text-green-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                                        </svg>
+                                                    @else
+                                                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                    @endif
+                                                </div>
+                                                @if($totalRespostas > 0)
+                                                    <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center
+                                                        {{ $temRespostasPendentes ? 'bg-yellow-500 text-white' : 'bg-green-500 text-white' }}">
+                                                        {{ $totalRespostas }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            
+                                            {{-- Nome, Status e Data --}}
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    @if($docDigital->status === 'rascunho')
+                                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</a>
+                                                    @elseif($docDigital->arquivo_pdf && !$temAssinaturasPendentes)
+                                                        <span @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
+                                                    @else
+                                                        <span class="text-sm font-semibold text-gray-900 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
+                                                    @endif
+                                                    <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $docDigital->created_at->format('d/m/Y') }}</span>
+                                                </div>
+                                                
+                                                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                    <span class="text-xs text-gray-500">{{ $docDigital->numero_documento }}</span>
+                                                    
+                                                    {{-- Badge de Status Principal --}}
+                                                    @if($statusGeral === 'rascunho')
+                                                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-semibold">✏️ Rascunho</span>
+                                                    @elseif($statusGeral === 'aguardando_assinatura')
+                                                        <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-semibold">🖊️ {{ $assinaturasPendentes }}/{{ $todasAssinaturas }}</span>
+                                                    @elseif($statusGeral === 'resolvido')
+                                                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-semibold">✅ Resolvido</span>
+                                                    @elseif($statusGeral === 'resposta_pendente')
+                                                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-semibold animate-pulse">⏳ Avaliar {{ $docDigital->respostas->where('status', 'pendente')->count() }}</span>
+                                                    @elseif($statusGeral === 'prazo_aberto')
+                                                        <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-semibold" title="Aguardando resposta do estabelecimento">📬 Ag. Resposta</span>
+                                                    @elseif($statusGeral === 'concluido')
+                                                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-semibold">✓ {{ $todasAssinaturas }}</span>
+                                                    @endif
+                                                    
+                                                    {{-- Indicador de visualização --}}
+                                                    @if($docDigital->primeiraVisualizacao && $statusGeral !== 'rascunho' && $statusGeral !== 'aguardando_assinatura')
+                                                        <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-medium" title="Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }}">👁</span>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         </div>
                                         
-                                        {{-- Conteúdo Principal (clicável) --}}
-                                        @if($docDigital->status === 'rascunho')
-                                            <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="flex-1 min-w-0 cursor-pointer">
-                                        @elseif($docDigital->arquivo_pdf && !$temAssinaturasPendentes)
-                                            <div @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="flex-1 min-w-0 cursor-pointer">
-                                        @else
-                                            <div class="flex-1 min-w-0">
-                                        @endif
-                                            <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="text-sm font-semibold text-gray-900">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
-                                                <span class="text-xs text-gray-500">{{ $docDigital->numero_documento }}</span>
-                                                
-                                                {{-- Badge de Status Principal --}}
-                                                @if($docDigital->status === 'rascunho')
-                                                    <span class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Rascunho</span>
-                                                @elseif($temAssinaturasPendentes)
-                                                    <a href="{{ route('admin.documentos.show', $docDigital->id) }}#assinaturas" 
-                                                       @click.stop
-                                                       class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold hover:bg-orange-200 transition-colors"
-                                                       title="Clique para ver detalhes das assinaturas">
-                                                        Aguardando {{ $assinaturasPendentes }}/{{ $todasAssinaturas }} assinatura(s)
-                                                    </a>
-                                                @else
-                                                    <a href="{{ route('admin.documentos.show', $docDigital->id) }}#assinaturas" 
-                                                       @click.stop
-                                                       class="px-2.5 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold hover:bg-green-200 transition-colors"
-                                                       title="Clique para ver detalhes das assinaturas">
-                                                        {{ $todasAssinaturas }}/{{ $todasAssinaturas }} assinatura(s)
-                                                    </a>
-                                                @endif
-                                                
-                                                {{-- Badge de Prazo --}}
-                                                @if($docDigital->data_vencimento)
-                                                    @php
-                                                        $corBadge = $docDigital->cor_status_prazo;
-                                                        $classesCor = [
-                                                            'red' => 'bg-red-100 text-red-700',
-                                                            'yellow' => 'bg-yellow-100 text-yellow-700',
-                                                            'green' => 'bg-green-100 text-green-700',
-                                                            'blue' => 'bg-blue-100 text-blue-700',
-                                                            'gray' => 'bg-gray-100 text-gray-600',
-                                                        ];
-                                                        $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
-                                                    @endphp
-                                                    <span class="px-2.5 py-1 {{ $classeBadge }} rounded text-xs font-semibold">{{ $docDigital->texto_status_prazo }}</span>
-                                                @endif
-                                                
-                                                {{-- Prazo em Aberto --}}
-                                                @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado')
-                                                    <span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold animate-pulse">⚠ Prazo aberto</span>
-                                                @endif
-                                                
-                                                {{-- Visualização --}}
-                                                @if($docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado')
-                                                    @if($docDigital->primeiraVisualizacao)
-                                                        <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold" title="Visualizado por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}">👁 Visto</span>
-                                                    @else
-                                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold">Não visto</span>
-                                                    @endif
-                                                @endif
-                                                
-                                                {{-- Alerta de Respostas Pendentes com botão para abrir modal --}}
-                                                @if($docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0)
-                                                    <button type="button"
-                                                            @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
-                                                            class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold animate-pulse hover:bg-yellow-200 transition-colors cursor-pointer inline-flex items-center gap-1">
-                                                        📎 {{ $docDigital->respostas->where('status', 'pendente')->count() }} resposta(s) pendente(s)
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        @if($docDigital->status === 'rascunho')
-                                            </a>
-                                        @else
-                                            </div>
-                                        @endif
-                                        
-                                        {{-- Botão Expandir Detalhes --}}
-                                        <button @click.stop="expanded = !expanded" 
-                                                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
-                                                title="Ver detalhes">
-                                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </button>
-                                        
-                                        {{-- Botão Assinar (se necessário) --}}
-                                        @if($usuarioPrecisaAssinar)
-                                            <a href="{{ route('admin.assinatura.assinar', $docDigital->id) }}" 
-                                               class="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors flex-shrink-0">
-                                                Assinar
-                                            </a>
-                                        @endif
-                                        
-                                        {{-- Botão Marcar Resolvido --}}
-                                        @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
-                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST" class="inline flex-shrink-0">
-                                                @csrf
-                                                <button type="submit" 
-                                                        class="px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-                                                        onclick="return confirm('Marcar prazo como resolvido?')">
-                                                    ✓ Resolvido
-                                                </button>
-                                            </form>
-                                        @endif
-                                        
-                                        {{-- Download --}}
-                                        @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
-                                            <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
-                                               class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
-                                               title="Download">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                </svg>
-                                            </a>
-                                        @endif
-                                        
-                                        {{-- Menu 3 Pontos --}}
-                                        <div class="relative flex-shrink-0" x-data="{ menuAberto: false }">
-                                            <button @click.stop="menuAberto = !menuAberto"
-                                                    class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors">
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                        {{-- DIREITA: Opções --}}
+                                        <div class="flex items-center gap-1 flex-shrink-0">
+                                            {{-- Botão Expandir Detalhes --}}
+                                            <button @click.stop="expanded = !expanded" 
+                                                    class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                                    title="Ver detalhes">
+                                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                                 </svg>
                                             </button>
-                                            <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
-                                                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
-                                                 style="display: none;">
-                                                @if($docDigital->status === 'rascunho')
-                                                    <a href="{{ route('admin.documentos.edit', $docDigital->id) }}"
-                                                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Editar</a>
-                                                @endif
-                                                @if($docDigital->status !== 'rascunho')
-                                                    <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
-                                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mover para pasta</button>
-                                                @endif
-                                                @if($docDigital->prazo_dias || $docDigital->data_vencimento)
-                                                    @if($docDigital->isPrazoFinalizado())
-                                                        <form action="{{ route('admin.estabelecimentos.processos.documento-digital.reabrir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
-                                                            @csrf
-                                                            <button type="submit" onclick="return confirm('Reabrir prazo?')"
-                                                                    class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">Reabrir Prazo</button>
-                                                        </form>
-                                                    @elseif(!$docDigital->respostas || $docDigital->respostas->where('status', 'aprovado')->count() == 0)
-                                                        @if($docDigital->primeiraVisualizacao)
-                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
+                                            
+                                            @if($usuarioPrecisaAssinar)
+                                                <button type="button"
+                                                   @click="abrirModalAssinar({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ $assinaturaUsuario->ordem }}', {{ json_encode($docDigital->assinaturas->map(fn($a) => ['nome' => $a->usuarioInterno->nome ?? 'Usuário', 'status' => $a->status, 'ordem' => $a->ordem, 'isCurrentUser' => $a->usuario_interno_id === auth('interno')->id()])->sortBy('ordem')->values()) }})"
+                                                   class="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                                                   title="Assinar documento">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                    </svg>
+                                                </button>
+                                            @endif
+                                            
+                                            @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
+                                                <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            class="p-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors"
+                                                            onclick="return confirm('Marcar prazo como resolvido?')"
+                                                            title="Marcar como resolvido">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            
+                                            @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
+                                                <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
+                                                   class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                   title="Download">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                    </svg>
+                                                </a>
+                                            @endif
+                                            
+                                            {{-- Menu 3 Pontos --}}
+                                            <div class="relative" x-data="{ menuAberto: false }">
+                                                <button @click.stop="menuAberto = !menuAberto"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                                        title="Mais opções">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                                    </svg>
+                                                </button>
+                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
+                                                     class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] py-1"
+                                                     style="display: none;">
+                                                    @if($docDigital->status === 'rascunho')
+                                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}"
+                                                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Editar</a>
+                                                    @endif
+                                                    @if($docDigital->status !== 'rascunho')
+                                                        <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
+                                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mover para pasta</button>
+                                                    @endif
+                                                    @if($docDigital->prazo_dias || $docDigital->data_vencimento)
+                                                        @if($docDigital->isPrazoFinalizado())
+                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.reabrir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
                                                                 @csrf
-                                                                <button type="submit" onclick="return confirm('Finalizar prazo?')"
-                                                                        class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50">Finalizar Prazo</button>
+                                                                <button type="submit" onclick="return confirm('Reabrir prazo?')"
+                                                                        class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">Reabrir Prazo</button>
                                                             </form>
-                                                        @else
-                                                            <span class="block px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
-                                                                Finalizar Prazo (aguardando visualização)
-                                                            </span>
+                                                        @elseif(!$docDigital->respostas || $docDigital->respostas->where('status', 'aprovado')->count() == 0)
+                                                            @if($docDigital->primeiraVisualizacao)
+                                                                <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
+                                                                    @csrf
+                                                                    <button type="submit" onclick="return confirm('Finalizar prazo?')"
+                                                                            class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50">Finalizar Prazo</button>
+                                                                </form>
+                                                            @else
+                                                                <span class="block px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
+                                                                    Finalizar Prazo (aguardando visualização)
+                                                                </span>
+                                                            @endif
                                                         @endif
                                                     @endif
-                                                @endif
-                                                <button @click="excluirDocumentoDigital({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }} - {{ $docDigital->numero_documento }}'); menuAberto = false"
-                                                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Excluir</button>
+                                                    <button @click="excluirDocumentoDigital({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }} - {{ $docDigital->numero_documento }}'); menuAberto = false"
+                                                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Excluir</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    {{-- Seção Expandível: Detalhes --}}
-                                    <div x-show="expanded" x-collapse class="mt-3 pt-3 border-t border-gray-200">
-                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mb-2">
-                                            <span>📅 {{ $docDigital->created_at->format('d/m/Y H:i') }}</span>
-                                            <span>👤 {{ $docDigital->usuarioCriador->nome }}</span>
-                                            <span class="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-semibold">Interno</span>
-                                            @if($docDigital->primeiraVisualizacao)
-                                                <span class="text-emerald-600 font-medium">👁 Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }}</span>
-                                            @endif
-                                        </div>
-                                    
-                                    {{-- Respostas do Estabelecimento a este documento --}}
-                                    @if($docDigital->respostas && $docDigital->respostas->count() > 0)
-                                    <div class="mt-3" x-data="{ respostasAbertas: {{ $docDigital->respostas->where('status', 'pendente')->count() > 0 ? 'true' : 'false' }} }">
-                                        {{-- Cabeçalho colapsável --}}
-                                        <div class="flex items-center justify-between">
-                                            <button @click="respostasAbertas = !respostasAbertas" 
-                                                    class="flex items-center gap-2 text-sm font-bold text-green-700 hover:text-green-800 transition-colors">
-                                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': respostasAbertas }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                                </svg>
-                                                <span>Respostas ({{ $docDigital->respostas->count() }})</span>
-                                                @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
-                                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 text-yellow-800">
-                                                        {{ $docDigital->respostas->where('status', 'pendente')->count() }} pendente(s)
-                                                    </span>
-                                                @endif
-                                                @if($docDigital->respostas->where('status', 'aprovado')->count() > 0)
-                                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-green-200 text-green-800">
-                                                        {{ $docDigital->respostas->where('status', 'aprovado')->count() }} aprovado(s)
-                                                    </span>
-                                                @endif
-                                            </button>
-                                            
-                                            {{-- Botão para abrir modal de visualização lado a lado --}}
-                                            @if($docDigital->respostas->where('status', 'pendente')->count() > 0)
-                                            <button type="button"
-                                                    @click.stop="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ addslashes($docDigital->numero_documento ?? '') }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
-                                                    class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 rounded transition-colors">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                                                </svg>
-                                                Ver lado a lado
-                                            </button>
-                                            @endif
-                                        </div>
-                                        
-                                        {{-- Lista de respostas colapsável --}}
-                                        <div x-show="respostasAbertas" x-transition class="mt-3 space-y-2">
-                                            @foreach($docDigital->respostas as $resposta)
-                                            <div x-data="{ showRejeitar: false, showDetalhes: false }" 
-                                                 class="bg-white rounded border {{ $resposta->status === 'pendente' ? 'border-yellow-300' : ($resposta->status === 'aprovado' ? 'border-green-300' : 'border-red-300') }}">
-                                                {{-- Linha compacta da resposta --}}
-                                                <div class="px-3 py-2.5 flex items-center gap-2">
-                                                    {{-- Ícone pequeno de status --}}
-                                                    <div class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 {{ $resposta->status === 'pendente' ? 'bg-yellow-100' : ($resposta->status === 'aprovado' ? 'bg-green-100' : 'bg-red-100') }}">
-                                                        @if($resposta->status === 'pendente')
-                                                            <svg class="w-3 h-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    {{-- Seção Expandível: Timeline do Documento --}}
+                                    <div x-show="expanded" x-collapse class="border-t border-gray-100 bg-gray-50">
+                                        <div class="p-3">
+                                            {{-- Timeline Visual --}}
+                                            <div class="relative">
+                                                {{-- Linha vertical da timeline --}}
+                                                <div class="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-200"></div>
+                                                
+                                                <div class="space-y-3">
+                                                    {{-- Evento: Criação do Documento --}}
+                                                    <div class="flex items-start gap-3 relative">
+                                                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center z-10 flex-shrink-0">
+                                                            <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                                             </svg>
-                                                        @elseif($resposta->status === 'aprovado')
-                                                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                            </svg>
-                                                        @else
-                                                            <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                            </svg>
-                                                        @endif
-                                                    </div>
-                                                    
-                                                    {{-- Info principal --}}
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                                            <button type="button" 
-                                                                    @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; modalVisualizador = true"
-                                                                    class="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate max-w-[200px]">
-                                                                {{ $resposta->nome_original }}
-                                                            </button>
-                                                            <span class="text-xs text-gray-500">{{ $resposta->tamanho_formatado }}</span>
                                                         </div>
-                                                        <p class="text-xs text-gray-600 truncate">
-                                                            {{ $resposta->created_at->format('d/m H:i') }} • {{ $resposta->usuarioExterno->nome ?? 'N/D' }}
-                                                            @if($resposta->status === 'aprovado' && $resposta->avaliadoPor)
-                                                                • <span class="text-green-600 font-medium">Aprovado por {{ $resposta->avaliadoPor->nome }}</span>
-                                                            @endif
-                                                        </p>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-medium text-gray-900">Documento criado</p>
+                                                            <p class="text-[10px] text-gray-500">{{ $docDigital->created_at->format('d/m/Y H:i') }} • {{ $docDigital->usuarioCriador->nome }}</p>
+                                                        </div>
                                                     </div>
                                                     
-                                                    {{-- Ações compactas --}}
-                                                    <div class="flex items-center gap-0.5 flex-shrink-0">
-                                                        @if(($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0) || $resposta->observacoes || ($resposta->status === 'rejeitado' && $resposta->motivo_rejeicao))
-                                                        <button @click="showDetalhes = !showDetalhes" 
-                                                                class="p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors" 
-                                                                title="Ver detalhes">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    {{-- Evento: Assinaturas --}}
+                                                    @if($todasAssinaturas > 0)
+                                                    <div class="flex items-start gap-3 relative">
+                                                        <div class="w-6 h-6 rounded-full {{ $temAssinaturasPendentes ? 'bg-orange-100' : 'bg-green-100' }} flex items-center justify-center z-10 flex-shrink-0">
+                                                            <svg class="w-3 h-3 {{ $temAssinaturasPendentes ? 'text-orange-600' : 'text-green-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                             </svg>
-                                                        </button>
-                                                        @endif
-                                                        <button type="button"
-                                                               @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; modalVisualizador = true"
-                                                               class="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Visualizar">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-medium text-gray-900">
+                                                                @if($temAssinaturasPendentes)
+                                                                    Aguardando {{ $assinaturasPendentes }} de {{ $todasAssinaturas }} assinatura(s)
+                                                                @else
+                                                                    ✓ Todas {{ $todasAssinaturas }} assinatura(s) coletadas
+                                                                @endif
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    @endif
+                                                    
+                                                    {{-- Evento: Visualização --}}
+                                                    @if($docDigital->primeiraVisualizacao)
+                                                    <div class="flex items-start gap-3 relative">
+                                                        <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center z-10 flex-shrink-0">
+                                                            <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                                             </svg>
-                                                        </button>
-                                                        <a href="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.download', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}"
-                                                           class="p-1 text-gray-600 hover:bg-gray-200 rounded transition-colors" title="Download">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                            </svg>
-                                                        </a>
-                                                        @if($resposta->status === 'pendente')
-                                                        <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="inline">
-                                                            @csrf
-                                                            <button type="submit" 
-                                                                    class="p-1 text-green-600 hover:bg-green-100 rounded transition-colors" 
-                                                                    title="Aprovar"
-                                                                    onclick="return confirm('Aprovar esta resposta?')">
-                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                                </svg>
-                                                            </button>
-                                                        </form>
-                                                        <button @click="showRejeitar = !showRejeitar" 
-                                                                class="p-1 text-red-600 hover:bg-red-100 rounded transition-colors" 
-                                                                title="Rejeitar">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                            </svg>
-                                                        </button>
-                                                        @endif
-                                                        {{-- Botão Excluir (sempre visível) --}}
-                                                        <button type="button"
-                                                                @click="abrirModalExclusao('resposta', {{ $resposta->id }}, '{{ addslashes($resposta->nome_arquivo) }}', '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.excluir', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}')"
-                                                                class="p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 rounded transition-colors" 
-                                                                title="Excluir resposta">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                
-                                                {{-- Detalhes expandíveis --}}
-                                                <div x-show="showDetalhes" x-transition class="px-3 pb-2 space-y-2" style="display: none;">
-                                                    @if($resposta->observacoes)
-                                                    <p class="text-xs text-gray-600 italic bg-white p-1.5 rounded">"{{ $resposta->observacoes }}"</p>
-                                                    @endif
-                                                    
-                                                    @if($resposta->status === 'rejeitado' && $resposta->motivo_rejeicao)
-                                                    <div class="p-2 bg-red-100 rounded text-xs text-red-700">
-                                                        <strong>Motivo:</strong> {{ $resposta->motivo_rejeicao }}
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-medium text-gray-900">Visualizado pelo estabelecimento</p>
+                                                            <p class="text-[10px] text-gray-500">{{ $docDigital->primeiraVisualizacao->created_at->format('d/m/Y H:i') }} • {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }}</p>
+                                                        </div>
                                                     </div>
                                                     @endif
                                                     
-                                                    @if($resposta->historico_rejeicao && count($resposta->historico_rejeicao) > 0)
-                                                    <div class="text-xs">
-                                                        <p class="font-semibold text-gray-700 mb-1">Histórico ({{ count($resposta->historico_rejeicao) }}):</p>
-                                                        @foreach($resposta->historico_rejeicao as $index => $rejeicao)
-                                                        <div class="p-1.5 bg-white rounded border border-gray-200 mb-1">
-                                                            <span class="text-gray-600">{{ \Carbon\Carbon::parse($rejeicao['rejeitado_em'])->format('d/m H:i') }}</span> - 
-                                                            <span class="text-red-600">{{ Str::limit($rejeicao['motivo'], 50) }}</span>
+                                                    {{-- Eventos: Respostas --}}
+                                                    @if($docDigital->respostas && $docDigital->respostas->count() > 0)
+                                                        @foreach($docDigital->respostas->sortBy('created_at') as $resposta)
+                                                        <div class="flex items-start gap-3 relative" x-data="{ showRejeitar: false }">
+                                                            <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 flex-shrink-0
+                                                                {{ $resposta->status === 'pendente' ? 'bg-yellow-100' : ($resposta->status === 'aprovado' ? 'bg-green-100' : 'bg-red-100') }}">
+                                                                @if($resposta->status === 'pendente')
+                                                                    <svg class="w-3 h-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                    </svg>
+                                                                @elseif($resposta->status === 'aprovado')
+                                                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                    </svg>
+                                                                @else
+                                                                    <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                    </svg>
+                                                                @endif
+                                                            </div>
+                                                            <div class="flex-1 min-w-0 bg-white rounded-lg border {{ $resposta->status === 'pendente' ? 'border-yellow-200' : ($resposta->status === 'aprovado' ? 'border-green-200' : 'border-red-200') }} p-2">
+                                                                <div class="flex items-center justify-between gap-2">
+                                                                    <div class="min-w-0 flex-1">
+                                                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                                                            <button type="button" 
+                                                                                    @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; modalVisualizador = true"
+                                                                                    class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate">
+                                                                                📎 {{ $resposta->nome_original }}
+                                                                            </button>
+                                                                            <span class="text-[10px] px-1.5 py-0.5 rounded font-medium
+                                                                                {{ $resposta->status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ($resposta->status === 'aprovado' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') }}">
+                                                                                {{ $resposta->status === 'pendente' ? 'Pendente' : ($resposta->status === 'aprovado' ? 'Aprovado' : 'Rejeitado') }}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p class="text-[10px] text-gray-500 mt-0.5">
+                                                                            {{ $resposta->created_at->format('d/m/Y H:i') }} • {{ $resposta->usuarioExterno->nome ?? 'N/D' }}
+                                                                            @if($resposta->status === 'aprovado' && $resposta->avaliadoPor)
+                                                                                • <span class="text-green-600">✓ {{ $resposta->avaliadoPor->nome }}</span>
+                                                                            @endif
+                                                                        </p>
+                                                                    </div>
+                                                                    
+                                                                    {{-- Ações da resposta --}}
+                                                                    <div class="flex items-center gap-0.5 flex-shrink-0">
+                                                                        <button type="button"
+                                                                               @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}'; modalVisualizador = true"
+                                                                               class="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Visualizar">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                        <a href="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.download', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}"
+                                                                           class="p-1 text-gray-600 hover:bg-gray-200 rounded transition-colors" title="Download">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                                            </svg>
+                                                                        </a>
+                                                                        @if($resposta->status === 'pendente')
+                                                                        <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="inline">
+                                                                            @csrf
+                                                                            <button type="submit" 
+                                                                                    class="p-1 text-green-600 hover:bg-green-100 rounded transition-colors" 
+                                                                                    title="Aprovar"
+                                                                                    onclick="return confirm('Aprovar esta resposta?')">
+                                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                                </svg>
+                                                                            </button>
+                                                                        </form>
+                                                                        <button @click="showRejeitar = !showRejeitar" 
+                                                                                class="p-1 text-red-600 hover:bg-red-100 rounded transition-colors" 
+                                                                                title="Rejeitar">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                        @endif
+                                                                        <button type="button"
+                                                                                @click="abrirModalExclusao('resposta', {{ $resposta->id }}, '{{ addslashes($resposta->nome_arquivo) }}', '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.excluir', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}')"
+                                                                                class="p-1 text-gray-400 hover:bg-red-100 hover:text-red-600 rounded transition-colors" 
+                                                                                title="Excluir">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {{-- Formulário de rejeição inline --}}
+                                                                <div x-show="showRejeitar" x-transition class="mt-2 pt-2 border-t border-gray-100">
+                                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
+                                                                        @csrf
+                                                                        <textarea name="motivo_rejeicao" rows="2" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 focus:border-red-500" placeholder="Motivo da rejeição..." required></textarea>
+                                                                        <div class="flex justify-end gap-1 mt-1">
+                                                                            <button type="button" @click="showRejeitar = false" class="px-2 py-1 text-[10px] text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                                                                            <button type="submit" class="px-2 py-1 text-[10px] bg-red-600 text-white rounded hover:bg-red-700">Rejeitar</button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         @endforeach
+                                                    @endif
+                                                    
+                                                    {{-- Evento: Prazo Finalizado --}}
+                                                    @if($prazoFinalizado)
+                                                    <div class="flex items-start gap-3 relative">
+                                                        <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center z-10 flex-shrink-0">
+                                                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-medium text-green-700">✅ Documento resolvido/finalizado</p>
+                                                        </div>
                                                     </div>
                                                     @endif
                                                 </div>
-                                                
-                                                {{-- Form de rejeição --}}
-                                                @if($resposta->status === 'pendente')
-                                                <div x-show="showRejeitar" x-transition class="p-2 border-t border-red-200 bg-red-50" style="display: none;">
-                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
-                                                        @csrf
-                                                        <textarea name="motivo_rejeicao" required rows="2" class="w-full px-2 py-1.5 text-xs border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500" placeholder="Motivo da rejeição..."></textarea>
-                                                        <div class="flex gap-1.5 mt-1.5">
-                                                            <button type="submit" class="px-2 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700">Rejeitar</button>
-                                                            <button type="button" @click="showRejeitar = false" class="px-2 py-1 bg-white text-gray-700 text-xs font-semibold rounded border border-gray-300 hover:bg-gray-50">Cancelar</button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                                @endif
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
-                                    @endif
-                                    </div>{{-- Fecha seção expandível --}}
                                 </div>
                                 
                                 @elseif($item['tipo'] === 'ordem_servico')
                                     @php
                                         $os = $item['documento'];
                                     @endphp
-                                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50 rounded-lg border border-gray-200 border-l-2 border-l-blue-600 hover:shadow-md transition-all"
+                                <div class="p-3 bg-blue-50 rounded-lg border border-gray-200 border-l-4 border-l-blue-600 hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
-                                    <a href="{{ route('admin.ordens-servico.show', $os) }}" 
-                                       class="flex items-center gap-3 flex-1 min-w-0">
-                                        {{-- Ícone da OS --}}
-                                        <div class="flex-shrink-0">
-                                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        
-                                        {{-- Informações da OS --}}
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                                Ordem de Serviço #{{ $os->numero }}
-                                                {!! $os->status_badge !!}
-                                            </p>
-                                            <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-gray-700">
-                                                <span class="flex items-center gap-1">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                    </svg>
-                                                    {{ $os->created_at->format('d/m/Y H:i') }}
-                                                </span>
-                                                @if($os->estabelecimento)
-                                                <span>•</span>
-                                                <span class="truncate">{{ $os->estabelecimento->nome_fantasia }}</span>
-                                                @endif
-                                                @if($os->municipio)
-                                                <span>•</span>
-                                                <span>{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
-                                                @endif
-                                                <span>•</span>
-                                                {!! $os->competencia_badge !!}
-                                            </div>
-                                        </div>
-                                    </a>
                                     
-                                    {{-- Botão Ver OS --}}
-                                    <div class="flex items-center gap-2">
-                                        <a href="{{ route('admin.ordens-servico.show', $os) }}" 
-                                           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                            Ver OS
-                                        </a>
+                                    {{-- Layout Flex: Título+Data | Opções --}}
+                                    <div class="flex items-center justify-between gap-3">
+                                        {{-- ESQUERDA: Ícone + Nome + Data --}}
+                                        <a href="{{ route('admin.ordens-servico.show', $os) }}" class="flex items-center gap-2 min-w-0 flex-1">
+                                            <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">OS #{{ $os->numero }}</span>
+                                                        <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $os->created_at->format('d/m/Y') }}</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                        {!! $os->status_badge !!}
+                                                        {!! $os->competencia_badge !!}
+                                                        @if($os->municipio)
+                                                        <span class="text-xs text-gray-500">{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        
+                                        {{-- DIREITA: Opções --}}
+                                        <div class="flex items-center gap-1 flex-shrink-0">
+                                            <a href="{{ route('admin.ordens-servico.show', $os) }}" 
+                                               class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold rounded transition-colors flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                                Ver OS
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 @elseif($item['tipo'] === 'arquivo')
@@ -1250,153 +1237,95 @@
                                     @endphp
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-4 bg-white rounded-lg border border-gray-200 border-l-2 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : 'border-l-green-500') }} hover:shadow-md transition-all"
+                                     class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : 'border-l-green-500') }} hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
+                                    {{-- Layout Flex: Título+Data | Opções --}}
                                     <div class="flex items-start justify-between gap-3">
-                                        {{-- Conteúdo Principal --}}
+                                        {{-- ESQUERDA: Ícone + Nome + Data --}}
                                         <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }})" 
-                                             class="flex items-start gap-3 flex-1 min-w-0 cursor-pointer">
+                                             class="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
                                             {{-- Ícone --}}
-                                            <div class="w-10 h-10 {{ $documento->tipo_usuario === 'externo' ? 'bg-blue-100' : 'bg-gray-100' }} rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <span class="text-xl">📄</span>
+                                            <div class="w-8 h-8 {{ $documento->tipo_usuario === 'externo' ? 'bg-blue-100' : 'bg-gray-100' }} rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <span class="text-sm">📎</span>
                                             </div>
-                                            
-                                            {{-- Info --}}
-                                            <div class="flex-1 min-w-0">
-                                                {{-- Linha 1: Nome --}}
-                                                <p class="text-sm font-semibold text-gray-900 break-words">{{ $documento->nome_original }}</p>
-                                                
-                                                {{-- Linha 2: Meta info --}}
-                                                <div class="flex items-center gap-2 mt-1.5 text-sm text-gray-600">
-                                                    <span>{{ $documento->created_at->format('d/m/Y H:i') }}</span>
-                                                    <span>•</span>
-                                                    <span>{{ $documento->tamanho_formatado }}</span>
-                                                    <span>•</span>
-                                                    <span>{{ $documento->tipo_usuario === 'interno' ? ($documento->usuario->nome ?? 'Sistema') : 'Usuário Externo' }}</span>
-                                                </div>
-                                                
-                                                {{-- Linha 3: Badges --}}
-                                                <div class="flex flex-wrap items-center gap-2 mt-2">
-                                                    <span class="px-2.5 py-0.5 text-xs rounded-full {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700 font-semibold' : 'bg-blue-100 text-blue-700 font-semibold' }}">
-                                                        {{ $documento->tipo_usuario === 'interno' ? 'Interno' : 'Externo' }}
+                                            {{-- Nome, Status e Data --}}
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 break-words leading-tight">{{ $documento->nome_original }}</p>
+                                                <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                                                    <span class="text-[11px] text-gray-400">{{ $documento->created_at->format('d/m/Y') }}</span>
+                                                    <span class="text-xs text-gray-500">{{ $documento->tamanho_formatado }}</span>
+                                                    <span class="px-1.5 py-0.5 text-[10px] rounded {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700 font-semibold' : 'bg-blue-100 text-blue-700 font-semibold' }}">
+                                                        {{ $documento->tipo_usuario === 'interno' ? 'Int' : 'Ext' }}
                                                     </span>
-                                                    
                                                     @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                                         @if($documento->status_aprovacao === 'pendente')
-                                                            <span class="px-2.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-semibold">Pendente</span>
+                                                            <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded font-semibold">Pendente</span>
                                                             @if($isCorrecao)
-                                                                <span class="px-2.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
+                                                                <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] rounded font-semibold">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'aprovado')
-                                                            <span class="relative group px-2.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-semibold cursor-help">
-                                                                ✓ Aprovado
-                                                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                                                                    <span class="block font-semibold">Aprovado por: {{ $documento->aprovadoPor->nome ?? 'N/D' }}</span>
-                                                                    <span class="block text-gray-300">{{ $documento->aprovado_em?->format('d/m/Y \à\s H:i') ?? 'Data não registrada' }}</span>
-                                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
-                                                                </span>
-                                                            </span>
-                                                            @if($documento->aprovadoPor)
-                                                            <span class="text-xs text-green-600 font-medium">
-                                                                por {{ $documento->aprovadoPor->nome }} em {{ $documento->aprovado_em?->format('d/m/Y H:i') }}
-                                                            </span>
-                                                            @endif
+                                                            <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-semibold">✓ Aprovado</span>
                                                         @elseif($documento->status_aprovacao === 'rejeitado')
-                                                            <span class="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-semibold">Rejeitado</span>
+                                                            <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] rounded font-semibold">Rejeitado</span>
                                                         @endif
                                                     @endif
-                                                    
-                                                    {{-- Motivo da Rejeição --}}
-                                                    @if($documento->status_aprovacao === 'rejeitado' && $documento->motivo_rejeicao)
-                                                    <div class="w-full mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
-                                                        <p class="text-xs text-red-700">
-                                                            <span class="font-semibold">Motivo:</span> {{ $documento->motivo_rejeicao }}
-                                                        </p>
-                                                    </div>
-                                                    @endif
-                                                    
-                                                    @if($documento->pasta_id)
-                                                        <span class="flex items-center gap-1 px-2.5 py-0.5 text-xs rounded-full font-semibold"
-                                                              x-data="{ pasta: pastas.find(p => p.id === {{ $documento->pasta_id }}) }"
-                                                              :style="pasta ? `background-color: ${pasta.cor}20; color: ${pasta.cor}` : ''">
-                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                                                            </svg>
-                                                            <span x-text="pasta ? pasta.nome : ''"></span>
-                                                        </span>
-                                                    @endif
                                                 </div>
-                                                
-                                                {{-- Botão Histórico --}}
-                                                @if($isCorrecao && $historicoRejeicoes->count() > 0)
-                                                <button @click.stop="showHistorico = !showHistorico" class="mt-2 text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                    </svg>
-                                                    Ver histórico ({{ $historicoRejeicoes->count() }})
-                                                    <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': showHistorico }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                                    </svg>
-                                                </button>
-                                                @endif
                                             </div>
                                         </div>
                                         
-                                        {{-- Ações --}}
-                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                        {{-- DIREITA: Opções --}}
+                                        <div class="flex items-center gap-1 flex-shrink-0">
                                             @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente')
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors" title="Aprovar">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                     </svg>
                                                 </button>
                                             </form>
-                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Rejeitar">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                                 </svg>
                                             </button>
                                             @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'aprovado')
-                                            {{-- Botão Revalidar (voltar para pendente) --}}
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Revalidar (voltar para pendente)">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Revalidar">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                                     </svg>
                                                 </button>
                                             </form>
                                             @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'rejeitado')
-                                            {{-- Botão Revalidar documento rejeitado (voltar para pendente) --}}
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento rejeitado? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Revalidar (voltar para pendente)">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Revalidar">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                                     </svg>
                                                 </button>
                                             </form>
                                             @endif
                                             
-                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Download">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                                 </svg>
                                             </a>
                                             
                                             {{-- Menu 3 pontos --}}
                                             <div class="relative" x-data="{ menuAberto: false }">
-                                                <button @click.stop="menuAberto = !menuAberto" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
-                                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                <button @click.stop="menuAberto = !menuAberto" class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors" title="Mais opções">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                                         <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                                                     </svg>
                                                 </button>
-                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border z-50" style="display: none;">
+                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl border z-[9999] py-1" style="display: none;">
                                                     <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">Remover da pasta</button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
                                                         <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
@@ -1413,6 +1342,24 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    {{-- Motivo da Rejeição e Histórico --}}
+                                    @if($documento->status_aprovacao === 'rejeitado' && $documento->motivo_rejeicao)
+                                    <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg ml-10">
+                                        <p class="text-xs text-red-700"><span class="font-semibold">Motivo:</span> {{ $documento->motivo_rejeicao }}</p>
+                                    </div>
+                                    @endif
+                                    @if($isCorrecao && $historicoRejeicoes->count() > 0)
+                                    <button @click.stop="showHistorico = !showHistorico" class="ml-10 mt-1 text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Ver histórico ({{ $historicoRejeicoes->count() }})
+                                        <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': showHistorico }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+                                    @endif
                                     
                                     {{-- Histórico Expandido --}}
                                     @if($isCorrecao && $historicoRejeicoes->count() > 0)
@@ -2401,6 +2348,115 @@
         </div>
     </template>
 
+    {{-- Modal de Assinatura de Documento --}}
+    <template x-if="modalAssinar">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalAssinar" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalAssinar = false"></div>
+
+                {{-- Modal --}}
+                <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                    {{-- Header --}}
+                    <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900">Assinar Documento</h3>
+                                <p class="text-xs text-gray-500 mt-0.5" x-text="assinarDocumentoNome"></p>
+                            </div>
+                            <button @click="modalAssinar = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Info do documento --}}
+                    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <span class="text-gray-400">Documento</span>
+                                <p class="text-gray-700 font-medium" x-text="assinarDocumentoNumero"></p>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Sua posição</span>
+                                <p class="text-gray-700 font-medium"><span x-text="assinarOrdem"></span>º assinante</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Lista de assinantes --}}
+                    <div class="px-5 py-3 border-b border-gray-100">
+                        <p class="text-xs text-gray-500 mb-2">Assinantes:</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <template x-for="ass in assinarAssinaturas" :key="ass.ordem">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                                      :class="ass.status === 'assinado' ? 'bg-green-50 text-green-700' : (ass.isCurrentUser ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-500')">
+                                    <template x-if="ass.status === 'assinado'">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    </template>
+                                    <template x-if="ass.status !== 'assinado' && ass.isCurrentUser">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                    </template>
+                                    <span x-text="ass.nome"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Formulário --}}
+                    <div class="px-5 py-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Senha de Assinatura</label>
+                        <input type="password" 
+                               x-model="assinarSenha"
+                               @keydown.enter.prevent="processarAssinatura()"
+                               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               :class="assinarErro ? 'border-red-400' : ''"
+                               placeholder="••••••••"
+                               autofocus>
+                        <p class="mt-1 text-xs text-red-500" x-show="assinarErro" x-text="assinarErro"></p>
+
+                        {{-- Botões --}}
+                        <div class="flex items-center gap-2 mt-4">
+                            <button type="button" 
+                                    @click="processarAssinatura()"
+                                    :disabled="assinarCarregando"
+                                    class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                <template x-if="assinarCarregando">
+                                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </template>
+                                <template x-if="!assinarCarregando">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                    </svg>
+                                </template>
+                                <span x-text="assinarCarregando ? 'Assinando...' : 'Assinar'"></span>
+                            </button>
+                            <button type="button" 
+                                    @click="modalAssinar = false"
+                                    :disabled="assinarCarregando"
+                                    class="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-5 py-2.5 bg-gray-50 border-t border-gray-100">
+                        <p class="text-[10px] text-gray-400 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Assinatura digital protegida por criptografia
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Modal de Exclusão com Senha de Assinatura --}}
     <template x-if="modalExcluirComSenha">
         <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalExcluirComSenha" style="display: none;">
@@ -2969,6 +3025,17 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 modalExcluirComSenha: false,
                 modalAtribuir: false,
                 modalRespostas: false,
+                modalAssinar: false,
+                
+                // Modal de Assinatura
+                assinarDocumentoId: null,
+                assinarDocumentoNome: '',
+                assinarDocumentoNumero: '',
+                assinarOrdem: '',
+                assinarAssinaturas: [],
+                assinarSenha: '',
+                assinarErro: '',
+                assinarCarregando: false,
                 
                 // Modal de Respostas
                 respostasDocumentoId: null,
@@ -3310,6 +3377,73 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.respostasDocumentoNumero = numeroDocumento;
                     this.respostasDocumentoPdfUrl = pdfUrl;
                     this.modalRespostas = true;
+                },
+
+                // Abre modal de assinatura
+                abrirModalAssinar(documentoId, nomeDocumento, numeroDocumento, ordem, assinaturas) {
+                    this.assinarDocumentoId = documentoId;
+                    this.assinarDocumentoNome = nomeDocumento;
+                    this.assinarDocumentoNumero = numeroDocumento;
+                    this.assinarOrdem = ordem;
+                    this.assinarAssinaturas = assinaturas;
+                    this.assinarSenha = '';
+                    this.assinarErro = '';
+                    this.assinarCarregando = false;
+                    this.modalAssinar = true;
+                },
+
+                // Processa assinatura via AJAX
+                async processarAssinatura() {
+                    if (!this.assinarSenha) {
+                        this.assinarErro = 'Digite sua senha de assinatura';
+                        return;
+                    }
+                    
+                    this.assinarCarregando = true;
+                    this.assinarErro = '';
+                    
+                    try {
+                        const response = await fetch(`/admin/assinatura/processar/${this.assinarDocumentoId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                senha_assinatura: this.assinarSenha,
+                                acao: 'assinar'
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok && data.success) {
+                            this.modalAssinar = false;
+                            // Mostrar notificação de sucesso
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Documento assinado!',
+                                    text: data.message || 'Assinatura realizada com sucesso.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                alert(data.message || 'Documento assinado com sucesso!');
+                                window.location.reload();
+                            }
+                        } else {
+                            this.assinarErro = data.message || data.error || 'Erro ao assinar documento';
+                        }
+                    } catch (error) {
+                        console.error('Erro:', error);
+                        this.assinarErro = 'Erro de conexão. Tente novamente.';
+                    } finally {
+                        this.assinarCarregando = false;
+                    }
                 },
 
                 // Abre o visualizador de PDF com ferramentas de anotação
