@@ -552,7 +552,8 @@ class ProcessoController extends Controller
             // Remove caracteres especiais e espaços do nome do documento
             $nomeBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nomeDocumento);
             $nomeArquivo = $nomeBase . '_' . time() . '.' . strtolower($extensao);
-            $nomeOriginal = $nomeDocumento . '.' . strtolower($extensao);
+            // Limita o nome_original a 990 caracteres para segurança (campo é varchar 1000)
+            $nomeOriginal = substr($nomeDocumento . '.' . strtolower($extensao), 0, 990);
         } else {
             $nomeArquivo = time() . '_' . uniqid() . '.' . $extensao;
             $nomeOriginal = $nomeOriginalUpload;

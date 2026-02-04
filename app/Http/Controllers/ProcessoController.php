@@ -1080,6 +1080,8 @@ class ProcessoController extends Controller
         try {
             $arquivo = $request->file('arquivo');
             $nomeOriginal = $arquivo->getClientOriginalName();
+            // Limita o nome_original a 990 caracteres para segurança (campo é varchar 1000)
+            $nomeOriginal = substr($nomeOriginal, 0, 990);
             $extensao = $arquivo->getClientOriginalExtension();
             $tamanho = $arquivo->getSize();
             
