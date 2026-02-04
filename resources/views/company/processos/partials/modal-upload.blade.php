@@ -19,10 +19,16 @@
                  avisoDareDocNome: '',
                  avisoDareTipo: '',
                  mostrarAvisoDare(docId, docNome, tipo) {
-                     this.avisoDareDocId = docId;
-                     this.avisoDareDocNome = docNome;
-                     this.avisoDareTipo = tipo;
-                     this.modalAvisoDare = true;
+                     // Aviso temporariamente desabilitado - abrir seletor de arquivo diretamente
+                     const input = document.getElementById('file_doc_' + docId);
+                     if (input) input.click();
+                     return;
+                     
+                     // Código original comentado para reativar depois:
+                     // this.avisoDareDocId = docId;
+                     // this.avisoDareDocNome = docNome;
+                     // this.avisoDareTipo = tipo;
+                     // this.modalAvisoDare = true;
                  },
                  confirmarAvisoDare() {
                      this.modalAvisoDare = false;
