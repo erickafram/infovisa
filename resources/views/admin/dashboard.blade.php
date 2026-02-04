@@ -231,7 +231,15 @@
         {{-- Coluna 2: Meus Processos --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="processosAtribuidos()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-900">Meus Processos</h3>
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Processos do Setor</h3>
+                        <p class="text-xs text-gray-400">Atribuídos ao seu setor</p>
+                    </div>
+                </div>
                 <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium" x-text="total"></span>
             </div>
             <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
