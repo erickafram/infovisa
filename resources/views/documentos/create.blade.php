@@ -1518,8 +1518,8 @@ function documentoEditor() {
             console.log('Carregando modelos para tipo:', tipoId);
             
             try {
-                // Busca modelos
-                const url = `/admin/documentos/modelos/${tipoId}`;
+                // Busca modelos - usa APP_URL para funcionar em subdiretórios
+                const url = `${window.APP_URL}/admin/documentos/modelos/${tipoId}`;
                 console.log('Fazendo requisição para:', url);
                 
                 const response = await fetch(url);
