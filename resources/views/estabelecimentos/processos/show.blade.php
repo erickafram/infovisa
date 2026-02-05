@@ -495,6 +495,9 @@
                             $totalPendente = $documentosObrigatorios->where('status', 'pendente')->count();
                             $totalRejeitado = $documentosObrigatorios->where('status', 'rejeitado')->count();
                             $totalNaoEnviado = $documentosObrigatorios->whereNull('status')->count();
+                            // Barra só aumenta com aprovados
+                            $percentualAprovados = $totalObrigatorios > 0 ? round(($totalOk / $totalObrigatorios) * 100) : 0;
+                            $todosAprovados = ($totalOk == $totalObrigatorios && $totalObrigatorios > 0);
                         @endphp
                         <span class="px-2 py-0.5 text-xs font-medium rounded {{ $totalOk === $totalObrigatorios ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' }}">
                             {{ $totalOk }}/{{ $totalObrigatorios }}
@@ -503,6 +506,69 @@
                     <svg class="w-4 h-4 text-gray-500 transition-transform" :class="{ 'rotate-180': checklistAberto }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
+                </div>
+
+                {{-- Barra de Progresso Compacta --}}
+                <div class="mt-3 px-1">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-medium text-gray-600">Progresso de Aprovação</span>
+                        <span class="text-xs font-bold px-1.5 py-0.5 rounded {{ $todosAprovados ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
+                            {{ $percentualAprovados }}%
+                        </span>
+                    </div>
+                    <div class="relative mb-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden shadow-inner">
+                            <div class="h-full rounded-full transition-all duration-500 ease-out {{ $todosAprovados ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-blue-400 to-blue-600' }}" 
+                                 style="width: {{ $percentualAprovados }}%">
+                            </div>
+                        </div>
+                        @if($todosAprovados)
+                        <div class="absolute -top-0.5 -right-0.5">
+                            <span class="flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500 items-center justify-center">
+                                    <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </span>
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 text-[10px]">
+                        @if($totalOk > 0)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full border border-green-200">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {{ $totalOk }} aprovado{{ $totalOk > 1 ? 's' : '' }}
+                        </span>
+                        @endif
+                        @if($totalPendente > 0)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ $totalPendente }} pendente{{ $totalPendente > 1 ? 's' : '' }}
+                        </span>
+                        @endif
+                        @if($totalRejeitado > 0)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 text-red-700 rounded-full border border-red-200">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            {{ $totalRejeitado }} rejeitado{{ $totalRejeitado > 1 ? 's' : '' }}
+                        </span>
+                        @endif
+                        @if($totalNaoEnviado > 0)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            {{ $totalNaoEnviado }} não enviado{{ $totalNaoEnviado > 1 ? 's' : '' }}
+                        </span>
+                        @endif
+                    </div>
                 </div>
 
                 <div x-show="checklistAberto" x-transition class="mt-4 space-y-2">
