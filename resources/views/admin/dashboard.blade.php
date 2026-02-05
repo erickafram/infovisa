@@ -275,6 +275,21 @@
                                         <template x-if="p.is_do_setor">
                                             <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">Setor</span>
                                         </template>
+                                        {{-- Documentos obrigatórios --}}
+                                        <template x-if="p.docs_obrigatorios > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
+                                                  :class="p.docs_enviados >= p.docs_obrigatorios ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                <span x-text="p.docs_enviados + '/' + p.docs_obrigatorios"></span>
+                                            </span>
+                                        </template>
+                                        {{-- Documentos pendentes de aprovação --}}
+                                        <template x-if="p.docs_pendentes_aprovacao > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span x-text="'+' + p.docs_pendentes_aprovacao + ' pendente' + (p.docs_pendentes_aprovacao > 1 ? 's' : '')"></span>
+                                            </span>
+                                        </template>
                                         <template x-if="p.prazo">
                                             <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
                                                   :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')">
@@ -283,25 +298,7 @@
                                             </span>
                                         </template>
                                     </p>
-                                    <div class="flex items-center gap-2 mt-0.5">
-                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
-                                        {{-- Documentos obrigatórios --}}
-                                        <template x-if="p.docs_obrigatorios && p.docs_obrigatorios.total > 0">
-                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                                                  :class="p.docs_obrigatorios.enviados >= p.docs_obrigatorios.total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
-                                                  :title="'Documentos obrigatórios: ' + p.docs_obrigatorios.enviados + ' de ' + p.docs_obrigatorios.total">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                <span x-text="p.docs_obrigatorios.enviados + '/' + p.docs_obrigatorios.total"></span>
-                                            </span>
-                                        </template>
-                                        {{-- Documentos pendentes de aprovação --}}
-                                        <template x-if="p.docs_pendentes > 0">
-                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-0.5" title="Documentos pendentes de aprovação">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                <span x-text="'+' + p.docs_pendentes + ' pend.'"></span>
-                                            </span>
-                                        </template>
-                                    </div>
+                                    <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
                                 </div>
                                 <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                             </a>

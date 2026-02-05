@@ -585,26 +585,8 @@ class DashboardController extends Controller
             $isMeuDireto = $proc->responsavel_atual_id === $usuario->id;
             $isDoSetor = !$isMeuDireto && $usuario->setor && $proc->setor_atual === $usuario->setor;
             
-            // Conta documentos obrigatórios
-            $tiposObrigatorios = $proc->tipoProcesso && $proc->tipoProcesso->documentosObrigatorios 
-                ? $proc->tipoProcesso->documentosObrigatorios->pluck('id')->toArray() 
-                : [];
-            $totalObrigatorios = count($tiposObrigatorios);
-            
-            // Conta documentos obrigatórios já enviados (apenas aprovados ou pendentes, não rejeitados)
-            $docsEnviados = $proc->documentos()
-                ->whereIn('tipo_documento_id', $tiposObrigatorios)
-                ->whereIn('status_aprovacao', ['aprovado', 'pendente'])
-                ->distinct('tipo_documento_id')
-                ->pluck('tipo_documento_id')
-                ->unique()
-                ->count();
-            
-            // Conta documentos pendentes de aprovação
-            $docsPendentes = $proc->documentos()
-                ->where('tipo_usuario', 'externo')
-                ->where('status_aprovacao', 'pendente')
-                ->count();
+            // Calcula documentos obrigatórios e pendentes
+            $docInfo = $this->calcularDocumentosProcesso($proc);
             
             return [
                 'id' => $proc->id,
@@ -618,11 +600,9 @@ class DashboardController extends Controller
                 'setor_atual' => $proc->setor_atual,
                 'responsavel_desde' => $proc->responsavel_desde ? $proc->responsavel_desde->diffForHumans() : null,
                 'prazo' => $prazoInfo,
-                'docs_obrigatorios' => [
-                    'enviados' => $docsEnviados,
-                    'total' => $totalObrigatorios,
-                ],
-                'docs_pendentes' => $docsPendentes,
+                'docs_obrigatorios' => $docInfo['obrigatorios'],
+                'docs_enviados' => $docInfo['enviados'],
+                'docs_pendentes_aprovacao' => $docInfo['pendentes_aprovacao'],
                 'url' => route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]),
             ];
         });
@@ -634,6 +614,117 @@ class DashboardController extends Controller
             'total' => $total,
             'per_page' => $perPage,
         ]);
+    }
+
+    /**
+     * Calcula informações de documentos obrigatórios de um processo
+     */
+    private function calcularDocumentosProcesso(Processo $processo): array
+    {
+        $estabelecimento = $processo->estabelecimento;
+        $tipoProcessoId = $processo->tipoProcesso?->id;
+        
+        if (!$estabelecimento || !$tipoProcessoId) {
+            return ['obrigatorios' => 0, 'enviados' => 0, 'pendentes_aprovacao' => 0];
+        }
+        
+        // Busca documentos já enviados neste processo com seus status
+        $documentosEnviadosInfo = $processo->documentos
+            ->whereNotNull('tipo_documento_obrigatorio_id')
+            ->groupBy('tipo_documento_obrigatorio_id')
+            ->map(function($docs) {
+                $docRecente = $docs->sortByDesc('created_at')->first();
+                return [
+                    'status' => $docRecente->status_aprovacao,
+                    'documento' => $docRecente,
+                ];
+            });
+        
+        // Conta documentos pendentes de aprovação (externos)
+        $pendentesAprovacao = $processo->documentos
+            ->where('tipo_usuario', 'externo')
+            ->where('status_aprovacao', 'pendente')
+            ->count();
+        
+        // Busca listas de documentos aplicáveis ao processo
+        $atividadesCnae = $estabelecimento->atividades_exercidas ?? [];
+        $codigosCnae = collect($atividadesCnae)->map(fn($a) => is_array($a) ? ($a['codigo'] ?? null) : $a)->filter()->values()->toArray();
+        
+        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+        
+        // Busca documentos comuns aplicáveis
+        $documentosComuns = \App\Models\TipoDocumentoObrigatorio::where('ativo', true)
+            ->where('documento_comum', true)
+            ->where(function($q) use ($tipoProcessoId) {
+                $q->whereNull('tipo_processo_id')->orWhere('tipo_processo_id', $tipoProcessoId);
+            })
+            ->where(function($q) use ($escopoCompetencia) {
+                $q->where('escopo_competencia', 'todos')->orWhere('escopo_competencia', $escopoCompetencia);
+            })
+            ->where(function($q) use ($tipoSetor) {
+                $q->where('tipo_setor', 'todos')->orWhere('tipo_setor', $tipoSetor);
+            })
+            ->get();
+        
+        // Busca listas por atividade
+        $listas = \App\Models\ListaDocumentosObrigatorios::where('ativo', true)
+            ->where(function($q) use ($tipoProcessoId) {
+                $q->whereNull('tipo_processo_id')->orWhere('tipo_processo_id', $tipoProcessoId);
+            })
+            ->whereHas('atividade', function($q) use ($codigosCnae) {
+                $q->whereIn('codigo_cnae', $codigosCnae);
+            })
+            ->where(function($q) use ($estabelecimento) {
+                $q->where('escopo', 'ambos')
+                  ->orWhere('escopo', 'estadual');
+                $q->orWhere(function($q2) use ($estabelecimento) {
+                    $q2->where('escopo', 'municipal')->where('municipio_id', $estabelecimento->municipio_id);
+                });
+            })
+            ->with(['tiposDocumentoObrigatorio' => function($q) {
+                $q->where('ativo', true);
+            }])
+            ->get();
+        
+        // Consolida documentos obrigatórios únicos
+        $documentosObrigatorios = collect();
+        
+        // Adiciona documentos comuns (sempre obrigatórios)
+        foreach ($documentosComuns as $doc) {
+            $documentosObrigatorios->push($doc->id);
+        }
+        
+        // Adiciona documentos das listas
+        foreach ($listas as $lista) {
+            foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                $aplicaEscopo = $doc->escopo_competencia === 'todos' || $doc->escopo_competencia === $escopoCompetencia;
+                $aplicaTipoSetor = $doc->tipo_setor === 'todos' || $doc->tipo_setor === $tipoSetor;
+                
+                if ($aplicaEscopo && $aplicaTipoSetor && $doc->pivot->obrigatorio) {
+                    $documentosObrigatorios->push($doc->id);
+                }
+            }
+        }
+        
+        $documentosObrigatorios = $documentosObrigatorios->unique();
+        $totalObrigatorios = $documentosObrigatorios->count();
+        
+        // Conta quantos obrigatórios foram enviados e aprovados/pendentes
+        $enviadosAprovados = 0;
+        foreach ($documentosObrigatorios as $docId) {
+            $info = $documentosEnviadosInfo->get($docId);
+            if ($info && in_array($info['status'], ['aprovado', 'pendente'])) {
+                $enviadosAprovados++;
+            }
+        }
+        
+        return [
+            'obrigatorios' => $totalObrigatorios,
+            'enviados' => $enviadosAprovados,
+            'pendentes_aprovacao' => $pendentesAprovacao,
+        ];
     }
 
     /**
