@@ -114,7 +114,7 @@
     @endif
 
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div id="tour-stats-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <a href="{{ route('admin.documentos-pendentes.index') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
@@ -134,7 +134,7 @@
                 </div>
                 <div>
                     <p class="text-2xl font-bold text-gray-900">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
-                    <p class="text-xs text-gray-500">Estabelecimentos Pendentes</p>
+                    <p class="text-xs text-gray-500">Cadastros Pendentes</p>
                 </div>
             </div>
         </a>
@@ -168,7 +168,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {{-- Coluna 1: Minhas Tarefas --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="tarefasPaginadas()">
+        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="tarefasPaginadas()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,7 +237,7 @@
         </div>
 
         {{-- Coluna 2: Meus Processos --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="processosAtribuidos()">
+        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="processosAtribuidos()">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,7 +308,7 @@
         {{-- Coluna 3: Monitorando + Cadastros Pendentes + Atalhos --}}
         <div class="space-y-6">
             {{-- Monitorando --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -359,7 +359,7 @@
 
             {{-- Cadastros Pendentes --}}
             @if(count($estabelecimentos_pendentes ?? []) > 0)
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div id="tour-cadastros-pendentes" class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,7 +392,7 @@
             @endif
 
             {{-- Atalhos Rápidos --}}
-            <div class="bg-blue-600 rounded-xl shadow-sm" x-data="atalhosRapidos()">
+            <div id="tour-atalhos" class="bg-blue-600 rounded-xl shadow-sm" x-data="atalhosRapidos()">
                 <div class="px-3 py-2 border-b border-white/20 flex items-center justify-between">
                     <h3 class="font-semibold text-white text-sm">Atalhos</h3>
                     <button @click="abrirModal()" class="text-white/70 hover:text-white transition">
@@ -579,4 +579,17 @@ function atalhosRapidos() {
     }
 }
 </script>
+
+{{-- Tour Guiado --}}
+<x-tour-guiado-admin />
+
+{{-- Botão para rever o tour (ao lado do chat) --}}
+<button onclick="localStorage.removeItem('infovisa_tour_admin_visto'); location.reload();" 
+        class="fixed bottom-4 right-20 z-40 flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg hover:bg-indigo-700 transition-all"
+        title="Ver Tour Novamente">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Tour
+</button>
 @endsection
