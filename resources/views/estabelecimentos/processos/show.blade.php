@@ -1498,10 +1498,13 @@
                                    name="arquivo" 
                                    accept=".pdf"
                                    required
+                                   id="inputArquivoUpload"
+                                   onchange="validarTamanhoArquivo(this)"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                             <p class="mt-1 text-xs text-gray-500">
                                 Apenas arquivos PDF. Tamanho máximo: 10MB
                             </p>
+                            <p id="erroTamanhoArquivo" class="mt-1 text-xs text-red-600 hidden"></p>
                         </div>
 
                         {{-- Info --}}
@@ -1524,10 +1527,39 @@
                                 Cancelar
                             </button>
                             <button type="submit"
-                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                    id="btnEnviarArquivo"
+                                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 Enviar Arquivo
                             </button>
                         </div>
+                        
+                        <script>
+                        function validarTamanhoArquivo(input) {
+                            const maxSize = 10 * 1024 * 1024; // 10MB
+                            const erroEl = document.getElementById('erroTamanhoArquivo');
+                            const btnEnviar = document.getElementById('btnEnviarArquivo');
+                            
+                            if (input.files && input.files[0]) {
+                                const file = input.files[0];
+                                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                                
+                                if (file.size > maxSize) {
+                                    erroEl.textContent = `Arquivo muito grande (${sizeMB}MB). O tamanho máximo permitido é 10MB.`;
+                                    erroEl.classList.remove('hidden');
+                                    btnEnviar.disabled = true;
+                                    input.value = '';
+                                } else if (!file.name.toLowerCase().endsWith('.pdf')) {
+                                    erroEl.textContent = 'Apenas arquivos PDF são permitidos.';
+                                    erroEl.classList.remove('hidden');
+                                    btnEnviar.disabled = true;
+                                    input.value = '';
+                                } else {
+                                    erroEl.classList.add('hidden');
+                                    btnEnviar.disabled = false;
+                                }
+                            }
+                        }
+                        </script>
                     </form>
                 </div>
             </div>

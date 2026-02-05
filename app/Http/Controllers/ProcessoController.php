@@ -1069,6 +1069,36 @@ class ProcessoController extends Controller
         $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
         
+        // Verificar se o arquivo foi enviado corretamente
+        if (!$request->hasFile('arquivo')) {
+            $uploadMax = ini_get('upload_max_filesize');
+            $postMax = ini_get('post_max_size');
+            return redirect()
+                ->back()
+                ->with('error', "Nenhum arquivo foi enviado. O limite atual do servidor é: upload_max_filesize={$uploadMax}, post_max_size={$postMax}. Arquivos maiores que esses limites são descartados automaticamente. Peça ao administrador para aumentar esses valores no php.ini.");
+        }
+        
+        $arquivo = $request->file('arquivo');
+        
+        // Verificar se houve erro no upload
+        if (!$arquivo->isValid()) {
+            $erros = [
+                UPLOAD_ERR_INI_SIZE => 'O arquivo excede o limite máximo permitido pelo servidor (' . ini_get('upload_max_filesize') . ').',
+                UPLOAD_ERR_FORM_SIZE => 'O arquivo excede o limite máximo permitido pelo formulário.',
+                UPLOAD_ERR_PARTIAL => 'O upload foi feito parcialmente. Tente novamente.',
+                UPLOAD_ERR_NO_FILE => 'Nenhum arquivo foi enviado.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Erro no servidor: pasta temporária não encontrada.',
+                UPLOAD_ERR_CANT_WRITE => 'Erro no servidor: falha ao gravar o arquivo.',
+                UPLOAD_ERR_EXTENSION => 'Upload bloqueado por uma extensão do PHP.',
+            ];
+            $codigoErro = $arquivo->getError();
+            $mensagemErro = $erros[$codigoErro] ?? 'Erro desconhecido no upload (código: ' . $codigoErro . ').';
+            
+            return redirect()
+                ->back()
+                ->with('error', 'Falha no upload: ' . $mensagemErro);
+        }
+        
         $request->validate([
             'arquivo' => 'required|file|mimes:pdf|max:10240', // 10MB max
         ], [
@@ -1078,10 +1108,7 @@ class ProcessoController extends Controller
         ]);
         
         try {
-            $arquivo = $request->file('arquivo');
             $nomeOriginal = $arquivo->getClientOriginalName();
-            // Limita o nome_original a 990 caracteres para segurança (campo é varchar 1000)
-            $nomeOriginal = substr($nomeOriginal, 0, 990);
             $extensao = $arquivo->getClientOriginalExtension();
             $tamanho = $arquivo->getSize();
             
