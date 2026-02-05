@@ -254,6 +254,88 @@
     @endif
 
     {{-- =====================================================
+         SEÇÃO: PROCESSOS COM DOCUMENTOS PENDENTES
+         ===================================================== --}}
+    @if(isset($processosComDocsPendentes) && $processosComDocsPendentes->count() > 0)
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-gray-800">Documentos Obrigatórios Pendentes</h2>
+                    <p class="text-[10px] text-gray-500">Processos que precisam de documentos</p>
+                </div>
+            </div>
+            <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
+                {{ $processosComDocsPendentes->count() }} {{ $processosComDocsPendentes->count() == 1 ? 'processo' : 'processos' }}
+            </span>
+        </div>
+        
+        <div class="divide-y divide-gray-100">
+            @foreach($processosComDocsPendentes->take(3) as $item)
+            @php
+                $processo = $item['processo'];
+                $percentual = $item['percentual'];
+                $todosEnviados = $percentual == 100;
+            @endphp
+            <a href="{{ route('company.processos.show', $processo->id) }}" 
+               class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex-1 min-w-0 mr-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-semibold text-gray-800 truncate">
+                            {{ $processo->tipoProcesso->nome ?? 'Processo' }}
+                        </span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                            #{{ $processo->id }}
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 truncate">
+                        {{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social ?? 'Estabelecimento' }}
+                    </p>
+                    
+                    {{-- Barra de Progresso --}}
+                    <div class="mt-2 flex items-center gap-2">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 {{ $todosEnviados ? 'bg-amber-500' : 'bg-blue-500' }}" 
+                                 style="width: {{ $percentual }}%"></div>
+                        </div>
+                        <span class="text-[10px] font-bold {{ $todosEnviados ? 'text-amber-600' : 'text-blue-600' }}">
+                            {{ $item['enviados'] }}/{{ $item['total'] }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-1">
+                    <span class="text-xs font-bold px-2 py-1 rounded-full {{ $todosEnviados ? 'bg-amber-100 text-amber-700' : ($percentual == 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700') }}">
+                        {{ $percentual }}%
+                    </span>
+                    @if($item['faltam'] > 0)
+                    <span class="text-[10px] text-gray-500">
+                        {{ $item['faltam'] }} {{ $item['faltam'] == 1 ? 'falta' : 'faltam' }}
+                    </span>
+                    @else
+                    <span class="text-[10px] text-amber-600">Aguardando</span>
+                    @endif
+                </div>
+            </a>
+            @endforeach
+        </div>
+        
+        @if($processosComDocsPendentes->count() > 3)
+        <div class="px-4 py-2 bg-gray-50 border-t border-gray-100">
+            <a href="{{ route('company.processos.index') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                Ver todos os {{ $processosComDocsPendentes->count() }} processos →
+            </a>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- =====================================================
          SEÇÃO: AÇÕES RÁPIDAS (O que você quer fazer?)
          ===================================================== --}}
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
