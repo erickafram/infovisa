@@ -11,3 +11,55 @@
 html {
     scroll-behavior: smooth;
 }
+
+/* Custom Scrollbar Styles */
+/* Para navegadores Webkit (Chrome, Safari, Edge) */
+.scrollbar-blue::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 10px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+}
+
+/* Para Firefox */
+.scrollbar-blue {
+    scrollbar-width: thin;
+    scrollbar-color: #3b82f6 #f3f4f6;
+}
+
+/* Scrollbar branca para fundos escuros */
+.scrollbar-white::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-white::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.scrollbar-white::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+.scrollbar-white::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.scrollbar-white {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
