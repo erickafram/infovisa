@@ -272,6 +272,14 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
                                         <span x-text="p.numero_processo"></span>
+                                        {{-- Badge Para Mim (quando é responsável direto) --}}
+                                        <template x-if="p.is_meu_direto">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1" title="Processo atribuído diretamente a você">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                Para Mim
+                                            </span>
+                                        </template>
+                                        {{-- Badge Setor (quando está no setor mas não é responsável direto) --}}
                                         <template x-if="p.is_do_setor">
                                             <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">Setor</span>
                                         </template>
