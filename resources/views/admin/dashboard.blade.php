@@ -195,22 +195,20 @@
                 </template>
                 <template x-if="!loading && tarefas.length > 0">
                     <div>
-                        {{-- Seção: Para Mim (OS, Assinaturas e Processos tramitados para mim) --}}
-                        <template x-if="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'processo_meu').length > 0">
+                        {{-- Seção: Para Mim (OS e Assinaturas) --}}
+                        <template x-if="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length > 0">
                             <div>
                                 <div class="px-4 py-2 bg-blue-50 border-b border-blue-100">
                                     <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                         Para Mim
-                                        <span class="ml-1 px-1.5 py-0.5 bg-blue-200 text-blue-800 rounded-full text-[10px]" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'processo_meu').length"></span>
                                     </span>
                                 </div>
-                                <template x-for="t in tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'processo_meu')" :key="'meu-' + t.tipo + (t.id || t.processo_id)">
+                                <template x-for="t in tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura')" :key="'meu-' + t.tipo + (t.id || t.processo_id)">
                                     <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.tipo === 'assinatura' ? 'bg-amber-100' : (t.tipo === 'processo_meu' ? 'bg-indigo-100' : 'bg-blue-100')">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.tipo === 'assinatura' ? 'bg-amber-100' : 'bg-blue-100'">
                                             <template x-if="t.tipo === 'assinatura'"><svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></template>
                                             <template x-if="t.tipo === 'os'"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></template>
-                                            <template x-if="t.tipo === 'processo_meu'"><svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></template>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
@@ -228,8 +226,7 @@
                                 <div class="px-4 py-2 bg-purple-50 border-b border-purple-100">
                                     <span class="text-xs font-semibold text-purple-700 uppercase tracking-wide flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Documentos p/ Aprovar
-                                        <span class="ml-1 px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded-full text-[10px]" x-text="tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length"></span>
+                                        Documentos do Setor
                                     </span>
                                 </div>
                                 <template x-for="t in tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta')" :key="'setor-' + t.tipo + (t.id || t.processo_id)">
@@ -558,18 +555,6 @@ function tarefasPaginadas() {
         prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
-            // Processos tramitados para mim
-            if (t.tipo === 'processo_meu') {
-                if (t.status === 'em_analise') return 'bg-yellow-100 text-yellow-700';
-                if (t.status === 'pendente') return 'bg-orange-100 text-orange-700';
-                return 'bg-indigo-100 text-indigo-700';
-            }
-            // OS
-            if (t.tipo === 'os') {
-                if (t.atrasado) return 'bg-red-100 text-red-700';
-                if (t.dias_restantes !== null && t.dias_restantes <= 2) return 'bg-amber-100 text-amber-700';
-                return 'bg-blue-100 text-blue-700';
-            }
             // Se não é licenciamento, não tem prazo - mostra cinza
             if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
             if (t.atrasado) return 'bg-red-100 text-red-700';
@@ -580,19 +565,6 @@ function tarefasPaginadas() {
         },
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
-            // Processos tramitados para mim
-            if (t.tipo === 'processo_meu') {
-                if (t.status === 'em_analise') return 'Analisar';
-                if (t.status === 'pendente') return 'Pendente';
-                return 'Aberto';
-            }
-            // OS
-            if (t.tipo === 'os') {
-                if (t.atrasado) return 'Atrasada';
-                if (t.dias_restantes === null) return 'Em aberto';
-                if (t.dias_restantes <= 0) return 'Hoje';
-                return t.dias_restantes + 'd';
-            }
             // Se não é licenciamento, mostra "Verificar" (sem prazo)
             if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
