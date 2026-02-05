@@ -16,6 +16,7 @@ use App\Models\DocumentoResposta;
 use App\Models\Aviso;
 use App\Models\ListaDocumento;
 use App\Models\Atividade;
+use App\Models\TipoDocumentoObrigatorio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -101,14 +102,22 @@ class DashboardController extends Controller
         
         $totalObrigatorios = $tiposDocObrigatorios->count();
         
-        // Conta quantos foram enviados (aprovados)
+        // Conta quantos documentos obrigatórios foram aprovados
+        // Usa tipo_documento_obrigatorio_id que referencia a tabela tipos_documento_obrigatorio
         $documentosEnviados = 0;
         if ($tiposDocObrigatorios->isNotEmpty()) {
-            $documentosEnviados = $processo->documentos()
-                ->whereIn('tipo_documento', $tiposDocObrigatorios->keys()->toArray())
-                ->where('status_aprovacao', 'aprovado')
-                ->distinct('tipo_documento')
-                ->count('tipo_documento');
+            // Busca os IDs dos tipos_documento_obrigatorio que correspondem aos tipos de documento
+            $tiposDocObrigatorioIds = \App\Models\TipoDocumentoObrigatorio::whereIn('tipo_documento_id', $tiposDocObrigatorios->keys()->toArray())
+                ->pluck('id')
+                ->toArray();
+            
+            if (!empty($tiposDocObrigatorioIds)) {
+                $documentosEnviados = $processo->documentos()
+                    ->whereIn('tipo_documento_obrigatorio_id', $tiposDocObrigatorioIds)
+                    ->where('status_aprovacao', 'aprovado')
+                    ->distinct('tipo_documento_obrigatorio_id')
+                    ->count('tipo_documento_obrigatorio_id');
+            }
         }
         
         // Conta quantos estão pendentes de aprovação
