@@ -184,7 +184,7 @@
                     <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium" x-text="total"></span>
                 </div>
             </div>
-            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
+            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
                 <template x-if="loading">
                     <div class="p-8 text-center">
                         <svg class="animate-spin h-6 w-6 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
@@ -253,7 +253,7 @@
                     <span class="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-medium" x-text="total"></span>
                 </div>
             </div>
-            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto">
+            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
                 <template x-if="loading">
                     <div class="p-8 text-center">
                         <svg class="animate-spin h-6 w-6 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
@@ -325,7 +325,7 @@
                         <span class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">{{ count($processos_acompanhados ?? []) }}</span>
                     </a>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto">
+                <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
                     @forelse(($processos_acompanhados ?? collect())->take(5) as $proc)
                     <a href="{{ route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
                         <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
@@ -361,10 +361,21 @@
             @if(count($estabelecimentos_pendentes ?? []) > 0)
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900">Cadastros Pendentes</h3>
-                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">{{ count($estabelecimentos_pendentes) }}</span>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Cadastros Pendentes</h3>
+                            <p class="text-xs text-gray-400">Aguardando aprovação</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">{{ count($estabelecimentos_pendentes) }}</span>
+                    </div>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[140px] overflow-y-auto">
+                <div class="divide-y divide-gray-50 max-h-[140px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
                     @foreach(($estabelecimentos_pendentes ?? collect())->take(3) as $est)
                     <a href="{{ route('admin.estabelecimentos.show', $est) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
                         <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -388,7 +399,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     </button>
                 </div>
-                <div class="divide-y divide-white/10 max-h-48 overflow-y-auto">
+                <div class="divide-y divide-white/10 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-white/10 hover:scrollbar-thumb-white/50">
                     @forelse($atalhos_rapidos ?? [] as $atalho)
                     <div class="group relative">
                         <a href="{{ $atalho->url }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">

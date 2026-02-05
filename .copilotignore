@@ -1,0 +1,40 @@
+# Arquivos e pastas que o Copilot deve ignorar para não consumir contexto
+
+# Logs
+storage/logs/**
+*.log
+
+# Vendor (dependências)
+vendor/**
+node_modules/**
+
+# Documentos públicos
+storage/app/public/documentos/**
+storage/backups/**
+public/storage/**
+
+# Build e cache
+public/build/**
+bootstrap/cache/**
+storage/framework/**
+
+# Documentação longa
+docs/proposta-reestruturacao-listas-documento.md
+database/seeders/dados_pactuacao_resumo.txt
+
+# Views muito grandes (> 100KB)
+resources/views/estabelecimentos/processos/show.blade.php
+resources/views/estabelecimentos/create-juridica.blade.php
+resources/views/company/estabelecimentos/create-juridica.blade.php
+resources/views/admin/pactuacoes/index.blade.php
+resources/views/documentos/create.blade.php
+resources/views/company/processos/show.blade.php
+
+# Controllers muito grandes
+app/Http/Controllers/AssistenteIAController.php
+app/Http/Controllers/ProcessoController.php
+
+# Arquivos de configuração gerados
+composer.lock
+package-lock.json
+

@@ -52,6 +52,10 @@ Thumbs.db
 storage/logs/*.log
 *.log
 
+# Storage - Documentos e backups
+storage/app/public/documentos/
+storage/backups/
+
 # Homestead
 Homestead.json
 Homestead.yaml
@@ -63,3 +67,7 @@ cache/
 
 # Composer
 composer.lock
+
+# Documentação temporária/arquivos de referência
+docs/proposta-reestruturacao-listas-documento.md
+database/seeders/dados_pactuacao_resumo.txt
