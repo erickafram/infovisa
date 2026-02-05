@@ -462,21 +462,7 @@ class DashboardController extends Controller
         // Combinar todas as tarefas
         $todasTarefas = collect();
 
-        // Adicionar assinaturas
-        foreach($assinaturas as $ass) {
-            $todasTarefas->push([
-                'tipo' => 'assinatura',
-                'id' => $ass->documentoDigital->id,
-                'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
-                'subtitulo' => 'Assinatura • ' . $ass->created_at->diffForHumans(),
-                'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
-                'badge' => null,
-                'atrasado' => false,
-                'ordem' => 0,
-            ]);
-        }
-
-        // Adicionar OSs
+        // 1º PRIORIDADE: Ordens de Serviço em aberto (aparecem primeiro no topo)
         foreach($ordensServico as $os) {
             $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
             $isVencido = $diasRestantes !== null && $diasRestantes < 0;
@@ -492,11 +478,25 @@ class DashboardController extends Controller
                 'url' => route('admin.ordens-servico.show', $os),
                 'dias_restantes' => $diasRestantes,
                 'atrasado' => $isVencido,
-                'ordem' => 1,
+                'ordem' => 0, // PRIORIDADE MÁXIMA
             ]);
         }
 
-        // Adicionar aprovações e respostas agrupadas
+        // 2º PRIORIDADE: Documentos pendentes de assinatura
+        foreach($assinaturas as $ass) {
+            $todasTarefas->push([
+                'tipo' => 'assinatura',
+                'id' => $ass->documentoDigital->id,
+                'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
+                'subtitulo' => 'Assinatura • ' . $ass->created_at->diffForHumans(),
+                'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                'badge' => null,
+                'atrasado' => false,
+                'ordem' => 1, // SEGUNDA PRIORIDADE - Assinaturas
+            ]);
+        }
+
+        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
             // Prazo só existe para licenciamento
@@ -517,7 +517,7 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 1, // Respostas têm prioridade maior que aprovações normais
+                    'ordem' => 2, // Respostas têm prioridade maior que aprovações normais
                 ]);
             } else {
                 $todasTarefas->push([
@@ -533,7 +533,7 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 2,
+                    'ordem' => 3, // Aprovações de documentos por último
                 ]);
             }
         }
@@ -796,27 +796,7 @@ class DashboardController extends Controller
         // Combinar todas as tarefas
         $todasTarefas = collect();
 
-        // Adicionar assinaturas
-        if ($filtro === 'todos' || $filtro === 'assinatura') {
-            foreach($assinaturas as $ass) {
-                $todasTarefas->push([
-                    'tipo' => 'assinatura',
-                    'id' => $ass->documentoDigital->id,
-                    'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
-                    'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
-                                   $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
-                    'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
-                    'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
-                    'badge' => null,
-                    'atrasado' => false,
-                    'ordem' => 0,
-                    'data' => $ass->created_at->format('d/m/Y H:i'),
-                    'created_at' => $ass->created_at,
-                ]);
-            }
-        }
-
-        // Adicionar OSs
+        // 1º PRIORIDADE: Ordens de Serviço em aberto (aparecem primeiro no topo)
         if ($filtro === 'todos' || $filtro === 'os') {
             foreach($ordensServico as $os) {
                 $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
@@ -833,14 +813,34 @@ class DashboardController extends Controller
                     'url' => route('admin.ordens-servico.show', $os),
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $isVencido,
-                    'ordem' => 1,
+                    'ordem' => 0, // PRIORIDADE MÁXIMA
                     'data' => $os->created_at->format('d/m/Y H:i'),
                     'created_at' => $os->created_at,
                 ]);
             }
         }
 
-        // Adicionar aprovações e respostas agrupadas
+        // 2º PRIORIDADE: Documentos pendentes de assinatura
+        if ($filtro === 'todos' || $filtro === 'assinatura') {
+            foreach($assinaturas as $ass) {
+                $todasTarefas->push([
+                    'tipo' => 'assinatura',
+                    'id' => $ass->documentoDigital->id,
+                    'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
+                    'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
+                                   $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                    'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
+                    'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                    'badge' => null,
+                    'atrasado' => false,
+                    'ordem' => 1, // SEGUNDA PRIORIDADE - Assinaturas
+                    'data' => $ass->created_at->format('d/m/Y H:i'),
+                    'created_at' => $ass->created_at,
+                ]);
+            }
+        }
+
+        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
             if ($filtro !== 'todos' && $filtro !== $tarefa['tipo']) continue;
@@ -862,7 +862,7 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 1,
+                    'ordem' => 2, // Respostas têm prioridade maior que aprovações normais
                     'data' => $tarefa['created_at']->format('d/m/Y H:i'),
                     'created_at' => $tarefa['created_at'],
                 ]);
@@ -881,7 +881,7 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 2,
+                    'ordem' => 3, // Aprovações de documentos por último
                     'data' => $tarefa['created_at']->format('d/m/Y H:i'),
                     'created_at' => $tarefa['created_at'],
                 ]);
