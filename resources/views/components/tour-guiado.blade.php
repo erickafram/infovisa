@@ -1,110 +1,103 @@
-{{-- Tour Guiado para Novos Usuários --}}
+{{-- Tour Guiado para Novos Usuários - Layout Moderno --}}
 @props(['forceShow' => false])
 
 <div x-data="tourGuiado()" 
      x-show="mostrarTour" 
      x-cloak
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
      @keydown.escape.window="fecharTour()"
      class="fixed inset-0 z-[9999]">
     
-    {{-- Overlay escuro com recorte para destacar elemento --}}
-    <div class="absolute inset-0 bg-black/60 transition-all duration-300"
+    {{-- Overlay mais claro para ver o conteúdo --}}
+    <div class="absolute inset-0 bg-black/40 transition-all duration-500"
          @click="proximoPasso()"></div>
     
-    {{-- Spotlight/Destaque no elemento atual --}}
-    <template x-if="elementoAtual">
-        <div class="absolute bg-transparent ring-4 ring-blue-400 ring-opacity-75 rounded-lg pointer-events-none transition-all duration-300 animate-pulse"
-             :style="posicaoDestaque"></div>
-    </template>
-    
-    {{-- Card do Robô Assistente --}}
-    <div class="absolute transition-all duration-300 z-[10000]"
+    {{-- Card do Assistente --}}
+    <div class="absolute transition-all duration-500 ease-out z-[10000]"
          :style="posicaoCard"
-         :class="{ 'animate-bounce-slow': passoAtual === 0 }">
-        <div class="bg-white rounded-2xl shadow-2xl border-2 border-blue-200 max-w-sm overflow-hidden">
-            {{-- Header com Robô --}}
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3 flex items-center gap-3">
-                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg animate-bounce-slow">
-                    <span class="text-2xl">🤖</span>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-white font-bold text-sm">Assistente InfoVISA</h3>
-                    <p class="text-blue-100 text-xs">Vou te ajudar a começar!</p>
-                </div>
-                <button @click="fecharTour()" 
-                        class="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/20 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            
-            {{-- Conteúdo do Passo --}}
-            <div class="p-4">
-                {{-- Indicador de Passos --}}
-                <div class="flex items-center justify-center gap-1.5 mb-3">
-                    <template x-for="(passo, index) in passos" :key="index">
-                        <div class="h-1.5 rounded-full transition-all duration-300"
-                             :class="index === passoAtual ? 'w-6 bg-blue-500' : 'w-1.5 bg-gray-300'"></div>
-                    </template>
-                </div>
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+         x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+        
+        <div class="relative w-80">
+            {{-- Card principal compacto --}}
+            <div class="relative bg-white rounded-2xl shadow-2xl overflow-hidden">
                 
-                {{-- Mensagem do Robô --}}
-                <div class="bg-gray-50 rounded-xl p-3 mb-4 relative">
-                    {{-- Seta do balão --}}
-                    <div class="absolute -top-2 left-6 w-4 h-4 bg-gray-50 rotate-45"></div>
-                    <p class="text-sm text-gray-700 leading-relaxed" x-html="passos[passoAtual]?.mensagem"></p>
-                </div>
-                
-                {{-- Botões de Navegação --}}
-                <div class="flex items-center justify-between gap-2">
-                    <button x-show="passoAtual > 0"
-                            @click="passoAnterior()"
-                            class="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                {{-- Header compacto --}}
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 flex items-center gap-3">
+                    <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow">
+                        <span class="text-xl">🤖</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-white font-semibold text-sm truncate">Guia InfoVISA</h3>
+                        <div class="flex items-center gap-1.5">
+                            <div class="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full transition-all" :style="`width: ${((passoAtual + 1) / passos.length) * 100}%`"></div>
+                            </div>
+                            <span class="text-white/70 text-[10px]" x-text="`${passoAtual + 1}/${passos.length}`"></span>
+                        </div>
+                    </div>
+                    <button @click="fecharTour()" class="p-1 rounded hover:bg-white/20 transition-colors">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
-                        Voltar
                     </button>
+                </div>
+                
+                {{-- Corpo compacto --}}
+                <div class="p-3">
+                    {{-- Título com ícone --}}
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xl" x-text="passos[passoAtual]?.icone"></span>
+                        <h4 class="font-semibold text-gray-800 text-sm" x-text="passos[passoAtual]?.titulo"></h4>
+                    </div>
                     
-                    <div class="flex items-center gap-2 ml-auto">
-                        <button @click="fecharTour()" 
-                                class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                            Pular Tour
-                        </button>
-                        
-                        <button @click="proximoPasso()"
-                                class="flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-md">
-                            <span x-text="passoAtual === passos.length - 1 ? 'Concluir' : 'Próximo'"></span>
-                            <svg x-show="passoAtual < passos.length - 1" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                            <svg x-show="passoAtual === passos.length - 1" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </button>
+                    {{-- Mensagem --}}
+                    <div class="bg-gray-50 rounded-lg p-2.5 mb-2">
+                        <p class="text-xs text-gray-600 leading-relaxed" x-html="passos[passoAtual]?.mensagem"></p>
+                    </div>
+                    
+                    {{-- Dica --}}
+                    <div x-show="passos[passoAtual]?.dica" class="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 rounded p-2">
+                        <span>💡</span>
+                        <p x-text="passos[passoAtual]?.dica"></p>
                     </div>
                 </div>
-            </div>
-            
-            {{-- Footer --}}
-            <div class="bg-gray-50 px-4 py-2 border-t border-gray-200">
-                <label class="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
-                    <input type="checkbox" x-model="naoMostrarNovamente" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    Não mostrar novamente
-                </label>
+                
+                {{-- Footer compacto --}}
+                <div class="px-3 pb-3 flex items-center gap-2">
+                    <button x-show="passoAtual > 0" @click="passoAnterior()"
+                            class="px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                        ← Voltar
+                    </button>
+                    <div class="flex-1"></div>
+                    <button @click="fecharTour()" class="px-2.5 py-1.5 text-xs text-gray-400 hover:text-gray-600">
+                        Pular
+                    </button>
+                    <button @click="proximoPasso()"
+                            class="px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-all"
+                            :class="passoAtual === passos.length - 1 ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'">
+                        <span x-text="passoAtual === passos.length - 1 ? 'Concluir ✓' : 'Próximo →'"></span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    @keyframes bounce-slow {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
+    @keyframes wiggle {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-10deg); }
+        75% { transform: rotate(10deg); }
     }
-    .animate-bounce-slow {
-        animation: bounce-slow 2s ease-in-out infinite;
+    .animate-wiggle {
+        animation: wiggle 0.5s ease-in-out infinite;
     }
 </style>
 
@@ -119,98 +112,117 @@ function tourGuiado() {
         passos: [
             {
                 elemento: null,
-                mensagem: `<strong>👋 Bem-vindo ao InfoVISA!</strong><br><br>
-                           Sou seu assistente virtual e vou te guiar pelos principais recursos do sistema.<br><br>
-                           <em>Clique em "Próximo" para começar o tour!</em>`,
+                icone: '👋',
+                iconeBg: 'bg-gradient-to-br from-cyan-100 to-blue-100',
+                titulo: 'Bem-vindo ao InfoVISA!',
+                mensagem: `Olá! Sou o assistente virtual do sistema.<br><br>
+                           Vou te mostrar as principais funcionalidades em <strong>poucos passos</strong>.`,
+                dica: 'O tour leva menos de 1 minuto!',
                 posicao: 'centro'
             },
             {
                 elemento: '#tour-novo-cadastro',
-                mensagem: `<strong>📝 Novo Cadastro</strong><br><br>
-                           Para cadastrar seu estabelecimento, clique aqui em <strong>"Novo Cadastro"</strong>.<br><br>
-                           Você pode cadastrar empresas (PJ) ou pessoas físicas (PF).`,
+                icone: '📝',
+                iconeBg: 'bg-gradient-to-br from-green-100 to-emerald-100',
+                titulo: 'Cadastre seu Estabelecimento',
+                mensagem: `Clique aqui para cadastrar um <strong>novo estabelecimento</strong>.<br><br>
+                           Você pode registrar empresas (CNPJ) ou autônomos (CPF).`,
+                dica: 'Tenha em mãos: CNPJ/CPF, endereço completo e contato.',
                 posicao: 'direita'
             },
             {
                 elemento: '#tour-meus-estabelecimentos',
-                mensagem: `<strong>🏢 Meus Estabelecimentos</strong><br><br>
-                           Aqui você visualiza todos os seus estabelecimentos cadastrados.<br><br>
-                           Acompanhe o <strong>status de aprovação</strong> de cada um.`,
+                icone: '🏢',
+                iconeBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
+                titulo: 'Seus Estabelecimentos',
+                mensagem: `Visualize todos os seus estabelecimentos cadastrados.<br><br>
+                           Acompanhe o <strong>status de aprovação</strong> e gerencie os dados.`,
                 posicao: 'baixo'
             },
             {
                 elemento: '#tour-meus-processos',
-                mensagem: `<strong>📋 Meus Processos</strong><br><br>
-                           Acesse seus processos de licenciamento sanitário.<br><br>
-                           <strong>Envie documentos</strong> e acompanhe o andamento de cada solicitação.`,
+                icone: '📋',
+                iconeBg: 'bg-gradient-to-br from-purple-100 to-violet-100',
+                titulo: 'Processos de Licenciamento',
+                mensagem: `Aqui você acessa seus processos sanitários.<br><br>
+                           <strong>Envie documentos</strong> obrigatórios e acompanhe cada etapa.`,
+                dica: 'Documentos devem ser em PDF, máximo 10MB.',
                 posicao: 'baixo'
             },
             {
                 elemento: '#tour-alertas',
-                mensagem: `<strong>⚠️ Alertas e Pendências</strong><br><br>
-                           Fique atento a esta área! Aqui aparecem:<br>
+                icone: '⚠️',
+                iconeBg: 'bg-gradient-to-br from-amber-100 to-orange-100',
+                titulo: 'Atenção às Pendências!',
+                mensagem: `Esta área mostra itens que precisam da sua ação:<br><br>
                            • Documentos <strong>rejeitados</strong> para correção<br>
-                           • Notificações com <strong>prazo</strong> para responder<br>
-                           • Novos documentos emitidos pela Vigilância`,
+                           • Notificações com <strong>prazo</strong> definido<br>
+                           • Novos documentos emitidos`,
+                dica: 'Verifique diariamente para evitar problemas!',
                 posicao: 'baixo'
             },
             {
                 elemento: '#tour-estatisticas',
-                mensagem: `<strong>📊 Resumo Geral</strong><br><br>
-                           Aqui você vê um resumo rápido dos seus:<br>
+                icone: '📊',
+                iconeBg: 'bg-gradient-to-br from-slate-100 to-gray-100',
+                titulo: 'Resumo Geral',
+                mensagem: `Veja rapidamente a situação dos seus:<br><br>
                            • Estabelecimentos cadastrados<br>
                            • Processos em andamento<br>
-                           • Status geral`,
-                posicao: 'direita'
+                           • Status geral do sistema`,
+                posicao: 'cima'
             },
             {
                 elemento: null,
-                mensagem: `<strong>🎉 Tudo Pronto!</strong><br><br>
-                           Agora você já conhece as principais funcionalidades do sistema.<br><br>
-                           Se tiver dúvidas, clique no botão de <strong>ajuda</strong> ou entre em contato com a Vigilância Sanitária.<br><br>
-                           <em>Bom trabalho!</em> 🚀`,
+                icone: '🚀',
+                iconeBg: 'bg-gradient-to-br from-green-100 to-emerald-100',
+                titulo: 'Tudo Pronto!',
+                mensagem: `Você já conhece o básico do sistema!<br><br>
+                           Qualquer dúvida, entre em contato com a <strong>Vigilância Sanitária</strong> do seu município.`,
+                dica: 'Você pode rever este guia clicando em "Ver Tour Novamente".',
                 posicao: 'centro'
             }
         ],
         
         init() {
-            // Verifica se o usuário já viu o tour
             const tourVisto = localStorage.getItem('infovisa_tour_visto');
             const forceShow = {{ $forceShow ? 'true' : 'false' }};
             
             if (!tourVisto || forceShow) {
-                // Aguarda um pouco para a página carregar
                 setTimeout(() => {
                     this.mostrarTour = true;
                     this.atualizarPosicao();
-                }, 1000);
+                }, 800);
             }
         },
         
         atualizarPosicao() {
+            // Remove destaque do elemento anterior
+            if (this.elementoAtual) {
+                this.elementoAtual.style.outline = '';
+                this.elementoAtual.style.outlineOffset = '';
+                this.elementoAtual.style.boxShadow = '';
+                this.elementoAtual.style.position = '';
+                this.elementoAtual.style.zIndex = '';
+                this.elementoAtual.style.borderRadius = '';
+            }
+            
             const passo = this.passos[this.passoAtual];
             if (passo.elemento) {
                 this.elementoAtual = document.querySelector(passo.elemento);
                 if (this.elementoAtual) {
                     this.elementoAtual.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Aplica destaque diretamente no elemento
+                    this.elementoAtual.style.outline = '4px solid #06b6d4';
+                    this.elementoAtual.style.outlineOffset = '4px';
+                    this.elementoAtual.style.boxShadow = '0 0 0 8px rgba(6,182,212,0.3), 0 0 30px rgba(6,182,212,0.4)';
+                    this.elementoAtual.style.position = 'relative';
+                    this.elementoAtual.style.zIndex = '10001';
+                    this.elementoAtual.style.borderRadius = '12px';
                 }
             } else {
                 this.elementoAtual = null;
             }
-        },
-        
-        get posicaoDestaque() {
-            if (!this.elementoAtual) return 'display: none;';
-            
-            const rect = this.elementoAtual.getBoundingClientRect();
-            const padding = 8;
-            
-            return `
-                top: ${rect.top + window.scrollY - padding}px;
-                left: ${rect.left - padding}px;
-                width: ${rect.width + padding * 2}px;
-                height: ${rect.height + padding * 2}px;
-            `;
         },
         
         get posicaoCard() {
@@ -221,42 +233,45 @@ function tourGuiado() {
             }
             
             const rect = this.elementoAtual.getBoundingClientRect();
-            const cardWidth = 384; // max-w-sm = 384px
-            const cardHeight = 300; // altura estimada
-            const gap = 16;
+            const cardWidth = 320;
+            const cardHeight = 280;
+            const gap = 20;
             
             let top, left;
             
             switch (passo.posicao) {
                 case 'direita':
-                    top = rect.top + window.scrollY;
+                    top = rect.top + window.scrollY + (rect.height / 2) - (cardHeight / 2);
                     left = rect.right + gap;
-                    // Se não couber na direita, coloca na esquerda
-                    if (left + cardWidth > window.innerWidth) {
+                    if (left + cardWidth > window.innerWidth - 20) {
                         left = rect.left - cardWidth - gap;
                     }
                     break;
                 case 'baixo':
                     top = rect.bottom + window.scrollY + gap;
-                    left = rect.left;
-                    // Ajusta se sair da tela
-                    if (left + cardWidth > window.innerWidth) {
-                        left = window.innerWidth - cardWidth - 20;
-                    }
+                    left = rect.left + (rect.width / 2) - (cardWidth / 2);
+                    if (left + cardWidth > window.innerWidth - 20) left = window.innerWidth - cardWidth - 20;
+                    if (left < 20) left = 20;
                     break;
                 case 'esquerda':
-                    top = rect.top + window.scrollY;
+                    top = rect.top + window.scrollY + (rect.height / 2) - (cardHeight / 2);
                     left = rect.left - cardWidth - gap;
+                    if (left < 20) left = rect.right + gap;
                     break;
                 case 'cima':
                     top = rect.top + window.scrollY - cardHeight - gap;
-                    left = rect.left;
+                    left = rect.left + (rect.width / 2) - (cardWidth / 2);
+                    if (left + cardWidth > window.innerWidth - 20) left = window.innerWidth - cardWidth - 20;
+                    if (left < 20) left = 20;
+                    if (top < 20) top = rect.bottom + window.scrollY + gap;
                     break;
                 default:
                     return 'top: 50%; left: 50%; transform: translate(-50%, -50%);';
             }
             
-            return `top: ${top}px; left: ${Math.max(20, left)}px;`;
+            top = Math.max(20, top);
+            
+            return `top: ${top}px; left: ${left}px;`;
         },
         
         proximoPasso() {
@@ -276,17 +291,19 @@ function tourGuiado() {
         },
         
         fecharTour() {
-            this.mostrarTour = false;
-            
-            if (this.naoMostrarNovamente) {
-                localStorage.setItem('infovisa_tour_visto', 'true');
-            } else {
-                // Marca como visto mesmo assim, para não aparecer toda vez
-                localStorage.setItem('infovisa_tour_visto', 'true');
+            // Remove destaque do elemento
+            if (this.elementoAtual) {
+                this.elementoAtual.style.outline = '';
+                this.elementoAtual.style.outlineOffset = '';
+                this.elementoAtual.style.boxShadow = '';
+                this.elementoAtual.style.position = '';
+                this.elementoAtual.style.zIndex = '';
+                this.elementoAtual.style.borderRadius = '';
             }
+            this.mostrarTour = false;
+            localStorage.setItem('infovisa_tour_visto', 'true');
         },
         
-        // Método para reiniciar o tour (pode ser chamado de fora)
         reiniciarTour() {
             localStorage.removeItem('infovisa_tour_visto');
             this.passoAtual = 0;
