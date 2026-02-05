@@ -14,9 +14,6 @@ use App\Models\OrdemServico;
 use App\Models\ProcessoDocumento;
 use App\Models\DocumentoResposta;
 use App\Models\Aviso;
-use App\Models\ListaDocumento;
-use App\Models\Atividade;
-use App\Models\TipoDocumentoObrigatorio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,110 +24,35 @@ class DashboardController extends Controller
      */
     private function calcularInfoDocumentos($processo)
     {
-        $estabelecimento = $processo->estabelecimento;
-        $tipoProcesso = $processo->tipoProcesso;
-        $tipoProcessoId = $tipoProcesso->id ?? null;
-        
-        if (!$tipoProcessoId || !$estabelecimento) {
-            return ['total' => 0, 'enviados' => 0, 'pendentes_aprovacao' => 0];
-        }
-
-        // Verifica se é um processo especial
-        $isProcessoEspecial = $tipoProcesso && in_array($tipoProcesso->codigo ?? '', ['projeto_arquitetonico', 'analise_rotulagem']);
-
-        // Pega as atividades exercidas do estabelecimento
-        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
-        
-        if (!$isProcessoEspecial && empty($atividadesExercidas)) {
-            return ['total' => 0, 'enviados' => 0, 'pendentes_aprovacao' => 0];
-        }
-
-        $atividadeIds = collect();
-        
-        if (!$isProcessoEspecial && !empty($atividadesExercidas)) {
-            $codigosCnae = collect($atividadesExercidas)->map(function($atividade) {
-                $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
-                return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
-            })->filter()->values()->toArray();
-
-            if (!empty($codigosCnae)) {
-                $atividadeIds = Atividade::where('ativo', true)
-                    ->where(function($query) use ($codigosCnae) {
-                        foreach ($codigosCnae as $codigo) {
-                            $query->orWhere('codigo_cnae', $codigo);
-                        }
-                    })
-                    ->pluck('id');
-            }
-        }
-
-        // Busca as listas de documentos aplicáveis
-        $query = ListaDocumento::where('ativo', true)
-            ->where('tipo_processo_id', $tipoProcessoId)
-            ->with(['tiposDocumentoObrigatorio']);
-
-        if ($isProcessoEspecial) {
-            $query->whereDoesntHave('atividades');
-        } else {
-            if ($atividadeIds->isEmpty()) {
-                return ['total' => 0, 'enviados' => 0, 'pendentes_aprovacao' => 0];
-            }
-            $query->whereHas('atividades', function($q) use ($atividadeIds) {
-                $q->whereIn('atividades.id', $atividadeIds);
-            });
-        }
-
-        $query->where(function($q) use ($estabelecimento) {
-            $q->where('escopo', 'estadual');
-            if ($estabelecimento->municipio_id) {
-                $q->orWhere(function($q2) use ($estabelecimento) {
-                    $q2->where('escopo', 'municipal')
-                       ->where('municipio_id', $estabelecimento->municipio_id);
-                });
-            }
-        });
-
-        $listas = $query->get();
-        
-        // Conta documentos obrigatórios únicos
-        $tiposDocObrigatorios = collect();
-        foreach ($listas as $lista) {
-            foreach ($lista->tiposDocumentoObrigatorio as $tipoDoc) {
-                $tiposDocObrigatorios->put($tipoDoc->id, $tipoDoc);
-            }
-        }
-        
-        $totalObrigatorios = $tiposDocObrigatorios->count();
-        
-        // Conta quantos documentos obrigatórios foram aprovados
-        // Usa tipo_documento_obrigatorio_id que referencia a tabela tipos_documento_obrigatorio
-        $documentosEnviados = 0;
-        if ($tiposDocObrigatorios->isNotEmpty()) {
-            // Busca os IDs dos tipos_documento_obrigatorio que correspondem aos tipos de documento
-            $tiposDocObrigatorioIds = \App\Models\TipoDocumentoObrigatorio::whereIn('tipo_documento_id', $tiposDocObrigatorios->keys()->toArray())
-                ->pluck('id')
-                ->toArray();
+        try {
+            // Conta documentos obrigatórios que têm tipo_documento_obrigatorio_id preenchido e foram aprovados
+            $documentosAprovados = $processo->documentos()
+                ->whereNotNull('tipo_documento_obrigatorio_id')
+                ->where('status_aprovacao', 'aprovado')
+                ->count();
             
-            if (!empty($tiposDocObrigatorioIds)) {
-                $documentosEnviados = $processo->documentos()
-                    ->whereIn('tipo_documento_obrigatorio_id', $tiposDocObrigatorioIds)
-                    ->where('status_aprovacao', 'aprovado')
-                    ->distinct('tipo_documento_obrigatorio_id')
-                    ->count('tipo_documento_obrigatorio_id');
-            }
-        }
-        
-        // Conta quantos estão pendentes de aprovação
-        $documentosPendentes = $processo->documentos()
-            ->where('tipo_usuario', 'externo')
-            ->where('status_aprovacao', 'pendente')
-            ->count();
+            // Conta total de tipos de documentos obrigatórios únicos esperados para este processo
+            // baseado nos documentos já enviados com tipo_documento_obrigatorio_id
+            $tiposUnicos = $processo->documentos()
+                ->whereNotNull('tipo_documento_obrigatorio_id')
+                ->distinct('tipo_documento_obrigatorio_id')
+                ->count('tipo_documento_obrigatorio_id');
+            
+            // Conta quantos estão pendentes de aprovação
+            $documentosPendentes = $processo->documentos()
+                ->where('tipo_usuario', 'externo')
+                ->where('status_aprovacao', 'pendente')
+                ->count();
 
-        return [
-            'total' => $totalObrigatorios,
-            'enviados' => $documentosEnviados,
-            'pendentes_aprovacao' => $documentosPendentes
-        ];
+            return [
+                'total' => $tiposUnicos ?: 0,
+                'enviados' => $documentosAprovados,
+                'pendentes_aprovacao' => $documentosPendentes
+            ];
+        } catch (\Exception $e) {
+            // Em caso de erro, retorna valores padrão
+            return ['total' => 0, 'enviados' => 0, 'pendentes_aprovacao' => 0];
+        }
     }
 
     /**
