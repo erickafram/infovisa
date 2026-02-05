@@ -102,11 +102,14 @@ class DashboardController extends Controller
         $totalObrigatorios = $tiposDocObrigatorios->count();
         
         // Conta quantos foram enviados (aprovados)
-        $documentosEnviados = $processo->documentos()
-            ->whereIn('tipo_documento_id', $tiposDocObrigatorios->keys())
-            ->where('status_aprovacao', 'aprovado')
-            ->distinct('tipo_documento_id')
-            ->count('tipo_documento_id');
+        $documentosEnviados = 0;
+        if ($tiposDocObrigatorios->isNotEmpty()) {
+            $documentosEnviados = $processo->documentos()
+                ->whereIn('tipo_documento', $tiposDocObrigatorios->keys()->toArray())
+                ->where('status_aprovacao', 'aprovado')
+                ->distinct('tipo_documento')
+                ->count('tipo_documento');
+        }
         
         // Conta quantos estão pendentes de aprovação
         $documentosPendentes = $processo->documentos()
