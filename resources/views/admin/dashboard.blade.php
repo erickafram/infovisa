@@ -270,7 +270,7 @@
                                     <svg class="w-4 h-4" :class="p.is_meu_direto ? 'text-blue-600' : 'text-teal-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                    <p class="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
                                         <span x-text="p.numero_processo"></span>
                                         <template x-if="p.is_do_setor">
                                             <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">Setor</span>
@@ -283,7 +283,25 @@
                                             </span>
                                         </template>
                                     </p>
-                                    <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
+                                        {{-- Documentos obrigatórios --}}
+                                        <template x-if="p.docs_obrigatorios && p.docs_obrigatorios.total > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                                                  :class="p.docs_obrigatorios.enviados >= p.docs_obrigatorios.total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+                                                  :title="'Documentos obrigatórios: ' + p.docs_obrigatorios.enviados + ' de ' + p.docs_obrigatorios.total">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                <span x-text="p.docs_obrigatorios.enviados + '/' + p.docs_obrigatorios.total"></span>
+                                            </span>
+                                        </template>
+                                        {{-- Documentos pendentes de aprovação --}}
+                                        <template x-if="p.docs_pendentes > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-0.5" title="Documentos pendentes de aprovação">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span x-text="'+' + p.docs_pendentes + ' pend.'"></span>
+                                            </span>
+                                        </template>
+                                    </div>
                                 </div>
                                 <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                             </a>

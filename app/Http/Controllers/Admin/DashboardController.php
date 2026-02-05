@@ -585,6 +585,27 @@ class DashboardController extends Controller
             $isMeuDireto = $proc->responsavel_atual_id === $usuario->id;
             $isDoSetor = !$isMeuDireto && $usuario->setor && $proc->setor_atual === $usuario->setor;
             
+            // Conta documentos obrigatórios
+            $tiposObrigatorios = $proc->tipoProcesso && $proc->tipoProcesso->documentosObrigatorios 
+                ? $proc->tipoProcesso->documentosObrigatorios->pluck('id')->toArray() 
+                : [];
+            $totalObrigatorios = count($tiposObrigatorios);
+            
+            // Conta documentos obrigatórios já enviados (apenas aprovados ou pendentes, não rejeitados)
+            $docsEnviados = $proc->documentos()
+                ->whereIn('tipo_documento_id', $tiposObrigatorios)
+                ->whereIn('status_aprovacao', ['aprovado', 'pendente'])
+                ->distinct('tipo_documento_id')
+                ->pluck('tipo_documento_id')
+                ->unique()
+                ->count();
+            
+            // Conta documentos pendentes de aprovação
+            $docsPendentes = $proc->documentos()
+                ->where('tipo_usuario', 'externo')
+                ->where('status_aprovacao', 'pendente')
+                ->count();
+            
             return [
                 'id' => $proc->id,
                 'numero_processo' => $proc->numero_processo,
@@ -597,6 +618,11 @@ class DashboardController extends Controller
                 'setor_atual' => $proc->setor_atual,
                 'responsavel_desde' => $proc->responsavel_desde ? $proc->responsavel_desde->diffForHumans() : null,
                 'prazo' => $prazoInfo,
+                'docs_obrigatorios' => [
+                    'enviados' => $docsEnviados,
+                    'total' => $totalObrigatorios,
+                ],
+                'docs_pendentes' => $docsPendentes,
                 'url' => route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]),
             ];
         });
