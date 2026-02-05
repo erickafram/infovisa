@@ -668,7 +668,7 @@ class DashboardController extends Controller
         $usuario = Auth::guard('interno')->user();
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 20);
-        $filtro = $request->get('filtro', 'todos'); // todos, aprovacao, resposta, assinatura, os
+        $filtro = $request->get('filtro', 'todos'); // todos, para_mim, aprovacao, resposta, assinatura, os
 
         // Buscar documentos pendentes de assinatura
         $assinaturas = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
@@ -797,7 +797,7 @@ class DashboardController extends Controller
         $todasTarefas = collect();
 
         // 1º PRIORIDADE: Ordens de Serviço em aberto (aparecem primeiro no topo)
-        if ($filtro === 'todos' || $filtro === 'os') {
+        if ($filtro === 'todos' || $filtro === 'os' || $filtro === 'para_mim') {
             foreach($ordensServico as $os) {
                 $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
                 $isVencido = $diasRestantes !== null && $diasRestantes < 0;
@@ -821,7 +821,7 @@ class DashboardController extends Controller
         }
 
         // 2º PRIORIDADE: Documentos pendentes de assinatura
-        if ($filtro === 'todos' || $filtro === 'assinatura') {
+        if ($filtro === 'todos' || $filtro === 'assinatura' || $filtro === 'para_mim') {
             foreach($assinaturas as $ass) {
                 $todasTarefas->push([
                     'tipo' => 'assinatura',
@@ -840,9 +840,11 @@ class DashboardController extends Controller
             }
         }
 
-        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
+        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo (NÃO incluir no filtro "para_mim")
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
+            // Se é filtro "para_mim", pular aprovações e respostas (são tarefas do setor)
+            if ($filtro === 'para_mim') continue;
             if ($filtro !== 'todos' && $filtro !== $tarefa['tipo']) continue;
             
             $diasRestantes = $tarefa['is_licenciamento'] ? (5 - $tarefa['dias_pendente']) : null;

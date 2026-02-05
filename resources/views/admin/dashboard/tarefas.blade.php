@@ -43,6 +43,39 @@
                 Todos
                 <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'todos' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.total || 0"></span>
             </button>
+            
+            {{-- NOVO: Filtro "Para Mim" (OS + Assinaturas) --}}
+            <button @click="filtro = 'para_mim'; currentPage = 1; load()" 
+                    :class="filtro === 'para_mim' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Para Mim
+                <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'para_mim' ? 'bg-white/20' : 'bg-gray-200'" x-text="(contadores.os || 0) + (contadores.assinatura || 0)"></span>
+            </button>
+            
+            <button @click="filtro = 'os'; currentPage = 1; load()" 
+                    :class="filtro === 'os' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Ordens de Serviço
+                <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'os' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.os || 0"></span>
+            </button>
+            <button @click="filtro = 'assinatura'; currentPage = 1; load()" 
+                    :class="filtro === 'assinatura' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                Assinaturas
+                <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'assinatura' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.assinatura || 0"></span>
+            </button>
+            
+            <span class="text-gray-300">|</span>
+            
             <button @click="filtro = 'aprovacao'; currentPage = 1; load()" 
                     :class="filtro === 'aprovacao' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                     class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
@@ -60,24 +93,6 @@
                 </svg>
                 Respostas
                 <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'resposta' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.resposta || 0"></span>
-            </button>
-            <button @click="filtro = 'assinatura'; currentPage = 1; load()" 
-                    :class="filtro === 'assinatura' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                </svg>
-                Assinaturas
-                <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'assinatura' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.assinatura || 0"></span>
-            </button>
-            <button @click="filtro = 'os'; currentPage = 1; load()" 
-                    :class="filtro === 'os' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-                Ordens de Serviço
-                <span class="px-1.5 py-0.5 rounded-full text-xs" :class="filtro === 'os' ? 'bg-white/20' : 'bg-gray-200'" x-text="contadores.os || 0"></span>
             </button>
         </div>
     </div>
