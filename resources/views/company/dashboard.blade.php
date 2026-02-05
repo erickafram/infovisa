@@ -4,6 +4,9 @@
 @section('page-title', 'Página Inicial')
 
 @section('content')
+{{-- Tour Guiado para Novos Usuários --}}
+<x-tour-guiado />
+
 <div class="space-y-6">
 
     {{-- Aviso Importante - Sistema Antigo x Novo --}}
@@ -269,6 +272,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {{-- Botão 1: Novo Estabelecimento --}}
             <a href="{{ route('company.estabelecimentos.create') }}" 
+               id="tour-novo-cadastro"
                class="group flex items-center gap-2 p-2.5 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-all">
                 <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,6 +287,7 @@
 
             {{-- Botão 2: Ver Estabelecimentos --}}
             <a href="{{ route('company.estabelecimentos.index') }}" 
+               id="tour-meus-estabelecimentos"
                class="group flex items-center gap-2 p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all">
                 <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,6 +302,7 @@
 
             {{-- Botão 3: Ver Processos --}}
             <a href="{{ route('company.processos.index') }}" 
+               id="tour-meus-processos"
                class="group flex items-center gap-2 p-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all">
                 <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,6 +317,7 @@
 
             {{-- Botão 4: Alertas/Pendências --}}
             <a href="{{ route('company.alertas.index') }}" 
+               id="tour-alertas"
                class="group flex items-center gap-2 p-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all relative">
                 @if($totalAlertas > 0)
                 <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -333,7 +340,7 @@
     {{-- =====================================================
          SEÇÃO: RESUMO GERAL (Cards de Status)
          ===================================================== --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+    <div id="tour-estatisticas" class="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {{-- Card 1: Total Estabelecimentos --}}
         <div class="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
             <div class="flex items-center justify-between gap-2">
@@ -542,12 +549,19 @@
                     Mantenha seus dados atualizados e fique atento aos prazos das notificações. 
                     Documentos não respondidos podem gerar penalidades.
                 </p>
-                <a href="{{ route('company.perfil.index') }}" class="inline-flex items-center text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-blue-200 mt-2">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                    Atualizar Perfil
-                </a>
+                <div class="flex items-center gap-2 mt-2">
+                    <a href="{{ route('company.perfil.index') }}" class="inline-flex items-center text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-white px-2 py-1 rounded-lg border border-blue-200">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        Atualizar Perfil
+                    </a>
+                    <button onclick="localStorage.removeItem('infovisa_tour_visto'); location.reload();" 
+                            class="inline-flex items-center text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 bg-white px-2 py-1 rounded-lg border border-indigo-200">
+                        <span class="mr-1">🤖</span>
+                        Ver Tour Novamente
+                    </button>
+                </div>
             </div>
         </div>
     </div>
