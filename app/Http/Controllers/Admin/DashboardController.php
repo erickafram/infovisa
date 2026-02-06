@@ -469,15 +469,10 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Contar processos diretos vs setor (ANTES de calcular para_mim_total)
-        $stats['processos_meus_diretos'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
-            ->where('responsavel_atual_id', $usuario->id)
-            ->count();
-
         // Contadores separados: "Para Mim" vs "Meu Setor"
+        // "Para Mim" = apenas ações pessoais diretas (OS + Assinaturas)
         $stats['para_mim_total'] = ($stats['documentos_pendentes_assinatura'] ?? 0) 
-            + ($stats['ordens_servico_andamento'] ?? 0)
-            + ($stats['processos_meus_diretos'] ?? 0);
+            + ($stats['ordens_servico_andamento'] ?? 0);
         
         $stats['processos_do_setor'] = 0;
         if ($usuario->setor) {
@@ -486,6 +481,7 @@ class DashboardController extends Controller
                 ->count();
         }
         
+        // "Meu Setor" = aprovações pendentes + processos no setor
         $stats['setor_total'] = ($stats['total_pendentes_aprovacao'] ?? 0) 
             + ($stats['processos_do_setor'] ?? 0);
 

@@ -128,8 +128,6 @@
                         <span><span class="font-medium">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS</span>
                         <span>•</span>
                         <span><span class="font-medium">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</span> assinaturas</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['processos_meus_diretos'] ?? 0 }}</span> processos</span>
                     </div>
                 </div>
             </div>
