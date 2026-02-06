@@ -385,6 +385,35 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Verifica se o documento possui pelo menos uma assinatura realizada
+     */
+    public function possuiAssinaturaRealizada(): bool
+    {
+        return $this->assinaturas()
+            ->where('status', 'assinado')
+            ->exists();
+    }
+
+    /**
+     * Verifica se o documento pode ser editado.
+     * Rascunhos sempre podem ser editados.
+     * Documentos finalizados (aguardando_assinatura) podem ser editados
+     * se nenhuma assinatura foi realizada ainda.
+     */
+    public function podeEditar(): bool
+    {
+        if ($this->status === 'rascunho') {
+            return true;
+        }
+
+        if ($this->status === 'aguardando_assinatura' && !$this->possuiAssinaturaRealizada()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Salva uma nova versão do documento
      */
     public function salvarVersao($usuarioId, $conteudo, $alteracoes = null)

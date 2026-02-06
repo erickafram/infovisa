@@ -908,25 +908,21 @@
                                         <div class="flex items-center gap-2 min-w-0 flex-1">
                                             {{-- Ícone com indicador de status --}}
                                             <div class="relative flex-shrink-0">
-                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center
-                                                    @if($statusGeral === 'resolvido') bg-green-100
-                                                    @elseif($statusGeral === 'resposta_pendente') bg-yellow-100
-                                                    @elseif($statusGeral === 'prazo_aberto') bg-amber-100
-                                                    @elseif($statusGeral === 'aguardando_assinatura') bg-orange-100
-                                                    @else bg-gray-100
-                                                    @endif">
-                                                    @if($statusGeral === 'resolvido')
-                                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                        </svg>
-                                                    @elseif($totalRespostas > 0)
-                                                        <svg class="w-5 h-5 {{ $temRespostasPendentes ? 'text-yellow-600' : 'text-green-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                                                        </svg>
+                                                <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
+                                                    @if($statusGeral === 'rascunho')
+                                                        <i class="far fa-edit fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                    @elseif($statusGeral === 'aguardando_assinatura')
+                                                        <i class="fas fa-file-signature fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                    @elseif($statusGeral === 'resolvido')
+                                                        <i class="far fa-check-circle fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                    @elseif($statusGeral === 'resposta_pendente')
+                                                        <i class="far fa-comment-dots fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                    @elseif($statusGeral === 'prazo_aberto')
+                                                        <i class="far fa-clock fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                    @elseif($statusGeral === 'concluido')
+                                                        <i class="fas fa-clipboard-check fa-fw text-gray-500" style="font-size: 16px;"></i>
                                                     @else
-                                                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                        </svg>
+                                                        <i class="far fa-file-alt fa-fw text-gray-500" style="font-size: 16px;"></i>
                                                     @endif
                                                 </div>
                                                 @if($totalRespostas > 0)
@@ -940,7 +936,7 @@
                                             {{-- Nome, Status e Data --}}
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex items-center gap-2">
-                                                    @if($docDigital->status === 'rascunho')
+                                                    @if($docDigital->podeEditar())
                                                         <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</a>
                                                     @elseif($docDigital->arquivo_pdf && !$temAssinaturasPendentes)
                                                         <span @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
@@ -955,116 +951,158 @@
                                                     
                                                     {{-- Badge de Status Principal --}}
                                                     @if($statusGeral === 'rascunho')
-                                                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-semibold">✏️ Rascunho</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold">
+                                                            <i class="far fa-edit" style="font-size: 10px;"></i>
+                                                            Rascunho
+                                                        </span>
                                                     @elseif($statusGeral === 'aguardando_assinatura')
-                                                        <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-semibold">🖊️ {{ $assinaturasPendentes }}/{{ $todasAssinaturas }}</span>
+                                                        @php
+                                                            $assinaturasRealizadas = $todasAssinaturas - $assinaturasPendentes;
+                                                        @endphp
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold">
+                                                            <i class="fas fa-file-signature" style="font-size: 10px;"></i>
+                                                            {{ $assinaturasRealizadas }}/{{ $todasAssinaturas }} assinado
+                                                        </span>
                                                     @elseif($statusGeral === 'resolvido')
-                                                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-semibold">✅ Resolvido</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold">
+                                                            <i class="far fa-check-circle" style="font-size: 10px;"></i>
+                                                            Resolvido
+                                                        </span>
                                                     @elseif($statusGeral === 'resposta_pendente')
-                                                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-[10px] font-semibold animate-pulse">⏳ Avaliar {{ $docDigital->respostas->where('status', 'pendente')->count() }}</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold animate-pulse">
+                                                            <i class="far fa-comment-dots" style="font-size: 10px;"></i>
+                                                            Avaliar {{ $docDigital->respostas->where('status', 'pendente')->count() }}
+                                                        </span>
                                                     @elseif($statusGeral === 'prazo_aberto')
-                                                        <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-semibold" title="Aguardando resposta do estabelecimento">📬 Ag. Resposta</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold" title="Aguardando resposta do estabelecimento">
+                                                            <i class="far fa-clock" style="font-size: 10px;"></i>
+                                                            Ag. Resposta
+                                                        </span>
                                                     @elseif($statusGeral === 'concluido')
-                                                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-semibold">✓ {{ $todasAssinaturas }}</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold">
+                                                            <i class="fas fa-clipboard-check" style="font-size: 10px;"></i>
+                                                            Assinado
+                                                        </span>
                                                     @endif
                                                     
                                                     {{-- Indicador de visualização --}}
                                                     @if($docDigital->primeiraVisualizacao && $statusGeral !== 'rascunho' && $statusGeral !== 'aguardando_assinatura')
-                                                        <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-medium" title="Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }}">👁</span>
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold" title="Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }}">
+                                                            <i class="far fa-eye" style="font-size: 10px;"></i>
+                                                            Visto
+                                                        </span>
                                                     @endif
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-1 flex-shrink-0">
-                                            {{-- Botão Expandir Detalhes --}}
-                                            <button @click.stop="expanded = !expanded" 
-                                                    class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                                                    title="Ver detalhes">
-                                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                                </svg>
-                                            </button>
-                                            
+                                        <div class="flex items-center gap-0.5 flex-shrink-0">
+                                            {{-- Botão Editar (se pode editar) --}}
+                                            @if($docDigital->podeEditar())
+                                                <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" 
+                                                   class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                   title="Editar documento">
+                                                    <i class="far fa-edit fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                                </a>
+                                            @endif
+
+                                            {{-- Botão Assinar --}}
                                             @if($usuarioPrecisaAssinar)
                                                 <button type="button"
                                                    @click="abrirModalAssinar({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ $assinaturaUsuario->ordem }}', {{ json_encode($docDigital->assinaturas->map(fn($a) => ['nome' => $a->usuarioInterno->nome ?? 'Usuário', 'status' => $a->status, 'ordem' => $a->ordem, 'isCurrentUser' => $a->usuario_interno_id === auth('interno')->id()])->sortBy('ordem')->values()) }})"
-                                                   class="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                                                   class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                    title="Assinar documento">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                                    </svg>
+                                                    <i class="fas fa-file-signature fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                             @endif
                                             
+                                            {{-- Botão Resolver --}}
                                             @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
                                                 <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit" 
-                                                            class="p-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors"
+                                                            class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                             onclick="return confirm('Marcar prazo como resolvido?')"
                                                             title="Marcar como resolvido">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                        </svg>
+                                                        <i class="far fa-check-circle fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                     </button>
                                                 </form>
                                             @endif
                                             
+                                            {{-- Botão Download PDF --}}
                                             @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
                                                 <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
-                                                   class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                   title="Download">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                    </svg>
+                                                   class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                   title="Baixar PDF">
+                                                    <i class="fas fa-download fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </a>
                                             @endif
+
+                                            {{-- Botão Expandir Detalhes --}}
+                                            <button @click.stop="expanded = !expanded" 
+                                                    class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    title="Ver detalhes">
+                                                <i class="fas fa-chevron-down fa-fw text-gray-500 transition-transform" :class="{ 'rotate-180': expanded }" style="font-size: 13px;"></i>
+                                            </button>
                                             
                                             {{-- Menu 3 Pontos --}}
                                             <div class="relative" x-data="{ menuAberto: false }">
                                                 <button @click.stop="menuAberto = !menuAberto"
-                                                        class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                         title="Mais opções">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                                                    </svg>
+                                                    <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                                 <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
                                                      class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] py-1"
                                                      style="display: none;">
-                                                    @if($docDigital->status === 'rascunho')
+                                                    @if($docDigital->podeEditar())
                                                         <a href="{{ route('admin.documentos.edit', $docDigital->id) }}"
-                                                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Editar</a>
+                                                           class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                            <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                            Editar
+                                                        </a>
                                                     @endif
                                                     @if($docDigital->status !== 'rascunho')
                                                         <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
-                                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mover para pasta</button>
+                                                                class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                            <i class="far fa-folder fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                            Mover para pasta
+                                                        </button>
                                                     @endif
                                                     @if($docDigital->prazo_dias || $docDigital->data_vencimento)
                                                         @if($docDigital->isPrazoFinalizado())
                                                             <form action="{{ route('admin.estabelecimentos.processos.documento-digital.reabrir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
                                                                 @csrf
                                                                 <button type="submit" onclick="return confirm('Reabrir prazo?')"
-                                                                        class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50">Reabrir Prazo</button>
+                                                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                                    <i class="fas fa-redo fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                                    Reabrir Prazo
+                                                                </button>
                                                             </form>
                                                         @elseif(!$docDigital->respostas || $docDigital->respostas->where('status', 'aprovado')->count() == 0)
                                                             @if($docDigital->primeiraVisualizacao)
                                                                 <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
                                                                     @csrf
                                                                     <button type="submit" onclick="return confirm('Finalizar prazo?')"
-                                                                            class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50">Finalizar Prazo</button>
+                                                                            class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                                        <i class="far fa-check-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                                        Finalizar Prazo
+                                                                    </button>
                                                                 </form>
                                                             @else
-                                                                <span class="block px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
-                                                                    Finalizar Prazo (aguardando visualização)
+                                                                <span class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
+                                                                    <i class="far fa-clock fa-fw" style="font-size: 13px;"></i>
+                                                                    Finalizar (aguardando)
                                                                 </span>
                                                             @endif
                                                         @endif
                                                     @endif
                                                     <button @click="excluirDocumentoDigital({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }} - {{ $docDigital->numero_documento }}'); menuAberto = false"
-                                                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Excluir</button>
+                                                            class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                                        <i class="far fa-trash-alt fa-fw" style="font-size: 13px;"></i>
+                                                        Excluir
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1255,42 +1293,37 @@
                                     @php
                                         $os = $item['documento'];
                                     @endphp
-                                <div class="p-3 bg-blue-50 rounded-lg border border-gray-200 border-l-4 border-l-blue-600 hover:shadow-md transition-all"
+                                <div class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 border-l-blue-500 hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
                                     <div class="flex items-center justify-between gap-3">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
                                         <a href="{{ route('admin.ordens-servico.show', $os) }}" class="flex items-center gap-2 min-w-0 flex-1">
-                                            <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
-                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                                                    </svg>
+                                            <div class="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <i class="fas fa-clipboard-check fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-semibold text-gray-900 hover:text-gray-600 truncate">OS #{{ $os->numero }}</span>
+                                                    <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $os->created_at->format('d/m/Y') }}</span>
                                                 </div>
-                                                <div class="min-w-0 flex-1">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">OS #{{ $os->numero }}</span>
-                                                        <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $os->created_at->format('d/m/Y') }}</span>
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                                        {!! $os->status_badge !!}
-                                                        {!! $os->competencia_badge !!}
-                                                        @if($os->municipio)
-                                                        <span class="text-xs text-gray-500">{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
-                                                        @endif
-                                                    </div>
+                                                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                    {!! $os->status_badge !!}
+                                                    {!! $os->competencia_badge !!}
+                                                    @if($os->municipio)
+                                                    <span class="text-xs text-gray-500">{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
+                                                    @endif
                                                 </div>
-                                            </a>
+                                            </div>
+                                        </a>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-1 flex-shrink-0">
+                                        <div class="flex items-center gap-0.5 flex-shrink-0">
                                             <a href="{{ route('admin.ordens-servico.show', $os) }}" 
-                                               class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold rounded transition-colors flex items-center gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                                </svg>
-                                                Ver OS
+                                               class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                               title="Ver OS">
+                                                <i class="far fa-eye fa-fw text-gray-500" style="font-size: 15px;"></i>
                                             </a>
                                         </div>
                                     </div>
@@ -1303,7 +1336,7 @@
                                     @endphp
                                 <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false }"
                                      x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 {{ $documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : 'border-l-green-500') }} hover:shadow-md transition-all"
+                                     class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 {{ $documento->tipo_usuario === 'interno' ? 'border-l-blue-500' : ($documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : ($documento->status_aprovacao === 'aprovado' ? 'border-l-green-500' : 'border-l-gray-300'))) }} hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
@@ -1311,9 +1344,20 @@
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
                                         <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }})" 
                                              class="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
-                                            {{-- Ícone --}}
-                                            <div class="w-8 h-8 {{ $documento->tipo_usuario === 'externo' ? 'bg-blue-100' : 'bg-gray-100' }} rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                <span class="text-sm">📎</span>
+                                            {{-- Ícone por tipo de arquivo --}}
+                                            <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                @php $ext = strtolower($documento->extensao ?? ''); @endphp
+                                                @if(in_array($ext, ['pdf']))
+                                                    <i class="far fa-file-pdf fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                @elseif(in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']))
+                                                    <i class="far fa-file-image fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                @elseif(in_array($ext, ['doc', 'docx']))
+                                                    <i class="far fa-file-word fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                @elseif(in_array($ext, ['xls', 'xlsx', 'csv']))
+                                                    <i class="far fa-file-excel fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                @else
+                                                    <i class="fas fa-paperclip fa-fw text-gray-500" style="font-size: 16px;"></i>
+                                                @endif
                                             </div>
                                             {{-- Nome, Status e Data --}}
                                             <div class="min-w-0 flex-1">
@@ -1326,14 +1370,26 @@
                                                     </span>
                                                     @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                                         @if($documento->status_aprovacao === 'pendente')
-                                                            <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded font-semibold">Pendente</span>
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold">
+                                                                <i class="far fa-clock" style="font-size: 10px;"></i>
+                                                                Pendente
+                                                            </span>
                                                             @if($isCorrecao)
-                                                                <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] rounded font-semibold">Correção #{{ $documento->tentativas_envio ?? 1 }}</span>
+                                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold">
+                                                                    <i class="fas fa-redo" style="font-size: 10px;"></i>
+                                                                    Correção #{{ $documento->tentativas_envio ?? 1 }}
+                                                                </span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'aprovado')
-                                                            <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-semibold" title="{{ $documento->aprovadoPor ? 'Aprovado por ' . $documento->aprovadoPor->nome . ($documento->aprovado_em ? ' em ' . \Carbon\Carbon::parse($documento->aprovado_em)->format('d/m/Y H:i') : '') : '' }}">✓ Aprovado{{ $documento->aprovadoPor ? ' - ' . Str::upper(Str::words($documento->aprovadoPor->nome, 1, '')) : '' }}</span>
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold" title="{{ $documento->aprovadoPor ? 'Aprovado por ' . $documento->aprovadoPor->nome . ($documento->aprovado_em ? ' em ' . \Carbon\Carbon::parse($documento->aprovado_em)->format('d/m/Y H:i') : '') : '' }}">
+                                                                <i class="fas fa-check" style="font-size: 10px;"></i>
+                                                                Aprovado{{ $documento->aprovadoPor ? ' - ' . Str::upper(Str::words($documento->aprovadoPor->nome, 1, '')) : '' }}
+                                                            </span>
                                                         @elseif($documento->status_aprovacao === 'rejeitado')
-                                                            <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] rounded font-semibold">Rejeitado</span>
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold">
+                                                                <i class="fas fa-times" style="font-size: 10px;"></i>
+                                                                Rejeitado
+                                                            </span>
                                                         @endif
                                                     @endif
                                                 </div>
@@ -1345,65 +1401,62 @@
                                             @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente')
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors" title="Aprovar">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                    </svg>
+                                                <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Aprovar">
+                                                    <i class="fas fa-check fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                             </form>
-                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Rejeitar">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                </svg>
+                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Rejeitar">
+                                                <i class="fas fa-times fa-fw text-gray-500" style="font-size: 15px;"></i>
                                             </button>
                                             @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'aprovado')
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Revalidar">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                    </svg>
+                                                <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Revalidar">
+                                                    <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                             </form>
                                             @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'rejeitado')
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
                                                   onsubmit="return confirm('Deseja revalidar este documento rejeitado? Ele voltará para o status Pendente.')">
                                                 @csrf
-                                                <button type="submit" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Revalidar">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                    </svg>
+                                                <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Revalidar">
+                                                    <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                             </form>
                                             @endif
                                             
-                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Download">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                </svg>
+                                            <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Download">
+                                                <i class="fas fa-download fa-fw text-gray-500" style="font-size: 15px;"></i>
                                             </a>
                                             
                                             {{-- Menu 3 pontos --}}
                                             <div class="relative" x-data="{ menuAberto: false }">
-                                                <button @click.stop="menuAberto = !menuAberto" class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors" title="Mais opções">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                                                    </svg>
+                                                <button @click.stop="menuAberto = !menuAberto" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Mais opções">
+                                                    <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                                 <div x-show="menuAberto" @click.away="menuAberto = false" x-transition class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl border z-[9999] py-1" style="display: none;">
-                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">Remover da pasta</button>
+                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                        <i class="far fa-times-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                        Remover da pasta
+                                                    </button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
-                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                             <span class="w-2 h-2 rounded-full" :style="`background-color: ${pasta.cor}`"></span>
                                                             <span x-text="pasta.nome"></span>
                                                         </button>
                                                     </template>
                                                     <hr class="my-1">
-                                                    <button @click="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true; menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">Renomear</button>
+                                                    <button @click="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true; menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                        <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                        Renomear
+                                                    </button>
                                                     <button type="button" 
                                                             @click="abrirModalExclusao('documento', {{ $documento->id }}, '{{ addslashes($documento->nome_original) }}', '{{ route('admin.estabelecimentos.processos.deleteArquivo', [$estabelecimento->id, $processo->id, $documento->id]) }}'); menuAberto = false"
-                                                            class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50">Excluir</button>
+                                                            class="w-full text-left px-3 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-gray-50 flex items-center gap-2">
+                                                        <i class="far fa-trash-alt fa-fw" style="font-size: 13px;"></i>
+                                                        Excluir
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -2449,78 +2502,116 @@
     {{-- Modal de Assinatura de Documento --}}
     <template x-if="modalAssinar">
         <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalAssinar" style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="flex items-center justify-center min-h-screen px-4">
                 {{-- Overlay --}}
-                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalAssinar = false"></div>
+                <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="modalAssinar = false"></div>
 
                 {{-- Modal --}}
-                <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
-                    {{-- Header --}}
-                    <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-base font-semibold text-gray-900">Assinar Documento</h3>
-                                <p class="text-xs text-gray-500 mt-0.5" x-text="assinarDocumentoNome"></p>
+                <div class="relative w-full max-w-sm transform transition-all bg-white rounded-2xl shadow-2xl overflow-hidden">
+                    
+                    {{-- Header com ícone central --}}
+                    <div class="relative px-6 pt-6 pb-4">
+                        <button @click="modalAssinar = false" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-times" style="font-size: 14px;"></i>
+                        </button>
+                        
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-3 shadow-lg shadow-blue-500/25">
+                                <i class="fas fa-file-signature text-white" style="font-size: 22px;"></i>
                             </div>
-                            <button @click="modalAssinar = false" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
+                            <h3 class="text-lg font-bold text-gray-900">Assinar Documento</h3>
+                            <p class="text-xs text-gray-500 mt-0.5 max-w-[260px] truncate" x-text="assinarDocumentoNome"></p>
                         </div>
                     </div>
 
-                    {{-- Info do documento --}}
-                    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-                        <div class="grid grid-cols-2 gap-3 text-xs">
-                            <div>
-                                <span class="text-gray-400">Documento</span>
-                                <p class="text-gray-700 font-medium" x-text="assinarDocumentoNumero"></p>
+                    {{-- Info cards --}}
+                    <div class="px-6 pb-3">
+                        <div class="flex gap-2">
+                            <div class="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                                <p class="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Documento</p>
+                                <p class="text-sm text-gray-800 font-semibold mt-0.5" x-text="assinarDocumentoNumero"></p>
                             </div>
-                            <div>
-                                <span class="text-gray-400">Sua posição</span>
-                                <p class="text-gray-700 font-medium"><span x-text="assinarOrdem"></span>º assinante</p>
+                            <div class="flex-1 bg-blue-50 rounded-xl px-3 py-2.5 text-center">
+                                <p class="text-[10px] text-blue-400 uppercase tracking-wider font-medium">Sua posição</p>
+                                <p class="text-sm text-blue-700 font-semibold mt-0.5"><span x-text="assinarOrdem"></span>º assinante</p>
                             </div>
                         </div>
                     </div>
 
                     {{-- Lista de assinantes --}}
-                    <div class="px-5 py-3 border-b border-gray-100">
-                        <p class="text-xs text-gray-500 mb-2">Assinantes:</p>
-                        <div class="flex flex-wrap gap-1.5">
+                    <div class="px-6 pb-3">
+                        <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-2">Assinantes</p>
+                        <div class="space-y-1.5">
                             <template x-for="ass in assinarAssinaturas" :key="ass.ordem">
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-                                      :class="ass.status === 'assinado' ? 'bg-green-50 text-green-700' : (ass.isCurrentUser ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-500')">
+                                <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+                                     :class="ass.status === 'assinado' ? 'bg-green-50' : (ass.isCurrentUser ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-gray-50')">
+                                    {{-- Ícone de status --}}
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                         :class="ass.status === 'assinado' ? 'bg-green-500' : (ass.isCurrentUser ? 'bg-blue-500' : 'bg-gray-300')">
+                                        <template x-if="ass.status === 'assinado'">
+                                            <i class="fas fa-check text-white" style="font-size: 10px;"></i>
+                                        </template>
+                                        <template x-if="ass.status !== 'assinado' && ass.isCurrentUser">
+                                            <i class="fas fa-pen text-white" style="font-size: 9px;"></i>
+                                        </template>
+                                        <template x-if="ass.status !== 'assinado' && !ass.isCurrentUser">
+                                            <i class="fas fa-clock text-white" style="font-size: 9px;"></i>
+                                        </template>
+                                    </div>
+                                    {{-- Nome e status --}}
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-medium truncate"
+                                           :class="ass.status === 'assinado' ? 'text-green-800' : (ass.isCurrentUser ? 'text-blue-800' : 'text-gray-600')"
+                                           x-text="ass.nome"></p>
+                                    </div>
+                                    {{-- Badge de status --}}
                                     <template x-if="ass.status === 'assinado'">
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                        <span class="text-[10px] font-medium text-green-600">Assinado</span>
                                     </template>
                                     <template x-if="ass.status !== 'assinado' && ass.isCurrentUser">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                        <span class="flex items-center gap-1 text-[10px] font-medium text-blue-600">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                            Você
+                                        </span>
                                     </template>
-                                    <span x-text="ass.nome"></span>
-                                </span>
+                                    <template x-if="ass.status !== 'assinado' && !ass.isCurrentUser">
+                                        <span class="text-[10px] font-medium text-gray-400">Pendente</span>
+                                    </template>
+                                </div>
                             </template>
                         </div>
                     </div>
 
+                    {{-- Separador --}}
+                    <div class="mx-6 border-t border-gray-100"></div>
+
                     {{-- Formulário --}}
-                    <div class="px-5 py-4">
-                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Senha de Assinatura</label>
-                        <input type="password" 
-                               x-model="assinarSenha"
-                               @keydown.enter.prevent="processarAssinatura()"
-                               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               :class="assinarErro ? 'border-red-400' : ''"
-                               placeholder="••••••••"
-                               autofocus>
-                        <p class="mt-1 text-xs text-red-500" x-show="assinarErro" x-text="assinarErro"></p>
+                    <div class="px-6 py-4">
+                        <label class="block text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-2">Senha de Assinatura</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-300" style="font-size: 13px;"></i>
+                            </div>
+                            <input type="password" 
+                                   x-model="assinarSenha"
+                                   @keydown.enter.prevent="processarAssinatura()"
+                                   class="w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                   :class="assinarErro ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
+                                   placeholder="Digite sua senha de assinatura"
+                                   autofocus>
+                        </div>
+                        <div x-show="assinarErro" x-transition class="mt-2 flex items-center gap-1.5 text-xs text-red-500">
+                            <i class="fas fa-exclamation-circle" style="font-size: 12px;"></i>
+                            <span x-text="assinarErro"></span>
+                        </div>
 
                         {{-- Botões --}}
-                        <div class="flex items-center gap-2 mt-4">
+                        <div class="flex flex-col gap-2 mt-4">
                             <button type="button" 
                                     @click="processarAssinatura()"
-                                    :disabled="assinarCarregando"
-                                    class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    :disabled="assinarCarregando || !assinarSenha"
+                                    class="w-full px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                    :class="assinarCarregando ? 'bg-blue-400' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40'">
                                 <template x-if="assinarCarregando">
                                     <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -2528,25 +2619,23 @@
                                     </svg>
                                 </template>
                                 <template x-if="!assinarCarregando">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                    </svg>
+                                    <i class="fas fa-file-signature" style="font-size: 13px;"></i>
                                 </template>
-                                <span x-text="assinarCarregando ? 'Assinando...' : 'Assinar'"></span>
+                                <span x-text="assinarCarregando ? 'Processando assinatura...' : 'Assinar Documento'"></span>
                             </button>
                             <button type="button" 
                                     @click="modalAssinar = false"
                                     :disabled="assinarCarregando"
-                                    class="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+                                    class="w-full px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50">
                                 Cancelar
                             </button>
                         </div>
                     </div>
 
                     {{-- Footer --}}
-                    <div class="px-5 py-2.5 bg-gray-50 border-t border-gray-100">
-                        <p class="text-[10px] text-gray-400 flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <div class="px-6 py-3 bg-gray-50/80 border-t border-gray-100">
+                        <p class="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
+                            <i class="fas fa-shield-alt text-green-400" style="font-size: 11px;"></i>
                             Assinatura digital protegida por criptografia
                         </p>
                     </div>

@@ -98,57 +98,59 @@ function tourGuiadoAdmin() {
                 elemento: null,
                 icone: '👋',
                 titulo: 'Bem-vindo ao Painel!',
-                mensagem: `Olá! Vou te apresentar as principais funcionalidades da <strong>Dashboard Administrativa</strong>.<br><br>
-                           Em poucos passos você conhecerá tudo!`,
+                mensagem: `Olá! Vou te mostrar como a <strong>Dashboard</strong> está organizada.<br><br>
+                           São <strong>3 colunas</strong>: o que é pra você, o que é do seu setor e acompanhamento geral.`,
                 dica: 'O tour leva menos de 1 minuto.',
                 posicao: 'centro'
             },
             {
                 elemento: '#tour-stats-cards',
                 icone: '📊',
-                titulo: 'Indicadores Rápidos',
-                mensagem: `Estes cards mostram os números mais importantes:<br><br>
-                           • <strong>Documentos</strong> aguardando análise<br>
-                           • <strong>Estabelecimentos</strong> pendentes de aprovação<br>
-                           • <strong>Assinaturas</strong> que você precisa fazer<br>
-                           • Total de <strong>processos</strong> em andamento`,
-                dica: 'Clique em qualquer card para acessar a lista detalhada.',
+                titulo: 'Resumo Rápido',
+                mensagem: `Os 3 cards no topo mostram seus números principais:<br><br>
+                           • <strong>Para Mim</strong> — suas OS e assinaturas pendentes<br>
+                           • <strong>Meu Setor</strong> — aprovações e processos do setor<br>
+                           • <strong>Cadastros Pendentes</strong> — estabelecimentos aguardando aprovação`,
+                dica: 'A barra colorida no rodapé de cada card detalha a composição do total.',
                 posicao: 'baixo'
             },
             {
                 elemento: '#tour-minhas-tarefas',
-                icone: '📋',
-                titulo: 'Suas Tarefas',
-                mensagem: `Aqui ficam todas as <strong>suas pendências</strong>:<br><br>
-                           • Documentos para aprovar/rejeitar<br>
-                           • Respostas de notificações<br>
-                           • Assinaturas pendentes<br>
-                           • Ordens de serviço`,
-                dica: 'Itens em vermelho estão atrasados (mais de 5 dias).',
+                icone: '👤',
+                titulo: 'Para Mim',
+                mensagem: `Esta coluna mostra tudo que depende <strong>diretamente de você</strong>:<br><br>
+                           • <strong class="text-blue-600">Ordens de Serviço</strong> — OS em andamento atribuídas a você<br>
+                           • <strong class="text-amber-600">Assinaturas Pendentes</strong> — documentos aguardando sua assinatura<br>
+                           • <strong class="text-indigo-600">Meus Processos</strong> — processos onde você é o responsável atual`,
+                dica: 'Itens em vermelho estão atrasados (mais de 5 dias sem movimentação).',
                 posicao: 'direita'
             },
             {
                 elemento: '#tour-processos-setor',
                 icone: '🏢',
-                titulo: 'Processos do Setor',
-                mensagem: `Lista de processos atribuídos ao <strong>seu setor</strong>.<br><br>
-                           Você pode visualizar o andamento de cada um e quais estão próximos do prazo.`,
+                titulo: 'Demandas do Setor',
+                mensagem: `Aqui ficam as demandas do <strong>seu setor como um todo</strong>:<br><br>
+                           • <strong class="text-purple-600">Docs para Aprovar</strong> — documentos aguardando análise do setor<br>
+                           • <strong class="text-emerald-600">Respostas para Analisar</strong> — respostas de notificações recebidas<br>
+                           • <strong class="text-teal-600">Processos do Setor</strong> — todos os processos atribuídos ao setor`,
+                dica: 'Útil para coordenadores distribuírem demandas entre a equipe.',
                 posicao: 'esquerda'
             },
             {
                 elemento: '#tour-monitorando',
                 icone: '👁️',
                 titulo: 'Monitorando',
-                mensagem: `Processos que você está <strong>acompanhando</strong>.<br><br>
-                           Use o botão "Acompanhar" nos processos para adicioná-los aqui e receber notificações.`,
+                mensagem: `Processos que você escolheu <strong>acompanhar</strong>, mesmo que não sejam do seu setor.<br><br>
+                           Use o botão <strong>"Acompanhar"</strong> na página do processo para adicioná-lo aqui.`,
+                dica: 'Você recebe notificações sempre que houver movimentação nesses processos.',
                 posicao: 'esquerda'
             },
             {
                 elemento: '#tour-cadastros-pendentes',
-                icone: '🏢',
+                icone: '🏗️',
                 titulo: 'Cadastros Pendentes',
-                mensagem: `Estabelecimentos aguardando <strong>aprovação</strong> do cadastro.<br><br>
-                           Analise os dados e aprove ou solicite correções.`,
+                mensagem: `Lista de <strong>estabelecimentos</strong> que solicitaram cadastro e aguardam aprovação.<br><br>
+                           Clique em cada um para revisar os dados e aprovar ou solicitar correções.`,
                 dica: 'Verifique CNPJ, endereço e atividades antes de aprovar.',
                 posicao: 'cima'
             },
@@ -156,9 +158,9 @@ function tourGuiadoAdmin() {
                 elemento: '#tour-atalhos',
                 icone: '⚡',
                 titulo: 'Atalhos Rápidos',
-                mensagem: `Crie <strong>atalhos personalizados</strong> para as páginas que você mais acessa.<br><br>
-                           Clique no <strong>+</strong> para adicionar novos ou edite os existentes.`,
-                dica: 'Você pode salvar links de filtros específicos também!',
+                mensagem: `Crie <strong>atalhos personalizados</strong> para as páginas que você mais usa.<br><br>
+                           Clique no <strong>+</strong> para adicionar. Você pode salvar até links com filtros aplicados!`,
+                dica: 'Passe o mouse sobre um atalho para editar ou excluir.',
                 posicao: 'cima'
             },
             {
@@ -166,8 +168,9 @@ function tourGuiadoAdmin() {
                 icone: '🚀',
                 titulo: 'Tudo Pronto!',
                 mensagem: `Agora você conhece a dashboard!<br><br>
-                           Explore o menu lateral para acessar outras funcionalidades do sistema.`,
-                dica: 'Você pode rever este guia nas configurações.',
+                           Use o <strong>menu lateral</strong> para acessar as demais funcionalidades do sistema.<br>
+                           E lembre-se: o botão <strong>"Tour"</strong> no canto inferior repete este guia a qualquer momento.`,
+                dica: null,
                 posicao: 'centro'
             }
         ],

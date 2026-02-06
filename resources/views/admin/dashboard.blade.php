@@ -19,7 +19,7 @@
     }
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-4">
     {{-- Modal de Data de Nascimento (se não preenchida) --}}
     @if(!auth('interno')->user()->data_nascimento)
     <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -77,8 +77,8 @@
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Olá, {{ Str::words(auth('interno')->user()->nome, 1, '') }}!</h1>
-            <p class="text-sm text-gray-500">{{ now()->locale('pt_BR')->isoFormat('dddd, D [de] MMMM') }}</p>
+            <h1 class="text-lg font-bold text-gray-900">Olá, {{ Str::words(auth('interno')->user()->nome, 1, '') }}!</h1>
+            <p class="text-[11px] text-gray-400">{{ now()->locale('pt_BR')->isoFormat('dddd, D [de] MMMM') }}</p>
         </div>
         @if($docsAtrasados > 0)
         <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition">
@@ -113,88 +113,92 @@
     </div>
     @endif
 
-    {{-- Stats Cards - Reorganizados por contexto --}}
+    {{-- Stats Cards --}}
     <div id="tour-stats-cards" class="grid grid-cols-3 gap-3">
-        {{-- Card: Para Mim --}}
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 shadow-sm border border-blue-200">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        {{-- Para Mim --}}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xl font-bold text-blue-900">{{ $stats['para_mim_total'] ?? 0 }}</p>
-                    <p class="text-xs text-blue-600 font-medium">Para Mim</p>
-                    <div class="flex gap-2 text-xs text-blue-700 mt-0.5">
-                        <span><span class="font-medium">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</span> assinaturas</span>
-                    </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Para Mim</p>
+                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $stats['para_mim_total'] ?? 0 }}</p>
                 </div>
+            </div>
+            <div class="px-4 py-1.5 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-3 text-[11px]">
+                <span class="flex items-center gap-1 text-blue-600">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <span class="font-semibold">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS
+                </span>
+                <span class="text-gray-300">|</span>
+                <span class="flex items-center gap-1 text-amber-600">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    <span class="font-semibold">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</span> assinaturas
+                </span>
             </div>
         </div>
 
-        {{-- Card: Meu Setor --}}
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 shadow-sm border border-purple-200">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        {{-- Meu Setor --}}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xl font-bold text-purple-900">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
-                    <p class="text-xs text-purple-600 font-medium">Meu Setor</p>
-                    <div class="flex gap-2 text-xs text-purple-700 mt-0.5">
-                        <span><span class="font-medium">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</span> aprovações</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['processos_do_setor'] ?? 0 }}</span> processos</span>
-                    </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Meu Setor</p>
+                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
                 </div>
+            </div>
+            <div class="px-4 py-1.5 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-3 text-[11px]">
+                <span class="flex items-center gap-1 text-purple-600">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="font-semibold">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</span> aprovações
+                </span>
+                <span class="text-gray-300">|</span>
+                <span class="flex items-center gap-1 text-teal-600">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="font-semibold">{{ $stats['processos_do_setor'] ?? 0 }}</span> processos
+                </span>
             </div>
         </div>
 
-        {{-- Card: Cadastros Pendentes --}}
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-3 shadow-sm border border-amber-200 hover:shadow-md transition">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        {{-- Cadastros Pendentes --}}
+        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group">
+            <div class="flex items-center gap-3 px-4 py-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-600 transition">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-xl font-bold text-amber-900">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
-                    <p class="text-xs text-amber-600 font-medium">Cadastros Pendentes</p>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cadastros Pendentes</p>
+                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
                 </div>
+            </div>
+            <div class="px-4 py-1.5 bg-amber-50/80 border-t border-amber-100/60 flex items-center gap-1 text-[11px] text-amber-600">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Aguardando aprovação
+                <svg class="w-3 h-3 ml-auto text-gray-300 group-hover:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </div>
         </a>
     </div>
 
     {{-- Layout Principal --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {{-- Coluna 1: PARA MIM - Apenas ações pessoais do usuário --}}
-        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-blue-200" x-data="tarefasPaginadas()">
-            <div class="px-4 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl flex items-center justify-between">
+        {{-- Coluna 1: PARA MIM --}}
+        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-gray-200" x-data="tarefasPaginadas()">
+            <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-blue-900">Para Mim</h3>
-                        <p class="text-[10px] text-blue-600">Ações que só eu posso realizar</p>
-                    </div>
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Para Mim</h3>
+                    <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length || '0'"></span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
-                    <span class="text-xs px-2 py-1 bg-blue-500 text-white rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length || '0'"></span>
-                </div>
+                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-gray-400 hover:text-blue-600 transition">ver todos</a>
             </div>
-            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
+            <div class="divide-y divide-gray-50 min-h-[120px] max-h-[350px] overflow-y-auto">
                 <template x-if="loading">
-                    <div class="p-8 text-center">
-                        <svg class="animate-spin h-6 w-6 text-blue-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        <p class="text-xs text-gray-400 mt-2">Carregando...</p>
+                    <div class="p-6 text-center">
+                        <svg class="animate-spin h-5 w-5 text-blue-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                     </div>
                 </template>
                 <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length > 0">
@@ -202,48 +206,46 @@
                         {{-- Ordens de Serviço --}}
                         <template x-if="tarefas.filter(t => t.tipo === 'os').length > 0">
                             <div>
-                                <div class="px-4 py-2 bg-blue-50/50 border-b border-blue-100/50">
-                                    <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1.5">
+                                <div class="px-3 py-1.5 bg-blue-50/60 border-b border-blue-100/60">
+                                    <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                        Minhas Ordens de Serviço
-                                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700" x-text="tarefas.filter(t => t.tipo === 'os').length"></span>
+                                        Ordens de Serviço
                                     </span>
                                 </div>
                                 <template x-for="t in tarefas.filter(t => t.tipo === 'os')" :key="'os-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50/50 transition" :class="t.atrasado ? 'bg-red-50/30' : ''">
+                                        <div class="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                            <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
+                                            <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
+                                            <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                         </div>
-                                        <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                     </a>
                                 </template>
                             </div>
                         </template>
 
-                        {{-- Assinaturas Pendentes --}}
+                        {{-- Assinaturas --}}
                         <template x-if="tarefas.filter(t => t.tipo === 'assinatura').length > 0">
                             <div>
-                                <div class="px-4 py-2 bg-amber-50/50 border-b border-amber-100/50">
-                                    <span class="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
+                                <div class="px-3 py-1.5 bg-amber-50/60 border-b border-amber-100/60">
+                                    <span class="text-[11px] font-semibold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                        Minhas Assinaturas Pendentes
-                                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700" x-text="tarefas.filter(t => t.tipo === 'assinatura').length"></span>
+                                        Assinaturas Pendentes
                                     </span>
                                 </div>
                                 <template x-for="t in tarefas.filter(t => t.tipo === 'assinatura')" :key="'ass-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-amber-50 transition relative">
-                                        <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-amber-50/50 transition">
+                                        <div class="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                            <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
+                                            <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
+                                            <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                         </div>
-                                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">Assinar</span>
+                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Assinar</span>
                                     </a>
                                 </template>
                             </div>
@@ -251,150 +253,121 @@
                     </div>
                 </template>
                 <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length === 0">
-                    <div class="p-8 text-center">
-                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                        <p class="text-sm font-medium text-gray-600">Tudo em dia!</p>
-                        <p class="text-xs text-gray-400 mt-1">Nenhuma ação pessoal pendente</p>
+                    <div class="p-6 text-center">
+                        <svg class="w-8 h-8 text-green-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <p class="text-xs text-gray-400">Tudo em dia!</p>
                     </div>
                 </template>
             </div>
 
-            {{-- Processos atribuídos DIRETAMENTE a mim --}}
-            <div class="border-t border-blue-100" x-data="processosAtribuidos()">
-                <div class="px-4 py-2 bg-blue-50/30 border-b border-blue-100/50">
-                    <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1.5">
+            {{-- Processos atribuídos a mim --}}
+            <div class="border-t border-gray-100" x-data="processosAtribuidos()">
+                <div class="px-3 py-1.5 bg-indigo-50/60 border-b border-indigo-100/60">
+                    <span class="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Processos Atribuídos a Mim
-                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700" x-text="processos.filter(p => p.is_meu_direto).length"></span>
+                        Meus Processos
+                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold" x-text="processos.filter(p => p.is_meu_direto).length"></span>
                     </span>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100">
+                <div class="divide-y divide-gray-50 max-h-[160px] overflow-y-auto">
                     <template x-if="loading">
-                        <div class="p-4 text-center">
-                            <svg class="animate-spin h-5 w-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
+                        <div class="p-3 text-center"><svg class="animate-spin h-4 w-4 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                     </template>
                     <template x-if="!loading && processos.filter(p => p.is_meu_direto).length > 0">
                         <div>
                             <template x-for="p in processos.filter(p => p.is_meu_direto)" :key="'meu-proc-' + p.id">
-                                <a :href="p.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition">
-                                    <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <a :href="p.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50/50 transition">
+                                    <div class="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                                        <p class="text-[13px] font-medium text-gray-800 flex items-center gap-1">
                                             <span x-text="p.numero_processo"></span>
                                             <template x-if="p.docs_total > 0">
-                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="p.docs_enviados >= p.docs_total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'" x-text="p.docs_enviados + '/' + p.docs_total + ' docs'"></span>
+                                                <span class="text-[9px] px-1 py-0.5 rounded" :class="p.docs_enviados >= p.docs_total ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'" x-text="p.docs_enviados + '/' + p.docs_total"></span>
                                             </template>
                                         </p>
-                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
+                                        <p class="text-[11px] text-gray-400 truncate" x-text="p.estabelecimento"></p>
                                     </div>
-                                    <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
+                                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                                 </a>
                             </template>
                         </div>
                     </template>
                     <template x-if="!loading && processos.filter(p => p.is_meu_direto).length === 0">
-                        <div class="p-4 text-center text-xs text-gray-400">Nenhum processo atribuído diretamente a mim</div>
+                        <div class="p-3 text-center text-[11px] text-gray-300">Nenhum processo atribuído</div>
                     </template>
                 </div>
             </div>
         </div>
 
-        {{-- Coluna 2: DEMANDAS DO SETOR - Documentos e processos do setor --}}
-        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-purple-200">
-            <div class="px-4 py-3 border-b border-purple-100 bg-purple-50 rounded-t-xl flex items-center justify-between">
+        {{-- Coluna 2: DEMANDAS DO SETOR --}}
+        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-purple-900">Demandas do Setor</h3>
-                        <p class="text-[10px] text-purple-600">Qualquer técnico do setor pode resolver</p>
-                    </div>
+                    <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <h3 class="text-sm font-semibold text-gray-800">Demandas do Setor</h3>
                 </div>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-purple-600 hover:text-purple-700 font-medium">ver todos</a>
-                </div>
+                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-gray-400 hover:text-purple-600 transition">ver todos</a>
             </div>
             
-            {{-- Documentos aguardando análise do setor --}}
+            {{-- Documentos do setor --}}
             <div x-data="tarefasPaginadas()">
-                <div class="divide-y divide-gray-50 max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-gray-100">
+                <div class="divide-y divide-gray-50 max-h-[250px] overflow-y-auto">
                     <template x-if="loading">
-                        <div class="p-6 text-center">
-                            <svg class="animate-spin h-5 w-5 text-purple-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
+                        <div class="p-6 text-center"><svg class="animate-spin h-5 w-5 text-purple-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                     </template>
                     <template x-if="!loading && tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length > 0">
                         <div>
-                            {{-- Doc Aprovações --}}
                             <template x-if="tarefas.filter(t => t.tipo === 'aprovacao').length > 0">
                                 <div>
-                                    <div class="px-4 py-2 bg-purple-50/50 border-b border-purple-100/50">
-                                        <span class="text-xs font-semibold text-purple-700 uppercase tracking-wide flex items-center gap-1.5">
+                                    <div class="px-3 py-1.5 bg-purple-50/60 border-b border-purple-100/60">
+                                        <span class="text-[11px] font-semibold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            Documentos para Aprovar
-                                            <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700" x-text="tarefas.filter(t => t.tipo === 'aprovacao').length"></span>
+                                            Docs para Aprovar
                                         </span>
                                     </div>
                                     <template x-for="t in tarefas.filter(t => t.tipo === 'aprovacao')" :key="'aprov-' + (t.id || t.processo_id)">
-                                        <a :href="t.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-purple-100'">
-                                                <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50/50 transition" :class="t.atrasado ? 'bg-red-50/30' : ''">
+                                            <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-purple-100'">
+                                                <svg class="w-3 h-3" :class="t.atrasado ? 'text-red-500' : 'text-purple-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex items-center gap-1 mb-0.5">
                                                     <template x-if="t.tipo_processo">
-                                                        <span class="text-[10px] px-1.5 py-0.5 rounded inline-block"
-                                                              :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
-                                                              x-text="t.tipo_processo"></span>
+                                                        <span class="text-[9px] px-1 py-0.5 rounded" :class="t.is_licenciamento ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-500'" x-text="t.tipo_processo"></span>
                                                     </template>
                                                     <template x-if="t.total && t.total > 1">
-                                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
-                                                              x-text="'+' + (t.total - 1) + ' pendente' + (t.total > 2 ? 's' : '')"></span>
+                                                        <span class="text-[9px] px-1 py-0.5 rounded bg-purple-50 text-purple-600" x-text="'+' + (t.total - 1)"></span>
                                                     </template>
                                                 </div>
-                                                <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                                <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
+                                                <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
+                                                <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                             </div>
-                                            <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                         </a>
                                     </template>
                                 </div>
                             </template>
 
-                            {{-- Respostas --}}
                             <template x-if="tarefas.filter(t => t.tipo === 'resposta').length > 0">
                                 <div>
-                                    <div class="px-4 py-2 bg-green-50/50 border-b border-green-100/50">
-                                        <span class="text-xs font-semibold text-green-700 uppercase tracking-wide flex items-center gap-1.5">
+                                    <div class="px-3 py-1.5 bg-emerald-50/60 border-b border-emerald-100/60">
+                                        <span class="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                             Respostas para Analisar
-                                            <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700" x-text="tarefas.filter(t => t.tipo === 'resposta').length"></span>
                                         </span>
                                     </div>
                                     <template x-for="t in tarefas.filter(t => t.tipo === 'resposta')" :key="'resp-' + (t.id || t.processo_id)">
-                                        <a :href="t.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-green-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-green-100'">
-                                                <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                        <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-green-50/50 transition" :class="t.atrasado ? 'bg-red-50/30' : ''">
+                                            <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-green-100'">
+                                                <svg class="w-3 h-3" :class="t.atrasado ? 'text-red-500' : 'text-green-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                                <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
+                                                <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
+                                                <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                             </div>
-                                            <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                         </a>
                                     </template>
                                 </div>
@@ -402,122 +375,103 @@
                         </div>
                     </template>
                     <template x-if="!loading && tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length === 0">
-                        <div class="p-6 text-center text-xs text-gray-400">Nenhum documento pendente no setor</div>
+                        <div class="p-5 text-center text-[11px] text-gray-300">Nenhum documento pendente no setor</div>
                     </template>
                 </div>
             </div>
 
-            {{-- Processos do Setor (não atribuídos diretamente a mim) --}}
-            <div class="border-t border-purple-100" x-data="processosAtribuidos()">
-                <div class="px-4 py-2 bg-teal-50/50 border-b border-teal-100/50">
-                    <span class="text-xs font-semibold text-teal-700 uppercase tracking-wide flex items-center gap-1.5">
+            {{-- Processos do Setor --}}
+            <div class="border-t border-gray-100" x-data="processosAtribuidos()">
+                <div class="px-3 py-1.5 bg-teal-50/60 border-b border-teal-100/60">
+                    <span class="text-[11px] font-semibold text-teal-600 uppercase tracking-wider flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                        Processos no Meu Setor
-                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700" x-text="processos.filter(p => p.is_do_setor).length"></span>
+                        Processos do Setor
+                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-bold" x-text="processos.filter(p => p.is_do_setor).length"></span>
                     </span>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-teal-500 scrollbar-track-gray-100">
+                <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto">
                     <template x-if="loading">
-                        <div class="p-4 text-center">
-                            <svg class="animate-spin h-5 w-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
+                        <div class="p-3 text-center"><svg class="animate-spin h-4 w-4 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                     </template>
                     <template x-if="!loading && processos.filter(p => p.is_do_setor).length > 0">
                         <div>
                             <template x-for="p in processos.filter(p => p.is_do_setor)" :key="'setor-proc-' + p.id">
-                                <a :href="p.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 transition">
-                                    <div class="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <a :href="p.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50/50 transition">
+                                    <div class="w-6 h-6 rounded-md bg-teal-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                                        <p class="text-[13px] font-medium text-gray-800 flex items-center gap-1">
                                             <span x-text="p.numero_processo"></span>
                                             <template x-if="p.docs_pendentes > 0">
-                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700" x-text="p.docs_pendentes + ' pend.'"></span>
+                                                <span class="text-[9px] px-1 py-0.5 rounded bg-yellow-50 text-yellow-600" x-text="p.docs_pendentes + ' pend.'"></span>
                                             </template>
                                             <template x-if="p.prazo">
-                                                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                                                      :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span class="text-[9px] px-1 py-0.5 rounded flex items-center gap-0.5"
+                                                      :class="p.prazo.vencido ? 'bg-red-50 text-red-600' : (p.prazo.proximo ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600')">
+                                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                     <span x-text="p.prazo.data"></span>
                                                 </span>
                                             </template>
                                         </p>
-                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
+                                        <p class="text-[11px] text-gray-400 truncate" x-text="p.estabelecimento"></p>
                                     </div>
-                                    <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
+                                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                                 </a>
                             </template>
                         </div>
                     </template>
                     <template x-if="!loading && processos.filter(p => p.is_do_setor).length === 0">
-                        <div class="p-4 text-center text-xs text-gray-400">Nenhum processo pendente no setor</div>
+                        <div class="p-3 text-center text-[11px] text-gray-300">Nenhum processo no setor</div>
                     </template>
                 </div>
                 <template x-if="lastPage > 1">
-                    <div class="px-4 py-2 border-t border-gray-100 flex items-center justify-between">
-                        <span class="text-xs text-gray-400">Pg <span x-text="currentPage"></span>/<span x-text="lastPage"></span></span>
+                    <div class="px-3 py-1.5 border-t border-gray-100 flex items-center justify-between">
+                        <span class="text-[10px] text-gray-400">Pg <span x-text="currentPage"></span>/<span x-text="lastPage"></span></span>
                         <div class="flex gap-1">
-                            <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
-                            <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                            <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+                            <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
                         </div>
                     </div>
                 </template>
             </div>
         </div>
 
-        {{-- Coluna 3: ACOMPANHAMENTO - Monitorando + Cadastros Pendentes + Atalhos --}}
-        <div class="space-y-6">
+        {{-- Coluna 3: ACOMPANHAMENTO --}}
+        <div class="space-y-4">
             {{-- Monitorando --}}
-            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-indigo-200">
-                <div class="px-4 py-3 border-b border-indigo-100 bg-indigo-50 rounded-t-xl flex items-center justify-between">
+            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-indigo-900">Monitorando</h3>
-                            <p class="text-[10px] text-indigo-600">Processos que estou acompanhando</p>
-                        </div>
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <h3 class="text-sm font-semibold text-gray-800">Monitorando</h3>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-bold">{{ count($processos_acompanhados ?? []) }}</span>
                     </div>
-                    <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
-                        ver todos
-                        <span class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full font-medium">{{ count($processos_acompanhados ?? []) }}</span>
-                    </a>
+                    <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-[11px] text-gray-400 hover:text-indigo-600 transition">ver todos</a>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
+                <div class="divide-y divide-gray-50 max-h-[160px] overflow-y-auto">
                     @forelse(($processos_acompanhados ?? collect())->take(5) as $proc)
-                    <a href="{{ route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    <a href="{{ route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]) }}" class="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition">
+                        <div class="w-6 h-6 rounded-md bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <p class="text-[13px] font-medium text-gray-800 flex items-center gap-1">
                                 {{ $proc->numero_processo }}
                                 @if($proc->tipoProcesso)
-                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{{ $proc->tipoProcesso->nome }}</span>
+                                <span class="text-[9px] px-1 py-0.5 rounded bg-gray-50 text-gray-400">{{ $proc->tipoProcesso->nome }}</span>
                                 @endif
                             </p>
-                            <p class="text-xs text-gray-500 truncate">{{ $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? '-' }}</p>
+                            <p class="text-[11px] text-gray-400 truncate">{{ $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? '-' }}</p>
                         </div>
-                        <span class="text-xs font-medium px-2 py-1 rounded-full {{ $proc->status === 'aberto' ? 'bg-blue-100 text-blue-700' : ($proc->status === 'arquivado' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700') }}">
+                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full {{ $proc->status === 'aberto' ? 'bg-blue-100 text-blue-600' : ($proc->status === 'arquivado' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-600') }}">
                             {{ ucfirst($proc->status) }}
                         </span>
                     </a>
                     @empty
-                    <div class="p-6 text-center">
-                        <svg class="w-10 h-10 text-gray-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        <p class="text-sm text-gray-400">Nenhum processo monitorado</p>
-                        <p class="text-xs text-gray-300 mt-1">Clique em "Acompanhar" nos processos que deseja monitorar</p>
+                    <div class="p-5 text-center">
+                        <svg class="w-7 h-7 text-gray-200 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <p class="text-[11px] text-gray-300">Nenhum processo monitorado</p>
                     </div>
                     @endforelse
                 </div>
@@ -525,31 +479,24 @@
 
             {{-- Cadastros Pendentes --}}
             @if(count($estabelecimentos_pendentes ?? []) > 0)
-            <div id="tour-cadastros-pendentes" class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div id="tour-cadastros-pendentes" class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        <div>
-                            <h3 class="font-semibold text-gray-900">Cadastros Pendentes</h3>
-                            <p class="text-xs text-gray-400">Aguardando aprovação</p>
-                        </div>
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <h3 class="text-sm font-semibold text-gray-800">Cadastros Pendentes</h3>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold">{{ count($estabelecimentos_pendentes) }}</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
-                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">{{ count($estabelecimentos_pendentes) }}</span>
-                    </div>
+                    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="text-[11px] text-gray-400 hover:text-amber-600 transition">ver todos</a>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[140px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
+                <div class="divide-y divide-gray-50 max-h-[120px] overflow-y-auto">
                     @foreach(($estabelecimentos_pendentes ?? collect())->take(3) as $est)
-                    <a href="{{ route('admin.estabelecimentos.show', $est) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
-                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    <a href="{{ route('admin.estabelecimentos.show', $est) }}" class="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition">
+                        <div class="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">{{ $est->nome_fantasia ?? $est->razao_social }}</p>
-                            <p class="text-xs text-gray-500">{{ $est->cidade ?? '-' }}</p>
+                            <p class="text-[13px] font-medium text-gray-800 truncate">{{ $est->nome_fantasia ?? $est->razao_social }}</p>
+                            <p class="text-[11px] text-gray-400">{{ $est->cidade ?? '-' }}</p>
                         </div>
                     </a>
                     @endforeach
@@ -558,49 +505,44 @@
             @endif
 
             {{-- Atalhos Rápidos --}}
-            <div id="tour-atalhos" class="bg-blue-600 rounded-xl shadow-sm" x-data="atalhosRapidos()">
-                <div class="px-3 py-2 border-b border-white/20 flex items-center justify-between">
-                    <h3 class="font-semibold text-white text-sm">Atalhos</h3>
-                    <button @click="abrirModal()" class="text-white/70 hover:text-white transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            <div id="tour-atalhos" class="bg-gray-800 rounded-xl shadow-sm" x-data="atalhosRapidos()">
+                <div class="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        <h3 class="text-xs font-semibold text-gray-300">Atalhos</h3>
+                    </div>
+                    <button @click="abrirModal()" class="text-gray-500 hover:text-gray-300 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     </button>
                 </div>
-                <div class="divide-y divide-white/10 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-white/10 hover:scrollbar-thumb-white/50">
+                <div class="divide-y divide-gray-700/50 max-h-40 overflow-y-auto">
                     @forelse($atalhos_rapidos ?? [] as $atalho)
                     <div class="group relative">
-                        <a href="{{ $atalho->url }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
-                            <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                            </div>
-                            <span class="text-xs text-white font-medium truncate">{{ $atalho->titulo }}</span>
+                        <a href="{{ $atalho->url }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-700/50 transition">
+                            <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <span class="text-[11px] text-gray-300 truncate">{{ $atalho->titulo }}</span>
                         </a>
-                        <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-1">
-                            <button @click.prevent="editarAtalho({{ $atalho->id }}, '{{ addslashes($atalho->titulo) }}', '{{ addslashes($atalho->url) }}', '{{ $atalho->icone }}')" class="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-0.5">
+                            <button @click.prevent="editarAtalho({{ $atalho->id }}, '{{ addslashes($atalho->titulo) }}', '{{ addslashes($atalho->url) }}', '{{ $atalho->icone }}')" class="p-1 rounded text-gray-500 hover:text-gray-300 transition">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                             </button>
-                            <button @click.prevent="excluirAtalho({{ $atalho->id }})" class="p-1 rounded-lg text-white/70 hover:text-red-300 hover:bg-white/20 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <button @click.prevent="excluirAtalho({{ $atalho->id }})" class="p-1 rounded text-gray-500 hover:text-red-400 transition">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
                     </div>
                     @empty
-                    <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
-                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <span class="text-xs text-white font-medium truncate">Documentos Pendentes</span>
+                    <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-700/50 transition">
+                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-[11px] text-gray-300">Documentos Pendentes</span>
                     </a>
-                    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
-                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                        </div>
-                        <span class="text-xs text-white font-medium truncate">Estabelecimentos Pendentes</span>
+                    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-700/50 transition">
+                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <span class="text-[11px] text-gray-300">Estab. Pendentes</span>
                     </a>
-                    <a href="{{ route('admin.ordens-servico.index') }}" class="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition">
-                        <div class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        </div>
-                        <span class="text-xs text-white font-medium truncate">Ordens de Serviço</span>
+                    <a href="{{ route('admin.ordens-servico.index') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-700/50 transition">
+                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <span class="text-[11px] text-gray-300">Ordens de Serviço</span>
                     </a>
                     @endforelse
                 </div>
@@ -753,9 +695,9 @@ function atalhosRapidos() {
 
 {{-- Botão para rever o tour (ao lado do chat) --}}
 <button onclick="localStorage.removeItem('infovisa_tour_admin_visto'); location.reload();" 
-        class="fixed bottom-4 right-20 z-40 flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg hover:bg-indigo-700 transition-all"
+        class="fixed bottom-4 right-20 z-40 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-700 text-white text-[10px] font-medium rounded-lg shadow hover:bg-gray-600 transition-all opacity-60 hover:opacity-100"
         title="Ver Tour Novamente">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
     Tour

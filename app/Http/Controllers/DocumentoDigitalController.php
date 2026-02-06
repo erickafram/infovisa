@@ -362,16 +362,22 @@ class DocumentoDigitalController extends Controller
         $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas', 'versoes.usuarioInterno'])
             ->findOrFail($id);
 
-        // Apenas rascunhos podem ser editados
-        if ($documento->status !== 'rascunho') {
-            \Log::warning('Tentativa de editar documento não-rascunho', [
+        // Permite editar se for rascunho OU se estiver aguardando assinatura mas ninguém assinou ainda
+        if (!$documento->podeEditar()) {
+            \Log::warning('Tentativa de editar documento que já possui assinaturas', [
                 'documento_id' => $id,
                 'status' => $documento->status
             ]);
             
             // Redirect específico ao invés de back() para evitar loops
             return redirect()->route('admin.documentos.show', $documento->id)
-                ->with('error', 'Apenas documentos em rascunho podem ser editados.');
+                ->with('error', 'Este documento já possui assinaturas e não pode mais ser editado.');
+        }
+
+        // Se o documento estava finalizado (aguardando_assinatura) e ninguém assinou,
+        // reverte para rascunho para permitir a edição
+        if ($documento->status === 'aguardando_assinatura') {
+            $documento->update(['status' => 'rascunho']);
         }
 
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
@@ -398,9 +404,9 @@ class DocumentoDigitalController extends Controller
     {
         $documento = DocumentoDigital::findOrFail($id);
 
-        // Apenas rascunhos podem ser editados
-        if ($documento->status !== 'rascunho') {
-            return back()->with('error', 'Apenas documentos em rascunho podem ser editados.');
+        // Permite editar se for rascunho OU se estiver aguardando assinatura mas ninguém assinou ainda
+        if (!$documento->podeEditar()) {
+            return back()->with('error', 'Este documento já possui assinaturas e não pode mais ser editado.');
         }
 
         $request->validate([
@@ -642,9 +648,9 @@ class DocumentoDigitalController extends Controller
         try {
             $documento = DocumentoDigital::findOrFail($documentoId);
             
-            // Apenas rascunhos podem ter versões restauradas
-            if ($documento->status !== 'rascunho') {
-                return back()->with('error', 'Apenas documentos em rascunho podem ter versões restauradas.');
+            // Permite restaurar versão se for rascunho OU aguardando assinatura sem assinaturas realizadas
+            if (!$documento->podeEditar()) {
+                return back()->with('error', 'Este documento já possui assinaturas e não pode ter versões restauradas.');
             }
             
             $versao = \App\Models\DocumentoDigitalVersao::where('documento_digital_id', $documentoId)
@@ -1017,11 +1023,11 @@ class DocumentoDigitalController extends Controller
             $documento = DocumentoDigital::findOrFail($id);
             $usuario = auth('interno')->user();
             
-            // Só permite salvar se for rascunho
-            if ($documento->status !== 'rascunho') {
+            // Permite salvar se for rascunho OU aguardando assinatura sem assinaturas realizadas
+            if (!$documento->podeEditar()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Apenas rascunhos podem ser editados.'
+                    'message' => 'Este documento já possui assinaturas e não pode mais ser editado.'
                 ], 400);
             }
             
