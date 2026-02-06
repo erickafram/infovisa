@@ -654,7 +654,7 @@ class ProcessoController extends Controller
      */
     public function show($estabelecimentoId, $processoId)
     {
-        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $estabelecimento = Estabelecimento::with(['responsaveisLegais', 'responsaveisTecnicos'])->findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
         
         $processo = Processo::with([

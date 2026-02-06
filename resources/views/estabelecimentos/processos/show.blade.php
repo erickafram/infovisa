@@ -1918,9 +1918,10 @@
              style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
             
             {{-- Modal Content - Tela Toda --}}
-            <div class="bg-white h-full flex flex-col" @click.stop>
+            <div class="bg-white h-full flex flex-col" @click.stop
+                 x-data="{ mostrarAtividades: false, mostrarResponsaveis: false }">
                     {{-- Header Compacto --}}
-                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50 relative">
                         <div class="flex items-center gap-3 min-w-0 flex-1">
                             <svg class="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -1938,7 +1939,128 @@
                                     <span>{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}: {{ $estabelecimento->documento_formatado }}</span>
                                     <span class="text-gray-300">|</span>
                                     <span class="truncate max-w-[400px]">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }} - {{ $estabelecimento->bairro }}, {{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
+                                    <span class="text-gray-300">|</span>
+                                    {{-- Botão Ver Atividades --}}
+                                    <button @click.stop="mostrarAtividades = !mostrarAtividades; mostrarResponsaveis = false" 
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors"
+                                            :class="mostrarAtividades ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-600'">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                        </svg>
+                                        Atividades ({{ count($estabelecimento->atividades_exercidas ?? []) }})
+                                    </button>
+                                    {{-- Botão Ver Responsáveis --}}
+                                    <button @click.stop="mostrarResponsaveis = !mostrarResponsaveis; mostrarAtividades = false" 
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors"
+                                            :class="mostrarResponsaveis ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600'">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        Responsáveis
+                                    </button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {{-- Dropdown Atividades --}}
+                        <div x-show="mostrarAtividades" x-transition.origin.top.left
+                             @click.outside="mostrarAtividades = false"
+                             class="absolute top-full left-4 mt-1 w-[500px] max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
+                            <div class="sticky top-0 bg-purple-50 px-4 py-2 border-b border-purple-100 flex items-center justify-between">
+                                <h4 class="text-xs font-bold text-purple-800 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                    </svg>
+                                    Atividades Econômicas Exercidas
+                                </h4>
+                                <span class="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold">{{ count($estabelecimento->atividades_exercidas ?? []) }}</span>
+                            </div>
+                            <div class="p-3 space-y-1.5">
+                                @if($estabelecimento->atividades_exercidas && count($estabelecimento->atividades_exercidas) > 0)
+                                    @foreach($estabelecimento->atividades_exercidas as $atividade)
+                                    <div class="flex items-start gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
+                                        @if(isset($atividade['principal']) && $atividade['principal'])
+                                        <span class="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold bg-blue-500 text-white rounded">Principal</span>
+                                        @else
+                                        <span class="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold bg-gray-300 text-gray-700 rounded">Sec.</span>
+                                        @endif
+                                        <div class="min-w-0 flex-1">
+                                            <span class="text-[11px] font-bold text-gray-800">{{ $atividade['codigo'] ?? 'N/A' }}</span>
+                                            <span class="text-[11px] text-gray-600 ml-1">{{ $atividade['descricao'] ?? 'Sem descrição' }}</span>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                @else
+                                    <p class="text-xs text-gray-500 text-center py-4">Nenhuma atividade cadastrada</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Dropdown Responsáveis --}}
+                        <div x-show="mostrarResponsaveis" x-transition.origin.top.left
+                             @click.outside="mostrarResponsaveis = false"
+                             class="absolute top-full left-4 mt-1 w-[500px] max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
+                            {{-- Responsáveis Legais --}}
+                            <div class="sticky top-0 bg-blue-50 px-4 py-2 border-b border-blue-100">
+                                <h4 class="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    Responsáveis Legais
+                                </h4>
+                            </div>
+                            <div class="p-3 space-y-2">
+                                @if($estabelecimento->responsaveisLegais && $estabelecimento->responsaveisLegais->count() > 0)
+                                    @foreach($estabelecimento->responsaveisLegais as $resp)
+                                    <div class="p-2.5 rounded-lg bg-blue-50/50 border border-blue-100">
+                                        <p class="text-xs font-bold text-gray-900">{{ $resp->nome }}</p>
+                                        <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-600">
+                                            <span>CPF: {{ $resp->cpf_formatado }}</span>
+                                            @if($resp->email)
+                                            <span>{{ $resp->email }}</span>
+                                            @endif
+                                            @if($resp->telefone)
+                                            <span>{{ $resp->telefone_formatado }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                @else
+                                    <p class="text-xs text-gray-500 text-center py-2">Nenhum responsável legal cadastrado</p>
+                                @endif
+                            </div>
+
+                            {{-- Responsáveis Técnicos --}}
+                            <div class="sticky top-0 bg-green-50 px-4 py-2 border-b border-green-100 border-t">
+                                <h4 class="text-xs font-bold text-green-800 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    Responsáveis Técnicos
+                                </h4>
+                            </div>
+                            <div class="p-3 space-y-2">
+                                @if($estabelecimento->responsaveisTecnicos && $estabelecimento->responsaveisTecnicos->count() > 0)
+                                    @foreach($estabelecimento->responsaveisTecnicos as $resp)
+                                    <div class="p-2.5 rounded-lg bg-green-50/50 border border-green-100">
+                                        <p class="text-xs font-bold text-gray-900">{{ $resp->nome }}</p>
+                                        <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-600 flex-wrap">
+                                            <span>CPF: {{ $resp->cpf_formatado }}</span>
+                                            @if($resp->conselho)
+                                            <span class="font-medium text-green-700">{{ $resp->conselho }} {{ $resp->numero_registro_conselho }}</span>
+                                            @endif
+                                            @if($resp->email)
+                                            <span>{{ $resp->email }}</span>
+                                            @endif
+                                            @if($resp->telefone)
+                                            <span>{{ $resp->telefone_formatado }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                @else
+                                    <p class="text-xs text-gray-500 text-center py-2">Nenhum responsável técnico cadastrado</p>
+                                @endif
                             </div>
                         </div>
                         
