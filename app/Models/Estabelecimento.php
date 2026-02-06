@@ -731,7 +731,6 @@ class Estabelecimento extends Model
     {
         // PRIORIDADE 1: Se há competência manual definida, usa ela (override administrativo/judicial)
         if ($this->competencia_manual) {
-            \Log::info('Competência manual definida: ' . $this->competencia_manual);
             return $this->competencia_manual === 'estadual';
         }
         
@@ -745,13 +744,6 @@ class Estabelecimento extends Model
             $municipio = preg_replace('/\s*[-\/]\s*TO\s*$/i', '', $municipio);
             $municipio = trim($municipio);
         }
-        
-        \Log::info('isCompetenciaEstadual - Verificando atividades:', [
-            'atividades' => $atividades,
-            'municipio' => $municipio,
-            'respostas_questionario' => $this->respostas_questionario,
-            'respostas_questionario2' => $this->respostas_questionario2
-        ]);
         
         // Se pelo menos uma atividade for estadual (considerando exceções e questionários), o estabelecimento é estadual
         foreach ($atividades as $cnae) {
@@ -777,27 +769,15 @@ class Estabelecimento extends Model
                     $resposta2 = $this->respostas_questionario2[(int)$cnaeString];
                 }
             }
-            
-            \Log::info('Verificando CNAE:', [
-                'cnae' => $cnaeString,
-                'resposta1_encontrada' => $resposta1,
-                'resposta2_encontrada' => $resposta2
-            ]);
 
             // Usa o método avançado que considera ambas as respostas
             $resultado = Pactuacao::verificarCompetenciaAvancada($cnaeString, $municipio, $resposta1, $resposta2);
-            
-            \Log::info('Resultado para CNAE ' . $cnaeString . ':', [
-                'competencia' => $resultado['competencia'],
-                'risco' => $resultado['risco']
-            ]);
             
             if ($resultado['competencia'] === 'estadual') {
                 return true;
             }
         }
         
-        \Log::info('Nenhuma atividade estadual encontrada, estabelecimento é municipal');
         return false;
     }
     
