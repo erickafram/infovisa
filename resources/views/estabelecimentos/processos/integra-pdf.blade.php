@@ -231,7 +231,86 @@
         </div>
     </div>
 
-    {{-- Nota: Os PDFs dos documentos digitais e arquivos anexados serão mesclados automaticamente após esta página --}}
+    {{-- Documentos Digitais --}}
+    @if($documentosDigitais->count() > 0)
+    <div class="section">
+        <div class="section-title">📄 DOCUMENTOS DIGITAIS ({{ $documentosDigitais->count() }})</div>
+        @foreach($documentosDigitais as $index => $doc)
+        <div class="document-item">
+            <div class="document-header">{{ $index + 1 }}. {{ $doc->nome ?? ($doc->tipoDocumento->nome ?? 'Documento Digital') }}</div>
+            <div class="document-meta">
+                Nº: {{ $doc->numero_documento ?? 'N/A' }} | 
+                Status: {{ ucfirst($doc->status) }} | 
+                Data: {{ $doc->created_at->format('d/m/Y H:i') }}
+                @if($doc->usuarioCriador)
+                | Criado por: {{ $doc->usuarioCriador->nome }}
+                @endif
+            </div>
+            @if($doc->assinaturas->count() > 0)
+            <div class="signatures">
+                <div class="signatures-title">Assinaturas:</div>
+                @foreach($doc->assinaturas as $assinatura)
+                <div class="signature-item">
+                    ✓ {{ $assinatura->usuario->nome ?? 'Usuário' }} - {{ $assinatura->assinado_em ? $assinatura->assinado_em->format('d/m/Y H:i') : 'Pendente' }}
+                </div>
+                @endforeach
+            </div>
+            @endif
+            @if($doc->respostas->count() > 0)
+            <div class="document-meta" style="margin-top: 5px;">
+                <strong>Respostas ({{ $doc->respostas->count() }}):</strong>
+                @foreach($doc->respostas as $resposta)
+                <div style="padding-left: 10px;">
+                    📎 {{ $resposta->nome_original }} - {{ ucfirst($resposta->status) }} - {{ $resposta->created_at->format('d/m/Y H:i') }}
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- Arquivos Anexados --}}
+    @if($processo->documentos->count() > 0)
+    <div class="section">
+        <div class="section-title">📎 ARQUIVOS ANEXADOS ({{ $processo->documentos->count() }})</div>
+        @foreach($processo->documentos as $index => $documento)
+        <div class="document-item">
+            <div class="document-header">{{ $index + 1 }}. {{ $documento->nome_original }}</div>
+            <div class="document-meta">
+                Tipo: {{ $documento->tipo_usuario === 'interno' ? 'Interno' : 'Externo' }} | 
+                Extensão: {{ strtoupper($documento->extensao) }} | 
+                Tamanho: {{ $documento->tamanho_formatado }} |
+                Data: {{ $documento->created_at->format('d/m/Y H:i') }}
+                @if($documento->status_aprovacao)
+                | Status: {{ ucfirst($documento->status_aprovacao) }}
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- Ordens de Serviço --}}
+    @if(isset($ordensServico) && $ordensServico->count() > 0)
+    <div class="section">
+        <div class="section-title">📋 ORDENS DE SERVIÇO ({{ $ordensServico->count() }})</div>
+        @foreach($ordensServico as $index => $os)
+        <div class="document-item">
+            <div class="document-header">{{ $index + 1 }}. OS #{{ str_pad($os->numero, 5, '0', STR_PAD_LEFT) }}</div>
+            <div class="document-meta">
+                Status: {{ ucfirst(str_replace('_', ' ', $os->status)) }} | 
+                Data: {{ $os->data_abertura ? $os->data_abertura->format('d/m/Y') : $os->created_at->format('d/m/Y') }}
+                @if($os->data_inicio) | Início: {{ $os->data_inicio->format('d/m/Y') }} @endif
+                @if($os->data_fim) | Fim: {{ $os->data_fim->format('d/m/Y') }} @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- Nota: Os PDFs serão mesclados automaticamente após esta página --}}
 
     {{-- Rodapé --}}
     <div class="footer">

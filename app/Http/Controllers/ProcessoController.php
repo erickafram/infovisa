@@ -819,16 +819,30 @@ class ProcessoController extends Controller
             'estabelecimento.municipio', 
             'tipoProcesso',
             'documentos' => function($query) {
-                $query->orderBy('created_at', 'asc');
+                // Exclui documentos rejeitados
+                $query->where(function($q) {
+                    $q->whereNull('status_aprovacao')
+                      ->orWhere('status_aprovacao', '!=', 'rejeitado');
+                })->orderBy('created_at', 'asc');
             }
         ])
         ->where('estabelecimento_id', $estabelecimentoId)
         ->findOrFail($processoId);
         
         // Busca documentos digitais do processo (apenas assinados)
-        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas'])
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas', 'respostas' => function($query) {
+                // Inclui apenas respostas aprovadas ou pendentes (exclui rejeitadas)
+                $query->where('status', '!=', 'rejeitado')->orderBy('created_at', 'asc');
+            }])
             ->where('processo_id', $processoId)
             ->where('status', 'assinado')
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        // Busca ordens de serviço vinculadas ao processo
+        $ordensServico = \App\Models\OrdemServico::with(['estabelecimento.municipio', 'municipio', 'processo'])
+            ->where('processo_id', $processoId)
+            ->where('status', '!=', 'cancelada')
             ->orderBy('created_at', 'asc')
             ->get();
         
@@ -851,6 +865,7 @@ class ProcessoController extends Controller
             'estabelecimento' => $estabelecimento,
             'processo' => $processo,
             'documentosDigitais' => $documentosDigitais,
+            'ordensServico' => $ordensServico,
             'logomarca' => $logomarca,
         ];
         
@@ -871,11 +886,11 @@ class ProcessoController extends Controller
         $tempInicial = storage_path('app/temp_integra_inicial.pdf');
         file_put_contents($tempInicial, $pdfInicial);
         
-        // Mescla com os PDFs dos documentos digitais
+        // Mescla com os PDFs dos documentos digitais, respostas, arquivos anexados e ordens de serviço
         try {
             $fpdi = new \setasign\Fpdi\Fpdi();
             
-            // Adiciona páginas do PDF inicial
+            // Adiciona páginas do PDF inicial (capa)
             $pageCount = $fpdi->setSourceFile($tempInicial);
             for ($i = 1; $i <= $pageCount; $i++) {
                 $template = $fpdi->importPage($i);
@@ -884,7 +899,7 @@ class ProcessoController extends Controller
                 $fpdi->useTemplate($template);
             }
             
-            // Adiciona PDFs dos documentos digitais
+            // Adiciona PDFs dos documentos digitais (assinados)
             foreach ($documentosDigitais as $doc) {
                 if ($doc->arquivo_pdf && Storage::disk('public')->exists($doc->arquivo_pdf)) {
                     $pdfPath = storage_path('app/public/' . $doc->arquivo_pdf);
@@ -898,32 +913,102 @@ class ProcessoController extends Controller
                             $fpdi->useTemplate($template);
                         }
                     } catch (\Exception $e) {
-                        \Log::warning('Erro ao adicionar PDF do documento: ' . $doc->numero_documento, [
+                        \Log::warning('Erro ao adicionar PDF do documento digital: ' . $doc->numero_documento, [
                             'erro' => $e->getMessage()
                         ]);
                     }
                 }
+                
+                // Adiciona PDFs das respostas aprovadas/pendentes do documento digital
+                foreach ($doc->respostas as $resposta) {
+                    if ($resposta->caminho && Storage::disk('public')->exists($resposta->caminho)) {
+                        $respostaPath = storage_path('app/public/' . $resposta->caminho);
+                        $extensaoResposta = strtolower(pathinfo($resposta->nome_arquivo, PATHINFO_EXTENSION));
+                        
+                        if ($extensaoResposta === 'pdf') {
+                            try {
+                                $respostaPageCount = $fpdi->setSourceFile($respostaPath);
+                                for ($i = 1; $i <= $respostaPageCount; $i++) {
+                                    $template = $fpdi->importPage($i);
+                                    $size = $fpdi->getTemplateSize($template);
+                                    $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                                    $fpdi->useTemplate($template);
+                                }
+                            } catch (\Exception $e) {
+                                \Log::warning('Erro ao adicionar PDF da resposta: ' . $resposta->nome_original, [
+                                    'erro' => $e->getMessage()
+                                ]);
+                            }
+                        }
+                    }
+                }
             }
             
-            // Adiciona PDFs dos arquivos anexados
+            // Adiciona PDFs dos arquivos anexados (exceto rejeitados - já filtrados na query)
             foreach ($processo->documentos as $documento) {
-                $extensao = strtolower(pathinfo($documento->nome_arquivo, PATHINFO_EXTENSION));
-                if ($extensao === 'pdf' && !empty($documento->caminho_arquivo) && Storage::disk('public')->exists($documento->caminho_arquivo)) {
-                    $pdfPath = storage_path('app/public/' . $documento->caminho_arquivo);
-                    
-                    try {
-                        $docPageCount = $fpdi->setSourceFile($pdfPath);
-                        for ($i = 1; $i <= $docPageCount; $i++) {
-                            $template = $fpdi->importPage($i);
-                            $size = $fpdi->getTemplateSize($template);
-                            $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
-                            $fpdi->useTemplate($template);
+                $extensao = strtolower($documento->extensao ?? pathinfo($documento->nome_arquivo, PATHINFO_EXTENSION));
+                
+                if ($extensao === 'pdf' && !empty($documento->caminho)) {
+                    // Verifica se o arquivo existe em public ou app storage
+                    $pdfPath = null;
+                    if ($documento->tipo_documento === 'documento_digital' || $documento->tipo_usuario === 'externo') {
+                        if (Storage::disk('public')->exists($documento->caminho)) {
+                            $pdfPath = storage_path('app/public/' . $documento->caminho);
                         }
-                    } catch (\Exception $e) {
-                        \Log::warning('Erro ao adicionar PDF anexado: ' . $documento->nome_arquivo, [
-                            'erro' => $e->getMessage()
-                        ]);
+                    } else {
+                        $caminhoCompleto = storage_path('app/' . $documento->caminho);
+                        if (file_exists($caminhoCompleto)) {
+                            $pdfPath = $caminhoCompleto;
+                        } elseif (Storage::disk('public')->exists($documento->caminho)) {
+                            $pdfPath = storage_path('app/public/' . $documento->caminho);
+                        }
                     }
+                    
+                    if ($pdfPath && file_exists($pdfPath)) {
+                        try {
+                            $docPageCount = $fpdi->setSourceFile($pdfPath);
+                            for ($i = 1; $i <= $docPageCount; $i++) {
+                                $template = $fpdi->importPage($i);
+                                $size = $fpdi->getTemplateSize($template);
+                                $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                                $fpdi->useTemplate($template);
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Erro ao adicionar PDF anexado: ' . $documento->nome_original, [
+                                'erro' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                }
+            }
+            
+            // Adiciona PDFs das ordens de serviço vinculadas (exceto canceladas)
+            foreach ($ordensServico as $os) {
+                try {
+                    $html = view('ordens-servico.pdf', ['ordemServico' => $os])->render();
+                    $osPdf = Pdf::loadHTML($html)
+                        ->setPaper('a4')
+                        ->setOption('margin-top', 10)
+                        ->setOption('margin-bottom', 10)
+                        ->setOption('margin-left', 10)
+                        ->setOption('margin-right', 10);
+                    
+                    $tempOs = storage_path('app/temp_os_' . $os->id . '.pdf');
+                    file_put_contents($tempOs, $osPdf->output());
+                    
+                    $osPageCount = $fpdi->setSourceFile($tempOs);
+                    for ($i = 1; $i <= $osPageCount; $i++) {
+                        $template = $fpdi->importPage($i);
+                        $size = $fpdi->getTemplateSize($template);
+                        $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                        $fpdi->useTemplate($template);
+                    }
+                    
+                    @unlink($tempOs);
+                } catch (\Exception $e) {
+                    \Log::warning('Erro ao adicionar PDF da OS #' . $os->numero, [
+                        'erro' => $e->getMessage()
+                    ]);
                 }
             }
             
@@ -937,7 +1022,9 @@ class ProcessoController extends Controller
                 
         } catch (\Exception $e) {
             // Se falhar a mesclagem, retorna apenas o PDF inicial
-            \Log::error('Erro ao mesclar PDFs: ' . $e->getMessage());
+            \Log::error('Erro ao mesclar PDFs: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             @unlink($tempInicial);
             return $pdf->download($nomeArquivo);
         }
