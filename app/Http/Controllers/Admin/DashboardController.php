@@ -830,15 +830,12 @@ class DashboardController extends Controller
 
         // IMPORTANTE: Ordenar processos diretos primeiro, depois por data
         // Isso garante que processos atribuídos diretamente ao usuário apareçam no topo
-        $processos = $query->get()->sortByDesc(function($p) use ($usuario) {
-            // Processos diretos têm prioridade máxima
-            if ($p->responsavel_atual_id == $usuario->id) {
-                // Usa timestamp para manter ordem entre processos diretos
-                return '1_' . ($p->responsavel_desde ? $p->responsavel_desde->timestamp : 0);
-            }
-            // Processos do setor vêm depois
-            return '0_' . ($p->responsavel_desde ? $p->responsavel_desde->timestamp : 0);
-        })->reverse()->values();
+        $processos = $query->get()->sortBy([
+            // Primeiro: processos diretos (0) antes de processos do setor (1)
+            fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
+            // Segundo: mais recentes primeiro (negativo do timestamp)
+            fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
+        ])->values();
 
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
         if ($usuario->isEstadual()) {
