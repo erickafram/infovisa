@@ -387,6 +387,8 @@ class DashboardController extends Controller
         $stats['documentos_vencendo'] = $documentos_vencendo->count();
 
         // Buscar documentos pendentes de aprovação enviados por empresas
+        // REGRA: Só mostra documentos de processos que estão na área do usuário
+        // (setor_atual = setor do usuário OU responsavel_atual_id = usuário)
         // ProcessoDocumento: arquivos enviados diretamente no processo
         $documentos_pendentes_aprovacao_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
@@ -396,29 +398,47 @@ class DashboardController extends Controller
         $respostas_pendentes_aprovacao_query = DocumentoResposta::where('status', 'pendente')
             ->with(['documentoDigital.processo.estabelecimento', 'usuarioExterno']);
 
-        // Filtrar por competência do usuário
+        // Filtrar por setor/responsável do processo + competência do usuário
         if ($usuario->isAdmin()) {
             // Admin vê todos
-        } elseif ($usuario->isEstadual()) {
-            // Estadual vê apenas de estabelecimentos de competência estadual
-            // Filtramos em memória pois a lógica de competência é complexa
-            $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) {
-                $q->where('competencia_manual', 'estadual')
-                  ->orWhereNull('competencia_manual');
+        } else {
+            // Filtrar por processos que estão no setor do usuário ou atribuídos diretamente
+            $documentos_pendentes_aprovacao_query->whereHas('processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
             });
-            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) {
-                $q->where('competencia_manual', 'estadual')
-                  ->orWhereNull('competencia_manual');
+            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
             });
-        } elseif ($usuario->isMunicipal()) {
-            // Municipal vê apenas do seu município
-            $municipioId = $usuario->municipio_id;
-            $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) use ($municipioId) {
-                $q->where('municipio_id', $municipioId);
-            });
-            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($municipioId) {
-                $q->where('municipio_id', $municipioId);
-            });
+
+            // Filtrar também por competência
+            if ($usuario->isEstadual()) {
+                $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) {
+                    $q->where('competencia_manual', 'estadual')
+                      ->orWhereNull('competencia_manual');
+                });
+                $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) {
+                    $q->where('competencia_manual', 'estadual')
+                      ->orWhereNull('competencia_manual');
+                });
+            } elseif ($usuario->isMunicipal()) {
+                $municipioId = $usuario->municipio_id;
+                $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) use ($municipioId) {
+                    $q->where('municipio_id', $municipioId);
+                });
+                $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($municipioId) {
+                    $q->where('municipio_id', $municipioId);
+                });
+            }
         }
 
         $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao_query->orderBy('created_at', 'desc')->take(10)->get();
@@ -448,6 +468,26 @@ class DashboardController extends Controller
             ->orderBy('tipo', 'desc') // urgente primeiro
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Contar processos diretos vs setor (ANTES de calcular para_mim_total)
+        $stats['processos_meus_diretos'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
+            ->where('responsavel_atual_id', $usuario->id)
+            ->count();
+
+        // Contadores separados: "Para Mim" vs "Meu Setor"
+        $stats['para_mim_total'] = ($stats['documentos_pendentes_assinatura'] ?? 0) 
+            + ($stats['ordens_servico_andamento'] ?? 0)
+            + ($stats['processos_meus_diretos'] ?? 0);
+        
+        $stats['processos_do_setor'] = 0;
+        if ($usuario->setor) {
+            $stats['processos_do_setor'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
+                ->where('setor_atual', $usuario->setor)
+                ->count();
+        }
+        
+        $stats['setor_total'] = ($stats['total_pendentes_aprovacao'] ?? 0) 
+            + ($stats['processos_do_setor'] ?? 0);
 
         return view('admin.dashboard', compact(
             'stats',
@@ -493,6 +533,7 @@ class DashboardController extends Controller
             ->sortBy('data_fim');
 
         // Buscar documentos pendentes de aprovação
+        // REGRA: Só mostra documentos de processos que estão no setor do usuário ou atribuídos a ele
         $documentos_pendentes_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
             ->with(['processo.estabelecimento']);
@@ -500,23 +541,44 @@ class DashboardController extends Controller
         $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
             ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
 
-        // Filtrar por competência
-        if ($usuario->isEstadual()) {
-            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
-            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                $q->where('municipio_id', $usuario->municipio_id));
-            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                $q->where('municipio_id', $usuario->municipio_id));
+        // Filtrar por setor/responsável do processo + competência
+        if (!$usuario->isAdmin()) {
+            // Só processos do meu setor ou atribuídos a mim
+            $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
+            });
+            $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
+            });
+
+            // Filtrar também por competência
+            if ($usuario->isEstadual()) {
+                $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+            } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                    $q->where('municipio_id', $usuario->municipio_id));
+                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                    $q->where('municipio_id', $usuario->municipio_id));
+            }
         }
 
         $documentos_pendentes = $documentos_pendentes_query->orderBy('created_at', 'desc')->get();
         $respostas_pendentes = $respostas_pendentes_query->orderBy('created_at', 'desc')->get();
 
-        // Filtrar por competência em memória
+        // Filtrar por competência em memória (lógica complexa de atividades)
         if ($usuario->isEstadual()) {
             $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
             $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
@@ -762,7 +824,7 @@ class DashboardController extends Controller
             
             // Verifica se é processo direto do usuário ou apenas do setor
             $isMeuDireto = $proc->responsavel_atual_id === $usuario->id;
-            $isDoSetor = !$isMeuDireto && $usuario->setor && $proc->setor_atual === $usuario->setor;
+            $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
             
             // Calcula informações de documentos
             $infoDocumentos = $this->calcularInfoDocumentos($proc);
@@ -829,6 +891,7 @@ class DashboardController extends Controller
             ->sortBy('data_fim');
 
         // Buscar documentos pendentes de aprovação
+        // REGRA: Só mostra documentos de processos que estão no setor do usuário ou atribuídos a ele
         $documentos_pendentes_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
             ->with(['processo.estabelecimento']);
@@ -836,23 +899,44 @@ class DashboardController extends Controller
         $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
             ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
 
-        // Filtrar por competência
-        if ($usuario->isEstadual()) {
-            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
-            $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                $q->where('municipio_id', $usuario->municipio_id));
-            $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                $q->where('municipio_id', $usuario->municipio_id));
+        // Filtrar por setor/responsável do processo + competência
+        if (!$usuario->isAdmin()) {
+            // Só processos do meu setor ou atribuídos a mim
+            $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
+            });
+            $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
+                $q->where(function($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
+            });
+
+            // Filtrar também por competência
+            if ($usuario->isEstadual()) {
+                $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+            } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
+                    $q->where('municipio_id', $usuario->municipio_id));
+                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
+                    $q->where('municipio_id', $usuario->municipio_id));
+            }
         }
 
         $documentos_pendentes = $documentos_pendentes_query->orderBy('created_at', 'desc')->get();
         $respostas_pendentes = $respostas_pendentes_query->orderBy('created_at', 'desc')->get();
 
-        // Filtrar por competência em memória
+        // Filtrar por competência em memória (lógica complexa de atividades)
         if ($usuario->isEstadual()) {
             $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
             $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
@@ -936,64 +1020,58 @@ class DashboardController extends Controller
             }
         }
 
-        // Combinar todas as tarefas
-        $todasTarefas = collect();
+        // Combinar TODAS as tarefas (sem filtro, para calcular contadores corretos)
+        $todasTarefasCompleta = collect();
 
-        // 1º PRIORIDADE: Ordens de Serviço em aberto (aparecem primeiro no topo)
-        if ($filtro === 'todos' || $filtro === 'os' || $filtro === 'para_mim') {
-            foreach($ordensServico as $os) {
-                $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
-                $isVencido = $diasRestantes !== null && $diasRestantes < 0;
-                $tiposAcao = $os->tiposAcao();
-                
-                $todasTarefas->push([
-                    'tipo' => 'os',
-                    'id' => $os->id,
-                    'numero' => $os->numero,
-                    'titulo' => 'OS #' . $os->numero,
-                    'subtitulo' => $os->estabelecimento->nome_fantasia ?? 'Sem estabelecimento',
-                    'tipo_acao' => $tiposAcao && $tiposAcao->count() > 0 ? $tiposAcao->first()->descricao : null,
-                    'url' => route('admin.ordens-servico.show', $os),
-                    'dias_restantes' => $diasRestantes,
-                    'atrasado' => $isVencido,
-                    'ordem' => 0, // PRIORIDADE MÁXIMA
-                    'data' => $os->created_at->format('d/m/Y H:i'),
-                    'created_at' => $os->created_at,
-                ]);
-            }
+        // 1º PRIORIDADE: Ordens de Serviço em aberto
+        foreach($ordensServico as $os) {
+            $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
+            $isVencido = $diasRestantes !== null && $diasRestantes < 0;
+            $tiposAcao = $os->tiposAcao();
+            
+            $todasTarefasCompleta->push([
+                'tipo' => 'os',
+                'id' => $os->id,
+                'numero' => $os->numero,
+                'titulo' => 'OS #' . $os->numero,
+                'subtitulo' => $os->estabelecimento->nome_fantasia ?? 'Sem estabelecimento',
+                'tipo_acao' => $tiposAcao && $tiposAcao->count() > 0 ? $tiposAcao->first()->descricao : null,
+                'url' => route('admin.ordens-servico.show', $os),
+                'dias_restantes' => $diasRestantes,
+                'atrasado' => $isVencido,
+                'ordem' => 0,
+                'data' => $os->created_at->format('d/m/Y H:i'),
+                'created_at' => $os->created_at,
+                'grupo' => 'para_mim',
+            ]);
         }
 
         // 2º PRIORIDADE: Documentos pendentes de assinatura
-        if ($filtro === 'todos' || $filtro === 'assinatura' || $filtro === 'para_mim') {
-            foreach($assinaturas as $ass) {
-                $todasTarefas->push([
-                    'tipo' => 'assinatura',
-                    'id' => $ass->documentoDigital->id,
-                    'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
-                    'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
-                                   $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
-                    'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
-                    'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
-                    'badge' => null,
-                    'atrasado' => false,
-                    'ordem' => 1, // SEGUNDA PRIORIDADE - Assinaturas
-                    'data' => $ass->created_at->format('d/m/Y H:i'),
-                    'created_at' => $ass->created_at,
-                ]);
-            }
+        foreach($assinaturas as $ass) {
+            $todasTarefasCompleta->push([
+                'tipo' => 'assinatura',
+                'id' => $ass->documentoDigital->id,
+                'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
+                'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
+                               $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
+                'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                'badge' => null,
+                'atrasado' => false,
+                'ordem' => 1,
+                'data' => $ass->created_at->format('d/m/Y H:i'),
+                'created_at' => $ass->created_at,
+                'grupo' => 'para_mim',
+            ]);
         }
 
-        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo (NÃO incluir no filtro "para_mim")
+        // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
-            // Se é filtro "para_mim", pular aprovações e respostas (são tarefas do setor)
-            if ($filtro === 'para_mim') continue;
-            if ($filtro !== 'todos' && $filtro !== $tarefa['tipo']) continue;
-            
             $diasRestantes = $tarefa['is_licenciamento'] ? (5 - $tarefa['dias_pendente']) : null;
             
             if ($tarefa['tipo'] === 'resposta') {
-                $todasTarefas->push([
+                $todasTarefasCompleta->push([
                     'tipo' => 'resposta',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
@@ -1007,12 +1085,13 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 2, // Respostas têm prioridade maior que aprovações normais
+                    'ordem' => 2,
                     'data' => $tarefa['created_at']->format('d/m/Y H:i'),
                     'created_at' => $tarefa['created_at'],
+                    'grupo' => 'setor',
                 ]);
             } else {
-                $todasTarefas->push([
+                $todasTarefasCompleta->push([
                     'tipo' => 'aprovacao',
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
@@ -1026,12 +1105,39 @@ class DashboardController extends Controller
                     'dias_pendente' => $tarefa['dias_pendente'],
                     'is_licenciamento' => $tarefa['is_licenciamento'],
                     'tipo_processo' => $tarefa['tipo_processo'],
-                    'ordem' => 3, // Aprovações de documentos por último
+                    'ordem' => 3,
                     'data' => $tarefa['created_at']->format('d/m/Y H:i'),
                     'created_at' => $tarefa['created_at'],
+                    'grupo' => 'setor',
                 ]);
             }
         }
+
+        // Contadores GLOBAIS (sempre completos, independente do filtro ativo)
+        $osCount = $todasTarefasCompleta->where('tipo', 'os')->count();
+        $assinaturaCount = $todasTarefasCompleta->where('tipo', 'assinatura')->count();
+        $aprovacaoCount = $todasTarefasCompleta->where('tipo', 'aprovacao')->count();
+        $respostaCount = $todasTarefasCompleta->where('tipo', 'resposta')->count();
+        $contadores = [
+            'total' => $todasTarefasCompleta->count(),
+            'aprovacao' => $aprovacaoCount,
+            'resposta' => $respostaCount,
+            'assinatura' => $assinaturaCount,
+            'os' => $osCount,
+            'para_mim' => $osCount + $assinaturaCount,
+            'setor' => $aprovacaoCount + $respostaCount,
+        ];
+
+        // Aplicar filtro
+        $todasTarefas = match($filtro) {
+            'para_mim' => $todasTarefasCompleta->whereIn('tipo', ['os', 'assinatura']),
+            'setor' => $todasTarefasCompleta->whereIn('tipo', ['aprovacao', 'resposta']),
+            'os' => $todasTarefasCompleta->where('tipo', 'os'),
+            'assinatura' => $todasTarefasCompleta->where('tipo', 'assinatura'),
+            'aprovacao' => $todasTarefasCompleta->where('tipo', 'aprovacao'),
+            'resposta' => $todasTarefasCompleta->where('tipo', 'resposta'),
+            default => $todasTarefasCompleta,
+        };
 
         // Ordenar: atrasados primeiro, depois por ordem
         $todasTarefas = $todasTarefas->sortBy([
@@ -1043,15 +1149,6 @@ class DashboardController extends Controller
         $total = $todasTarefas->count();
         $lastPage = max(1, ceil($total / $perPage));
         $tarefasPaginadas = $todasTarefas->forPage($page, $perPage)->values();
-
-        // Contadores por tipo
-        $contadores = [
-            'total' => $total,
-            'aprovacao' => $todasTarefas->where('tipo', 'aprovacao')->count(),
-            'resposta' => $todasTarefas->where('tipo', 'resposta')->count(),
-            'assinatura' => $todasTarefas->where('tipo', 'assinatura')->count(),
-            'os' => $todasTarefas->where('tipo', 'os')->count(),
-        ];
 
         return response()->json([
             'data' => $tarefasPaginadas,

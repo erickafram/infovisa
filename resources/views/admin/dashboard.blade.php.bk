@@ -113,55 +113,52 @@
     </div>
     @endif
 
-    {{-- Stats Cards - Reorganizados por contexto --}}
-    <div id="tour-stats-cards" class="grid grid-cols-3 gap-3">
-        {{-- Card: Para Mim --}}
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 shadow-sm border border-blue-200">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    {{-- Stats Cards --}}
+    <div id="tour-stats-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{{ route('admin.documentos-pendentes.index') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xl font-bold text-blue-900">{{ $stats['para_mim_total'] ?? 0 }}</p>
-                    <p class="text-xs text-blue-600 font-medium">Para Mim</p>
-                    <div class="flex gap-2 text-xs text-blue-700 mt-0.5">
-                        <span><span class="font-medium">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</span> assinaturas</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['processos_meus_diretos'] ?? 0 }}</span> processos</span>
-                    </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</p>
+                    <p class="text-xs text-gray-500">Documentos Pendentes</p>
                 </div>
             </div>
-        </div>
+        </a>
 
-        {{-- Card: Meu Setor --}}
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 shadow-sm border border-purple-200">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xl font-bold text-purple-900">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
-                    <p class="text-xs text-purple-600 font-medium">Meu Setor</p>
-                    <div class="flex gap-2 text-xs text-purple-700 mt-0.5">
-                        <span><span class="font-medium">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</span> aprovações</span>
-                        <span>•</span>
-                        <span><span class="font-medium">{{ $stats['processos_do_setor'] ?? 0 }}</span> processos</span>
-                    </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
+                    <p class="text-xs text-gray-500">Cadastros Pendentes</p>
                 </div>
             </div>
-        </div>
+        </a>
 
-        {{-- Card: Cadastros Pendentes --}}
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-3 shadow-sm border border-amber-200 hover:shadow-md transition">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <a href="{{ route('admin.assinatura.pendentes') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-xl font-bold text-amber-900">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
-                    <p class="text-xs text-amber-600 font-medium">Cadastros Pendentes</p>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</p>
+                    <p class="text-xs text-gray-500">Assinaturas Pendentes</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ route('admin.processos.index-geral') }}" class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition border border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['processos_abertos'] ?? 0 }}</p>
+                    <p class="text-xs text-gray-500">Todos os Processos</p>
                 </div>
             </div>
         </a>
@@ -170,51 +167,48 @@
     {{-- Layout Principal --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {{-- Coluna 1: PARA MIM - Apenas ações pessoais do usuário --}}
-        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-blue-200" x-data="tarefasPaginadas()">
-            <div class="px-4 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl flex items-center justify-between">
+        {{-- Coluna 1: Minhas Tarefas --}}
+        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="tarefasPaginadas()">
+            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
                     <div>
-                        <h3 class="font-semibold text-blue-900">Para Mim</h3>
-                        <p class="text-[10px] text-blue-600">Ações que só eu posso realizar</p>
+                        <h3 class="font-semibold text-gray-900">Minhas Tarefas</h3>
+                        <p class="text-xs text-gray-400">Atividades pendentes</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
-                    <span class="text-xs px-2 py-1 bg-blue-500 text-white rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length || '0'"></span>
+                    <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium" x-text="total"></span>
                 </div>
             </div>
-            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
+            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
                 <template x-if="loading">
                     <div class="p-8 text-center">
-                        <svg class="animate-spin h-6 w-6 text-blue-300 mx-auto" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin h-6 w-6 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
-                        <p class="text-xs text-gray-400 mt-2">Carregando...</p>
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length > 0">
+                <template x-if="!loading && tarefas.length > 0">
                     <div>
-                        {{-- Ordens de Serviço --}}
-                        <template x-if="tarefas.filter(t => t.tipo === 'os').length > 0">
+                        {{-- Seção: Para Mim (OS e Assinaturas) --}}
+                        <template x-if="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length > 0">
                             <div>
-                                <div class="px-4 py-2 bg-blue-50/50 border-b border-blue-100/50">
-                                    <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                        Minhas Ordens de Serviço
-                                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700" x-text="tarefas.filter(t => t.tipo === 'os').length"></span>
+                                <div class="px-4 py-2 bg-blue-50 border-b border-blue-100">
+                                    <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                        Para Mim
                                     </span>
                                 </div>
-                                <template x-for="t in tarefas.filter(t => t.tipo === 'os')" :key="'os-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                <template x-for="t in tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura')" :key="'meu-' + t.tipo + (t.id || t.processo_id)">
+                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.tipo === 'assinatura' ? 'bg-amber-100' : 'bg-blue-100'">
+                                            <template x-if="t.tipo === 'assinatura'"><svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></template>
+                                            <template x-if="t.tipo === 'os'"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></template>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
@@ -226,266 +220,162 @@
                             </div>
                         </template>
 
-                        {{-- Assinaturas Pendentes --}}
-                        <template x-if="tarefas.filter(t => t.tipo === 'assinatura').length > 0">
+                        {{-- Seção: Documentos do Setor (Aprovações e Respostas) --}}
+                        <template x-if="tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length > 0">
                             <div>
-                                <div class="px-4 py-2 bg-amber-50/50 border-b border-amber-100/50">
-                                    <span class="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                        Minhas Assinaturas Pendentes
-                                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700" x-text="tarefas.filter(t => t.tipo === 'assinatura').length"></span>
+                                <div class="px-4 py-2 bg-purple-50 border-b border-purple-100">
+                                    <span class="text-xs font-semibold text-purple-700 uppercase tracking-wide flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Documentos do Setor
                                     </span>
                                 </div>
-                                <template x-for="t in tarefas.filter(t => t.tipo === 'assinatura')" :key="'ass-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-amber-50 transition relative">
-                                        <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                <template x-for="t in tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta')" :key="'setor-' + t.tipo + (t.id || t.processo_id)">
+                                    <a :href="t.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.tipo === 'resposta' ? (t.atrasado ? 'bg-red-100' : 'bg-green-100') : (t.atrasado ? 'bg-red-100' : 'bg-purple-100')">
+                                            <template x-if="t.tipo === 'resposta'"><svg class="w-4 h-4" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg></template>
+                                            <template x-if="t.tipo === 'aprovacao'"><svg class="w-4 h-4" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
                                         </div>
                                         <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <template x-if="t.tipo_processo">
+                                                    <span class="text-[10px] px-1.5 py-0.5 rounded inline-block"
+                                                          :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
+                                                          x-text="t.tipo_processo"></span>
+                                                </template>
+                                                <template x-if="t.total && t.total > 1">
+                                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
+                                                          x-text="'+' + (t.total - 1) + ' pendente' + (t.total > 2 ? 's' : '')"></span>
+                                                </template>
+                                            </div>
                                             <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
                                             <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
                                         </div>
-                                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">Assinar</span>
+                                        <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                     </a>
                                 </template>
                             </div>
                         </template>
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length === 0">
-                    <div class="p-8 text-center">
-                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                        <p class="text-sm font-medium text-gray-600">Tudo em dia!</p>
-                        <p class="text-xs text-gray-400 mt-1">Nenhuma ação pessoal pendente</p>
-                    </div>
+                <template x-if="!loading && tarefas.length === 0">
+                    <div class="p-8 text-center text-sm text-gray-400">Nenhuma tarefa pendente</div>
                 </template>
             </div>
-
-            {{-- Processos atribuídos DIRETAMENTE a mim --}}
-            <div class="border-t border-blue-100" x-data="processosAtribuidos()">
-                <div class="px-4 py-2 bg-blue-50/30 border-b border-blue-100/50">
-                    <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Processos Atribuídos a Mim
-                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700" x-text="processos.filter(p => p.is_meu_direto).length"></span>
-                    </span>
+            <template x-if="total > 10">
+                <div class="px-4 py-2 border-t border-gray-100 text-center">
+                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        Ver todas as <span x-text="total"></span> tarefas →
+                    </a>
                 </div>
-                <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100">
-                    <template x-if="loading">
-                        <div class="p-4 text-center">
-                            <svg class="animate-spin h-5 w-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
-                    </template>
-                    <template x-if="!loading && processos.filter(p => p.is_meu_direto).length > 0">
-                        <div>
-                            <template x-for="p in processos.filter(p => p.is_meu_direto)" :key="'meu-proc-' + p.id">
-                                <a :href="p.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition">
-                                    <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
-                                            <span x-text="p.numero_processo"></span>
-                                            <template x-if="p.docs_total > 0">
-                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="p.docs_enviados >= p.docs_total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'" x-text="p.docs_enviados + '/' + p.docs_total + ' docs'"></span>
-                                            </template>
-                                        </p>
-                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
-                                    </div>
-                                    <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
-                                </a>
-                            </template>
-                        </div>
-                    </template>
-                    <template x-if="!loading && processos.filter(p => p.is_meu_direto).length === 0">
-                        <div class="p-4 text-center text-xs text-gray-400">Nenhum processo atribuído diretamente a mim</div>
-                    </template>
-                </div>
-            </div>
+            </template>
         </div>
 
-        {{-- Coluna 2: DEMANDAS DO SETOR - Documentos e processos do setor --}}
-        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-purple-200">
-            <div class="px-4 py-3 border-b border-purple-100 bg-purple-50 rounded-t-xl flex items-center justify-between">
+        {{-- Coluna 2: Meus Processos --}}
+        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-gray-100" x-data="processosAtribuidos()">
+            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Processos do Setor</h3>
+                        <p class="text-xs text-gray-400">Atribuídos ao seu setor</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">ver todos</a>
+                    <span class="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-medium" x-text="total"></span>
+                </div>
+            </div>
+            <div class="divide-y divide-gray-50 min-h-[200px] max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-100 hover:scrollbar-thumb-blue-600">
+                <template x-if="loading">
+                    <div class="p-8 text-center">
+                        <svg class="animate-spin h-6 w-6 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
                     </div>
+                </template>
+                <template x-if="!loading && processos.length > 0">
                     <div>
-                        <h3 class="font-semibold text-purple-900">Demandas do Setor</h3>
-                        <p class="text-[10px] text-purple-600">Qualquer técnico do setor pode resolver</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-xs text-purple-600 hover:text-purple-700 font-medium">ver todos</a>
-                </div>
-            </div>
-            
-            {{-- Documentos aguardando análise do setor --}}
-            <div x-data="tarefasPaginadas()">
-                <div class="divide-y divide-gray-50 max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-gray-100">
-                    <template x-if="loading">
-                        <div class="p-6 text-center">
-                            <svg class="animate-spin h-5 w-5 text-purple-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
-                    </template>
-                    <template x-if="!loading && tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length > 0">
-                        <div>
-                            {{-- Doc Aprovações --}}
-                            <template x-if="tarefas.filter(t => t.tipo === 'aprovacao').length > 0">
-                                <div>
-                                    <div class="px-4 py-2 bg-purple-50/50 border-b border-purple-100/50">
-                                        <span class="text-xs font-semibold text-purple-700 uppercase tracking-wide flex items-center gap-1.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            Documentos para Aprovar
-                                            <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700" x-text="tarefas.filter(t => t.tipo === 'aprovacao').length"></span>
-                                        </span>
-                                    </div>
-                                    <template x-for="t in tarefas.filter(t => t.tipo === 'aprovacao')" :key="'aprov-' + (t.id || t.processo_id)">
-                                        <a :href="t.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-purple-100'">
-                                                <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <div class="flex items-center gap-2">
-                                                    <template x-if="t.tipo_processo">
-                                                        <span class="text-[10px] px-1.5 py-0.5 rounded inline-block"
-                                                              :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
-                                                              x-text="t.tipo_processo"></span>
-                                                    </template>
-                                                    <template x-if="t.total && t.total > 1">
-                                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
-                                                              x-text="'+' + (t.total - 1) + ' pendente' + (t.total > 2 ? 's' : '')"></span>
-                                                    </template>
-                                                </div>
-                                                <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                                <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
-                                            </div>
-                                            <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
-                                        </a>
-                                    </template>
+                        <template x-for="p in processos" :key="p.id">
+                            <a :href="p.url" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="p.is_meu_direto ? 'bg-blue-100' : 'bg-teal-100'">
+                                    <svg class="w-4 h-4" :class="p.is_meu_direto ? 'text-blue-600' : 'text-teal-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </div>
-                            </template>
-
-                            {{-- Respostas --}}
-                            <template x-if="tarefas.filter(t => t.tipo === 'resposta').length > 0">
-                                <div>
-                                    <div class="px-4 py-2 bg-green-50/50 border-b border-green-100/50">
-                                        <span class="text-xs font-semibold text-green-700 uppercase tracking-wide flex items-center gap-1.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                                            Respostas para Analisar
-                                            <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700" x-text="tarefas.filter(t => t.tipo === 'resposta').length"></span>
-                                        </span>
-                                    </div>
-                                    <template x-for="t in tarefas.filter(t => t.tipo === 'resposta')" :key="'resp-' + (t.id || t.processo_id)">
-                                        <a :href="t.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-green-50 transition relative" :class="t.atrasado ? 'bg-red-50/50' : ''">
-                                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-green-100'">
-                                                <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-gray-900 truncate" x-text="t.titulo"></p>
-                                                <p class="text-xs text-gray-500 truncate" x-text="t.subtitulo"></p>
-                                            </div>
-                                            <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
-                                        </a>
-                                    </template>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
+                                        <span x-text="p.numero_processo"></span>
+                                        {{-- Badge Para Mim (quando é responsável direto) --}}
+                                        <template x-if="p.is_meu_direto">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1" title="Processo atribuído diretamente a você">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                Para Mim
+                                            </span>
+                                        </template>
+                                        {{-- Badge Setor (quando está no setor mas não é responsável direto) --}}
+                                        <template x-if="p.is_do_setor">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">Setor</span>
+                                        </template>
+                                        {{-- Documentos obrigatórios --}}
+                                        <template x-if="p.docs_total > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
+                                                  :class="p.docs_enviados >= p.docs_total ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+                                                  :title="'Documentos obrigatórios: ' + p.docs_enviados + ' de ' + p.docs_total + ' enviados'">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                <span x-text="p.docs_enviados + '/' + p.docs_total"></span>
+                                            </span>
+                                        </template>
+                                        {{-- Documentos pendentes de aprovação --}}
+                                        <template x-if="p.docs_pendentes > 0">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700"
+                                                  :title="p.docs_pendentes + ' documento(s) aguardando aprovação'">
+                                                +<span x-text="p.docs_pendentes"></span> pend.
+                                            </span>
+                                        </template>
+                                        <template x-if="p.prazo">
+                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
+                                                  :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span x-text="p.prazo.data"></span>
+                                            </span>
+                                        </template>
+                                    </p>
+                                    <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
                                 </div>
-                            </template>
-                        </div>
-                    </template>
-                    <template x-if="!loading && tarefas.filter(t => t.tipo === 'aprovacao' || t.tipo === 'resposta').length === 0">
-                        <div class="p-6 text-center text-xs text-gray-400">Nenhum documento pendente no setor</div>
-                    </template>
-                </div>
-            </div>
-
-            {{-- Processos do Setor (não atribuídos diretamente a mim) --}}
-            <div class="border-t border-purple-100" x-data="processosAtribuidos()">
-                <div class="px-4 py-2 bg-teal-50/50 border-b border-teal-100/50">
-                    <span class="text-xs font-semibold text-teal-700 uppercase tracking-wide flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                        Processos no Meu Setor
-                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700" x-text="processos.filter(p => p.is_do_setor).length"></span>
-                    </span>
-                </div>
-                <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-teal-500 scrollbar-track-gray-100">
-                    <template x-if="loading">
-                        <div class="p-4 text-center">
-                            <svg class="animate-spin h-5 w-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
-                    </template>
-                    <template x-if="!loading && processos.filter(p => p.is_do_setor).length > 0">
-                        <div>
-                            <template x-for="p in processos.filter(p => p.is_do_setor)" :key="'setor-proc-' + p.id">
-                                <a :href="p.url" class="flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 transition">
-                                    <div class="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
-                                            <span x-text="p.numero_processo"></span>
-                                            <template x-if="p.docs_pendentes > 0">
-                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700" x-text="p.docs_pendentes + ' pend.'"></span>
-                                            </template>
-                                            <template x-if="p.prazo">
-                                                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                                                      :class="p.prazo.vencido ? 'bg-red-100 text-red-700' : (p.prazo.proximo ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    <span x-text="p.prazo.data"></span>
-                                                </span>
-                                            </template>
-                                        </p>
-                                        <p class="text-xs text-gray-500 truncate" x-text="p.estabelecimento"></p>
-                                    </div>
-                                    <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
-                                </a>
-                            </template>
-                        </div>
-                    </template>
-                    <template x-if="!loading && processos.filter(p => p.is_do_setor).length === 0">
-                        <div class="p-4 text-center text-xs text-gray-400">Nenhum processo pendente no setor</div>
-                    </template>
-                </div>
-                <template x-if="lastPage > 1">
-                    <div class="px-4 py-2 border-t border-gray-100 flex items-center justify-between">
-                        <span class="text-xs text-gray-400">Pg <span x-text="currentPage"></span>/<span x-text="lastPage"></span></span>
-                        <div class="flex gap-1">
-                            <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
-                            <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
-                        </div>
+                                <span class="text-xs font-medium px-2 py-1 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
+                            </a>
+                        </template>
                     </div>
                 </template>
+                <template x-if="!loading && processos.length === 0">
+                    <div class="p-8 text-center text-sm text-gray-400">Nenhum processo atribuído</div>
+                </template>
             </div>
+            <template x-if="lastPage > 1">
+                <div class="px-4 py-2 border-t border-gray-100 flex items-center justify-between">
+                    <span class="text-xs text-gray-400">Página <span x-text="currentPage"></span> de <span x-text="lastPage"></span></span>
+                    <div class="flex gap-1">
+                        <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+                        <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                    </div>
+                </div>
+            </template>
         </div>
 
-        {{-- Coluna 3: ACOMPANHAMENTO - Monitorando + Cadastros Pendentes + Atalhos --}}
+        {{-- Coluna 3: Monitorando + Cadastros Pendentes + Atalhos --}}
         <div class="space-y-6">
             {{-- Monitorando --}}
-            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-indigo-200">
-                <div class="px-4 py-3 border-b border-indigo-100 bg-indigo-50 rounded-t-xl flex items-center justify-between">
+            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                        </div>
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
                         <div>
-                            <h3 class="font-semibold text-indigo-900">Monitorando</h3>
-                            <p class="text-[10px] text-indigo-600">Processos que estou acompanhando</p>
+                            <h3 class="font-semibold text-gray-900">Monitorando</h3>
+                            <p class="text-xs text-gray-400">Processos em observação</p>
                         </div>
                     </div>
                     <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
@@ -656,15 +546,16 @@ function tarefasPaginadas() {
         async load() {
             this.loading = true;
             try {
-                const r = await fetch(`{{ route('admin.dashboard.tarefas') }}?page=${this.currentPage}&per_page=20`);
+                const r = await fetch(`{{ route('admin.dashboard.tarefas') }}?page=${this.currentPage}&per_page=10`);
                 const d = await r.json();
-                this.tarefas = d.data; this.currentPage = d.current_page; this.lastPage = d.last_page; this.total = d.total;
+                this.tarefas = d.data.slice(0, 10); this.currentPage = d.current_page; this.lastPage = Math.min(d.last_page, 1); this.total = d.total;
             } catch(e) { console.error(e); }
             this.loading = false;
         },
         prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
+            // Se não é licenciamento, não tem prazo - mostra cinza
             if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
             if (t.atrasado) return 'bg-red-100 text-red-700';
             if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
@@ -674,6 +565,7 @@ function tarefasPaginadas() {
         },
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
+            // Se não é licenciamento, mostra "Verificar" (sem prazo)
             if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
                 if (t.atrasado) return (t.dias_pendente - 5) + 'd';
@@ -688,10 +580,6 @@ function tarefasPaginadas() {
         }
     }
 }
-
-// Funções de referência (para coluna 2 que precisa de ambos os dados)
-function tarefasPaginadasRef() { return {}; }
-function processosAtribuidosRef() { return {}; }
 
 function processosAtribuidos() {
     return {
