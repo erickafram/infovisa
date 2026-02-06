@@ -326,39 +326,49 @@ class DashboardController extends Controller
             ->count();
 
         // Buscar processos atribuídos ao usuário ou ao seu setor (tramitados)
+        // REGRA: Processos diretamente atribuídos (responsavel_atual_id) SEMPRE aparecem,
+        // filtro de competência se aplica SOMENTE aos processos do setor.
         $processos_atribuidos_query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
         
-        // Filtra por responsável direto OU setor do usuário
+        // Processos do usuário direto OU do setor (com filtro de competência apenas para setor)
         $processos_atribuidos_query->where(function($q) use ($usuario) {
+            // Processos diretamente atribuídos - SEM filtro de competência
             $q->where('responsavel_atual_id', $usuario->id);
+            
+            // Processos do setor - COM filtro de competência
             if ($usuario->setor) {
-                $q->orWhere('setor_atual', $usuario->setor);
+                $q->orWhere(function($subQ) use ($usuario) {
+                    $subQ->where('setor_atual', $usuario->setor);
+                    
+                    if ($usuario->isEstadual()) {
+                        $subQ->whereHas('estabelecimento', function($estQ) {
+                            $estQ->where('competencia_manual', 'estadual')
+                                  ->orWhereNull('competencia_manual');
+                        });
+                    } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                        $subQ->whereHas('estabelecimento', function($estQ) use ($usuario) {
+                            $estQ->where('municipio_id', $usuario->municipio_id);
+                        });
+                    }
+                });
             }
         });
-        
-        // Filtrar por competência
-        if ($usuario->isEstadual()) {
-            $processos_atribuidos_query->whereHas('estabelecimento', function($q) {
-                $q->where('competencia_manual', 'estadual')
-                  ->orWhereNull('competencia_manual');
-            });
-        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
-            $processos_atribuidos_query->whereHas('estabelecimento', function($q) use ($usuario) {
-                $q->where('municipio_id', $usuario->municipio_id);
-            });
-        }
         
         $processos_atribuidos = $processos_atribuidos_query
             ->orderBy('responsavel_desde', 'desc')
             ->take(10)
             ->get();
         
-        // Filtrar por competência em memória (lógica complexa)
+        // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
-            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => $p->estabelecimento->isCompetenciaEstadual());
+            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
+                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
+            );
         } elseif ($usuario->isMunicipal()) {
-            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => $p->estabelecimento->isCompetenciaMunicipal());
+            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
+                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
+            );
         }
         
         $stats['processos_atribuidos'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
@@ -767,35 +777,46 @@ class DashboardController extends Controller
         $page = $request->get('page', 1);
         $perPage = 8;
 
+        // REGRA: Processos diretamente atribuídos ao usuário (responsavel_atual_id) SEMPRE aparecem,
+        // independentemente da competência do estabelecimento. Se alguém tramitou para o usuário, ele deve ver.
+        // O filtro de competência se aplica SOMENTE aos processos do setor (setor_atual).
+        
         $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
 
-        // Mostra processos onde o usuário é responsável direto OU que estão no setor do usuário
+        // Processos do usuário direto OU do setor (com filtro de competência apenas para setor)
         $query->where(function($q) use ($usuario) {
+            // Processos diretamente atribuídos ao usuário - SEM filtro de competência
             $q->where('responsavel_atual_id', $usuario->id);
             
-            // Inclui também processos do setor do usuário (sem responsável direto ou com qualquer responsável)
+            // Processos do setor - COM filtro de competência
             if ($usuario->setor) {
-                $q->orWhere('setor_atual', $usuario->setor);
+                $q->orWhere(function($subQ) use ($usuario) {
+                    $subQ->where('setor_atual', $usuario->setor);
+                    
+                    // Aplica filtro de competência APENAS para processos do setor
+                    if ($usuario->isEstadual()) {
+                        $subQ->whereHas('estabelecimento', fn($estQ) => 
+                            $estQ->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
+                    } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                        $subQ->whereHas('estabelecimento', fn($estQ) => 
+                            $estQ->where('municipio_id', $usuario->municipio_id));
+                    }
+                });
             }
         });
 
-        // Filtrar por competência
-        if ($usuario->isEstadual()) {
-            $query->whereHas('estabelecimento', fn($q) => 
-                $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
-            $query->whereHas('estabelecimento', fn($q) => 
-                $q->where('municipio_id', $usuario->municipio_id));
-        }
-
         $processos = $query->orderBy('responsavel_desde', 'desc')->get();
 
-        // Filtrar por competência em memória
+        // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
         if ($usuario->isEstadual()) {
-            $processos = $processos->filter(fn($p) => $p->estabelecimento->isCompetenciaEstadual());
+            $processos = $processos->filter(fn($p) => 
+                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
+            );
         } elseif ($usuario->isMunicipal()) {
-            $processos = $processos->filter(fn($p) => $p->estabelecimento->isCompetenciaMunicipal());
+            $processos = $processos->filter(fn($p) => 
+                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
+            );
         }
 
         $total = $processos->count();
