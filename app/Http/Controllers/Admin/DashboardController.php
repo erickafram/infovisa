@@ -359,10 +359,15 @@ class DashboardController extends Controller
             }
         });
         
-        $processos_atribuidos = $processos_atribuidos_query
-            ->orderBy('responsavel_desde', 'desc')
-            ->take(10)
-            ->get();
+        // Buscar todos e ordenar: processos diretos primeiro, depois por data
+        $processos_atribuidos_todos = $processos_atribuidos_query->get();
+        
+        $processos_atribuidos = $processos_atribuidos_todos->sortBy([
+            // Primeiro: processos diretos (0) antes de processos do setor (1)
+            fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
+            // Segundo: mais recentes primeiro (negativo do timestamp)
+            fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
+        ])->take(10)->values();
         
         // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
