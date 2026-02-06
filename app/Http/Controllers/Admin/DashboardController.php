@@ -215,12 +215,16 @@ class DashboardController extends Controller
             $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
         } elseif ($usuario->isEstadual()) {
             // Estadual vê apenas de competência estadual
-            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(fn($e) => $e->isCompetenciaEstadual());
+            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(function($e) {
+                try { return $e->isCompetenciaEstadual(); } catch (\Exception $ex) { return false; }
+            });
             $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
         } elseif ($usuario->isMunicipal()) {
             // Municipal vê apenas de competência municipal do seu município
             $municipioId = $usuario->municipio_id;
-            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(fn($e) => $e->municipio_id == $municipioId && $e->isCompetenciaMunicipal());
+            $estabelecimentosPendentes = $estabelecimentosPendentes->filter(function($e) use ($municipioId) {
+                try { return $e->municipio_id == $municipioId && $e->isCompetenciaMunicipal(); } catch (\Exception $ex) { return false; }
+            });
             $estabelecimentosPendentesCount = $estabelecimentosPendentes->count();
         } else {
             $estabelecimentosPendentesCount = 0;
@@ -362,13 +366,15 @@ class DashboardController extends Controller
         
         // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
-            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
-                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
-            );
+            $processos_atribuidos = $processos_atribuidos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) return true;
+                try { return $p->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
         } elseif ($usuario->isMunicipal()) {
-            $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
-                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
-            );
+            $processos_atribuidos = $processos_atribuidos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) return true;
+                try { return $p->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
         }
         
         $stats['processos_atribuidos'] = Processo::whereNotIn('status', ['arquivado', 'concluido'])
@@ -456,11 +462,19 @@ class DashboardController extends Controller
         
         // Filtrar por competência em memória (lógica complexa baseada em atividades)
         if ($usuario->isEstadual()) {
-            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
-            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
         } elseif ($usuario->isMunicipal()) {
-            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
-            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+            $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
         }
         
         $stats['documentos_pendentes_aprovacao'] = $documentos_pendentes_aprovacao->count();
@@ -586,11 +600,19 @@ class DashboardController extends Controller
 
         // Filtrar por competência em memória (lógica complexa de atividades)
         if ($usuario->isEstadual()) {
-            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
-            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+            $documentos_pendentes = $documentos_pendentes->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
         } elseif ($usuario->isMunicipal()) {
-            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
-            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+            $documentos_pendentes = $documentos_pendentes->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
         }
 
         // Agrupar documentos por processo
@@ -810,13 +832,15 @@ class DashboardController extends Controller
 
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
         if ($usuario->isEstadual()) {
-            $processos = $processos->filter(fn($p) => 
-                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
-            );
+            $processos = $processos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) return true;
+                try { return $p->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
         } elseif ($usuario->isMunicipal()) {
-            $processos = $processos->filter(fn($p) => 
-                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
-            );
+            $processos = $processos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) return true;
+                try { return $p->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
         }
 
         $total = $processos->count();
@@ -955,11 +979,19 @@ class DashboardController extends Controller
 
         // Filtrar por competência em memória (lógica complexa de atividades)
         if ($usuario->isEstadual()) {
-            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
-            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+            $documentos_pendentes = $documentos_pendentes->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
+            });
         } elseif ($usuario->isMunicipal()) {
-            $documentos_pendentes = $documentos_pendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
-            $respostas_pendentes = $respostas_pendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+            $documentos_pendentes = $documentos_pendentes->filter(function($d) {
+                try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
+            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
+                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
+            });
         }
 
         // Agrupar documentos por processo
