@@ -1342,7 +1342,7 @@
                                     {{-- Layout Flex: Título+Data | Opções --}}
                                     <div class="flex items-start justify-between gap-3">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
-                                        <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }})" 
+                                        <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }}, '{{ addslashes($documento->nome_original) }}')" 
                                              class="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
                                             {{-- Ícone por tipo de arquivo --}}
                                             <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1921,12 +1921,26 @@
             <div class="bg-white h-full flex flex-col" @click.stop>
                     {{-- Header Compacto --}}
                     <div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
-                        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <svg class="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
-                            Visualizar PDF
-                        </h3>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-sm font-semibold text-gray-900">Visualizar PDF</span>
+                                    <template x-if="documentoNomeAnotacoes">
+                                        <span class="text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded font-medium truncate max-w-[300px]" x-text="documentoNomeAnotacoes"></span>
+                                    </template>
+                                </div>
+                                <div class="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5 flex-wrap">
+                                    <span class="font-medium text-gray-700">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social }}</span>
+                                    <span class="text-gray-300">|</span>
+                                    <span>{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}: {{ $estabelecimento->documento_formatado }}</span>
+                                    <span class="text-gray-300">|</span>
+                                    <span class="truncate max-w-[400px]">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }} - {{ $estabelecimento->bairro }}, {{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="flex items-center gap-2">
                             {{-- Botões Aprovar/Rejeitar (só aparecem se documento é externo e pendente) --}}
@@ -3252,6 +3266,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 pdfUrl: '',
                 pdfUrlAnotacoes: '',
                 documentoIdAnotacoes: null,
+                documentoNomeAnotacoes: '',
                 documentoPendente: false, // Se o documento é externo e pendente de aprovação
                 documentoEditando: null,
                 nomeEditando: '',
@@ -3634,10 +3649,11 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 },
 
                 // Abre o visualizador de PDF com ferramentas de anotação
-                async abrirVisualizadorAnotacoes(documentoId, pdfUrl, isPendente = false) {
+                async abrirVisualizadorAnotacoes(documentoId, pdfUrl, isPendente = false, nomeDocumento = '') {
                     this.documentoIdAnotacoes = documentoId;
                     this.pdfUrlAnotacoes = pdfUrl;
                     this.documentoPendente = isPendente;
+                    this.documentoNomeAnotacoes = nomeDocumento;
                     this.modalVisualizadorAnotacoes = true;
                     
                     // Notificar que o modal PDF foi aberto
@@ -3708,6 +3724,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     // Limpa as variáveis do documento para forçar recarregamento
                     this.documentoIdAnotacoes = null;
                     this.pdfUrlAnotacoes = '';
+                    this.documentoNomeAnotacoes = '';
                     // Dispara evento para notificar que o modal PDF foi fechado
                     window.dispatchEvent(new CustomEvent('pdf-modal-fechado'));
                 },
