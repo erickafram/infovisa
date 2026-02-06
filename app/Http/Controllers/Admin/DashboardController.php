@@ -363,11 +363,11 @@ class DashboardController extends Controller
         // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
             $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
-                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
+                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
             );
         } elseif ($usuario->isMunicipal()) {
             $processos_atribuidos = $processos_atribuidos->filter(fn($p) => 
-                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
+                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
             );
         }
         
@@ -811,11 +811,11 @@ class DashboardController extends Controller
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
         if ($usuario->isEstadual()) {
             $processos = $processos->filter(fn($p) => 
-                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
+                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaEstadual()
             );
         } elseif ($usuario->isMunicipal()) {
             $processos = $processos->filter(fn($p) => 
-                $p->responsavel_atual_id === $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
+                $p->responsavel_atual_id == $usuario->id || $p->estabelecimento->isCompetenciaMunicipal()
             );
         }
 
@@ -840,7 +840,7 @@ class DashboardController extends Controller
             }
             
             // Verifica se é processo direto do usuário ou apenas do setor
-            $isMeuDireto = $proc->responsavel_atual_id === $usuario->id;
+            $isMeuDireto = $proc->responsavel_atual_id == $usuario->id;
             $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
             
             // Calcula informações de documentos
