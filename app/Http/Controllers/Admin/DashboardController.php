@@ -1220,4 +1220,99 @@ class DashboardController extends Controller
             'contadores' => $contadores,
         ]);
     }
+
+    /**
+     * Retorna ordens de serviço com atividades não encerradas após 15 dias do prazo
+     * Apenas para gestores e administradores
+     */
+    public function ordensServicoVencidas()
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Verifica se é gestor ou admin
+        if (!$usuario->isGestor() && !$usuario->isAdmin()) {
+            return response()->json([]);
+        }
+
+        // Busca OSs em andamento que passaram 15 dias da data_fim
+        $dataLimite = now()->subDays(15);
+        
+        $query = OrdemServico::where('status', 'em_andamento')
+            ->whereNotNull('data_fim')
+            ->where('data_fim', '<', $dataLimite)
+            ->with(['estabelecimento', 'processo', 'municipio']);
+
+        // Filtrar por competência
+        if ($usuario->isEstadual()) {
+            $query->where('competencia', 'estadual');
+        } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+
+        $ordensVencidas = $query->orderBy('data_fim', 'asc')->get();
+
+        // Se for gestor (não admin), filtrar apenas OS cujos técnicos pertencem ao setor do gestor
+        if ($usuario->isGestor() && !$usuario->isAdmin()) {
+            $setorGestor = $usuario->setor;
+            
+            if ($setorGestor) {
+                // Buscar IDs dos técnicos que pertencem ao mesmo setor do gestor
+                $tecnicosDoSetor = UsuarioInterno::where('setor', $setorGestor)
+                    ->where('ativo', true)
+                    ->pluck('id')
+                    ->toArray();
+
+                $ordensVencidas = $ordensVencidas->filter(function($os) use ($tecnicosDoSetor) {
+                    // Coletar todos os IDs de técnicos da OS
+                    $tecnicosOs = [];
+                    
+                    if ($os->atividades_tecnicos) {
+                        foreach ($os->atividades_tecnicos as $atividade) {
+                            if (isset($atividade['tecnicos']) && is_array($atividade['tecnicos'])) {
+                                $tecnicosOs = array_merge($tecnicosOs, $atividade['tecnicos']);
+                            }
+                        }
+                    }
+                    
+                    if (empty($tecnicosOs) && $os->tecnicos_ids) {
+                        $tecnicosOs = $os->tecnicos_ids;
+                    }
+
+                    // Se a OS não tem técnicos, ainda mostrar para o gestor
+                    if (empty($tecnicosOs)) {
+                        return true;
+                    }
+
+                    // Verificar se pelo menos um técnico da OS pertence ao setor do gestor
+                    return !empty(array_intersect($tecnicosOs, $tecnicosDoSetor));
+                });
+            }
+        }
+
+        // Mapear dados com informações dos técnicos que não finalizaram
+        $dados = $ordensVencidas->values()->map(function($os) {
+            // Buscar técnicos usando o accessor
+            $tecnicos = $os->getTodosTenicosAttribute();
+            $tecnicosNomes = $tecnicos->pluck('nome')->toArray();
+            
+            // Calcular dias de atraso (inteiro, sempre positivo)
+            $diasAtraso = (int) abs(now()->diffInDays(\Carbon\Carbon::parse($os->data_fim)));
+            
+            return [
+                'id' => $os->id,
+                'numero' => $os->numero,
+                'estabelecimento' => $os->estabelecimento->nome_fantasia ?? $os->estabelecimento->razao_social ?? 'Sem estabelecimento',
+                'estabelecimento_id' => $os->estabelecimento_id,
+                'processo_numero' => $os->processo->numero_processo ?? null,
+                'processo_id' => $os->processo_id,
+                'data_fim' => $os->data_fim->format('d/m/Y'),
+                'dias_atraso' => $diasAtraso,
+                'tecnicos' => $tecnicosNomes,
+                'tecnicos_count' => count($tecnicosNomes),
+                'url' => route('admin.ordens-servico.show', $os->id),
+            ];
+        });
+
+        return response()->json($dados);
+    }
 }

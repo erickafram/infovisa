@@ -8,6 +8,8 @@ use App\Models\Processo;
 use App\Models\ProcessoAlerta;
 use App\Models\ProcessoDocumento;
 use App\Models\DocumentoDigital;
+use App\Models\DocumentoAjuda;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -104,5 +106,24 @@ class DashboardController extends Controller
             'documentosRejeitados',
             'documentosComPrazo'
         ));
+    }
+
+    /**
+     * Visualizar um documento de ajuda (PDF) - acesso global sem contexto de processo
+     */
+    public function visualizarDocumentoAjuda($documentoId)
+    {
+        $documento = DocumentoAjuda::ativos()->findOrFail($documentoId);
+
+        if (!Storage::disk('local')->exists($documento->arquivo)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        $caminho = Storage::disk('local')->path($documento->arquivo);
+
+        return response()->file($caminho, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"',
+        ]);
     }
 }

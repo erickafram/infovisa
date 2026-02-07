@@ -93,6 +93,7 @@
                 sidebarOpen: false,
                 sidebarExpanded: initialExpanded,
                 userMenuOpen: false,
+                helpMenuOpen: false,
                 isMobile: window.innerWidth < 1024,
                 
                 init() {
@@ -311,9 +312,69 @@
                     </div>
 
                     <div class="flex items-center gap-2">
+                        {{-- Botão de Ajuda (?) - Documentos Instrutivos --}}
+                        @if(isset($documentosAjuda) && $documentosAjuda->count() > 0)
+                        <div class="relative" @click.away="helpMenuOpen = false">
+                            <button @click="helpMenuOpen = !helpMenuOpen; userMenuOpen = false"
+                                    class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    title="Documentos de Ajuda">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </button>
+
+                            <div x-show="helpMenuOpen"
+                                 x-cloak
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 class="origin-top-right absolute right-0 mt-2 w-80 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                <div class="px-4 py-3 border-b border-gray-200 bg-blue-50 rounded-t-lg">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                        </svg>
+                                        <div>
+                                            <h3 class="font-semibold text-sm text-blue-900">Documentos de Ajuda</h3>
+                                            <p class="text-xs text-blue-600">Instrutivos e manuais do sistema</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="max-h-80 overflow-y-auto py-1">
+                                    @foreach($documentosAjuda as $docAjuda)
+                                    <a href="{{ route('company.documentos-ajuda.visualizar', $docAjuda->id) }}" 
+                                       target="_blank"
+                                       class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">{{ $docAjuda->titulo }}</p>
+                                            @if($docAjuda->descricao)
+                                            <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ $docAjuda->descricao }}</p>
+                                            @endif
+                                            <p class="text-xs text-gray-400 mt-1">{{ $docAjuda->tamanho_formatado }}</p>
+                                        </div>
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                        </div>
+                                    </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         {{-- Menu do usuário --}}
                         <div class="relative" @click.away="userMenuOpen = false">
-                            <button @click="userMenuOpen = !userMenuOpen"
+                            <button @click="userMenuOpen = !userMenuOpen; helpMenuOpen = false"
                                     class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 px-2 py-1 hover:bg-gray-100 transition-colors">
                                 <div class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center mr-2">
                                     <span class="text-white font-medium text-sm">

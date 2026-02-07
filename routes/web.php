@@ -136,6 +136,9 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     // Documento de Ajuda (PDF)
     Route::get('/processos/{id}/documento-ajuda/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumentoAjuda'])->name('processos.documento-ajuda');
     
+    // Documentos de Ajuda (listagem global e visualização)
+    Route::get('/documentos-ajuda/{documento}/visualizar', [\App\Http\Controllers\Company\DashboardController::class, 'visualizarDocumentoAjuda'])->name('documentos-ajuda.visualizar');
+    
     // Alertas do processo
     Route::get('/alertas', [\App\Http\Controllers\Company\ProcessoController::class, 'alertasIndex'])->name('alertas.index');
     Route::post('/processos/{id}/alertas/{alerta}/concluir', [\App\Http\Controllers\Company\ProcessoController::class, 'concluirAlerta'])->name('processos.alertas.concluir');
@@ -158,6 +161,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/tarefas', [DashboardController::class, 'tarefasPaginadas'])->name('dashboard.tarefas');
     Route::get('/dashboard/processos-atribuidos', [DashboardController::class, 'processosAtribuidosPaginados'])->name('dashboard.processos-atribuidos');
+    Route::get('/dashboard/ordens-servico-vencidas', [DashboardController::class, 'ordensServicoVencidas'])->name('dashboard.ordens-servico-vencidas');
     Route::get('/dashboard/todas-tarefas', [DashboardController::class, 'todasTarefas'])->name('dashboard.todas-tarefas');
     Route::get('/dashboard/todas-tarefas-paginadas', [DashboardController::class, 'todasTarefasPaginadas'])->name('dashboard.todas-tarefas-paginadas');
 
@@ -252,6 +256,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/assinatura/salvar-senha', [\App\Http\Controllers\AssinaturaDigitalController::class, 'salvarSenha'])->name('assinatura.salvar-senha');
     Route::get('/assinatura/pendentes', [\App\Http\Controllers\AssinaturaDigitalController::class, 'documentosPendentes'])->name('assinatura.pendentes');
     Route::get('/assinatura/assinar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'assinar'])->name('assinatura.assinar');
+    Route::get('/assinatura/visualizar-pdf/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'visualizarPdf'])->name('assinatura.visualizar-pdf');
     Route::post('/assinatura/processar/{documentoId}', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processar'])->name('assinatura.processar');
     Route::post('/assinatura/processar-lote', [\App\Http\Controllers\AssinaturaDigitalController::class, 'processarLote'])->name('assinatura.processar-lote');
     Route::get('/documentos/{id}/pdf', [\App\Http\Controllers\DocumentoDigitalController::class, 'gerarPdf'])->name('documentos.pdf');

@@ -55,6 +55,7 @@ storage/logs/*.log
 # Storage - Documentos e backups
 storage/app/public/documentos/
 storage/backups/
+storage/debugbar/
 
 # Homestead
 Homestead.json

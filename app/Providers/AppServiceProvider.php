@@ -6,7 +6,9 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use App\Models\OrdemServico;
+use App\Models\DocumentoAjuda;
 use App\Observers\OrdemServicoObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -67,5 +69,10 @@ class AppServiceProvider extends ServiceProvider
         
         // Registra Observer de OrdemServico
         OrdemServico::observe(OrdemServicoObserver::class);
+
+        // Compartilha documentos de ajuda com o layout company
+        View::composer('layouts.company', function ($view) {
+            $view->with('documentosAjuda', DocumentoAjuda::ativos()->ordenado()->get());
+        });
     }
 }

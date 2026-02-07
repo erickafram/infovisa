@@ -128,6 +128,73 @@ class AssinaturaDigitalController extends Controller
     }
 
     /**
+     * Visualiza o documento em PDF antes de assinar
+     */
+    public function visualizarPdf($documentoId)
+    {
+        $usuario = auth('interno')->user();
+        
+        $documento = DocumentoDigital::with([
+            'tipoDocumento',
+            'processo.tipoProcesso',
+            'processo.estabelecimento.responsaveis',
+            'processo.estabelecimento.municipio',
+        ])->findOrFail($documentoId);
+
+        // Verifica se o usuário está na lista de assinantes
+        $assinatura = DocumentoAssinatura::where('documento_digital_id', $documentoId)
+            ->where('usuario_interno_id', $usuario->id)
+            ->firstOrFail();
+
+        // Determina qual logomarca usar
+        $logomarca = null;
+        if ($documento->processo && $documento->processo->estabelecimento) {
+            $estabelecimento = $documento->processo->estabelecimento;
+            
+            $municipioObj = null;
+            if ($estabelecimento->municipio_id) {
+                if ($estabelecimento->relationLoaded('municipio') && is_object($estabelecimento->getRelation('municipio'))) {
+                    $municipioObj = $estabelecimento->getRelation('municipio');
+                } else {
+                    $municipioObj = \App\Models\Municipio::find($estabelecimento->municipio_id);
+                }
+            }
+            
+            if ($estabelecimento->isCompetenciaEstadual()) {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            } elseif ($estabelecimento->municipio_id && $municipioObj) {
+                if (!empty($municipioObj->logomarca)) {
+                    $logomarca = $municipioObj->logomarca;
+                } else {
+                    $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                }
+            } else {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            }
+        } else {
+            $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        }
+
+        // Prepara dados para o PDF
+        $data = [
+            'documento' => $documento,
+            'estabelecimento' => $documento->processo->estabelecimento ?? null,
+            'processo' => $documento->processo ?? null,
+            'logomarca' => $logomarca,
+        ];
+
+        // Gera o PDF para visualização (sem assinaturas)
+        $pdf = Pdf::loadView('documentos.pdf-preview', $data)
+            ->setPaper('a4', 'portrait')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 15)
+            ->setOption('margin-right', 15);
+
+        return $pdf->stream($documento->numero_documento . '_preview.pdf');
+    }
+
+    /**
      * Processa a assinatura do documento
      */
     public function processar(Request $request, $documentoId)

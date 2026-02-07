@@ -50,8 +50,10 @@
                                 @endif
                             </p>
                             <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                @if($documento->data_vencimento)
                                 <span>Vence: {{ $documento->data_vencimento->format('d/m/Y') }}</span>
                                 <span>•</span>
+                                @endif
                                 <span class="truncate">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->numero }}</span>
                             </div>
                         </div>

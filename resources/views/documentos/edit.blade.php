@@ -53,6 +53,36 @@
                     <span class="font-medium">{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}</span>
                 </div>
             @endif
+            
+            {{-- Aviso sobre edição --}}
+            @if($documento->assinaturas->where('status', 'assinado')->count() === 0)
+            <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm text-blue-900 font-semibold mb-1">Documento editável</p>
+                    <p class="text-sm text-blue-800">
+                        Este documento pode ser editado livremente enquanto não houver assinaturas. Após a primeira assinatura, não será mais possível fazer alterações.
+                    </p>
+                    <p class="text-sm text-blue-700 mt-2">
+                        💡 <strong>Dica:</strong> Se ainda não finalizou as edições, salve como <strong>Rascunho</strong> para continuar editando depois.
+                    </p>
+                </div>
+            </div>
+            @else
+            <div class="mt-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-sm text-amber-900 font-semibold mb-1">Documento bloqueado para edição</p>
+                    <p class="text-sm text-amber-800">
+                        Este documento já possui assinaturas e não pode mais ser editado. Para fazer alterações, será necessário criar um novo documento.
+                    </p>
+                </div>
+            </div>
+            @endif
         </div>
 
     <form method="POST" action="{{ route('admin.documentos.update', $documento->id) }}" @submit="handleSubmit">

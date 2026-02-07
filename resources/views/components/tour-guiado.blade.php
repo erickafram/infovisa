@@ -113,73 +113,106 @@ function tourGuiado() {
             {
                 elemento: null,
                 icone: '👋',
-                iconeBg: 'bg-gradient-to-br from-cyan-100 to-blue-100',
                 titulo: 'Bem-vindo ao InfoVISA!',
                 mensagem: `Olá! Sou o assistente virtual do sistema.<br><br>
-                           Vou te mostrar as principais funcionalidades em <strong>poucos passos</strong>.`,
+                           Vou te mostrar como a <strong>Dashboard</strong> está organizada em <strong>3 colunas</strong>: seus estabelecimentos, processos e pendências.`,
                 dica: 'O tour leva menos de 1 minuto!',
                 posicao: 'centro'
             },
             {
+                elemento: '#tour-stats-cards',
+                icone: '📊',
+                titulo: 'Resumo Rápido',
+                mensagem: `Os 3 cards no topo mostram seus números principais:<br><br>
+                           • <strong class="text-blue-600">Estabelecimentos</strong> — total e status de aprovação<br>
+                           • <strong class="text-purple-600">Processos</strong> — em andamento e concluídos<br>
+                           • <strong class="text-amber-600">Pendências</strong> — itens que precisam da sua atenção`,
+                dica: 'Clique em qualquer card para acessar a lista completa.',
+                posicao: 'baixo'
+            },
+            {
                 elemento: '#tour-novo-cadastro',
-                icone: '📝',
-                iconeBg: 'bg-gradient-to-br from-green-100 to-emerald-100',
-                titulo: 'Cadastre seu Estabelecimento',
-                mensagem: `Clique aqui para cadastrar um <strong>novo estabelecimento</strong>.<br><br>
-                           Você pode registrar empresas (CNPJ) ou autônomos (CPF).`,
+                icone: '🏢',
+                titulo: 'Meus Estabelecimentos',
+                mensagem: `Esta coluna mostra todos os seus <strong>estabelecimentos cadastrados</strong>.<br><br>
+                           • Use o botão verde <strong>"Novo Estabelecimento"</strong> para cadastrar<br>
+                           • Acompanhe o <strong>status</strong> de cada um (Aprovado, Pendente, Rejeitado)<br>
+                           • Clique em qualquer item para ver detalhes`,
                 dica: 'Tenha em mãos: CNPJ/CPF, endereço completo e contato.',
                 posicao: 'direita'
             },
             {
-                elemento: '#tour-meus-estabelecimentos',
-                icone: '🏢',
-                iconeBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
-                titulo: 'Seus Estabelecimentos',
-                mensagem: `Visualize todos os seus estabelecimentos cadastrados.<br><br>
-                           Acompanhe o <strong>status de aprovação</strong> e gerencie os dados.`,
-                posicao: 'baixo'
-            },
-            {
                 elemento: '#tour-meus-processos',
                 icone: '📋',
-                iconeBg: 'bg-gradient-to-br from-purple-100 to-violet-100',
-                titulo: 'Processos de Licenciamento',
-                mensagem: `Aqui você acessa seus processos sanitários.<br><br>
-                           <strong>Envie documentos</strong> obrigatórios e acompanhe cada etapa.`,
+                titulo: 'Meus Processos',
+                mensagem: `Aqui ficam seus <strong>processos sanitários</strong>:<br><br>
+                           • Processos de <strong>licenciamento</strong> e outros<br>
+                           • <strong>Envie documentos</strong> obrigatórios clicando no processo<br>
+                           • Acompanhe cada etapa pelo <strong>status</strong> do processo`,
                 dica: 'Documentos devem ser em PDF, máximo 10MB.',
-                posicao: 'baixo'
+                posicao: 'esquerda'
             },
             {
                 elemento: '#tour-alertas',
                 icone: '⚠️',
-                iconeBg: 'bg-gradient-to-br from-amber-100 to-orange-100',
-                titulo: 'Atenção às Pendências!',
-                mensagem: `Esta área mostra itens que precisam da sua ação:<br><br>
-                           • Documentos <strong>rejeitados</strong> para correção<br>
-                           • Notificações com <strong>prazo</strong> definido<br>
-                           • Novos documentos emitidos`,
-                dica: 'Verifique diariamente para evitar problemas!',
+                titulo: 'Pendências',
+                mensagem: `O card de pendências mostra o <strong>total de itens</strong> que precisam da sua ação.<br><br>
+                           Clique nele para ir à página de alertas e ver tudo em detalhes.`,
+                dica: 'Verifique diariamente para evitar problemas e penalidades!',
                 posicao: 'baixo'
             },
             {
+                elemento: '#tour-docs-rejeitados',
+                icone: '❌',
+                titulo: 'Documentos Rejeitados',
+                mensagem: `Quando a vigilância <strong>rejeita um documento</strong> que você enviou, ele aparece aqui.<br><br>
+                           • Veja o <strong>motivo da rejeição</strong> em cada item<br>
+                           • Clique no botão <strong>"Corrigir"</strong> para reenviar<br>
+                           • O processo só avança após a correção`,
+                dica: 'Corrija o mais rápido possível para não atrasar seu processo!',
+                posicao: 'esquerda'
+            },
+            {
+                elemento: '#tour-novos-docs',
+                icone: '📄',
+                titulo: 'Novos Documentos',
+                mensagem: `Aqui aparecem <strong>documentos emitidos pela vigilância</strong> para você:<br><br>
+                           • Licenças, alvarás e autorizações<br>
+                           • Notificações e intimações<br>
+                           • Clique em <strong>"Visualizar"</strong> para abrir o PDF`,
+                dica: 'Documentos com prazo exigem resposta — fique atento às datas!',
+                posicao: 'esquerda'
+            },
+            {
+                elemento: '#tour-alertas-prazo',
+                icone: '🚨',
+                titulo: 'Alertas com Prazo',
+                mensagem: `Alertas são avisos importantes da vigilância que possuem <strong>prazo para resolver</strong>:<br><br>
+                           • Cada alerta tem uma <strong>data limite</strong> para cumprimento<br>
+                           • Alertas <strong class="text-red-600">vencidos</strong> ficam em vermelho<br>
+                           • O não cumprimento pode gerar <strong>penalidades</strong>`,
+                dica: 'Resolva os alertas antes do prazo para evitar sanções!',
+                posicao: 'esquerda'
+            },
+            {
                 elemento: '#tour-estatisticas',
-                icone: '📊',
-                iconeBg: 'bg-gradient-to-br from-slate-100 to-gray-100',
-                titulo: 'Resumo Geral',
-                mensagem: `Veja rapidamente a situação dos seus:<br><br>
-                           • Estabelecimentos cadastrados<br>
-                           • Processos em andamento<br>
-                           • Status geral do sistema`,
+                icone: '⚡',
+                titulo: 'Acesso Rápido',
+                mensagem: `Atalhos para as funcionalidades mais usadas:<br><br>
+                           • <strong>Novo Cadastro</strong> — cadastrar estabelecimento<br>
+                           • <strong>Estabelecimentos</strong> — ver todos os cadastros<br>
+                           • <strong>Processos</strong> — acompanhar processos<br>
+                           • <strong>Meu Perfil</strong> — atualizar seus dados`,
                 posicao: 'cima'
             },
             {
                 elemento: null,
                 icone: '🚀',
-                iconeBg: 'bg-gradient-to-br from-green-100 to-emerald-100',
                 titulo: 'Tudo Pronto!',
-                mensagem: `Você já conhece o básico do sistema!<br><br>
-                           Qualquer dúvida, entre em contato com a <strong>Vigilância Sanitária</strong> do seu município.`,
-                dica: 'Você pode rever este guia clicando em "Ver Tour Novamente".',
+                mensagem: `Agora você conhece a dashboard!<br><br>
+                           Use o <strong>menu lateral</strong> para acessar as demais funcionalidades.<br>
+                           E lembre-se: o botão <strong>"Rever Tour"</strong> no rodapé repete este guia a qualquer momento.`,
+                dica: 'Qualquer dúvida, entre em contato com a Vigilância Sanitária do seu município.',
                 posicao: 'centro'
             }
         ],

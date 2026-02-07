@@ -1439,6 +1439,14 @@ class ProcessoController extends Controller
             'aprovado_em' => now(),
         ]);
         
+        // Retorna JSON se for requisição AJAX
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Documento aprovado com sucesso!'
+            ]);
+        }
+        
         return redirect()
             ->back()
             ->with('success', 'Documento aprovado com sucesso!');
@@ -1463,6 +1471,14 @@ class ProcessoController extends Controller
             'aprovado_por' => auth('interno')->id(),
             'aprovado_em' => now(),
         ]);
+        
+        // Retorna JSON se for requisição AJAX
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Documento rejeitado. O usuário externo será notificado.'
+            ]);
+        }
         
         return redirect()
             ->back()
@@ -1574,6 +1590,14 @@ class ProcessoController extends Controller
         // Registrar evento no histórico
         ProcessoEvento::registrarRespostaAprovada($processo, $resposta);
 
+        // Retorna JSON se for requisição AJAX
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resposta aprovada com sucesso!'
+            ]);
+        }
+
         return redirect()
             ->back()
             ->with('success', 'Resposta aprovada com sucesso!');
@@ -1605,6 +1629,14 @@ class ProcessoController extends Controller
         
         // Registrar evento no histórico
         ProcessoEvento::registrarRespostaRejeitada($processo, $resposta, $request->motivo_rejeicao);
+
+        // Retorna JSON se for requisição AJAX
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resposta rejeitada. O estabelecimento será notificado.'
+            ]);
+        }
 
         return redirect()
             ->back()
