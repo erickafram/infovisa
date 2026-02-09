@@ -18,6 +18,12 @@
                  avisoDareDocId: null,
                  avisoDareDocNome: '',
                  avisoDareTipo: '',
+                 notificarUpload(documento) {
+                     if (!documento) return;
+                     window.dispatchEvent(new CustomEvent('company:documento-enviado', {
+                         detail: { documento }
+                     }));
+                 },
                  mostrarAvisoDare(docId, docNome, tipo) {
                      // Aviso temporariamente desabilitado - abrir seletor de arquivo diretamente
                      const input = document.getElementById('file_doc_' + docId);
@@ -79,6 +85,10 @@
                          });
                          
                          if (response.ok) {
+                             const data = await response.json();
+                             if (data && data.documento) {
+                                 this.notificarUpload(data.documento);
+                             }
                              this.documentosEnviados[docId] = true;
                              delete this.arquivosObrigatorios[docId];
                              this.arquivosObrigatorios = {...this.arquivosObrigatorios};
@@ -149,6 +159,10 @@
                          });
                          
                          if (response.ok) {
+                             const data = await response.json();
+                             if (data && data.documento) {
+                                 this.notificarUpload(data.documento);
+                             }
                              this.resetFileDiverso();
                              this.tipoDocDiverso = '';
                              alert('Documento enviado com sucesso!');
@@ -612,6 +626,15 @@
                                      });
                                      
                                      if (response.ok) {
+                                         let data = null;
+                                         try {
+                                             data = await response.json();
+                                         } catch (e) {
+                                             data = null;
+                                         }
+                                         if (data && data.documento) {
+                                             this.notificarUpload(data.documento);
+                                         }
                                          sucessos++;
                                      } else {
                                          erros++;

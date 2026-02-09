@@ -313,6 +313,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/download', [\App\Http\Controllers\ProcessoController::class, 'downloadRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.download');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/aprovar', [\App\Http\Controllers\ProcessoController::class, 'aprovarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.aprovar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/rejeitar', [\App\Http\Controllers\ProcessoController::class, 'rejeitarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.rejeitar');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/revalidar', [\App\Http\Controllers\ProcessoController::class, 'revalidarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.revalidar');
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/excluir', [\App\Http\Controllers\ProcessoController::class, 'excluirRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.excluir');
     
     // Finalizar/Reabrir prazo de documentos digitais

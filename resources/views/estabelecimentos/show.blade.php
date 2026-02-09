@@ -441,16 +441,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($processosAtivos as $processo)
                         <a href="{{ route('admin.estabelecimentos.processos.show', [$estabelecimento->id, $processo->id]) }}" 
-                           class="group block bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+                           class="group block bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden">
                             <div class="p-4">
-                                {{-- Header com Status --}}
-                                <div class="flex items-center justify-between mb-3">
+                                {{-- Header com Status e Menu --}}
+                                <div class="flex items-start justify-between mb-4">
                                     @php
                                         $statusColors = [
-                                            'aberto' => 'bg-blue-500 text-white',
-                                            'em_andamento' => 'bg-amber-500 text-white',
-                                            'em_analise' => 'bg-purple-500 text-white',
-                                            'parado' => 'bg-orange-500 text-white',
+                                            'aberto' => 'bg-blue-100 text-blue-700',
+                                            'em_andamento' => 'bg-amber-100 text-amber-700',
+                                            'em_analise' => 'bg-purple-100 text-purple-700',
+                                            'parado' => 'bg-orange-100 text-orange-700',
                                         ];
                                         $statusLabels = [
                                             'aberto' => 'Aberto',
@@ -459,36 +459,43 @@
                                             'parado' => 'Parado',
                                         ];
                                     @endphp
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold {{ $statusColors[$processo->status] ?? 'bg-gray-500 text-white' }} shadow-sm">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColors[$processo->status] ?? 'bg-gray-100 text-gray-700' }}">
                                         {{ $statusLabels[$processo->status] ?? $processo->status }}
                                     </span>
-                                    <span class="text-xs font-bold text-blue-600">{{ $processo->created_at->format('Y') }}</span>
-                                </div>
-                                
-                                {{-- Número do Processo --}}
-                                <div class="text-center mb-3">
-                                    <p class="text-sm font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
-                                        {{ $processo->numero }}
-                                    </p>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                                        </svg>
+                                    </button>
                                 </div>
                                 
                                 {{-- Tipo do Processo --}}
-                                <div class="text-center mb-3 px-2">
-                                    <p class="text-xs text-gray-700 line-clamp-2 min-h-[2.5rem]">
+                                <div class="mb-3">
+                                    <p class="text-sm font-medium text-gray-700 uppercase tracking-wide">
                                         {{ $processo->tipoProcesso->nome ?? 'Sem tipo' }}
                                     </p>
                                 </div>
                                 
-                                {{-- Footer com Data --}}
-                                <div class="pt-3 border-t border-blue-200">
-                                    <div class="flex items-center justify-between text-[10px]">
-                                        <span class="text-gray-600 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            {{ $processo->created_at->format('d/m/Y') }}
-                                        </span>
-                                        <span class="text-gray-500">{{ $processo->created_at->diffForHumans() }}</span>
+                                {{-- Número do Processo --}}
+                                <div class="mb-4">
+                                    <p class="text-2xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors">
+                                        {{ $processo->numero }}
+                                    </p>
+                                </div>
+                                
+                                {{-- Footer com Informações --}}
+                                <div class="space-y-2 pt-3 border-t border-gray-100">
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span>Criado em: {{ $processo->created_at->format('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                        </svg>
+                                        <span>Criado por: N/A</span>
                                     </div>
                                 </div>
                             </div>

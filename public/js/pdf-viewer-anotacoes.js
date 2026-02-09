@@ -14,7 +14,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         pdfUrl: pdfUrl,
         currentPage: 1,
         totalPages: 0,
-        scale: 1.0, // Alterado de 1.5 para 1.0 (100%)
+        scale: 1.5, // Zoom padrão de 150%
         canvas: null,
         ctx: null,
         annotationCanvas: null,

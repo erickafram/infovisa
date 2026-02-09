@@ -635,8 +635,16 @@ class ProcessoController extends Controller
                 'message' => 'Arquivo enviado com sucesso!',
                 'documento' => [
                     'id' => $documento->id,
-                    'nome_original' => $nomeOriginal,
+                    'nome_original' => $documento->nome_original,
+                    'extensao' => $documento->extensao,
+                    'tamanho_formatado' => $documento->tamanho_formatado,
+                    'icone' => $documento->icone,
+                    'created_at' => $documento->created_at ? $documento->created_at->format('d/m/Y H:i') : null,
                     'tipo_documento_obrigatorio_id' => $tipoDocumentoId,
+                    'visualizar_url' => route('company.processos.documento.visualizar', [$processo->id, $documento->id]),
+                    'download_url' => route('company.processos.download', [$processo->id, $documento->id]),
+                    'delete_url' => route('company.processos.documento.delete', [$processo->id, $documento->id]),
+                    'pode_excluir' => $documento->usuario_externo_id === $usuarioId,
                 ]
             ]);
         }

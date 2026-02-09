@@ -103,6 +103,7 @@ class DocumentoResposta extends Model
     {
         $this->update([
             'status' => 'aprovado',
+            'motivo_rejeicao' => null,
             'avaliado_por' => $usuarioInternoId,
             'avaliado_em' => now(),
         ]);

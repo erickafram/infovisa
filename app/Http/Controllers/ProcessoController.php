@@ -439,7 +439,39 @@ class ProcessoController extends Controller
             );
         }
 
-        return view('processos.index', compact('processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'processosComPendencias', 'processosComDocsPendentes', 'statusDocsObrigatorios', 'prazoFilaPublica'));
+        // Filtro rápido por status de documentação e atribuicao
+        if ($request->filled('quick')) {
+            $filtroRapido = $request->quick;
+            $processos->setCollection(
+                $processos->getCollection()->filter(function ($processo) use ($statusDocsObrigatorios, $processosComPendencias, $filtroRapido) {
+                    $status = $statusDocsObrigatorios[$processo->id] ?? null;
+
+                    if ($filtroRapido === 'completo') {
+                        return $status && ($status['completo'] ?? false);
+                    }
+
+                    if ($filtroRapido === 'nao_enviado') {
+                        return $status && ($status['nao_enviado'] ?? 0) > 0;
+                    }
+
+                    if ($filtroRapido === 'aguardando') {
+                        return $processosComPendencias->contains($processo->id);
+                    }
+
+                    if ($filtroRapido === 'nao_atribuido') {
+                        return !$processo->responsavel_atual_id && !$processo->setor_atual;
+                    }
+
+                    return true;
+                })
+            );
+        }
+
+        return view('processos.index', compact(
+            'processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 
+            'processosComPendencias', 'processosComDocsPendentes', 'processosComRespostasPendentes',
+            'statusDocsObrigatorios', 'prazoFilaPublica'
+        ));
     }
 
     /**
@@ -1491,10 +1523,20 @@ class ProcessoController extends Controller
     public function revalidarDocumento($estabelecimentoId, $processoId, $documentoId)
     {
         $documento = ProcessoDocumento::where('processo_id', $processoId)
-            ->whereIn('status_aprovacao', ['aprovado', 'rejeitado'])
             ->findOrFail($documentoId);
         
         $statusAnterior = $documento->status_aprovacao;
+
+        if ($statusAnterior === 'pendente') {
+            $mensagem = 'Documento já está pendente.';
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $mensagem
+                ]);
+            }
+            return redirect()->back()->with('info', $mensagem);
+        }
         
         $documento->update([
             'status_aprovacao' => 'pendente',
@@ -1506,6 +1548,13 @@ class ProcessoController extends Controller
         $mensagem = $statusAnterior === 'rejeitado' 
             ? 'Documento rejeitado foi revalidado e voltou para análise (pendente).'
             : 'Documento voltou para análise (pendente).';
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $mensagem
+            ]);
+        }
         
         return redirect()
             ->back()
@@ -1582,7 +1631,6 @@ class ProcessoController extends Controller
             ->findOrFail($documentoId);
 
         $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
-            ->where('status', 'pendente')
             ->findOrFail($respostaId);
 
         $resposta->aprovar(auth('interno')->id());
@@ -1622,7 +1670,6 @@ class ProcessoController extends Controller
             ->findOrFail($documentoId);
 
         $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
-            ->where('status', 'pendente')
             ->findOrFail($respostaId);
 
         $resposta->rejeitar(auth('interno')->id(), $request->motivo_rejeicao);
@@ -1641,6 +1688,43 @@ class ProcessoController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Resposta rejeitada. O estabelecimento será notificado.');
+    }
+
+    /**
+     * Revalida uma resposta aprovada ou rejeitada (volta para pendente)
+     */
+    public function revalidarRespostaDocumento($estabelecimentoId, $processoId, $documentoId, $respostaId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $resposta = DocumentoResposta::where('documento_digital_id', $documento->id)
+            ->whereIn('status', ['aprovado', 'rejeitado'])
+            ->findOrFail($respostaId);
+
+        $resposta->update([
+            'status' => 'pendente',
+            'motivo_rejeicao' => null,
+            'avaliado_por' => null,
+            'avaliado_em' => null,
+        ]);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resposta revalidada. Voltou para pendente.'
+            ]);
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Resposta revalidada. Voltou para pendente.');
     }
 
     /**

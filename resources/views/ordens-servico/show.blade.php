@@ -523,6 +523,8 @@
                             $finalizadaPor = isset($atividade['finalizada_por']) ? \App\Models\UsuarioInterno::find($atividade['finalizada_por']) : null;
                             $finalizadaEm = isset($atividade['finalizada_em']) ? \Carbon\Carbon::parse($atividade['finalizada_em']) : null;
                             $usuarioLogadoAtribuido = in_array(auth('interno')->id(), $tecnicosIds);
+                            $usuarioLogadoResponsavel = $responsavelId && auth('interno')->id() == $responsavelId;
+                            $podeFinalizarAtividade = $usuarioLogadoAtribuido && (count($tecnicosIds) <= 1 || !$responsavelId || $usuarioLogadoResponsavel);
                         @endphp
                         
                         <div class="border rounded-xl overflow-hidden {{ $statusAtividade === 'finalizada' ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-white' }}">
@@ -556,7 +558,7 @@
                                 </div>
                                 
                                 {{-- Botão Finalizar (apenas para técnicos atribuídos e se não finalizada) --}}
-                                @if($statusAtividade !== 'finalizada' && $usuarioLogadoAtribuido && $ordemServico->status === 'em_andamento')
+                                @if($statusAtividade !== 'finalizada' && $podeFinalizarAtividade && $ordemServico->status === 'em_andamento')
                                     <button type="button" 
                                             onclick="abrirModalFinalizarAtividade({{ $index }}, '{{ addslashes($atividade['nome_atividade'] ?? 'Atividade') }}')"
                                             class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
@@ -965,13 +967,12 @@
                 
                 // Mostra mensagem de sucesso
                 if (data.os_finalizada) {
-                    alert('✅ ' + data.message + '\n\n🎉 Todas as atividades foram concluídas! A OS foi finalizada automaticamente.');
+                    abrirModalOsFinalizada();
                 } else {
                     alert('✅ ' + data.message);
+                    // Recarrega a página para atualizar o status
+                    window.location.reload();
                 }
-                
-                // Recarrega a página para atualizar o status
-                window.location.reload();
             } else {
                 // Erro
                 alert('❌ ' + (data.message || 'Erro ao finalizar atividade'));
@@ -989,6 +990,31 @@
         const btnFinalizar = document.getElementById('btnFinalizarAtividade');
         btnFinalizar.disabled = false;
         btnFinalizar.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar';
+    }
+
+    // Aplica textos prontos nas observacoes
+    function aplicarObservacaoPreset(texto) {
+        const campo = document.getElementById('observacoes_atividade');
+        if (!campo) return;
+        const valorAtual = campo.value.trim();
+        campo.value = valorAtual ? (valorAtual + ' ' + texto) : texto;
+        campo.focus();
+    }
+
+    // Modal de OS finalizada
+    function abrirModalOsFinalizada() {
+        const modal = document.getElementById('modalOsFinalizada');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalOsFinalizada() {
+        const modal = document.getElementById('modalOsFinalizada');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        window.location.reload();
     }
 </script>
 @endpush
@@ -1069,17 +1095,17 @@
 
 {{-- Modal Finalizar Atividade Individual --}}
 <div id="modalFinalizarAtividade" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[85vh] overflow-y-auto">
         {{-- Header Clean --}}
-        <div class="sticky top-0 bg-white px-8 py-6 border-b border-gray-100">
+        <div class="sticky top-0 bg-white px-6 py-4 border-b border-gray-100">
             <div class="text-center">
-                <div class="inline-flex items-center justify-center w-12 h-12 bg-green-50 rounded-full mb-3">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-green-50 rounded-full mb-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900">Finalizar Atividade</h3>
-                <p id="nomeAtividadeModal" class="text-sm text-gray-500 mt-1"></p>
+                <h3 class="text-lg font-semibold text-gray-900">Finalizar Atividade</h3>
+                <p id="nomeAtividadeModal" class="text-xs text-gray-500 mt-0.5"></p>
             </div>
             <button type="button" onclick="fecharModalFinalizarAtividade()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1089,24 +1115,24 @@
         </div>
 
         {{-- Form Clean --}}
-        <form id="formFinalizarAtividade" class="px-8 py-6 space-y-6">
+        <form id="formFinalizarAtividade" class="px-6 py-5 space-y-4">
             <input type="hidden" id="atividadeIndex" name="atividade_index" value="">
             
             {{-- Status de Execução --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
                     Status da execução <span class="text-red-500">*</span>
                 </label>
-                <div class="space-y-2.5">
-                    <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition-all group">
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition-all group">
                         <input type="radio" name="status_execucao" value="concluido" required class="w-4 h-4 text-green-600 focus:ring-green-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Concluído com sucesso</span>
                     </label>
-                    <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 hover:bg-yellow-50/50 transition-all group">
+                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 hover:bg-yellow-50/50 transition-all group">
                         <input type="radio" name="status_execucao" value="parcial" required class="w-4 h-4 text-yellow-600 focus:ring-yellow-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Concluído parcialmente</span>
                     </label>
-                    <label class="flex items-center gap-3 p-3.5 border border-gray-200 rounded-lg cursor-pointer hover:border-red-300 hover:bg-red-50/50 transition-all group">
+                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-red-300 hover:bg-red-50/50 transition-all group">
                         <input type="radio" name="status_execucao" value="nao_concluido" required class="w-4 h-4 text-red-600 focus:ring-red-500">
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Não concluído</span>
                     </label>
@@ -1118,18 +1144,36 @@
                 <label for="observacoes_atividade" class="block text-sm font-medium text-gray-700 mb-2">
                     Observações <span class="text-red-500">*</span>
                 </label>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <button type="button" onclick="aplicarObservacaoPreset('Atividade concluida conforme previsto.')"
+                            class="px-2.5 py-1 text-[11px] text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                        Concluida conforme previsto
+                    </button>
+                    <button type="button" onclick="aplicarObservacaoPreset('Concluida com orientacoes prestadas ao responsavel.')"
+                            class="px-2.5 py-1 text-[11px] text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                        Concluida com orientacoes
+                    </button>
+                    <button type="button" onclick="aplicarObservacaoPreset('Atividade parcialmente executada. Pendencias registradas.')"
+                            class="px-2.5 py-1 text-[11px] text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                        Parcial com pendencias
+                    </button>
+                    <button type="button" onclick="aplicarObservacaoPreset('Nao foi possivel concluir. Reagendar necessario.')"
+                            class="px-2.5 py-1 text-[11px] text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                        Nao foi possivel concluir
+                    </button>
+                </div>
                 <textarea 
                     id="observacoes_atividade" 
                     name="observacoes" 
-                    rows="4" 
+                    rows="3" 
                     required
-                    class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none transition-all"
+                    class="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none transition-all"
                     placeholder="Descreva como foi a execução desta atividade..."></textarea>
                 <p class="mt-1.5 text-xs text-gray-400">Mínimo de 10 caracteres</p>
             </div>
 
             {{-- Aviso --}}
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
                 <p class="text-xs text-blue-800">
                     <strong>💡 Informação:</strong> Ao finalizar sua atividade, ela será marcada como concluída. 
                     A OS será automaticamente finalizada quando todas as atividades forem concluídas por seus respectivos técnicos.
@@ -1137,7 +1181,7 @@
             </div>
 
             {{-- Botões Centralizados --}}
-            <div class="flex items-center justify-center gap-3 pt-4">
+            <div class="flex items-center justify-center gap-3 pt-2">
                 <button type="button" 
                         onclick="fecharModalFinalizarAtividade()"
                         class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
@@ -1154,6 +1198,29 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+{{-- Modal OS Finalizada --}}
+<div id="modalOsFinalizada" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full">
+        <div class="px-6 py-5 border-b border-gray-100 text-center">
+            <div class="inline-flex items-center justify-center w-10 h-10 bg-green-50 rounded-full mb-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Ordem de Servico encerrada</h3>
+            <p class="text-sm text-gray-600 mt-1">
+                Atividade finalizada. A ordem de servico foi encerrada.
+            </p>
+        </div>
+        <div class="px-6 py-4 flex items-center justify-center">
+            <button type="button" onclick="fecharModalOsFinalizada()"
+                    class="px-6 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
+                OK
+            </button>
+        </div>
     </div>
 </div>
 @endpush

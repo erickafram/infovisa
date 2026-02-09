@@ -4,7 +4,7 @@
 @section('page-title', 'Detalhes do Processo')
 
 @section('content')
-<div class="space-y-6" x-data="{ modalUpload: false, modalAlertas: false, modalVisualizador: false, documentoUrl: '', documentoNome: '', documentoExtensao: '', modalResposta: false, docRespostaId: null, docRespostaNome: '', modalReenvio: false, docReenvioId: null, docReenvioNome: '', docReenvioMotivo: '' }">
+<div class="space-y-6" x-data="{ modalUpload: false, modalAlertas: false, modalVisualizador: false, documentoUrl: '', documentoNome: '', documentoExtensao: '', modalResposta: false, docRespostaId: null, docRespostaNome: '', modalReenvio: false, docReenvioId: null, docReenvioNome: '', docReenvioMotivo: '' }" data-processo-root>
     {{-- Mensagens --}}
     @if(session('success'))
     <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
@@ -183,7 +183,7 @@
             $documentosComPrazo = $todosDocumentos->filter(function($item) {
                 if($item['tipo'] === 'vigilancia') {
                     $doc = $item['documento'];
-                    return $doc->prazo_dias && !$doc->isPrazoFinalizado() && $doc->status === 'assinado';
+                    return $doc->temPrazo() && !$doc->isPrazoFinalizado() && $doc->status === 'assinado';
                 }
                 return false;
             });
@@ -398,7 +398,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Pendentes</span>
-                        <span class="font-medium text-yellow-600">{{ $documentosPendentes->count() }}</span>
+                        <span id="pendentes-count-resumo" class="font-medium text-yellow-600">{{ $documentosPendentes->count() }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Alertas</span>
@@ -424,20 +424,19 @@
         {{-- Coluna Direita: Documentos --}}
         <div class="flex-1 space-y-4">
             {{-- Documentos Pendentes --}}
-            @if($documentosPendentes->count() > 0)
-            <div class="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
+            <div id="pendentes-wrapper" class="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 overflow-hidden {{ $documentosPendentes->count() > 0 ? '' : 'hidden' }}">
                 <div class="px-4 py-3 border-b border-yellow-200 bg-yellow-100">
                     <h2 class="text-sm font-semibold text-yellow-800 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Aguardando Aprovação
-                        <span class="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">{{ $documentosPendentes->count() }}</span>
+                        <span id="pendentes-count" class="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">{{ $documentosPendentes->count() }}</span>
                     </h2>
                 </div>
-                <div class="divide-y divide-yellow-200">
+                <div id="pendentes-list" class="divide-y divide-yellow-200">
                     @foreach($documentosPendentes as $documento)
-                    <div class="px-4 py-3 flex items-start justify-between hover:bg-yellow-100/50 gap-3">
+                    <div class="px-4 py-3 flex items-start justify-between hover:bg-yellow-100/50 gap-3" data-pendente-doc-id="{{ $documento->id }}">
                         <button type="button" 
                                 @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
                                 class="flex items-start gap-3 text-left flex-1 min-w-0">
@@ -465,7 +464,13 @@
                     @endforeach
                 </div>
             </div>
-            @endif
+            <div id="pendentes-empty" class="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6 text-center {{ $documentosPendentes->count() === 0 ? '' : 'hidden' }}">
+                <svg class="w-10 h-10 text-yellow-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-sm text-yellow-800 font-medium">Nenhum documento pendente no momento</p>
+                <p class="text-xs text-yellow-700 mt-1">Envios recentes aparecem aqui automaticamente.</p>
+            </div>
 
             {{-- Documentos Rejeitados --}}
             @if($documentosRejeitados->count() > 0)
@@ -614,7 +619,7 @@
                                 // Cinza: outros casos
                                 $temRespostaPendente = $docDigital->respostas->where('status', 'pendente')->count() > 0;
                                 $temRespostaRejeitada = $docDigital->respostas->where('status', 'rejeitado')->count() > 0;
-                                $temPrazoPendente = $docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->status === 'assinado';
+                                $temPrazoPendente = $docDigital->temPrazo() && !$docDigital->isPrazoFinalizado() && $docDigital->status === 'assinado';
                                 
                                 if ($temRespostaRejeitada) {
                                     $corBordaDoc = 'border-red-500';
@@ -649,7 +654,7 @@
                                     </a>
                                     <div class="flex items-center gap-2 flex-shrink-0">
                                         {{-- Badge de Prazo --}}
-                                        @if($docDigital->prazo_dias)
+                                        @if($docDigital->temPrazo())
                                             @php
                                                 $corBadge = $docDigital->cor_status_prazo;
                                                 $textoBadge = $docDigital->texto_status_prazo;
@@ -685,6 +690,13 @@
                                             </svg>
                                             Responder
                                         </button>
+                                        @elseif($docDigital->temPrazo() && $docDigital->isPrazoFinalizado())
+                                        <span class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Finalizado
+                                        </span>
                                         @endif
                                     </div>
                                 </div>
@@ -1441,4 +1453,122 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const pendentesWrapper = document.getElementById('pendentes-wrapper');
+        const pendentesList = document.getElementById('pendentes-list');
+        const pendentesCount = document.getElementById('pendentes-count');
+        const pendentesCountResumo = document.getElementById('pendentes-count-resumo');
+        const pendentesEmpty = document.getElementById('pendentes-empty');
+        const csrfToken = '{{ csrf_token() }}';
+
+        const abrirModalDocumento = (doc) => {
+            const root = document.querySelector('[data-processo-root]');
+            if (!root || !window.Alpine) return;
+            const data = window.Alpine.$data(root);
+            if (!data) return;
+            data.documentoUrl = doc.visualizar_url || '';
+            data.documentoNome = doc.nome_original || '';
+            data.documentoExtensao = doc.extensao || '';
+            data.modalVisualizador = true;
+        };
+
+        const criarItemPendente = (doc) => {
+            const item = document.createElement('div');
+            item.className = 'px-4 py-3 flex items-start justify-between hover:bg-yellow-100/50 gap-3';
+            item.dataset.pendenteDocId = doc.id;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'flex items-start gap-3 text-left flex-1 min-w-0';
+            button.addEventListener('click', () => abrirModalDocumento(doc));
+
+            const icon = document.createElement('span');
+            icon.className = 'text-xl flex-shrink-0';
+            icon.textContent = doc.icone || '📄';
+
+            const info = document.createElement('div');
+            info.className = 'min-w-0';
+
+            const nome = document.createElement('p');
+            nome.className = 'text-sm font-medium text-gray-900 hover:text-blue-600 break-words';
+            nome.textContent = doc.nome_original || 'Documento';
+
+            const meta = document.createElement('p');
+            meta.className = 'text-xs text-gray-500';
+            const metaParts = [];
+            if (doc.tamanho_formatado) metaParts.push(doc.tamanho_formatado);
+            if (doc.created_at) metaParts.push(doc.created_at);
+            meta.textContent = metaParts.join(' • ');
+
+            info.appendChild(nome);
+            info.appendChild(meta);
+            button.appendChild(icon);
+            button.appendChild(info);
+
+            const actions = document.createElement('div');
+            actions.className = 'flex items-center gap-2 flex-shrink-0';
+
+            const badge = document.createElement('span');
+            badge.className = 'px-2 py-1 bg-yellow-200 text-yellow-800 text-xs font-medium rounded';
+            badge.textContent = 'Pendente';
+            actions.appendChild(badge);
+
+            if (doc.pode_excluir && doc.delete_url) {
+                const form = document.createElement('form');
+                form.action = doc.delete_url;
+                form.method = 'POST';
+                form.setAttribute('onsubmit', 'return confirm(\'Tem certeza que deseja excluir este arquivo?\')');
+
+                const inputToken = document.createElement('input');
+                inputToken.type = 'hidden';
+                inputToken.name = '_token';
+                inputToken.value = csrfToken;
+
+                const inputMethod = document.createElement('input');
+                inputMethod.type = 'hidden';
+                inputMethod.name = '_method';
+                inputMethod.value = 'DELETE';
+
+                const buttonDelete = document.createElement('button');
+                buttonDelete.type = 'submit';
+                buttonDelete.className = 'p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors';
+                buttonDelete.title = 'Excluir';
+                buttonDelete.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                `;
+
+                form.appendChild(inputToken);
+                form.appendChild(inputMethod);
+                form.appendChild(buttonDelete);
+                actions.appendChild(form);
+            }
+
+            item.appendChild(button);
+            item.appendChild(actions);
+
+            return item;
+        };
+
+        window.addEventListener('company:documento-enviado', (event) => {
+            const doc = event.detail && event.detail.documento ? event.detail.documento : null;
+            if (!doc || !pendentesList || !pendentesCount) return;
+            if (pendentesList.querySelector(`[data-pendente-doc-id="${doc.id}"]`)) return;
+
+            const novoItem = criarItemPendente(doc);
+            pendentesList.prepend(novoItem);
+
+            const atual = parseInt(pendentesCount.textContent || '0', 10) || 0;
+            const novoTotal = atual + 1;
+            pendentesCount.textContent = String(novoTotal);
+            if (pendentesCountResumo) pendentesCountResumo.textContent = String(novoTotal);
+
+            if (pendentesWrapper) pendentesWrapper.classList.remove('hidden');
+            if (pendentesEmpty) pendentesEmpty.classList.add('hidden');
+        });
+    });
+</script>
 @endsection

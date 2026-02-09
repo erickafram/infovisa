@@ -1210,6 +1210,15 @@ class OrdemServicoController extends Controller
                 'message' => 'Você não está atribuído a esta atividade.'
             ], 403);
         }
+
+        // Se houver mais de um técnico e existir responsável, só o responsável pode finalizar
+        $responsavelId = $atividade['responsavel_id'] ?? null;
+        if (count($tecnicosAtividade) > 1 && $responsavelId && $usuario->id !== $responsavelId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Somente o técnico responsável pode finalizar esta atividade.'
+            ], 403);
+        }
         
         // Verifica se a atividade já foi finalizada
         if (($atividade['status'] ?? 'pendente') === 'finalizada') {

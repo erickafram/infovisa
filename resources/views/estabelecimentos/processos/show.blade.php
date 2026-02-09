@@ -393,7 +393,7 @@
     {{-- Alerta de Documentos com Prazo em Aberto --}}
     @php
         $documentosComPrazoAberto = $documentosDigitais->filter(function($doc) {
-            return $doc->prazo_dias && !$doc->isPrazoFinalizado() && $doc->status === 'assinado';
+            return $doc->temPrazo() && !$doc->isPrazoFinalizado() && $doc->status === 'assinado';
         });
     @endphp
     @if($documentosComPrazoAberto->count() > 0)
@@ -794,6 +794,17 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200">
                 {{-- Header da Lista de Documentos --}}
                 <div class="p-6 border-b border-gray-200">
+                    @php
+                        $pendentesDigitais = $documentosDigitais->filter(function ($docDigital) {
+                            return $docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0;
+                        })->count();
+                        $pendentesArquivos = $processo->documentos
+                            ->where('tipo_documento', '!=', 'documento_digital')
+                            ->where('tipo_usuario', 'externo')
+                            ->where('status_aprovacao', 'pendente')
+                            ->count();
+                        $totalPendentes = $pendentesDigitais + $pendentesArquivos;
+                    @endphp
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-bold text-gray-900 flex items-center gap-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -801,6 +812,17 @@
                             </svg>
                             Lista de Documentos/Arquivos
                         </h2>
+                        <button type="button"
+                                @click="statusFiltro = statusFiltro === 'pendente' ? null : 'pendente'"
+                                :class="statusFiltro === 'pendente' ? 'text-yellow-700 bg-yellow-100 border-yellow-200' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border rounded-lg transition-colors">
+                            <i class="far fa-clock" style="font-size: 12px;"></i>
+                            Pendentes
+                            <span class="px-2 py-0.5 text-[10px] rounded-full"
+                                  :class="statusFiltro === 'pendente' ? 'bg-yellow-200 text-yellow-800' : 'bg-gray-200 text-gray-700'">
+                                {{ $totalPendentes }}
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -867,7 +889,7 @@
                                     @endphp
                                 @php
                                     // Determinar cor da borda baseado no status do documento
-                                    $temPrazoAberto = $docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado';
+                                    $temPrazoAberto = $docDigital->temPrazo() && !$docDigital->isPrazoFinalizado() && $docDigital->todasAssinaturasCompletas() && $docDigital->status === 'assinado';
                                     $temRespostasPendentes = $docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0;
                                     $temRespostasAprovadas = $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0;
                                     $totalRespostas = $docDigital->respostas ? $docDigital->respostas->count() : 0;
@@ -897,8 +919,8 @@
                                         $statusGeral = 'outros';
                                     }
                                 @endphp
-                                <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: {{ $temRespostasPendentes ? 'true' : 'false' }} }"
-                                     x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
+                                  <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: {{ $temRespostasPendentes ? 'true' : 'false' }}, statusPendente: {{ $temRespostasPendentes ? 'true' : 'false' }} }"
+                                      x-show="(pastaAtiva === null || pastaAtiva === pastaDocumento) && (statusFiltro === null || (statusFiltro === 'pendente' && statusPendente))"
                                      class="bg-white rounded-lg border border-gray-200 border-l-4 {{ $corBorda }} hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
@@ -1019,15 +1041,15 @@
                                                 </button>
                                             @endif
                                             
-                                            {{-- Botão Resolver --}}
-                                            @if($docDigital->prazo_dias && !$docDigital->isPrazoFinalizado() && $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
+                                            {{-- Botão Encerrar Prazo --}}
+                                            @if($docDigital->temPrazo() && !$docDigital->isPrazoFinalizado() && $docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
                                                 <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit" 
-                                                            class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                                            onclick="return confirm('Marcar prazo como resolvido?')"
-                                                            title="Marcar como resolvido">
-                                                        <i class="far fa-check-circle fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                                            class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
+                                                            onclick="return confirm('Encerrar prazo deste documento?')">
+                                                        <i class="far fa-check-circle" style="font-size: 12px;"></i>
+                                                        Encerrar Prazo
                                                     </button>
                                                 </form>
                                             @endif
@@ -1072,7 +1094,7 @@
                                                             Mover para pasta
                                                         </button>
                                                     @endif
-                                                    @if($docDigital->prazo_dias || $docDigital->data_vencimento)
+                                                    @if($docDigital->temPrazo() || $docDigital->data_vencimento)
                                                         @if($docDigital->isPrazoFinalizado())
                                                             <form action="{{ route('admin.estabelecimentos.processos.documento-digital.reabrir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
                                                                 @csrf
@@ -1082,22 +1104,29 @@
                                                                     Reabrir Prazo
                                                                 </button>
                                                             </form>
-                                                        @elseif(!$docDigital->respostas || $docDigital->respostas->where('status', 'aprovado')->count() == 0)
-                                                            @if($docDigital->primeiraVisualizacao)
-                                                                <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
-                                                                    @csrf
-                                                                    <button type="submit" onclick="return confirm('Finalizar prazo?')"
-                                                                            class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                                                                        <i class="far fa-check-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
-                                                                        Finalizar Prazo
-                                                                    </button>
-                                                                </form>
-                                                            @else
-                                                                <span class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
-                                                                    <i class="far fa-clock fa-fw" style="font-size: 13px;"></i>
-                                                                    Finalizar (aguardando)
-                                                                </span>
-                                                            @endif
+                                                        @elseif($docDigital->respostas && $docDigital->respostas->where('status', 'aprovado')->count() > 0)
+                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
+                                                                @csrf
+                                                                <button type="submit" onclick="return confirm('Encerrar prazo deste documento?')"
+                                                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors">
+                                                                    <i class="far fa-check-circle fa-fw" style="font-size: 13px;"></i>
+                                                                    Encerrar Prazo
+                                                                </button>
+                                                            </form>
+                                                        @elseif($docDigital->primeiraVisualizacao)
+                                                            <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
+                                                                @csrf
+                                                                <button type="submit" onclick="return confirm('Finalizar prazo?')"
+                                                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                                    <i class="far fa-check-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                                    Finalizar Prazo
+                                                                </button>
+                                                            </form>
+                                                        @else
+                                                            <span class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="O documento precisa ser visualizado pelo estabelecimento antes de finalizar o prazo">
+                                                                <i class="far fa-clock fa-fw" style="font-size: 13px;"></i>
+                                                                Finalizar (aguardando)
+                                                            </span>
                                                         @endif
                                                     @endif
                                                     <button @click="excluirDocumentoDigital({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }} - {{ $docDigital->numero_documento }}'); menuAberto = false"
@@ -1171,24 +1200,16 @@
                                                     {{-- Eventos: Respostas --}}
                                                     @if($docDigital->respostas && $docDigital->respostas->count() > 0)
                                                         @foreach($docDigital->respostas->sortBy('created_at') as $resposta)
-                                                        <div class="flex items-start gap-3 relative" x-data="{ showRejeitar: false }">
-                                                            <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 flex-shrink-0
+                                                        <div class="flex items-start gap-3 relative resposta-item" x-data="{ showRejeitar: false }" data-status="{{ $resposta->status }}" data-resposta-id="{{ $resposta->id }}">
+                                                            <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 flex-shrink-0 resposta-status-icon
                                                                 {{ $resposta->status === 'pendente' ? 'bg-yellow-100' : ($resposta->status === 'aprovado' ? 'bg-green-100' : 'bg-red-100') }}">
-                                                                @if($resposta->status === 'pendente')
-                                                                    <svg class="w-3 h-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                                    </svg>
-                                                                @elseif($resposta->status === 'aprovado')
-                                                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                                    </svg>
-                                                                @else
-                                                                    <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                                    </svg>
-                                                                @endif
+                                                                <svg class="w-3 h-3 resposta-status-svg
+                                                                    {{ $resposta->status === 'pendente' ? 'text-yellow-600' : ($resposta->status === 'aprovado' ? 'text-green-600' : 'text-red-600') }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path class="resposta-status-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                          d="{{ $resposta->status === 'pendente' ? 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' : ($resposta->status === 'aprovado' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12') }}" />
+                                                                </svg>
                                                             </div>
-                                                            <div class="flex-1 min-w-0 bg-white rounded-lg border {{ $resposta->status === 'pendente' ? 'border-yellow-200' : ($resposta->status === 'aprovado' ? 'border-green-200' : 'border-red-200') }} p-2">
+                                                            <div class="flex-1 min-w-0 bg-white rounded-lg border resposta-status-border {{ $resposta->status === 'pendente' ? 'border-yellow-200' : ($resposta->status === 'aprovado' ? 'border-green-200' : 'border-red-200') }} p-2">
                                                                 <div class="flex items-center justify-between gap-2">
                                                                     <div class="min-w-0 flex-1">
                                                                         <div class="flex items-center gap-1.5 flex-wrap">
@@ -1197,7 +1218,7 @@
                                                                                     class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate">
                                                                                 📎 {{ $resposta->nome_original }}
                                                                             </button>
-                                                                            <span class="text-[10px] px-1.5 py-0.5 rounded font-medium
+                                                                            <span class="text-[10px] px-1.5 py-0.5 rounded font-medium resposta-status-badge
                                                                                 {{ $resposta->status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : ($resposta->status === 'aprovado' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') }}">
                                                                                 {{ $resposta->status === 'pendente' ? 'Pendente' : ($resposta->status === 'aprovado' ? 'Aprovado' : 'Rejeitado') }}
                                                                             </span>
@@ -1226,8 +1247,14 @@
                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                                                             </svg>
                                                                         </a>
-                                                                        @if($resposta->status === 'pendente')
-                                                                        <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="inline">
+                                                                        <button type="button"
+                                                                                class="p-1 text-gray-600 hover:bg-gray-200 rounded transition-colors btn-revalidar-resposta {{ $resposta->status === 'pendente' ? 'hidden' : '' }}" 
+                                                                                title="Revalidar"
+                                                                                data-revalidar-url="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.revalidar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}">
+                                                                            <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                                                        </button>
+                                                                        <div class="resposta-actions {{ $resposta->status === 'pendente' ? '' : 'hidden' }}">
+                                                                        <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="inline js-resposta-aprovar" data-resposta-id="{{ $resposta->id }}">
                                                                             @csrf
                                                                             <button type="submit" 
                                                                                     class="p-1 text-green-600 hover:bg-green-100 rounded transition-colors" 
@@ -1245,7 +1272,7 @@
                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                                                             </svg>
                                                                         </button>
-                                                                        @endif
+                                                                        </div>
                                                                         <button type="button"
                                                                                 @click="abrirModalExclusao('resposta', {{ $resposta->id }}, '{{ addslashes($resposta->nome_arquivo) }}', '{{ route('admin.estabelecimentos.processos.documento-digital.resposta.excluir', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}')"
                                                                                 class="p-1 text-gray-400 hover:bg-red-100 hover:text-red-600 rounded transition-colors" 
@@ -1258,8 +1285,8 @@
                                                                 </div>
                                                                 
                                                                 {{-- Formulário de rejeição inline --}}
-                                                                <div x-show="showRejeitar" x-transition class="mt-2 pt-2 border-t border-gray-100">
-                                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST">
+                                                                <div x-show="showRejeitar" x-transition class="mt-2 pt-2 border-t border-gray-100 resposta-rejeicao-box">
+                                                                    <form action="{{ route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) }}" method="POST" class="js-resposta-rejeitar" data-resposta-id="{{ $resposta->id }}">
                                                                         @csrf
                                                                         <textarea name="motivo_rejeicao" rows="2" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-red-500 focus:border-red-500" placeholder="Motivo da rejeição..." required></textarea>
                                                                         <div class="flex justify-end gap-1 mt-1">
@@ -1296,7 +1323,8 @@
                                     @php
                                         $os = $item['documento'];
                                     @endphp
-                                <div class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 border-l-blue-500 hover:shadow-md transition-all"
+                                  <div x-show="statusFiltro === null"
+                                      class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 border-l-blue-500 hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
@@ -1337,9 +1365,11 @@
                                         $isCorrecao = $documento->isSubstituicao();
                                         $historicoRejeicoes = $isCorrecao ? $documento->getHistoricoRejeicoes() : collect();
                                     @endphp
-                                <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false }"
-                                     x-show="pastaAtiva === null || pastaAtiva === pastaDocumento"
-                                     class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 {{ $documento->tipo_usuario === 'interno' ? 'border-l-blue-500' : ($documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : ($documento->status_aprovacao === 'aprovado' ? 'border-l-green-500' : 'border-l-gray-300'))) }} hover:shadow-md transition-all"
+                                             <div x-data="{ pastaDocumento: {{ $documento->pasta_id ?? 'null' }}, showHistorico: false, statusPendente: {{ $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }} }"
+                                                 x-show="(pastaAtiva === null || pastaAtiva === pastaDocumento) && (statusFiltro === null || (statusFiltro === 'pendente' && statusPendente))"
+                                      class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 documento-item {{ $documento->tipo_usuario === 'interno' ? 'border-l-blue-500' : ($documento->status_aprovacao === 'rejeitado' ? 'border-l-red-500' : ($documento->status_aprovacao === 'pendente' ? 'border-l-orange-500' : ($documento->status_aprovacao === 'aprovado' ? 'border-l-green-500' : 'border-l-gray-300'))) }} hover:shadow-md transition-all"
+                                      data-doc-id="{{ $documento->id }}"
+                                      data-status="{{ $documento->status_aprovacao ?? '' }}"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
@@ -1373,7 +1403,7 @@
                                                     </span>
                                                     @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                                         @if($documento->status_aprovacao === 'pendente')
-                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold">
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold documento-status-badge">
                                                                 <i class="far fa-clock" style="font-size: 10px;"></i>
                                                                 Pendente
                                                             </span>
@@ -1384,12 +1414,12 @@
                                                                 </span>
                                                             @endif
                                                         @elseif($documento->status_aprovacao === 'aprovado')
-                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold" title="{{ $documento->aprovadoPor ? 'Aprovado por ' . $documento->aprovadoPor->nome . ($documento->aprovado_em ? ' em ' . \Carbon\Carbon::parse($documento->aprovado_em)->format('d/m/Y H:i') : '') : '' }}">
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold documento-status-badge" title="{{ $documento->aprovadoPor ? 'Aprovado por ' . $documento->aprovadoPor->nome . ($documento->aprovado_em ? ' em ' . \Carbon\Carbon::parse($documento->aprovado_em)->format('d/m/Y H:i') : '') : '' }}">
                                                                 <i class="fas fa-check" style="font-size: 10px;"></i>
                                                                 Aprovado{{ $documento->aprovadoPor ? ' - ' . Str::upper(Str::words($documento->aprovadoPor->nome, 1, '')) : '' }}
                                                             </span>
                                                         @elseif($documento->status_aprovacao === 'rejeitado')
-                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold">
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold documento-status-badge">
                                                                 <i class="fas fa-times" style="font-size: 10px;"></i>
                                                                 Rejeitado
                                                             </span>
@@ -1400,33 +1430,22 @@
                                         </div>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-1 flex-shrink-0">
-                                            @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente')
-                                            <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline">
+                                        <div class="flex items-center gap-1 flex-shrink-0 documento-actions">
+                                            @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
+                                            <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline js-doc-aprovar {{ $documento->status_aprovacao === 'pendente' ? '' : 'hidden' }}" data-doc-id="{{ $documento->id }}">
                                                 @csrf
                                                 <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Aprovar">
                                                     <i class="fas fa-check fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
                                             </form>
-                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Rejeitar">
+                                            <button type="button" @click="documentoRejeitando = {{ $documento->id }}; modalRejeitar = true" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors btn-doc-rejeitar {{ $documento->status_aprovacao === 'pendente' ? '' : 'hidden' }}" title="Rejeitar" data-doc-id="{{ $documento->id }}">
                                                 <i class="fas fa-times fa-fw text-gray-500" style="font-size: 15px;"></i>
                                             </button>
-                                            @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'aprovado')
-                                            <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
-                                                  onsubmit="return confirm('Deseja revalidar este documento? Ele voltará para o status Pendente.')">
-                                                @csrf
-                                                <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Revalidar">
-                                                    <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
-                                                </button>
-                                            </form>
-                                            @elseif($documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'rejeitado')
-                                            <form action="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline"
-                                                  onsubmit="return confirm('Deseja revalidar este documento rejeitado? Ele voltará para o status Pendente.')">
-                                                @csrf
-                                                <button type="submit" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Revalidar">
-                                                    <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
-                                                </button>
-                                            </form>
+                                            <button type="button" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors btn-doc-revalidar {{ $documento->status_aprovacao === 'pendente' ? 'hidden' : '' }}" title="Revalidar"
+                                                    data-doc-id="{{ $documento->id }}"
+                                                    data-revalidar-url="{{ route('admin.estabelecimentos.processos.documento.revalidar', [$estabelecimento->id, $processo->id, $documento->id]) }}">
+                                                <i class="fas fa-redo fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                            </button>
                                             @endif
                                             
                                             <a href="{{ route('admin.estabelecimentos.processos.download', [$estabelecimento->id, $processo->id, $documento->id]) }}" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Download">
@@ -1467,7 +1486,7 @@
                                     
                                     {{-- Motivo da Rejeição e Histórico --}}
                                     @if($documento->status_aprovacao === 'rejeitado' && $documento->motivo_rejeicao)
-                                    <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg ml-10">
+                                    <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg ml-10 documento-motivo">
                                         <p class="text-xs text-red-700"><span class="font-semibold">Motivo:</span> {{ $documento->motivo_rejeicao }}</p>
                                     </div>
                                     @endif
@@ -1667,17 +1686,37 @@
                 respostaAtualIndex: 0,
                 showRejeitar: false,
                 viewMode: 'split',
+                splitPercent: 50,
+                isDragging: false,
                 get respostaAtual() { return this.respostas[this.respostaAtualIndex] || null; },
                 init() {
                     this.$watch('respostasDocumentoId', (id) => {
                         if (!id) return;
                         this.showRejeitar = false;
                         this.viewMode = 'split';
+                        this.splitPercent = 50;
                         const allRespostas = JSON.parse(document.getElementById('respostas-data-' + id)?.textContent || '[]');
                         this.respostas = allRespostas;
                         const pendIdx = allRespostas.findIndex(r => r.status === 'pendente');
                         this.respostaAtualIndex = pendIdx >= 0 ? pendIdx : 0;
                     });
+                    const onMouseMove = (e) => {
+                        if (!this.isDragging) return;
+                        const container = this.$refs.splitContainer;
+                        if (!container) return;
+                        const rect = container.getBoundingClientRect();
+                        let pct = ((e.clientX - rect.left) / rect.width) * 100;
+                        pct = Math.max(20, Math.min(80, pct));
+                        this.splitPercent = pct;
+                    };
+                    const onMouseUp = () => { this.isDragging = false; document.body.style.cursor = ''; };
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                },
+                startDrag(e) {
+                    e.preventDefault();
+                    this.isDragging = true;
+                    document.body.style.cursor = 'col-resize';
                 },
                 navegar(dir) {
                     const novo = this.respostaAtualIndex + dir;
@@ -1754,14 +1793,14 @@
                     </div>
 
                     {{-- Conteúdo --}}
-                    <div class="flex-1 flex overflow-hidden">
+                    <div class="flex-1 flex overflow-hidden" x-ref="splitContainer" :class="isDragging ? 'select-none' : ''">
                         {{-- Coluna Esquerda: Documento Original --}}
                         <div x-show="viewMode === 'split' || viewMode === 'notificacao'"
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0"
                              x-transition:enter-end="opacity-100"
-                             :class="viewMode === 'notificacao' ? 'w-full' : 'w-1/2 border-r border-gray-300'"
-                             class="flex flex-col">
+                             :style="viewMode === 'notificacao' ? 'width: 100%' : 'width: ' + splitPercent + '%'"
+                             class="flex flex-col flex-shrink-0">
                             <div class="px-3 py-1.5 bg-blue-50 border-b border-blue-200 flex items-center gap-2">
                                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -1769,7 +1808,19 @@
                                 <span class="text-xs font-semibold text-blue-800">Documento Original (Notificação)</span>
                             </div>
                             <div class="flex-1 overflow-hidden bg-gray-100">
-                                <iframe :src="respostasDocumentoPdfUrl" class="w-full h-full border-0"></iframe>
+                                <iframe :src="respostasDocumentoPdfUrl" class="w-full h-full border-0" :style="isDragging ? 'pointer-events: none' : ''"></iframe>
+                            </div>
+                        </div>
+
+                        {{-- Divisor arrastável --}}
+                        <div x-show="viewMode === 'split'"
+                             @mousedown="startDrag($event)"
+                             class="w-1.5 flex-shrink-0 bg-gray-300 hover:bg-blue-400 active:bg-blue-500 cursor-col-resize relative group transition-colors border-x border-gray-200"
+                             :class="isDragging ? 'bg-blue-500' : ''">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-0.5">
+                                <span class="block w-1 h-1 rounded-full bg-gray-500 group-hover:bg-white transition-colors" :class="isDragging ? 'bg-white' : ''"></span>
+                                <span class="block w-1 h-1 rounded-full bg-gray-500 group-hover:bg-white transition-colors" :class="isDragging ? 'bg-white' : ''"></span>
+                                <span class="block w-1 h-1 rounded-full bg-gray-500 group-hover:bg-white transition-colors" :class="isDragging ? 'bg-white' : ''"></span>
                             </div>
                         </div>
 
@@ -1778,8 +1829,8 @@
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0"
                              x-transition:enter-end="opacity-100"
-                             :class="viewMode === 'resposta' ? 'w-full' : 'w-1/2'"
-                             class="flex flex-col">
+                             :style="viewMode === 'resposta' ? 'width: 100%' : 'width: ' + (100 - splitPercent) + '%'"
+                             class="flex flex-col flex-shrink-0">
                             {{-- Header da resposta com navegação --}}
                             <div class="px-3 py-1.5 bg-amber-50 border-b border-amber-200">
                                 <div class="flex items-center justify-between">
@@ -1826,7 +1877,7 @@
                             {{-- PDF da Resposta --}}
                             <div class="flex-1 overflow-hidden bg-gray-100 relative">
                                 <template x-if="respostaAtual">
-                                    <iframe :src="respostaAtual.url" class="w-full h-full border-0"></iframe>
+                                    <iframe :src="respostaAtual.url" class="w-full h-full border-0" :style="isDragging ? 'pointer-events: none' : ''"></iframe>
                                 </template>
                                 <template x-if="!respostaAtual">
                                     <div class="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -2899,7 +2950,7 @@
 
     {{-- Modal de Rejeitar Documento --}}
     <template x-if="modalRejeitar">
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalRejeitar" style="display: none;">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalRejeitar" @fechar-modal-rejeitar.window="modalRejeitar = false; motivoRejeicao = ''" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalRejeitar = false"></div>
                 <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
@@ -2916,7 +2967,7 @@
                             </svg>
                         </button>
                     </div>
-                    <form :action="`{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${documentoRejeitando}/rejeitar`" method="POST">
+                    <form id="formRejeitarDocumento" class="js-doc-rejeitar-form" :action="`{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${documentoRejeitando}/rejeitar`" method="POST">
                         @csrf
                         <div class="px-6 py-4">
                             <p class="text-sm text-gray-600 mb-4">Informe o motivo da rejeição do documento. O usuário externo será notificado.</p>
@@ -3430,6 +3481,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 // Pastas
                 pastas: [],
                 pastaAtiva: null, // null = Todos, ou ID da pasta
+                statusFiltro: null, // null = todos, 'pendente' = apenas pendentes
                 pastaEditando: null,
                 nomePasta: '',
                 descricaoPasta: '',
@@ -4680,93 +4732,259 @@ document.addEventListener('DOMContentLoaded', function() {
 // AJAX para Aprovação/Rejeição de Documentos
 // ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Salva a posição do scroll antes de qualquer ação
-    let scrollPosition = 0;
-    
-    // Intercepta todos os formulários de aprovação
-    document.querySelectorAll('form[action*="/aprovar"]').forEach(form => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    const atualizarDocumentoUI = (docId, status) => {
+        const item = document.querySelector(`.documento-item[data-doc-id="${docId}"]`);
+        if (!item) return;
+
+        item.dataset.status = status;
+
+        item.classList.remove('border-l-red-500', 'border-l-green-500', 'border-l-orange-500', 'border-l-gray-300');
+        if (status === 'aprovado') item.classList.add('border-l-green-500');
+        if (status === 'rejeitado') item.classList.add('border-l-red-500');
+        if (status === 'pendente') item.classList.add('border-l-orange-500');
+
+        const badge = item.querySelector('.documento-status-badge');
+        if (badge) {
+            badge.classList.remove('bg-gray-100', 'text-gray-600');
+            badge.classList.add('bg-gray-100', 'text-gray-600');
+            if (status === 'pendente') {
+                badge.innerHTML = '<i class="far fa-clock" style="font-size: 10px;"></i> Pendente';
+            } else if (status === 'aprovado') {
+                badge.innerHTML = '<i class="fas fa-check" style="font-size: 10px;"></i> Aprovado';
+            } else if (status === 'rejeitado') {
+                badge.innerHTML = '<i class="fas fa-times" style="font-size: 10px;"></i> Rejeitado';
+            }
+        }
+
+        const motivo = item.querySelector('.documento-motivo');
+        if (motivo) {
+            if (status === 'rejeitado') {
+                motivo.classList.remove('hidden');
+            } else {
+                motivo.classList.add('hidden');
+            }
+        }
+
+        const btnAprovar = item.querySelector('.js-doc-aprovar');
+        const btnRejeitar = item.querySelector('.btn-doc-rejeitar');
+        const btnRevalidar = item.querySelector('.btn-doc-revalidar');
+
+        if (status === 'pendente') {
+            if (btnAprovar) btnAprovar.classList.remove('hidden');
+            if (btnRejeitar) btnRejeitar.classList.remove('hidden');
+            if (btnRevalidar) btnRevalidar.classList.add('hidden');
+        } else {
+            if (btnAprovar) btnAprovar.classList.add('hidden');
+            if (btnRejeitar) btnRejeitar.classList.add('hidden');
+            if (btnRevalidar) btnRevalidar.classList.remove('hidden');
+        }
+    };
+
+    const atualizarRespostaUI = (respostaItem, status) => {
+        if (!respostaItem) return;
+        respostaItem.dataset.status = status;
+
+        const badge = respostaItem.querySelector('.resposta-status-badge');
+        if (badge) {
+            badge.textContent = status === 'pendente' ? 'Pendente' : (status === 'aprovado' ? 'Aprovado' : 'Rejeitado');
+            badge.classList.remove('bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
+            if (status === 'pendente') badge.classList.add('bg-yellow-100', 'text-yellow-700');
+            if (status === 'aprovado') badge.classList.add('bg-green-100', 'text-green-700');
+            if (status === 'rejeitado') badge.classList.add('bg-red-100', 'text-red-700');
+        }
+
+        const icon = respostaItem.querySelector('.resposta-status-icon');
+        if (icon) {
+            icon.classList.remove('bg-green-100', 'bg-red-100', 'bg-yellow-100');
+            if (status === 'pendente') icon.classList.add('bg-yellow-100');
+            if (status === 'aprovado') icon.classList.add('bg-green-100');
+            if (status === 'rejeitado') icon.classList.add('bg-red-100');
+        }
+
+        const svg = respostaItem.querySelector('.resposta-status-svg');
+        if (svg) {
+            svg.classList.remove('text-green-600', 'text-red-600', 'text-yellow-600');
+            if (status === 'pendente') svg.classList.add('text-yellow-600');
+            if (status === 'aprovado') svg.classList.add('text-green-600');
+            if (status === 'rejeitado') svg.classList.add('text-red-600');
+        }
+
+        const path = respostaItem.querySelector('.resposta-status-path');
+        if (path) {
+            const d = status === 'pendente'
+                ? 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+                : (status === 'aprovado'
+                    ? 'M5 13l4 4L19 7'
+                    : 'M6 18L18 6M6 6l12 12');
+            path.setAttribute('d', d);
+        }
+
+        const actions = respostaItem.querySelector('.resposta-actions');
+        if (actions) {
+            if (status === 'pendente') {
+                actions.classList.remove('hidden');
+            } else {
+                actions.classList.add('hidden');
+            }
+        }
+
+        const btnRevalidar = respostaItem.querySelector('.btn-revalidar-resposta');
+        if (btnRevalidar) {
+            if (status === 'pendente') btnRevalidar.classList.add('hidden');
+            else btnRevalidar.classList.remove('hidden');
+        }
+    };
+
+    document.querySelectorAll('.js-doc-aprovar').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            scrollPosition = window.scrollY;
-            
+            const docId = this.getAttribute('data-doc-id');
             fetch(this.action, {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                },
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                 body: new FormData(this)
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.success) {
-                    // Mostra mensagem de sucesso
-                    mostrarNotificacao('Documento aprovado com sucesso!', 'success');
-                    // Recarrega apenas a seção de documentos sem perder o scroll
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
-                } else {
+                if (!data.success) {
                     mostrarNotificacao(data.message || 'Erro ao aprovar documento', 'error');
+                    return;
                 }
+                atualizarDocumentoUI(docId, 'aprovado');
+                mostrarNotificacao('Documento aprovado com sucesso!', 'success');
             })
-            .catch(error => {
-                console.error('Erro:', error);
-                mostrarNotificacao('Erro ao processar solicitação', 'error');
-            });
+            .catch(() => mostrarNotificacao('Erro ao aprovar documento', 'error'));
         });
     });
-    
-    // Intercepta o formulário de rejeição no modal
-    const formRejeitar = document.querySelector('form[action*="/rejeitar"]');
-    if (formRejeitar) {
-        formRejeitar.addEventListener('submit', function(e) {
+
+    document.addEventListener('click', function(event) {
+        const btnDoc = event.target.closest('.btn-doc-revalidar');
+        if (btnDoc) {
+            event.preventDefault();
+            if (!confirm('Deseja revalidar este documento? Ele voltara para o status Pendente.')) return;
+
+            const url = btnDoc.getAttribute('data-revalidar-url');
+            const docId = btnDoc.getAttribute('data-doc-id');
+            if (!url || !docId) return;
+
+            fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        mostrarNotificacao(data.message || 'Erro ao revalidar documento', 'error');
+                        return;
+                    }
+                    atualizarDocumentoUI(docId, 'pendente');
+                    mostrarNotificacao('Documento revalidado. Voltou para pendente.', 'success');
+                })
+                .catch(() => mostrarNotificacao('Erro ao revalidar documento', 'error'));
+            return;
+        }
+
+        const btnResposta = event.target.closest('.btn-revalidar-resposta');
+        if (btnResposta) {
+            event.preventDefault();
+            if (!confirm('Revalidar esta resposta? Ela voltara para pendente.')) return;
+
+            const url = btnResposta.getAttribute('data-revalidar-url');
+            if (!url) return;
+
+            fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        mostrarNotificacao(data.message || 'Erro ao revalidar resposta', 'error');
+                        return;
+                    }
+                    const respostaItem = btnResposta.closest('.resposta-item');
+                    atualizarRespostaUI(respostaItem, 'pendente');
+                    mostrarNotificacao('Resposta revalidada. Voltou para pendente.', 'success');
+                })
+                .catch(() => mostrarNotificacao('Erro ao revalidar resposta', 'error'));
+        }
+    });
+
+    document.addEventListener('submit', function(event) {
+        const form = event.target.closest('.js-doc-rejeitar-form');
+        if (!form) return;
+
+        event.preventDefault();
+        const actionUrl = form.action;
+        const docId = actionUrl.match(/documentos\/(\d+)\/rejeitar/);
+        const docIdValue = docId ? docId[1] : null;
+
+        fetch(actionUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: new FormData(form)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                mostrarNotificacao(data.message || 'Erro ao rejeitar documento', 'error');
+                return;
+            }
+            if (docIdValue) atualizarDocumentoUI(docIdValue, 'rejeitado');
+            window.dispatchEvent(new CustomEvent('fechar-modal-rejeitar'));
+            mostrarNotificacao('Documento rejeitado com sucesso!', 'success');
+        })
+        .catch(() => mostrarNotificacao('Erro ao rejeitar documento', 'error'));
+    });
+
+    document.querySelectorAll('.js-resposta-aprovar').forEach(form => {
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            scrollPosition = window.scrollY;
-            
-            const actionUrl = this.action;
-            
-            fetch(actionUrl, {
+            const respostaId = this.getAttribute('data-resposta-id');
+            fetch(this.action, {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                },
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
                 body: new FormData(this)
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.success) {
-                    // Fecha o modal
-                    Alpine.store('modalRejeitar', false);
-                    // Mostra mensagem de sucesso
-                    mostrarNotificacao('Documento rejeitado com sucesso!', 'success');
-                    // Recarrega a página mantendo o scroll
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
-                } else {
-                    mostrarNotificacao(data.message || 'Erro ao rejeitar documento', 'error');
+                if (!data.success) {
+                    mostrarNotificacao(data.message || 'Erro ao aprovar resposta', 'error');
+                    return;
                 }
+                const item = document.querySelector(`.resposta-item[data-resposta-id="${respostaId}"]`);
+                atualizarRespostaUI(item, 'aprovado');
+                mostrarNotificacao('Resposta aprovada com sucesso!', 'success');
             })
-            .catch(error => {
-                console.error('Erro:', error);
-                mostrarNotificacao('Erro ao processar solicitação', 'error');
-            });
+            .catch(() => mostrarNotificacao('Erro ao aprovar resposta', 'error'));
         });
-    }
-    
-    // Restaura a posição do scroll após reload
-    if (sessionStorage.getItem('scrollPosition')) {
-        window.scrollTo(0, parseInt(sessionStorage.getItem('scrollPosition')));
-        sessionStorage.removeItem('scrollPosition');
-    }
-    
-    // Salva posição do scroll antes de recarregar
-    window.addEventListener('beforeunload', function() {
-        if (scrollPosition > 0) {
-            sessionStorage.setItem('scrollPosition', scrollPosition);
-        }
+    });
+
+    document.querySelectorAll('.js-resposta-rejeitar').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const respostaId = this.getAttribute('data-resposta-id');
+            fetch(this.action, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: new FormData(this)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    mostrarNotificacao(data.message || 'Erro ao rejeitar resposta', 'error');
+                    return;
+                }
+                const item = document.querySelector(`.resposta-item[data-resposta-id="${respostaId}"]`);
+                atualizarRespostaUI(item, 'rejeitado');
+                if (item) {
+                    const box = item.querySelector('.resposta-rejeicao-box');
+                    if (box) {
+                        box.classList.add('hidden');
+                        const textarea = box.querySelector('textarea');
+                        if (textarea) textarea.value = '';
+                    }
+                }
+                mostrarNotificacao('Resposta rejeitada com sucesso!', 'success');
+            })
+            .catch(() => mostrarNotificacao('Erro ao rejeitar resposta', 'error'));
+        });
     });
 });
 

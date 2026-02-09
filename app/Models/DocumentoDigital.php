@@ -190,6 +190,14 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Verifica se o documento tem prazo (por dias definidos ou por ser notificação)
+     */
+    public function temPrazo(): bool
+    {
+        return $this->prazo_dias || $this->prazo_notificacao;
+    }
+
+    /**
      * Relacionamento com respostas do estabelecimento
      */
     public function respostas()
@@ -209,7 +217,7 @@ class DocumentoDigital extends Model
         }
         
         // Se tem prazo e foi finalizado, não permite mais resposta
-        if ($this->prazo_dias && $this->isPrazoFinalizado()) {
+        if ($this->temPrazo() && $this->isPrazoFinalizado()) {
             return false;
         }
         
