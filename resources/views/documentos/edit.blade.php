@@ -357,7 +357,7 @@
                      @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
                      class="min-h-[280px] max-h-[380px] overflow-y-auto p-3 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.5;">
+                     style="font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.5;">
                     <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
                 <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
@@ -434,7 +434,7 @@
                                 </div>
                             </div>
                             <div x-show="mostrarConteudo" x-collapse class="mt-2 pt-2 border-t border-gray-200">
-                                <div class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs" style="font-family: 'Times New Roman', serif;">
+                                <div class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs" style="font-family: Arial, Helvetica, sans-serif;">
                                     {!! $versao->conteudo !!}
                                 </div>
                             </div>
@@ -447,36 +447,86 @@
         @endif
 
         {{-- Seção: Assinaturas Digitais --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3" x-data="buscaTecnicosEdit()">
             <div class="px-3 py-2 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <span class="flex items-center justify-center w-4 h-4 bg-purple-600 text-white rounded-full text-xs font-bold">3</span>
                         Assinaturas Digitais
                     </h2>
-                    <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
+                    <div class="flex items-center gap-2">
+                        <span x-show="selecionados.length > 0" class="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full" x-text="selecionados.length + ' selecionado(s)'"></span>
+                        <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
+                    </div>
                 </div>
             </div>
             <div class="p-3">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
-                    @foreach($usuariosInternos as $usuario)
-                        <label class="flex items-start p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group">
+                {{-- Assinantes selecionados --}}
+                <div x-show="selecionados.length > 0" class="mb-3 flex flex-wrap gap-1">
+                    <template x-for="id in selecionados" :key="'sel-'+id">
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+                            <span x-text="getNomeUsuario(id)"></span>
+                            <button type="button" @click="toggleSelecionado(id)" class="ml-0.5 text-purple-600 hover:text-purple-900">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </span>
+                    </template>
+                </div>
+
+                {{-- Hidden inputs para enviar os selecionados no form --}}
+                <template x-for="id in selecionados" :key="'hidden-'+id">
+                    <input type="hidden" name="assinaturas[]" :value="id">
+                </template>
+
+                {{-- Campo de Busca --}}
+                <div class="mb-3">
+                    <input type="text" 
+                           x-model="busca"
+                           @input="filtrarTecnicos()"
+                           placeholder="Buscar técnico por nome, CPF ou email..."
+                           class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition">
+                    <div class="mt-1 flex gap-2 text-xs text-gray-500">
+                        <span x-show="usuariosFiltrados.length > 0" class="flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span x-text="`${usuariosFiltrados.length} técnico(s) encontrado(s)`"></span>
+                        </span>
+                        <span x-show="usuariosFiltrados.length === 0 && busca" class="flex items-center gap-1 text-orange-600">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Nenhum técnico encontrado
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 border rounded-lg bg-gray-50">
+                    <template x-for="usuario in usuariosFiltrados" :key="usuario.id">
+                        <label class="flex items-start p-2 border-2 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group bg-white"
+                               :class="selecionados.includes(usuario.id) ? 'border-purple-400 bg-purple-50' : 'border-gray-200'">
                             <input type="checkbox" 
-                                   name="assinaturas[]" 
-                                   value="{{ $usuario->id }}"
-                                   {{ $documento->assinaturas->contains('usuario_interno_id', $usuario->id) ? 'checked' : '' }}
+                                   :checked="selecionados.includes(usuario.id)"
+                                   @change="toggleSelecionado(usuario.id)"
                                    class="mt-0.5 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
-                            <div class="ml-2 flex-1">
-                                <div class="text-xs font-semibold text-gray-900 group-hover:text-purple-900">
-                                    {{ $usuario->nome }}
-                                    @if($usuario->id == auth('interno')->id())
+                            <div class="ml-2 flex-1 min-w-0">
+                                <div class="text-xs font-semibold text-gray-900 group-hover:text-purple-900 truncate">
+                                    <span x-text="usuario.nome"></span>
+                                    <template x-if="usuario.id == {{ auth('interno')->id() }}">
                                         <span class="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">Você</span>
-                                    @endif
+                                    </template>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5">{{ $usuario->cpf_formatado }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5 truncate" x-text="usuario.cpf"></div>
                             </div>
                         </label>
-                    @endforeach
+                    </template>
+
+                    {{-- Fallback se não houver usuários --}}
+                    <template x-if="usuariosFiltrados.length === 0 && !busca">
+                        <div class="col-span-full text-center py-4 text-gray-500">
+                            <p class="text-sm">Nenhum técnico disponível</p>
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -530,6 +580,66 @@
 </div>
 
 <script>
+function buscaTecnicosEdit() {
+    return {
+        busca: '',
+        selecionados: [
+            @foreach($documento->assinaturas as $assinatura)
+                {{ $assinatura->usuario_interno_id }},
+            @endforeach
+        ],
+        usuariosFiltrados: [
+            @foreach($usuariosInternos as $usuario)
+                {
+                    id: {{ $usuario->id }},
+                    nome: '{{ addslashes($usuario->nome) }}',
+                    cpf: '{{ $usuario->cpf_formatado }}',
+                    email: '{{ $usuario->email }}'
+                },
+            @endforeach
+        ],
+        usuariosOriginais: [
+            @foreach($usuariosInternos as $usuario)
+                {
+                    id: {{ $usuario->id }},
+                    nome: '{{ addslashes($usuario->nome) }}',
+                    cpf: '{{ $usuario->cpf_formatado }}',
+                    email: '{{ $usuario->email }}'
+                },
+            @endforeach
+        ],
+
+        toggleSelecionado(id) {
+            const index = this.selecionados.indexOf(id);
+            if (index === -1) {
+                this.selecionados.push(id);
+            } else {
+                this.selecionados.splice(index, 1);
+            }
+        },
+
+        getNomeUsuario(id) {
+            const usuario = this.usuariosOriginais.find(u => u.id === id);
+            return usuario ? usuario.nome : '';
+        },
+
+        filtrarTecnicos() {
+            const termo = this.busca.toLowerCase().trim();
+            
+            if (!termo) {
+                this.usuariosFiltrados = this.usuariosOriginais;
+                return;
+            }
+
+            this.usuariosFiltrados = this.usuariosOriginais.filter(usuario => 
+                usuario.nome.toLowerCase().includes(termo) ||
+                usuario.cpf.toLowerCase().includes(termo) ||
+                usuario.email.toLowerCase().includes(termo)
+            );
+        }
+    };
+}
+
 function documentoEditor() {
     return {
         tipoSelecionado: {{ $documento->tipo_documento_id }},
@@ -602,6 +712,24 @@ function documentoEditor() {
             event.target.value = '';
         },
 
+        // Padroniza o conteúdo para Arial, removendo fontes e tamanhos inline
+        padronizarFonte(html) {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const elementos = temp.querySelectorAll('*');
+            elementos.forEach(el => {
+                if (el.style) {
+                    el.style.removeProperty('font-family');
+                    el.style.removeProperty('font-size');
+                }
+                if (el.tagName === 'FONT') {
+                    el.removeAttribute('face');
+                    el.removeAttribute('size');
+                }
+            });
+            return temp.innerHTML;
+        },
+
         handlePaste(event) {
             // Permite colar imagens
             const items = event.clipboardData.items;
@@ -666,7 +794,7 @@ function documentoEditor() {
                 
                 // Se houver modelos, carrega o primeiro automaticamente e preenche o editor
                 if (this.modelos && this.modelos.length > 0) {
-                    this.conteudo = this.modelos[0].conteudo;
+                    this.conteudo = this.padronizarFonte(this.modelos[0].conteudo);
                     const editor = document.getElementById('editor');
                     if (editor) {
                         editor.innerHTML = this.conteudo;
@@ -863,7 +991,7 @@ function documentoEditor() {
         },
 
         handleSubmit(event) {
-            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]:checked');
+            const assinaturas = document.querySelectorAll('input[type="hidden"][name="assinaturas[]"]');
             if (assinaturas.length === 0) {
                 event.preventDefault();
                 alert('Selecione pelo menos um usuário para assinar o documento!');

@@ -333,7 +333,31 @@ class EstabelecimentoController extends Controller
             unset($validated['data_inicio_funcionamento']);
         }
 
-        $estabelecimento = Estabelecimento::create($validated);
+        // Validação de duplicidade para estabelecimentos públicos (cnpj + nome_fantasia)
+        if ($request->tipo_setor === 'publico' && isset($validated['cnpj'])) {
+            $duplicado = Estabelecimento::where('cnpj', $validated['cnpj'])
+                ->where('nome_fantasia', $validated['nome_fantasia'])
+                ->where('tipo_setor', 'publico')
+                ->first();
+
+            if ($duplicado) {
+                return back()->withErrors([
+                    'cnpj' => 'Já existe um estabelecimento público cadastrado com este CNPJ e Nome Fantasia (' . $validated['nome_fantasia'] . '). Verifique se o estabelecimento já não está cadastrado no sistema.'
+                ])->withInput();
+            }
+        }
+
+        try {
+            $estabelecimento = Estabelecimento::create($validated);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Trata erro de violação de unicidade (código 23505 no PostgreSQL)
+            if ($e->getCode() === '23505') {
+                return back()->withErrors([
+                    'cnpj' => 'Este estabelecimento já está cadastrado no sistema. Verifique o CNPJ/CPF e o Nome Fantasia informados.'
+                ])->withInput();
+            }
+            throw $e;
+        }
 
         // Registra no histórico
         EstabelecimentoHistorico::registrar(

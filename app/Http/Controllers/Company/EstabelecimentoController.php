@@ -402,13 +402,25 @@ class EstabelecimentoController extends Controller
 
             return redirect()->route('company.estabelecimentos.show', $estabelecimento->id)
                 ->with('success', 'Estabelecimento cadastrado com sucesso! Aguarde a aprovação da Vigilância Sanitária.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Erro ao cadastrar estabelecimento (DB): ' . $e->getMessage(), [
+                'dados' => $validated,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Trata erro de violação de unicidade (código 23505 no PostgreSQL)
+            if ($e->getCode() === '23505') {
+                return back()->withErrors(['cnpj' => 'Este estabelecimento já está cadastrado no sistema. Verifique o CNPJ/CPF e o Nome Fantasia informados.'])->withInput();
+            }
+
+            return back()->withErrors(['error' => 'Erro ao cadastrar estabelecimento. Tente novamente ou entre em contato com o suporte.'])->withInput();
         } catch (\Exception $e) {
             Log::error('Erro ao cadastrar estabelecimento: ' . $e->getMessage(), [
                 'dados' => $validated,
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->withErrors(['error' => 'Erro ao cadastrar estabelecimento: ' . $e->getMessage()])->withInput();
+            return back()->withErrors(['error' => 'Erro ao cadastrar estabelecimento. Tente novamente ou entre em contato com o suporte.'])->withInput();
         }
     }
 

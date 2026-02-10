@@ -960,8 +960,8 @@
                                                 <div class="flex items-center gap-2">
                                                     @if($docDigital->podeEditar())
                                                         <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</a>
-                                                    @elseif($docDigital->arquivo_pdf && !$temAssinaturasPendentes)
-                                                        <span @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
+                                                    @elseif($docDigital->status !== 'rascunho')
+                                                        <span @click="pdfUrl = '{{ route('admin.documentos.visualizar-pdf', $docDigital->id) }}'; modalVisualizador = true" class="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate" title="Clique para visualizar PDF">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
                                                     @else
                                                         <span class="text-sm font-semibold text-gray-900 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
                                                     @endif
@@ -1054,6 +1054,16 @@
                                                 </form>
                                             @endif
                                             
+                                            {{-- Botão Visualizar PDF (preview mesmo não totalmente assinado) --}}
+                                            @if($docDigital->status !== 'rascunho')
+                                                <button type="button"
+                                                   @click="pdfUrl = '{{ route('admin.documentos.visualizar-pdf', $docDigital->id) }}'; modalVisualizador = true"
+                                                   class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                   title="Visualizar PDF">
+                                                    <i class="far fa-file-pdf fa-fw" style="font-size: 15px;"></i>
+                                                </button>
+                                            @endif
+
                                             {{-- Botão Download PDF --}}
                                             @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
                                                 <a href="{{ route('admin.documentos.pdf', $docDigital->id) }}" 
