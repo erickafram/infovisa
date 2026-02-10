@@ -65,29 +65,33 @@
             </div>
             <span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold">{{ $documentosComPrazo->count() }}</span>
         </div>
-        <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin">
+        <div class="divide-y divide-gray-50 max-h-[280px] overflow-y-auto scrollbar-thin">
             @foreach($documentosComPrazo as $documento)
-            <a href="{{ route('company.processos.show', $documento->processo_id) }}" class="flex items-center gap-3 px-4 py-3 hover:bg-red-50/50 transition">
-                <div class="w-8 h-8 rounded-lg {{ $documento->vencido ? 'bg-red-100' : 'bg-amber-100' }} flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 {{ $documento->vencido ? 'text-red-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+            <a href="{{ route('company.processos.show', $documento->processo_id) }}" class="block px-4 py-3.5 hover:bg-red-50/50 transition">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg {{ $documento->vencido ? 'bg-red-100' : 'bg-amber-100' }} flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <svg class="w-4 h-4 {{ $documento->vencido ? 'text-red-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900">{{ $documento->tipoDocumento->nome ?? 'Notificação' }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social ?? '' }}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold px-2.5 py-1.5 rounded-full flex-shrink-0 whitespace-nowrap {{ $documento->vencido ? 'bg-red-100 text-red-700' : ($documento->dias_faltando <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700') }}">
+                        @if($documento->vencido)
+                            Vencido {{ abs($documento->dias_faltando) }}d
+                        @elseif($documento->dias_faltando == 0)
+                            Hoje!
+                        @elseif($documento->dias_faltando == 1)
+                            Amanhã
+                        @else
+                            {{ $documento->dias_faltando }}d
+                        @endif
+                    </span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">{{ $documento->tipoDocumento->nome ?? 'Notificação' }}</p>
-                    <p class="text-xs text-gray-500 truncate">{{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social ?? '' }}</p>
-                </div>
-                <span class="text-xs font-bold px-2 py-1 rounded-full {{ $documento->vencido ? 'bg-red-100 text-red-700' : ($documento->dias_faltando <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700') }}">
-                    @if($documento->vencido)
-                        Vencido {{ abs($documento->dias_faltando) }}d
-                    @elseif($documento->dias_faltando == 0)
-                        Hoje!
-                    @elseif($documento->dias_faltando == 1)
-                        Amanhã
-                    @else
-                        {{ $documento->dias_faltando }}d
-                    @endif
-                </span>
             </a>
             @endforeach
         </div>
@@ -97,17 +101,17 @@
     {{-- Stats Cards (3 cards como no admin) --}}
     <div id="tour-stats-cards" class="grid grid-cols-3 gap-3">
         {{-- Estabelecimentos --}}
-        <a href="{{ route('company.estabelecimentos.index') }}" id="tour-meus-estabelecimentos" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-blue-200 transition-all group">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 transition">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <a href="{{ route('company.estabelecimentos.index') }}" id="tour-meus-estabelecimentos" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-blue-200 transition-all group">
+            <div class="flex items-center gap-2 px-2.5 py-2">
+                <div class="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 transition">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Estabelecimentos</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $estatisticasEstabelecimentos['total'] }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Estabelecimentos</p>
+                    <p class="text-lg font-bold text-gray-900 leading-tight">{{ $estatisticasEstabelecimentos['total'] }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-3 text-[11px]">
+            <div class="px-2.5 py-1 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-2 text-[10px]">
                 <span class="flex items-center gap-1 text-green-600">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     <span class="font-semibold">{{ $estatisticasEstabelecimentos['aprovados'] }}</span> aprovados
@@ -123,17 +127,17 @@
         </a>
 
         {{-- Processos --}}
-        <a href="{{ route('company.processos.index') }}" id="tour-meus-processos" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-purple-200 transition-all group">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-600 transition">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <a href="{{ route('company.processos.index') }}" id="tour-meus-processos" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-purple-200 transition-all group">
+            <div class="flex items-center gap-2 px-2.5 py-2">
+                <div class="w-7 h-7 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-600 transition">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Processos</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $estatisticasProcessos['total'] }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Processos</p>
+                    <p class="text-lg font-bold text-gray-900 leading-tight">{{ $estatisticasProcessos['total'] }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-3 text-[11px]">
+            <div class="px-2.5 py-1 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-2 text-[10px]">
                 @if($estatisticasProcessos['em_andamento'] > 0)
                 <span class="flex items-center gap-1 text-blue-600">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -154,21 +158,21 @@
         </a>
 
         {{-- Pendências --}}
-        <a href="{{ route('company.alertas.index') }}" id="tour-alertas" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group {{ $totalAlertas > 0 ? 'border-amber-200' : '' }}">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl {{ $totalAlertas > 0 ? 'bg-amber-500' : 'bg-green-500' }} flex items-center justify-center flex-shrink-0 group-hover:opacity-90 transition">
+        <a href="{{ route('company.alertas.index') }}" id="tour-alertas" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group {{ $totalAlertas > 0 ? 'border-amber-200' : '' }}">
+            <div class="flex items-center gap-2 px-2.5 py-2">
+                <div class="w-7 h-7 rounded-lg {{ $totalAlertas > 0 ? 'bg-amber-500' : 'bg-green-500' }} flex items-center justify-center flex-shrink-0 group-hover:opacity-90 transition">
                     @if($totalAlertas > 0)
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     @else
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     @endif
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Pendências</p>
-                    <p class="text-2xl font-bold {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }} leading-tight">{{ $totalAlertas }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Pendências</p>
+                    <p class="text-lg font-bold {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }} leading-tight">{{ $totalAlertas }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 {{ $totalAlertas > 0 ? 'bg-amber-50/80 border-t border-amber-100/60' : 'bg-green-50/80 border-t border-green-100/60' }} flex items-center gap-1 text-[11px] {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }}">
+            <div class="px-2.5 py-1 {{ $totalAlertas > 0 ? 'bg-amber-50/80 border-t border-amber-100/60' : 'bg-green-50/80 border-t border-green-100/60' }} flex items-center gap-1 text-[10px] {{ $totalAlertas > 0 ? 'text-amber-600' : 'text-green-600' }}">
                 @if($totalAlertas > 0)
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 Requer sua atenção
