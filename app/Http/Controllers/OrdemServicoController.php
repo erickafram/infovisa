@@ -1024,6 +1024,89 @@ class OrdemServicoController extends Controller
     }
 
     /**
+     * Reiniciar uma atividade individual (apenas gestores)
+     */
+    public function reiniciarAtividade(Request $request, OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+        
+        // Apenas gestores podem reiniciar atividades
+        if (!$usuario->isAdmin() && !$usuario->isGestor()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Você não tem permissão para reiniciar atividades.'
+            ], 403);
+        }
+        
+        $validated = $request->validate([
+            'atividade_index' => 'required|integer|min:0',
+        ]);
+        
+        $atividadeIndex = $validated['atividade_index'];
+        $atividades = $ordemServico->atividades_tecnicos ?? [];
+        
+        // Verifica se o índice é válido
+        if (!isset($atividades[$atividadeIndex])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Atividade não encontrada.'
+            ], 404);
+        }
+        
+        $atividade = $atividades[$atividadeIndex];
+        
+        // Verifica se a atividade está finalizada
+        if (($atividade['status'] ?? 'pendente') !== 'finalizada') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta atividade já está pendente.'
+            ], 400);
+        }
+        
+        // Reseta a atividade para pendente
+        $atividades[$atividadeIndex]['status'] = 'pendente';
+        $atividades[$atividadeIndex]['status_execucao'] = null;
+        $atividades[$atividadeIndex]['finalizada_por'] = null;
+        $atividades[$atividadeIndex]['finalizada_em'] = null;
+        $atividades[$atividadeIndex]['observacoes_finalizacao'] = null;
+        
+        // Se a OS estava finalizada, volta para em_andamento
+        $dadosOS = ['atividades_tecnicos' => $atividades];
+        if ($ordemServico->status === 'finalizada') {
+            $dadosOS['status'] = 'em_andamento';
+            $dadosOS['atividades_realizadas'] = null;
+            $dadosOS['observacoes_finalizacao'] = null;
+            $dadosOS['finalizada_por'] = null;
+            $dadosOS['finalizada_em'] = null;
+            $dadosOS['data_conclusao'] = null;
+        }
+        
+        $ordemServico->update($dadosOS);
+        
+        $nomeAtividade = $atividade['nome_atividade'] ?? 'Atividade';
+        
+        // Notifica os técnicos da atividade
+        $tecnicosAtividade = $atividade['tecnicos'] ?? [];
+        foreach ($tecnicosAtividade as $tecnicoId) {
+            \App\Models\Notificacao::create([
+                'usuario_interno_id' => $tecnicoId,
+                'tipo' => 'atividade_reiniciada',
+                'titulo' => 'Atividade Reiniciada - OS #' . $ordemServico->numero,
+                'mensagem' => 'A atividade "' . $nomeAtividade . '" da OS #' . $ordemServico->numero . ' foi reiniciada por ' . $usuario->nome . '. A atividade voltou ao status "Pendente".',
+                'link' => route('admin.ordens-servico.show', $ordemServico),
+                'ordem_servico_id' => $ordemServico->id,
+                'prioridade' => 'alta',
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Atividade "' . $nomeAtividade . '" reiniciada com sucesso!',
+            'os_reaberta' => $ordemServico->status === 'em_andamento' && $ordemServico->getOriginal('status') === 'finalizada',
+        ]);
+    }
+
+    /**
      * Buscar estabelecimentos com autocomplete (AJAX)
      */
     public function buscarEstabelecimentos(Request $request)

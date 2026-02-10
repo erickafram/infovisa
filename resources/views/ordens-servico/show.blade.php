@@ -47,6 +47,7 @@
                         @php
                             $isTecnicoAtribuido = $ordemServico->tecnicos_ids && in_array(auth()->id(), $ordemServico->tecnicos_ids);
                             $isGestor = auth('interno')->user()->isAdmin() || auth('interno')->user()->isEstadual() || auth('interno')->user()->isMunicipal();
+                            $isGestorOuAdmin = auth('interno')->user()->isAdmin() || auth('interno')->user()->isGestor();
                         @endphp
                         
                         @if($ordemServico->status === 'finalizada')
@@ -546,10 +547,14 @@
                                     @endif
                                     <div>
                                         <h4 class="font-semibold text-gray-900">{{ $atividade['nome_atividade'] ?? 'Atividade' }}</h4>
-                                        @if($statusAtividade === 'finalizada' && $finalizadaEm)
+                                        @if($statusAtividade === 'finalizada')
                                             <p class="text-xs text-green-700">
-                                                Finalizada em {{ $finalizadaEm->format('d/m/Y H:i') }}
-                                                @if($finalizadaPor) por {{ $finalizadaPor->nome }} @endif
+                                                @if($finalizadaEm)
+                                                    Finalizada em {{ $finalizadaEm->format('d/m/Y H:i') }}
+                                                    @if($finalizadaPor) por {{ $finalizadaPor->nome }} @endif
+                                                @else
+                                                    Finalizada
+                                                @endif
                                             </p>
                                         @else
                                             <p class="text-xs text-amber-700">Pendente</p>
@@ -568,24 +573,37 @@
                                         Finalizar Atividade
                                     </button>
                                 @elseif($statusAtividade === 'finalizada')
-                                    @php
-                                        $statusExecucao = $atividade['status_execucao'] ?? 'concluido';
-                                        $statusLabel = match($statusExecucao) {
-                                            'concluido' => '✓ Concluída',
-                                            'parcial' => '⚠ Parcial',
-                                            'nao_concluido' => '✗ Não concluída',
-                                            default => '✓ Concluída'
-                                        };
-                                        $statusClass = match($statusExecucao) {
-                                            'concluido' => 'text-green-700 bg-green-100',
-                                            'parcial' => 'text-yellow-700 bg-yellow-100',
-                                            'nao_concluido' => 'text-red-700 bg-red-100',
-                                            default => 'text-green-700 bg-green-100'
-                                        };
-                                    @endphp
-                                    <span class="px-3 py-1.5 text-xs font-medium {{ $statusClass }} rounded-lg">
-                                        {{ $statusLabel }}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        @php
+                                            $statusExecucao = $atividade['status_execucao'] ?? 'concluido';
+                                            $statusLabel = match($statusExecucao) {
+                                                'concluido' => '✓ Concluída',
+                                                'parcial' => '⚠ Parcial',
+                                                'nao_concluido' => '✗ Não concluída',
+                                                default => '✓ Concluída'
+                                            };
+                                            $statusClass = match($statusExecucao) {
+                                                'concluido' => 'text-green-700 bg-green-100',
+                                                'parcial' => 'text-yellow-700 bg-yellow-100',
+                                                'nao_concluido' => 'text-red-700 bg-red-100',
+                                                default => 'text-green-700 bg-green-100'
+                                            };
+                                        @endphp
+                                        <span class="px-3 py-1.5 text-xs font-medium {{ $statusClass }} rounded-lg">
+                                            {{ $statusLabel }}
+                                        </span>
+                                        @if($isGestorOuAdmin)
+                                            <button type="button" 
+                                                    onclick="reiniciarAtividade({{ $index }}, '{{ addslashes($atividade['nome_atividade'] ?? 'Atividade') }}')"
+                                                    class="px-2 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-1"
+                                                    title="Reiniciar esta atividade">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                                Reiniciar
+                                            </button>
+                                        @endif
+                                    </div>
                                 @endif
                             </div>
                             
@@ -999,6 +1017,41 @@
         const valorAtual = campo.value.trim();
         campo.value = valorAtual ? (valorAtual + ' ' + texto) : texto;
         campo.focus();
+    }
+
+    // ========================================
+    // Função para Reiniciar Atividade Individual (Gestores)
+    // ========================================
+    async function reiniciarAtividade(index, nomeAtividade) {
+        if (!confirm('Tem certeza que deseja reiniciar a atividade "' + nomeAtividade + '"?\n\nEla voltará ao status "Pendente" e o técnico precisará finalizá-la novamente.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ route("admin.ordens-servico.reiniciar-atividade", $ordemServico) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    atividade_index: index
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('✅ ' + data.message);
+                window.location.reload();
+            } else {
+                alert('❌ ' + (data.message || 'Erro ao reiniciar atividade'));
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('❌ Erro ao reiniciar atividade. Tente novamente.');
+        }
     }
 
     // Modal de OS finalizada

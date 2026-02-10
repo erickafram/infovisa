@@ -413,6 +413,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         [\App\Http\Controllers\OrdemServicoController::class, 'reiniciar']
     )->name('ordens-servico.reiniciar');
     
+    // Reiniciar atividade individual (gestores)
+    Route::post('ordens-servico/{ordemServico}/reiniciar-atividade', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'reiniciarAtividade']
+    )->name('ordens-servico.reiniciar-atividade');
+    
     // Cancelar OS
     Route::post('ordens-servico/{ordemServico}/cancelar', 
         [\App\Http\Controllers\OrdemServicoController::class, 'cancelar']
