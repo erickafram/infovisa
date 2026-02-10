@@ -129,9 +129,9 @@
             <span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold" x-text="ordens.length"></span>
         </div>
         
-        <div class="divide-y divide-gray-50 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-red-500 scrollbar-track-red-100">
-            <template x-for="os in ordens" :key="os.id">
-                <a :href="os.url" class="flex items-center gap-3 px-4 py-3 hover:bg-red-50/50 transition">
+        <div class="divide-y divide-gray-50 overflow-y-auto scrollbar-thin scrollbar-thumb-red-500 scrollbar-track-red-100" :class="mostrarTodas ? 'max-h-[320px]' : 'max-h-[200px]'">
+            <template x-for="os in ordensVisiveis()" :key="os.id">
+                <a :href="os.url" class="flex items-center gap-3 px-3 py-2.5 hover:bg-red-50/50 transition">
                     <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
                         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -148,6 +148,10 @@
                     <span class="text-xs text-gray-400" x-text="os.data_fim"></span>
                 </a>
             </template>
+        </div>
+        <div class="px-3 py-2 border-t border-red-100 bg-red-50/60 flex items-center justify-between text-[11px] text-red-700" x-show="ordens.length > limite">
+            <span x-text="mostrarTodas ? 'Mostrando todas' : ('+ ' + restantes() + ' OS ocultas')"></span>
+            <button type="button" class="font-semibold hover:text-red-800" @click="mostrarTodas = !mostrarTodas" x-text="mostrarTodas ? 'Ver menos' : 'Ver todas'"></button>
         </div>
     </div>
     @endif
@@ -621,6 +625,14 @@ function processosAtribuidos() {
 function ordensServicoVencidas() {
     return {
         ordens: [],
+        mostrarTodas: false,
+        limite: 5,
+        ordensVisiveis() {
+            return this.mostrarTodas ? this.ordens : this.ordens.slice(0, this.limite);
+        },
+        restantes() {
+            return Math.max(this.ordens.length - this.limite, 0);
+        },
         init() { 
             console.log('Carregando OSs vencidas...');
             this.load(); 
