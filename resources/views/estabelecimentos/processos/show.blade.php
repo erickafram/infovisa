@@ -3812,7 +3812,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.assinarErro = '';
                     
                     try {
-                        const response = await fetch(`/admin/assinatura/processar/${this.assinarDocumentoId}`, {
+                        const response = await fetch(`{{ url('/admin/assinatura/processar') }}/${this.assinarDocumentoId}`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

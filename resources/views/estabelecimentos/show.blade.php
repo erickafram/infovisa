@@ -438,13 +438,13 @@
                     </a>
                 </div>
                 <div class="p-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
                         @foreach($processosAtivos as $processo)
                         <a href="{{ route('admin.estabelecimentos.processos.show', [$estabelecimento->id, $processo->id]) }}" 
-                           class="group block bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden">
-                            <div class="p-4">
+                           class="group block w-full max-w-sm bg-gradient-to-b from-white to-blue-50/30 rounded-xl border border-transparent ring-1 ring-gray-200 hover:ring-blue-200 shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden">
+                            <div class="p-5 text-center relative">
                                 {{-- Header com Status e Menu --}}
-                                <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-start justify-center mb-4">
                                     @php
                                         $statusColors = [
                                             'aberto' => 'bg-blue-100 text-blue-700',
@@ -462,7 +462,7 @@
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColors[$processo->status] ?? 'bg-gray-100 text-gray-700' }}">
                                         {{ $statusLabels[$processo->status] ?? $processo->status }}
                                     </span>
-                                    <button class="text-gray-400 hover:text-gray-600">
+                                    <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                                         </svg>
@@ -471,7 +471,7 @@
                                 
                                 {{-- Tipo do Processo --}}
                                 <div class="mb-3">
-                                    <p class="text-sm font-medium text-gray-700 uppercase tracking-wide">
+                                    <p class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
                                         {{ $processo->tipoProcesso->nome ?? 'Sem tipo' }}
                                     </p>
                                 </div>
@@ -485,13 +485,13 @@
                                 
                                 {{-- Footer com Informações --}}
                                 <div class="space-y-2 pt-3 border-t border-gray-100">
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <div class="flex items-center justify-center gap-2 text-xs text-gray-500">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
                                         <span>Criado em: {{ $processo->created_at->format('d/m/Y') }}</span>
                                     </div>
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <div class="flex items-center justify-center gap-2 text-xs text-gray-500">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                         </svg>
