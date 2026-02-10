@@ -475,36 +475,56 @@ class DocumentoDigitalController extends Controller
     }
 
     /**
-     * Gera PDF do documento para download
+     * Gera PDF do documento para download com cabeçalho do estabelecimento
      */
     public function gerarPdf($id)
     {
-        $documento = DocumentoDigital::findOrFail($id);
+        $documento = DocumentoDigital::with([
+            'tipoDocumento',
+            'processo.tipoProcesso',
+            'processo.estabelecimento.responsaveis',
+            'processo.estabelecimento.municipioRelacionado',
+        ])->findOrFail($id);
 
         // Se já tem arquivo salvo, baixa ele
         if ($documento->arquivo_pdf && \Storage::disk('public')->exists($documento->arquivo_pdf)) {
             return \Storage::disk('public')->download($documento->arquivo_pdf, $documento->numero_documento . '.pdf');
         }
 
-        // Senão gera do HTML
-        $pdf = Pdf::loadHTML($documento->conteudo)
+        // Gera PDF com cabeçalho usando o template pdf-preview
+        $processo = $documento->processo;
+        $estabelecimento = $processo ? $processo->estabelecimento : null;
+        $usuarioLogado = \Auth::guard('interno')->user();
+        $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
+
+        $pdf = Pdf::loadView('documentos.pdf-preview', [
+            'documento' => $documento,
+            'processo' => $processo,
+            'estabelecimento' => $estabelecimento,
+            'logomarca' => $logomarca,
+        ])
             ->setPaper('a4')
-            ->setOption('margin-top', 20)
-            ->setOption('margin-bottom', 20)
-            ->setOption('margin-left', 20)
-            ->setOption('margin-right', 20);
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
         
         return $pdf->download($documento->numero_documento . '.pdf');
     }
 
     /**
-     * Gera PDF do documento para visualização (stream)
+     * Gera PDF do documento para visualização (stream) com cabeçalho do estabelecimento
      */
     public function visualizarPdf($id)
     {
-        $documento = DocumentoDigital::findOrFail($id);
+        $documento = DocumentoDigital::with([
+            'tipoDocumento',
+            'processo.tipoProcesso',
+            'processo.estabelecimento.responsaveis',
+            'processo.estabelecimento.municipioRelacionado',
+        ])->findOrFail($id);
 
-        // Se já tem arquivo salvo, exibe ele
+        // Se já tem arquivo PDF final salvo (documento assinado), exibe ele
         if ($documento->arquivo_pdf && \Storage::disk('public')->exists($documento->arquivo_pdf)) {
             return response()->file(\Storage::disk('public')->path($documento->arquivo_pdf), [
                 'Content-Type' => 'application/pdf',
@@ -512,13 +532,23 @@ class DocumentoDigitalController extends Controller
             ]);
         }
 
-        // Senão gera do HTML
-        $pdf = Pdf::loadHTML($documento->conteudo)
+        // Gera preview com cabeçalho usando o template pdf-preview
+        $processo = $documento->processo;
+        $estabelecimento = $processo ? $processo->estabelecimento : null;
+        $usuarioLogado = \Auth::guard('interno')->user();
+        $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
+
+        $pdf = Pdf::loadView('documentos.pdf-preview', [
+            'documento' => $documento,
+            'processo' => $processo,
+            'estabelecimento' => $estabelecimento,
+            'logomarca' => $logomarca,
+        ])
             ->setPaper('a4')
-            ->setOption('margin-top', 20)
-            ->setOption('margin-bottom', 20)
-            ->setOption('margin-left', 20)
-            ->setOption('margin-right', 20);
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
         
         return $pdf->stream($documento->numero_documento . '.pdf');
     }
