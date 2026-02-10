@@ -264,7 +264,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Endereço:</span>
-                        <span class="info-value">{{ $estabelecimento->logradouro }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif</span>
+                        <span class="info-value">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Bairro/Cidade:</span>
