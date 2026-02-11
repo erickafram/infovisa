@@ -1651,7 +1651,7 @@
         </div>
     </template>
 
-    {{-- Modal de Visualização de PDF --}}
+    {{-- Modal de Visualização de PDF com Zoom --}}
     <template x-teleport="body">
         <div x-show="modalVisualizador" 
              x-cloak
@@ -1663,25 +1663,129 @@
                  style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.75);"></div>
             
             {{-- Modal Content --}}
-            <div style="position: absolute; top: 2%; left: 2%; right: 2%; bottom: 2%; max-width: 1200px; margin: 0 auto;">
-                <div class="bg-white rounded-xl shadow-2xl h-full flex flex-col" @click.stop>
-                    {{-- Header --}}
-                    <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                        <h3 class="text-lg font-bold text-gray-900">Visualizar Documento</h3>
-                        <button @click="modalVisualizador = false"
-                                class="text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+            <div style="position: absolute; top: 1%; left: 1%; right: 1%; bottom: 1%; max-width: 95vw; margin: 0 auto;"
+                 x-data="pdfViewerSimple()" 
+                 x-init="$watch('$root.modalVisualizador', async (val) => { 
+                     if (val && $root.pdfUrl) { 
+                         await $nextTick(); 
+                         loadPdf($root.pdfUrl); 
+                     } else if (!val) { 
+                         cleanup(); 
+                     } 
+                 })"
+                 @click.stop>
+                <div class="bg-white rounded-xl shadow-2xl h-full flex flex-col">
+                    {{-- Header com controles de zoom --}}
+                    <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-gray-50 rounded-t-xl flex-wrap gap-2">
+                        <h3 class="text-sm font-bold text-gray-900 truncate">Visualizar Documento</h3>
+                        
+                        <div class="flex items-center gap-3 flex-wrap">
+                            {{-- Navegação de páginas --}}
+                            <div class="flex items-center gap-1">
+                                <button @click="previousPage()" :disabled="currentPage <= 1"
+                                        class="p-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                </button>
+                                <div class="flex items-center gap-1 text-sm text-gray-600">
+                                    <input type="number" x-model.number="currentPage" @change="goToPage(currentPage)" min="1" :max="totalPages"
+                                           class="w-12 px-1.5 py-1 text-xs border border-gray-300 rounded text-center focus:ring-1 focus:ring-blue-300">
+                                    <span>/ <span x-text="totalPages">0</span></span>
+                                </div>
+                                <button @click="nextPage()" :disabled="currentPage >= totalPages"
+                                        class="p-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                            </div>
+
+                            {{-- Separador --}}
+                            <div class="h-6 w-px bg-gray-300"></div>
+
+                            {{-- Controles de Zoom --}}
+                            <div class="flex items-center gap-1">
+                                <button @click="zoomOut()" :disabled="scale <= minScale"
+                                        class="p-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Reduzir zoom (-)">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/></svg>
+                                </button>
+                                
+                                <span class="text-xs font-semibold text-gray-600 w-12 text-center" x-text="getZoomPercent() + '%'">100%</span>
+                                
+                                <button @click="zoomIn()" :disabled="scale >= maxScale"
+                                        class="p-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Aumentar zoom (+)">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                </button>
+                            </div>
+
+                            {{-- Presets de zoom --}}
+                            <div class="flex items-center gap-1">
+                                <button @click="fitToWidth()" 
+                                        class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition font-medium" title="Ajustar à largura">
+                                    Largura
+                                </button>
+                                <button @click="fitToPage()" 
+                                        class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition font-medium" title="Ajustar à página">
+                                    Página
+                                </button>
+                                <button @click="setZoom(100)" 
+                                        class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition font-medium" title="Zoom 100%">
+                                    100%
+                                </button>
+                                <button @click="setZoom(200)" 
+                                        class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition font-medium" title="Zoom 200%">
+                                    200%
+                                </button>
+                            </div>
+
+                            {{-- Separador --}}
+                            <div class="h-6 w-px bg-gray-300"></div>
+
+                            {{-- Download --}}
+                            <button @click="downloadPdf()" 
+                                    class="p-1.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition" title="Baixar PDF">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </button>
+
+                            {{-- Fechar --}}
+                            <button @click="cleanup(); $root.modalVisualizador = false"
+                                    class="p-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 transition" title="Fechar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
                     </div>
 
-                    {{-- PDF Viewer --}}
-                    <div class="flex-1 overflow-hidden">
-                        <iframe :src="pdfUrl" 
-                                class="w-full h-full border-0"
-                                style="min-height: 500px;">
-                        </iframe>
+                    {{-- Dica de zoom --}}
+                    <div class="px-4 py-1 bg-blue-50 text-[11px] text-blue-600 flex items-center gap-2 border-b border-blue-100">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span><strong>Ctrl + Scroll do mouse</strong> para zoom • <strong>Botão do meio</strong> para arrastar • Botões ou presets para zoom rápido</span>
+                    </div>
+
+                    {{-- Área do PDF --}}
+                    <div class="flex-1 overflow-auto bg-gray-300 flex items-start justify-center" 
+                         x-ref="pdfContainer"
+                         style="min-height: 0;">
+                        
+                        {{-- Loading --}}
+                        <div x-show="isLoading" class="flex items-center justify-center h-full w-full">
+                            <div class="text-center">
+                                <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-sm text-gray-600">Carregando documento...</p>
+                            </div>
+                        </div>
+
+                        {{-- Erro --}}
+                        <div x-show="errorMsg" class="flex items-center justify-center h-full w-full">
+                            <div class="text-center text-red-500">
+                                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                                <p class="text-sm" x-text="errorMsg"></p>
+                            </div>
+                        </div>
+
+                        {{-- Canvas do PDF --}}
+                        <div x-show="!isLoading && !errorMsg" class="inline-block my-4">
+                            <canvas x-ref="pdfCanvas" class="shadow-xl bg-white"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>

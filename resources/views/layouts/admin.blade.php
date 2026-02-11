@@ -437,6 +437,7 @@
 
     {{-- PDF Viewer --}}
     <script src="{{ asset('js/pdf-viewer-anotacoes.js') }}"></script>
+    <script src="{{ asset('js/pdf-viewer-simple.js') }}"></script>
 
     @stack('scripts')
     @stack('modals')
