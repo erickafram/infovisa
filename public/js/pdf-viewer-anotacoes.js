@@ -104,19 +104,47 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 // Adicionar timestamp para evitar cache do navegador
                 const urlComTimestamp = this.pdfUrl + (this.pdfUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
                 
-                // PDF.js requer um objeto com a propriedade 'url'
+                console.log('🚀 Iniciando carregamento do PDF...');
+                const startTime = performance.now();
+                
+                // PDF.js com configurações otimizadas para streaming
                 const loadingTask = pdfjsLib.getDocument({ 
                     url: urlComTimestamp,
                     cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-                    cMapPacked: true
+                    cMapPacked: true,
+                    // OTIMIZAÇÕES CRÍTICAS PARA PDFS PESADOS
+                    disableAutoFetch: true,      // Não baixar tudo automaticamente
+                    disableStream: false,         // Habilitar streaming
+                    disableRange: false,          // Habilitar range requests
+                    rangeChunkSize: 65536,        // 64KB chunks (menor = mais rápido inicial)
+                    disableFontFace: false,       // Manter fontes
+                    useSystemFonts: true,         // Usar fontes do sistema quando possível
+                    standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
                 });
+                
+                // Mostrar progresso de carregamento
+                loadingTask.onProgress = (progress) => {
+                    if (progress.total > 0) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        console.log(`📥 Carregando PDF: ${percent}%`);
+                    }
+                };
                 
                 // Armazenar fora do Proxy do Alpine.js
                 _pdfDocInstance = await loadingTask.promise;
                 this.totalPages = _pdfDocInstance.numPages;
-                await this.renderPage(this.currentPage);
+                
+                const loadTime = performance.now() - startTime;
+                console.log(`✅ PDF carregado em ${Math.round(loadTime)}ms - ${this.totalPages} páginas`);
+                
+                // Renderizar primeira página IMEDIATAMENTE em preview ultra-rápido
+                console.log('🎨 Renderizando primeira página (preview rápido)...');
+                this.scale = 0.75; // Começar com zoom baixo para ser mais rápido
+                await this.renderPage(this.currentPage, 'preview');
+                
+                console.log('✅ Primeira página renderizada!');
             } catch (error) {
-                console.error('Erro ao carregar PDF:', error);
+                console.error('❌ Erro ao carregar PDF:', error);
                 alert('Erro ao carregar o PDF. Por favor, tente novamente.');
             }
         },
@@ -269,7 +297,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
             }
         },
 
-        async renderPage(pageNum) {
+        async renderPage(pageNum, forceQuality = null) {
             if (!_pdfDocInstance) {
                 console.error('Documento PDF não está carregado');
                 return;
@@ -282,6 +310,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
             }
 
             this.isRendering = true;
+            const renderStart = performance.now();
 
             try {
                 // Cancelar renderização anterior se existir
@@ -293,19 +322,23 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 const page = await _pdfDocInstance.getPage(pageNum);
                 
                 // Calcular escala adaptativa baseada no tamanho da página
-                // Para pranchas grandes (A0/A1), usar qualidade reduzida em zoom baixo
                 const viewport = page.getViewport({ scale: 1.0 });
                 const pageArea = viewport.width * viewport.height;
                 const isLargePage = pageArea > 2000000; // ~A1 ou maior
                 
                 // Ajustar qualidade baseado no zoom e tamanho da página
                 let renderScale = this.scale;
-                if (isLargePage && this.scale < 1.0) {
+                
+                if (forceQuality === 'preview') {
+                    // Modo preview ultra-rápido para primeira visualização
+                    renderScale = Math.min(this.scale, 0.5);
+                    this.renderQuality = 'preview';
+                } else if (isLargePage && this.scale < 1.0) {
                     // Para pranchas grandes com zoom baixo, renderizar em qualidade reduzida
-                    renderScale = this.scale * 0.75;
+                    renderScale = this.scale * 0.6; // Mais agressivo
                     this.renderQuality = 'low';
                 } else if (isLargePage && this.scale < 2.0) {
-                    renderScale = this.scale * 0.85;
+                    renderScale = this.scale * 0.75; // Mais agressivo
                     this.renderQuality = 'medium';
                 } else {
                     this.renderQuality = 'high';
@@ -327,8 +360,13 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                     viewport: finalViewport,
                     // Otimizações de renderização
                     intent: 'display',
-                    enableWebGL: false, // Desabilitar WebGL para melhor compatibilidade
+                    enableWebGL: false,
                     renderInteractiveForms: false,
+                    // Otimização adicional para preview
+                    ...(forceQuality === 'preview' && {
+                        renderTextLayer: false,
+                        renderAnnotationLayer: false,
+                    })
                 };
 
                 // Armazenar a tarefa de renderização
@@ -337,12 +375,23 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 await _currentRenderTask.promise;
                 _currentRenderTask = null;
                 
+                const renderTime = performance.now() - renderStart;
+                console.log(`✅ Página ${pageNum} renderizada em ${Math.round(renderTime)}ms (${this.renderQuality})`);
+                
                 // Redesenhar anotações após renderização
                 this.redrawAnnotations();
                 
-                // Pré-carregar páginas adjacentes em background (se não for muito pesado)
-                if (!isLargePage || this.scale < 1.5) {
-                    this.preloadAdjacentPages(pageNum);
+                // Se foi preview, re-renderizar em qualidade melhor após um delay
+                if (forceQuality === 'preview') {
+                    setTimeout(() => {
+                        console.log('🎨 Melhorando qualidade...');
+                        this.renderPage(pageNum);
+                    }, 500);
+                } else {
+                    // Pré-carregar páginas adjacentes em background (se não for muito pesado)
+                    if (!isLargePage || this.scale < 1.5) {
+                        this.preloadAdjacentPages(pageNum);
+                    }
                 }
                 
             } catch (error) {

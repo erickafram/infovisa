@@ -161,7 +161,7 @@
     <div class="flex-1 flex overflow-hidden">
         {{-- Canvas Container - PDF Centralizado --}}
         <div class="flex-1 pdf-canvas-container relative overflow-auto bg-gray-200 flex items-start justify-center" style="min-height: 0;">
-            {{-- Indicador de carregamento --}}
+            {{-- Indicador de carregamento com progresso --}}
             <div x-show="isRendering" 
                  x-transition
                  class="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
@@ -169,13 +169,29 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span class="text-sm font-medium">Renderizando...</span>
+                <span class="text-sm font-medium">
+                    <span x-show="renderQuality === 'preview'">Carregando preview...</span>
+                    <span x-show="renderQuality !== 'preview'">Renderizando...</span>
+                </span>
             </div>
             
-            {{-- Indicador de qualidade (apenas para pranchas grandes) --}}
-            <div x-show="renderQuality !== 'high'" 
+            {{-- Indicador de qualidade --}}
+            <div x-show="renderQuality === 'preview'" 
+                 class="absolute top-4 right-4 z-10 bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-xs font-medium border border-blue-300 flex items-center gap-1">
+                <svg class="animate-pulse w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                </svg>
+                Melhorando qualidade...
+            </div>
+            
+            <div x-show="renderQuality === 'low'" 
                  class="absolute top-4 right-4 z-10 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-xs font-medium border border-yellow-300">
-                <span x-text="renderQuality === 'low' ? '⚡ Modo Rápido' : '⚡ Qualidade Média'"></span>
+                ⚡ Modo Rápido
+            </div>
+            
+            <div x-show="renderQuality === 'medium'" 
+                 class="absolute top-4 right-4 z-10 bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-xs font-medium border border-orange-300">
+                ⚡ Qualidade Média
             </div>
             
             <div class="pdf-canvas-wrapper inline-block relative my-4">
