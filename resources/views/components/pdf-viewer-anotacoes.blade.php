@@ -32,16 +32,18 @@
         {{-- Zoom --}}
         <div class="flex items-center gap-1 border-l border-gray-300 pl-2">
             <button @click="zoomOut()" 
-                    class="p-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Reduzir">
+                    :disabled="scale <= 0.25"
+                    class="p-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Reduzir (Ctrl + Scroll ↓)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
                 </svg>
             </button>
             
-            <span class="text-xs font-medium text-gray-700" x-text="Math.round(scale * 100) + '%'"></span>
+            <span class="text-xs font-medium text-gray-700 w-10 text-center" x-text="Math.round(scale * 100) + '%'"></span>
             
             <button @click="zoomIn()" 
-                    class="p-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Ampliar">
+                    :disabled="scale >= 5.0"
+                    class="p-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Ampliar (Ctrl + Scroll ↑)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
                 </svg>
@@ -50,6 +52,18 @@
             <button @click="fitToWidth()" 
                     class="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition">
                 Ajustar
+            </button>
+            <button @click="setZoom(100)" 
+                    class="px-1.5 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                100%
+            </button>
+            <button @click="setZoom(200)" 
+                    class="px-1.5 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                200%
+            </button>
+            <button @click="setZoom(300)" 
+                    class="px-1.5 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                300%
             </button>
         </div>
 

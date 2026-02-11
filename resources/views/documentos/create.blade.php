@@ -583,7 +583,7 @@
                      @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
                      class="min-h-[400px] max-h-[600px] overflow-y-auto p-6 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.6;">
+                     style="font-family: 'Times New Roman', serif; font-size: 16px; line-height: 1.6;">
                     <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
                 <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
@@ -737,30 +737,10 @@
                         <span class="flex items-center justify-center w-4 h-4 bg-purple-600 text-white rounded-full text-xs font-bold" x-text="temPrazo ? '4' : '3'"></span>
                         Assinaturas Digitais
                     </h2>
-                    <div class="flex items-center gap-2">
-                        <span x-show="selecionados.length > 0" class="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full" x-text="selecionados.length + ' selecionado(s)'"></span>
-                        <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
-                    </div>
+                    <span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Obrigatório</span>
                 </div>
             </div>
             <div class="p-3">
-                {{-- Assinantes selecionados --}}
-                <div x-show="selecionados.length > 0" class="mb-3 flex flex-wrap gap-1">
-                    <template x-for="id in selecionados" :key="'sel-'+id">
-                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
-                            <span x-text="getNomeUsuario(id)"></span>
-                            <button type="button" @click="toggleSelecionado(id)" class="ml-0.5 text-purple-600 hover:text-purple-900">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
-                        </span>
-                    </template>
-                </div>
-
-                {{-- Hidden inputs para enviar os selecionados no form --}}
-                <template x-for="id in selecionados" :key="'hidden-'+id">
-                    <input type="hidden" name="assinaturas[]" :value="id">
-                </template>
-
                 {{-- Campo de Busca --}}
                 <div class="mb-3">
                     <input type="text" 
@@ -786,11 +766,10 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 border rounded-lg bg-gray-50">
                     <template x-for="usuario in usuariosFiltrados" :key="usuario.id">
-                        <label class="flex items-start p-2 border-2 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group bg-white"
-                               :class="selecionados.includes(usuario.id) ? 'border-purple-400 bg-purple-50' : 'border-gray-200'">
+                        <label class="flex items-start p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group bg-white">
                             <input type="checkbox" 
-                                   :checked="selecionados.includes(usuario.id)"
-                                   @change="toggleSelecionado(usuario.id)"
+                                   name="assinaturas[]" 
+                                   :value="usuario.id"
                                    class="mt-0.5 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
                             <div class="ml-2 flex-1 min-w-0">
                                 <div class="text-xs font-semibold text-gray-900 group-hover:text-purple-900 truncate">
@@ -1035,12 +1014,11 @@ const tiposDocumentoData = {
 function buscaTecnicos() {
     return {
         busca: '',
-        selecionados: [],
         usuariosFiltrados: [
             @foreach($usuariosInternos as $usuario)
                 {
                     id: {{ $usuario->id }},
-                    nome: '{{ addslashes($usuario->nome) }}',
+                    nome: '{{ $usuario->nome }}',
                     cpf: '{{ $usuario->cpf_formatado }}',
                     email: '{{ $usuario->email }}'
                 },
@@ -1050,26 +1028,12 @@ function buscaTecnicos() {
             @foreach($usuariosInternos as $usuario)
                 {
                     id: {{ $usuario->id }},
-                    nome: '{{ addslashes($usuario->nome) }}',
+                    nome: '{{ $usuario->nome }}',
                     cpf: '{{ $usuario->cpf_formatado }}',
                     email: '{{ $usuario->email }}'
                 },
             @endforeach
         ],
-
-        toggleSelecionado(id) {
-            const index = this.selecionados.indexOf(id);
-            if (index === -1) {
-                this.selecionados.push(id);
-            } else {
-                this.selecionados.splice(index, 1);
-            }
-        },
-
-        getNomeUsuario(id) {
-            const usuario = this.usuariosOriginais.find(u => u.id === id);
-            return usuario ? usuario.nome : '';
-        },
 
         filtrarTecnicos() {
             const termo = this.busca.toLowerCase().trim();
@@ -1329,29 +1293,6 @@ function documentoEditor() {
             event.target.value = '';
         },
 
-        // Padroniza o conteúdo para Arial, removendo fontes e tamanhos inline
-        padronizarFonte(html) {
-            // Cria um elemento temporário para manipular o HTML
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
-
-            // Remove font-family e font-size inline de todos os elementos
-            const elementos = temp.querySelectorAll('*');
-            elementos.forEach(el => {
-                if (el.style) {
-                    el.style.removeProperty('font-family');
-                    el.style.removeProperty('font-size');
-                }
-                // Remove tags <font> mantendo o conteúdo
-                if (el.tagName === 'FONT') {
-                    el.removeAttribute('face');
-                    el.removeAttribute('size');
-                }
-            });
-
-            return temp.innerHTML;
-        },
-
         handlePaste(event) {
             // Permite colar imagens
             const items = event.clipboardData.items;
@@ -1601,7 +1542,7 @@ function documentoEditor() {
                 // Se houver modelos, carrega o primeiro automaticamente e preenche o editor
                 if (this.modelos && this.modelos.length > 0) {
                     console.log('Carregando modelo:', this.modelos[0]);
-                    this.conteudo = this.padronizarFonte(this.modelos[0].conteudo);
+                    this.conteudo = this.modelos[0].conteudo;
                     const editor = document.getElementById('editor');
                     if (editor) {
                         editor.innerHTML = this.conteudo;
@@ -1676,7 +1617,7 @@ function documentoEditor() {
             console.log('Conteúdo:', this.conteudo);
             console.log('Tipo selecionado:', this.tipoSelecionado);
             
-            const assinaturas = document.querySelectorAll('input[type="hidden"][name="assinaturas[]"]');
+            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]:checked');
             console.log('Assinaturas selecionadas:', assinaturas.length);
             
             if (assinaturas.length === 0) {
