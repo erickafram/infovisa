@@ -17,6 +17,7 @@
             line-height: 1.3;
             color: #000;
             padding: 15px;
+            padding-bottom: 100px;
         }
         
         .logo-container {
@@ -172,12 +173,38 @@
         }
         
         .footer {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #ccc;
-            text-align: center;
-            font-size: 6pt;
-            color: #666;
+            margin-top: 30px;
+            padding: 10px 0;
+            border-top: 2px solid #333;
+            font-size: 7pt;
+            color: #333;
+            width: 100%;
+        }
+        
+        .footer-content {
+            display: table;
+            width: 100%;
+        }
+        
+        .footer-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 80px;
+            padding-right: 10px;
+        }
+        
+        .footer-logo img {
+            max-height: 50px;
+            max-width: 70px;
+            height: auto;
+            width: auto;
+        }
+        
+        .footer-text {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: justify;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -214,15 +241,6 @@
     <div class="header">
         <h1>{{ $documento->tipoDocumento->nome }}</h1>
         <div class="numero">{{ $documento->numero_documento }}</div>
-        @if($processo)
-            <div class="processo">
-                @php
-                    $tipoNome = $processo->tipo_nome ?? ($processo->tipoProcesso->nome ?? 'Processo');
-                    $numeroProcesso = $processo->numero_processo ?? 'S/N';
-                @endphp
-                {{ $tipoNome }}: <strong>{{ $numeroProcesso }}</strong>
-            </div>
-        @endif
     </div>
 
     {{-- Dados do Estabelecimento --}}
@@ -233,6 +251,38 @@
             @php
                 $responsavelLegal = $estabelecimento->responsaveis->where('pivot.tipo_vinculo', 'legal')->first();
                 $responsavelTecnico = $estabelecimento->responsaveis->where('pivot.tipo_vinculo', 'tecnico')->first();
+                
+                // Formatar CEP (00000-000)
+                $cepFormatado = $estabelecimento->cep;
+                if (strlen($cepFormatado) === 8) {
+                    $cepFormatado = substr($cepFormatado, 0, 5) . '-' . substr($cepFormatado, 5);
+                }
+                
+                // Formatar telefone (00) 0000-0000 ou (00) 00000-0000
+                $telefoneFormatado = '';
+                if ($estabelecimento->telefone) {
+                    $tel = preg_replace('/[^0-9]/', '', $estabelecimento->telefone);
+                    if (strlen($tel) === 10) {
+                        $telefoneFormatado = '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 4) . '-' . substr($tel, 6);
+                    } elseif (strlen($tel) === 11) {
+                        $telefoneFormatado = '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 5) . '-' . substr($tel, 7);
+                    } else {
+                        $telefoneFormatado = $estabelecimento->telefone;
+                    }
+                }
+                
+                // Formatar celular
+                $celularFormatado = '';
+                if ($estabelecimento->celular) {
+                    $cel = preg_replace('/[^0-9]/', '', $estabelecimento->celular);
+                    if (strlen($cel) === 10) {
+                        $celularFormatado = '(' . substr($cel, 0, 2) . ') ' . substr($cel, 2, 4) . '-' . substr($cel, 6);
+                    } elseif (strlen($cel) === 11) {
+                        $celularFormatado = '(' . substr($cel, 0, 2) . ') ' . substr($cel, 2, 5) . '-' . substr($cel, 7);
+                    } else {
+                        $celularFormatado = $estabelecimento->celular;
+                    }
+                }
             @endphp
             
             <div class="two-columns">
@@ -242,37 +292,48 @@
                         <span class="info-value">{{ $estabelecimento->nome_fantasia ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
+                        <span class="info-label">Razão Social:</span>
+                        <span class="info-value">{{ $estabelecimento->nome_razao_social }}</span>
+                    </div>
+                    <div class="info-row">
                         <span class="info-label">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}:</span>
                         <span class="info-value">{{ $estabelecimento->documento_formatado }}</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">CEP:</span>
-                        <span class="info-value">{{ $estabelecimento->cep }}</span>
-                    </div>
-                    @if($estabelecimento->telefone)
+                    @if($telefoneFormatado)
                     <div class="info-row">
                         <span class="info-label">Telefone:</span>
-                        <span class="info-value">{{ $estabelecimento->telefone }}@if($estabelecimento->celular), {{ $estabelecimento->celular }}@endif</span>
+                        <span class="info-value">{{ $telefoneFormatado }}@if($celularFormatado), {{ $celularFormatado }}@endif</span>
                     </div>
                     @endif
                 </div>
                 
                 <div class="column">
                     <div class="info-row">
-                        <span class="info-label">Razão Social:</span>
-                        <span class="info-value">{{ $estabelecimento->nome_razao_social }}</span>
+                        <span class="info-label">CEP:</span>
+                        <span class="info-value">{{ $cepFormatado }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Endereço:</span>
                         <span class="info-value">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Bairro/Cidade:</span>
-                        <span class="info-value">{{ $estabelecimento->bairro }} - {{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
+                        <span class="info-label">Bairro:</span>
+                        <span class="info-value">{{ $estabelecimento->bairro }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Cidade/UF:</span>
+                        <span class="info-value">{{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
                     </div>
                 </div>
             </div>
-            
+        </div>
+    </div>
+    
+    {{-- Responsáveis --}}
+    @if($responsavelLegal || $responsavelTecnico)
+    <div class="section">
+        <div class="section-title">Responsáveis</div>
+        <div class="info-grid">
             @if($responsavelLegal)
             <div class="info-row">
                 <span class="info-label">Responsável Legal:</span>
@@ -289,10 +350,10 @@
         </div>
     </div>
     @endif
+    @endif
 
     {{-- Conteúdo do Documento --}}
     <div class="section">
-        <div class="section-title">Conteúdo do Documento</div>
         <div class="content">
             {!! $documento->conteudo !!}
         </div>
@@ -324,7 +385,20 @@
 
     {{-- Rodapé --}}
     <div class="footer">
-        Documento gerado eletronicamente pelo Sistema InfoVISA em {{ $documento->created_at->format('d/m/Y H:i:s') }}
+        <div class="footer-content">
+            <div class="footer-logo">
+                @php
+                    $logoVisaPath = public_path('img/logovisa.png');
+                    if (file_exists($logoVisaPath)) {
+                        $logoVisaData = base64_encode(file_get_contents($logoVisaPath));
+                        echo '<img src="data:image/png;base64,' . $logoVisaData . '" alt="Logo VISA">';
+                    }
+                @endphp
+            </div>
+            <div class="footer-text">
+                Superintendência de Vigilância em Saúde - Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO. Contatos: (63) 3218-3264 – tocantins.visa@gmail.com
+            </div>
+        </div>
     </div>
 </body>
 </html>
