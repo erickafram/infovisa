@@ -75,12 +75,22 @@
                 Ajustar
             </button>
             
-            {{-- Dica de navegação --}}
-            <div class="text-[10px] text-gray-500 px-2 py-1 bg-blue-50 rounded border border-blue-200 flex items-center gap-1">
-                <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span class="text-blue-700 font-medium">Espaço + Arrastar</span> para mover
+            {{-- Dica de navegação e performance --}}
+            <div class="flex items-center gap-2">
+                <div class="text-[10px] text-gray-500 px-2 py-1 bg-blue-50 rounded border border-blue-200 flex items-center gap-1">
+                    <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-blue-700 font-medium">Espaço + Arrastar</span> para mover
+                </div>
+                
+                {{-- Dica de performance --}}
+                <div class="text-[10px] text-gray-500 px-2 py-1 bg-amber-50 rounded border border-amber-200 flex items-center gap-1">
+                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span class="text-amber-700 font-medium">Dica:</span> Feche outras abas para melhor performance
+                </div>
             </div>
         </div>
 

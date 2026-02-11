@@ -4,9 +4,25 @@
 let _pdfDocInstance = null;
 let _currentRenderTask = null;
 let _currentDocumentoId = null; // Rastrear qual documento está carregado
+let _pdfWorker = null; // Web Worker para processamento em background
 
 // Base URL para as requisições (definida no layout)
 const APP_BASE_URL = window.APP_BASE_URL || '';
+
+// Inicializar Web Worker (se suportado)
+function initPDFWorker() {
+    if (typeof Worker !== 'undefined' && !_pdfWorker) {
+        try {
+            _pdfWorker = new Worker('/js/pdf-worker.js');
+            console.log('✅ Web Worker inicializado para processamento em background');
+            return true;
+        } catch (e) {
+            console.warn('⚠️ Web Worker não disponível, usando thread principal');
+            return false;
+        }
+    }
+    return !!_pdfWorker;
+}
 
 function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
     return {
@@ -37,8 +53,10 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         // Otimizações de performance
         renderTimeout: null,
         isRendering: false,
-        renderQuality: 'high', // 'low', 'medium', 'high'
+        renderQuality: 'high', // 'preview', 'low', 'medium', 'high'
         pageCache: new Map(), // Cache de páginas renderizadas
+        useWorker: false, // Se está usando Web Worker
+        workerReady: false,
 
         async init() {
             // Limpar instância anterior se for um documento diferente
@@ -326,19 +344,20 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 const pageArea = viewport.width * viewport.height;
                 const isLargePage = pageArea > 2000000; // ~A1 ou maior
                 
-                // Ajustar qualidade baseado no zoom e tamanho da página
+                // OTIMIZAÇÃO CRÍTICA: Reduzir MUITO a resolução inicial
                 let renderScale = this.scale;
                 
                 if (forceQuality === 'preview') {
-                    // Modo preview ultra-rápido para primeira visualização
-                    renderScale = Math.min(this.scale, 0.5);
+                    // Modo preview ULTRA-rápido - 30% da resolução
+                    renderScale = Math.min(this.scale, 0.3);
                     this.renderQuality = 'preview';
                 } else if (isLargePage && this.scale < 1.0) {
-                    // Para pranchas grandes com zoom baixo, renderizar em qualidade reduzida
-                    renderScale = this.scale * 0.6; // Mais agressivo
+                    // Pranchas grandes com zoom baixo - 40% da resolução
+                    renderScale = this.scale * 0.4;
                     this.renderQuality = 'low';
                 } else if (isLargePage && this.scale < 2.0) {
-                    renderScale = this.scale * 0.75; // Mais agressivo
+                    // Pranchas grandes com zoom médio - 60% da resolução
+                    renderScale = this.scale * 0.6;
                     this.renderQuality = 'medium';
                 } else {
                     this.renderQuality = 'high';
@@ -346,28 +365,32 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
 
                 const finalViewport = page.getViewport({ scale: renderScale });
 
+                // OTIMIZAÇÃO: Limpar canvas antes para liberar memória
+                if (this.canvas.width > 0) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+
                 // Configurar canvas com tamanho otimizado
                 this.canvas.height = finalViewport.height;
                 this.canvas.width = finalViewport.width;
                 this.annotationCanvas.height = finalViewport.height;
                 this.annotationCanvas.width = finalViewport.width;
 
-                // Limpar canvas antes de renderizar
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
                 const renderContext = {
                     canvasContext: this.ctx,
                     viewport: finalViewport,
-                    // Otimizações de renderização
                     intent: 'display',
                     enableWebGL: false,
                     renderInteractiveForms: false,
-                    // Otimização adicional para preview
+                    // OTIMIZAÇÃO: Desabilitar camadas extras em preview
                     ...(forceQuality === 'preview' && {
                         renderTextLayer: false,
                         renderAnnotationLayer: false,
                     })
                 };
+
+                // OTIMIZAÇÃO: Usar requestAnimationFrame para não bloquear UI
+                await new Promise(resolve => requestAnimationFrame(resolve));
 
                 // Armazenar a tarefa de renderização
                 _currentRenderTask = page.render(renderContext);
@@ -381,16 +404,21 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 // Redesenhar anotações após renderização
                 this.redrawAnnotations();
                 
-                // Se foi preview, re-renderizar em qualidade melhor após um delay
+                // OTIMIZAÇÃO: Liberar memória da página
+                page.cleanup();
+                
+                // Se foi preview, re-renderizar em qualidade melhor após um delay maior
                 if (forceQuality === 'preview') {
                     setTimeout(() => {
                         console.log('🎨 Melhorando qualidade...');
                         this.renderPage(pageNum);
-                    }, 500);
+                    }, 1000); // Aumentado para 1s para dar tempo do preview aparecer
                 } else {
-                    // Pré-carregar páginas adjacentes em background (se não for muito pesado)
-                    if (!isLargePage || this.scale < 1.5) {
-                        this.preloadAdjacentPages(pageNum);
+                    // Pré-carregar páginas adjacentes apenas se não for prancha muito grande
+                    if (!isLargePage || this.scale < 1.0) {
+                        setTimeout(() => {
+                            this.preloadAdjacentPages(pageNum);
+                        }, 2000); // Delay maior para não competir com renderização atual
                     }
                 }
                 
@@ -403,6 +431,11 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 console.error('Erro ao renderizar página:', error);
             } finally {
                 this.isRendering = false;
+                
+                // OTIMIZAÇÃO: Forçar garbage collection (se disponível)
+                if (window.gc) {
+                    setTimeout(() => window.gc(), 100);
+                }
             }
         },
 
