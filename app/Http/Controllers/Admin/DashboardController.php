@@ -408,14 +408,17 @@ class DashboardController extends Controller
         $stats['documentos_vencendo'] = $documentos_vencendo->count();
 
         // Buscar documentos pendentes de aprovação enviados por empresas
-        // REGRA: Só mostra documentos de processos que estão na área do usuário
-        // (setor_atual = setor do usuário OU responsavel_atual_id = usuário)
-        // ProcessoDocumento: arquivos enviados diretamente no processo
+        // REGRAS DE VISIBILIDADE:
+        // 1) Docs OBRIGATÓRIOS (tipo_documento_obrigatorio_id preenchido): aparecem para o
+        //    Setor Responsável pela Análise Inicial do tipo de processo, independente do setor_atual.
+        // 2) Docs FORA da lista obrigatória (tipo_documento_obrigatorio_id NULL): aparecem para
+        //    o setor onde o processo está atualmente (setor_atual).
+        // Em ambos os casos, o responsável direto (responsavel_atual_id) sempre vê.
         $documentos_pendentes_aprovacao_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
             ->with(['processo.estabelecimento', 'usuarioExterno']);
         
-        // DocumentoResposta: respostas a documentos com prazo
+        // DocumentoResposta: respostas a documentos com prazo (segue regra do setor atual)
         $respostas_pendentes_aprovacao_query = DocumentoResposta::where('status', 'pendente')
             ->with(['documentoDigital.processo.estabelecimento', 'usuarioExterno']);
 
@@ -423,35 +426,39 @@ class DashboardController extends Controller
         if ($usuario->isAdmin()) {
             // Admin vê todos
         } else {
-            // Filtrar por processos que estão no setor do usuário ou atribuídos diretamente
-            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
-            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
-            // esteja em outro setor atualmente.
-            $documentos_pendentes_aprovacao_query->whereHas('processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
-                    }
+            $documentos_pendentes_aprovacao_query->where(function($mainQuery) use ($usuario) {
+                // CASO 1: Docs obrigatórios → setor responsável pela análise inicial do tipo de processo
+                $mainQuery->where(function($obrig) use ($usuario) {
+                    $obrig->whereNotNull('tipo_documento_obrigatorio_id')
+                          ->whereHas('processo', function($p) use ($usuario) {
+                              $p->where('responsavel_atual_id', $usuario->id);
+                              if ($usuario->setor) {
+                                  $p->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                                      $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                          $ts->where('codigo', $usuario->setor);
+                                      });
+                                  });
+                              }
+                          });
+                })
+                // CASO 2: Docs fora da lista obrigatória → setor atual do processo
+                ->orWhere(function($naoObrig) use ($usuario) {
+                    $naoObrig->whereNull('tipo_documento_obrigatorio_id')
+                             ->whereHas('processo', function($p) use ($usuario) {
+                                 $p->where('responsavel_atual_id', $usuario->id);
+                                 if ($usuario->setor) {
+                                     $p->orWhere('setor_atual', $usuario->setor);
+                                 }
+                             });
                 });
             });
+            
+            // Respostas a documentos com prazo: segue regra do setor atual do processo
             $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
                     }
                 });
             });
@@ -573,7 +580,11 @@ class DashboardController extends Controller
             ->sortBy('data_fim');
 
         // Buscar documentos pendentes de aprovação
-        // REGRA: Só mostra documentos de processos que estão no setor do usuário ou atribuídos a ele
+        // REGRAS DE VISIBILIDADE:
+        // 1) Docs OBRIGATÓRIOS (tipo_documento_obrigatorio_id preenchido): aparecem para o
+        //    Setor Responsável pela Análise Inicial do tipo de processo, independente do setor_atual.
+        // 2) Docs FORA da lista obrigatória (tipo_documento_obrigatorio_id NULL): aparecem para
+        //    o setor onde o processo está atualmente (setor_atual).
         $documentos_pendentes_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
             ->with(['processo.estabelecimento']);
@@ -583,35 +594,39 @@ class DashboardController extends Controller
 
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
-            // Só processos do meu setor ou atribuídos a mim
-            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
-            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
-            // esteja em outro setor atualmente.
-            $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
-                    }
+            $documentos_pendentes_query->where(function($mainQuery) use ($usuario) {
+                // CASO 1: Docs obrigatórios → setor responsável pela análise inicial do tipo de processo
+                $mainQuery->where(function($obrig) use ($usuario) {
+                    $obrig->whereNotNull('tipo_documento_obrigatorio_id')
+                          ->whereHas('processo', function($p) use ($usuario) {
+                              $p->where('responsavel_atual_id', $usuario->id);
+                              if ($usuario->setor) {
+                                  $p->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                                      $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                          $ts->where('codigo', $usuario->setor);
+                                      });
+                                  });
+                              }
+                          });
+                })
+                // CASO 2: Docs fora da lista obrigatória → setor atual do processo
+                ->orWhere(function($naoObrig) use ($usuario) {
+                    $naoObrig->whereNull('tipo_documento_obrigatorio_id')
+                             ->whereHas('processo', function($p) use ($usuario) {
+                                 $p->where('responsavel_atual_id', $usuario->id);
+                                 if ($usuario->setor) {
+                                     $p->orWhere('setor_atual', $usuario->setor);
+                                 }
+                             });
                 });
             });
+            
+            // Respostas a documentos com prazo: segue regra do setor atual do processo
             $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
                     }
                 });
             });
@@ -974,7 +989,11 @@ class DashboardController extends Controller
             ->sortBy('data_fim');
 
         // Buscar documentos pendentes de aprovação
-        // REGRA: Só mostra documentos de processos que estão no setor do usuário ou atribuídos a ele
+        // REGRAS DE VISIBILIDADE:
+        // 1) Docs OBRIGATÓRIOS (tipo_documento_obrigatorio_id preenchido): aparecem para o
+        //    Setor Responsável pela Análise Inicial do tipo de processo, independente do setor_atual.
+        // 2) Docs FORA da lista obrigatória (tipo_documento_obrigatorio_id NULL): aparecem para
+        //    o setor onde o processo está atualmente (setor_atual).
         $documentos_pendentes_query = ProcessoDocumento::where('status_aprovacao', 'pendente')
             ->where('tipo_usuario', 'externo')
             ->with(['processo.estabelecimento']);
@@ -984,35 +1003,39 @@ class DashboardController extends Controller
 
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
-            // Só processos do meu setor ou atribuídos a mim
-            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
-            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
-            // esteja em outro setor atualmente.
-            $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
-                    }
+            $documentos_pendentes_query->where(function($mainQuery) use ($usuario) {
+                // CASO 1: Docs obrigatórios → setor responsável pela análise inicial do tipo de processo
+                $mainQuery->where(function($obrig) use ($usuario) {
+                    $obrig->whereNotNull('tipo_documento_obrigatorio_id')
+                          ->whereHas('processo', function($p) use ($usuario) {
+                              $p->where('responsavel_atual_id', $usuario->id);
+                              if ($usuario->setor) {
+                                  $p->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                                      $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                          $ts->where('codigo', $usuario->setor);
+                                      });
+                                  });
+                              }
+                          });
+                })
+                // CASO 2: Docs fora da lista obrigatória → setor atual do processo
+                ->orWhere(function($naoObrig) use ($usuario) {
+                    $naoObrig->whereNull('tipo_documento_obrigatorio_id')
+                             ->whereHas('processo', function($p) use ($usuario) {
+                                 $p->where('responsavel_atual_id', $usuario->id);
+                                 if ($usuario->setor) {
+                                     $p->orWhere('setor_atual', $usuario->setor);
+                                 }
+                             });
                 });
             });
+            
+            // Respostas a documentos com prazo: segue regra do setor atual do processo
             $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
-                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
-                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
-                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
-                                $ts->where('codigo', $usuario->setor);
-                            });
-                        });
                     }
                 });
             });
