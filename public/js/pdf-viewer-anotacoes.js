@@ -34,6 +34,11 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         scrollLeft: 0,
         scrollTop: 0,
         container: null,
+        // Otimizações de performance
+        renderTimeout: null,
+        isRendering: false,
+        renderQuality: 'high', // 'low', 'medium', 'high'
+        pageCache: new Map(), // Cache de páginas renderizadas
 
         async init() {
             // Limpar instância anterior se for um documento diferente
@@ -189,6 +194,9 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         setupMouseWheelZoom() {
             if (!this.container) return;
 
+            // Debounce para zoom com scroll
+            let zoomTimeout = null;
+
             this.container.addEventListener('wheel', async (e) => {
                 // Ctrl + Scroll para zoom
                 if (e.ctrlKey || e.metaKey) {
@@ -213,15 +221,22 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                         this.scale = Math.max(this.scale - 0.25, 0.5);
                     }
                     
-                    // Renderizar com novo zoom
-                    await this.renderPage(this.currentPage);
+                    // Usar debounce para evitar múltiplas renderizações durante scroll rápido
+                    if (zoomTimeout) {
+                        clearTimeout(zoomTimeout);
+                    }
                     
-                    // Ajustar scroll para manter o ponto do mouse no mesmo lugar
-                    await this.$nextTick();
-                    const newMouseX = relX * this.canvas.width;
-                    const newMouseY = relY * this.canvas.height;
-                    this.container.scrollLeft = newMouseX - (e.clientX - rect.left);
-                    this.container.scrollTop = newMouseY - (e.clientY - rect.top);
+                    zoomTimeout = setTimeout(async () => {
+                        // Renderizar com novo zoom
+                        await this.renderPageDebounced(this.currentPage);
+                        
+                        // Ajustar scroll para manter o ponto do mouse no mesmo lugar
+                        await this.$nextTick();
+                        const newMouseX = relX * this.canvas.width;
+                        const newMouseY = relY * this.canvas.height;
+                        this.container.scrollLeft = newMouseX - (e.clientX - rect.left);
+                        this.container.scrollTop = newMouseY - (e.clientY - rect.top);
+                    }, 100); // 100ms de debounce para zoom suave
                 }
             }, { passive: false });
         },
@@ -260,6 +275,14 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 return;
             }
 
+            // Evitar renderizações simultâneas
+            if (this.isRendering) {
+                console.log('Renderização já em andamento, aguardando...');
+                return;
+            }
+
+            this.isRendering = true;
+
             try {
                 // Cancelar renderização anterior se existir
                 if (_currentRenderTask) {
@@ -268,16 +291,44 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 }
 
                 const page = await _pdfDocInstance.getPage(pageNum);
-                const viewport = page.getViewport({ scale: this.scale });
+                
+                // Calcular escala adaptativa baseada no tamanho da página
+                // Para pranchas grandes (A0/A1), usar qualidade reduzida em zoom baixo
+                const viewport = page.getViewport({ scale: 1.0 });
+                const pageArea = viewport.width * viewport.height;
+                const isLargePage = pageArea > 2000000; // ~A1 ou maior
+                
+                // Ajustar qualidade baseado no zoom e tamanho da página
+                let renderScale = this.scale;
+                if (isLargePage && this.scale < 1.0) {
+                    // Para pranchas grandes com zoom baixo, renderizar em qualidade reduzida
+                    renderScale = this.scale * 0.75;
+                    this.renderQuality = 'low';
+                } else if (isLargePage && this.scale < 2.0) {
+                    renderScale = this.scale * 0.85;
+                    this.renderQuality = 'medium';
+                } else {
+                    this.renderQuality = 'high';
+                }
 
-                this.canvas.height = viewport.height;
-                this.canvas.width = viewport.width;
-                this.annotationCanvas.height = viewport.height;
-                this.annotationCanvas.width = viewport.width;
+                const finalViewport = page.getViewport({ scale: renderScale });
+
+                // Configurar canvas com tamanho otimizado
+                this.canvas.height = finalViewport.height;
+                this.canvas.width = finalViewport.width;
+                this.annotationCanvas.height = finalViewport.height;
+                this.annotationCanvas.width = finalViewport.width;
+
+                // Limpar canvas antes de renderizar
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
                 const renderContext = {
                     canvasContext: this.ctx,
-                    viewport: viewport
+                    viewport: finalViewport,
+                    // Otimizações de renderização
+                    intent: 'display',
+                    enableWebGL: false, // Desabilitar WebGL para melhor compatibilidade
+                    renderInteractiveForms: false,
                 };
 
                 // Armazenar a tarefa de renderização
@@ -286,7 +337,14 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 await _currentRenderTask.promise;
                 _currentRenderTask = null;
                 
+                // Redesenhar anotações após renderização
                 this.redrawAnnotations();
+                
+                // Pré-carregar páginas adjacentes em background (se não for muito pesado)
+                if (!isLargePage || this.scale < 1.5) {
+                    this.preloadAdjacentPages(pageNum);
+                }
+                
             } catch (error) {
                 // Ignorar erros de cancelamento
                 if (error.name === 'RenderingCancelledException') {
@@ -294,20 +352,68 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                     return;
                 }
                 console.error('Erro ao renderizar página:', error);
+            } finally {
+                this.isRendering = false;
             }
+        },
+
+        async preloadAdjacentPages(currentPage) {
+            // Pré-carregar próxima e anterior em background (não bloqueia UI)
+            const pagesToPreload = [];
+            if (currentPage > 1) pagesToPreload.push(currentPage - 1);
+            if (currentPage < this.totalPages) pagesToPreload.push(currentPage + 1);
+
+            for (const pageNum of pagesToPreload) {
+                if (!this.pageCache.has(pageNum)) {
+                    // Marcar como "em cache" para evitar duplicação
+                    this.pageCache.set(pageNum, 'loading');
+                    
+                    // Carregar em background sem bloquear
+                    setTimeout(async () => {
+                        try {
+                            const page = await _pdfDocInstance.getPage(pageNum);
+                            this.pageCache.set(pageNum, page);
+                        } catch (e) {
+                            this.pageCache.delete(pageNum);
+                        }
+                    }, 100);
+                }
+            }
+
+            // Limpar cache de páginas distantes (manter apenas 5 páginas)
+            if (this.pageCache.size > 5) {
+                const keysToDelete = [];
+                for (const [key] of this.pageCache) {
+                    if (Math.abs(key - currentPage) > 2) {
+                        keysToDelete.push(key);
+                    }
+                }
+                keysToDelete.forEach(key => this.pageCache.delete(key));
+            }
+        },
+
+        // Renderização com debounce para evitar múltiplas chamadas
+        async renderPageDebounced(pageNum) {
+            if (this.renderTimeout) {
+                clearTimeout(this.renderTimeout);
+            }
+
+            this.renderTimeout = setTimeout(async () => {
+                await this.renderPage(pageNum);
+            }, 50); // 50ms de debounce
         },
 
         async previousPage() {
             if (this.currentPage > 1) {
                 this.currentPage--;
-                await this.renderPage(this.currentPage);
+                await this.renderPageDebounced(this.currentPage);
             }
         },
 
         async nextPage() {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++;
-                await this.renderPage(this.currentPage);
+                await this.renderPageDebounced(this.currentPage);
             }
         },
 
@@ -315,7 +421,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
             const num = parseInt(pageNum);
             if (num >= 1 && num <= this.totalPages) {
                 this.currentPage = num;
-                await this.renderPage(this.currentPage);
+                await this.renderPageDebounced(this.currentPage);
             }
         },
 
@@ -345,7 +451,9 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
             
             // Aplicar novo zoom
             this.scale = Math.max(0.5, Math.min(5.0, newScale));
-            await this.renderPage(this.currentPage);
+            
+            // Usar renderização com debounce para zoom mais suave
+            await this.renderPageDebounced(this.currentPage);
             
             // Ajustar scroll para manter o ponto centralizado
             await this.$nextTick();

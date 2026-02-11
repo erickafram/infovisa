@@ -157,7 +157,7 @@
     @endif
 
     {{-- Stats Cards --}}
-    <div id="tour-stats-cards" class="grid grid-cols-3 gap-3">
+    <div id="tour-stats-cards" class="grid grid-cols-2 gap-3">
         {{-- Para Mim --}}
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div class="flex items-center gap-3 px-4 py-3">
@@ -205,24 +205,6 @@
                 </span>
             </div>
         </div>
-
-        {{-- Cadastros Pendentes --}}
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-600 transition">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cadastros Pendentes</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
-                </div>
-            </div>
-            <div class="px-4 py-1.5 bg-amber-50/80 border-t border-amber-100/60 flex items-center gap-1 text-[11px] text-amber-600">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Aguardando aprovação
-                <svg class="w-3 h-3 ml-auto text-gray-300 group-hover:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </div>
-        </a>
     </div>
 
     {{-- Layout Principal --}}
