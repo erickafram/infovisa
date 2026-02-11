@@ -1,4 +1,12 @@
 {{-- Assistente IA para Documentos PDF --}}
+@php
+    $iaAtiva = \App\Models\ConfiguracaoSistema::where('chave', 'ia_ativa')->value('valor');
+    
+    // Verifica se o assistente IA foi desativado na página atual
+    $desativarNaPagina = isset($desativarAssistenteIA) && $desativarAssistenteIA === true;
+@endphp
+
+@if($iaAtiva === 'true' && !$desativarNaPagina)
 <style>
 /* Estilos do chat de documentos */
 .assistente-documento-mensagem {
@@ -599,3 +607,5 @@ function assistenteDocumento() {
     }
 }
 </script>
+
+@endif
