@@ -134,10 +134,11 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                     disableAutoFetch: true,      // Não baixar tudo automaticamente
                     disableStream: false,         // Habilitar streaming
                     disableRange: false,          // Habilitar range requests
-                    rangeChunkSize: 65536,        // 64KB chunks (menor = mais rápido inicial)
-                    disableFontFace: false,       // Manter fontes
-                    useSystemFonts: true,         // Usar fontes do sistema quando possível
+                    rangeChunkSize: 131072,       // 128KB chunks para downloads mais rápidos
+                    disableFontFace: true,        // Desabilitar fontes customizadas para rapidez
+                    useSystemFonts: true,         // Usar fontes do sistema
                     standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+                    isEvalSupported: false,       // Mais seguro e pode ser mais rápido
                 });
                 
                 // Mostrar progresso de carregamento
@@ -155,10 +156,18 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 const loadTime = performance.now() - startTime;
                 console.log(`✅ PDF carregado em ${Math.round(loadTime)}ms - ${this.totalPages} páginas`);
                 
-                // Renderizar primeira página IMEDIATAMENTE em preview ultra-rápido
-                console.log('🎨 Renderizando primeira página (preview rápido)...');
-                this.scale = 0.75; // Começar com zoom baixo para ser mais rápido
-                await this.renderPage(this.currentPage, 'preview');
+                // Detectar se é um documento pesado (muitas páginas ou página grande)
+                const firstPage = await _pdfDocInstance.getPage(1);
+                const vp = firstPage.getViewport({ scale: 1.0 });
+                const pageArea = vp.width * vp.height;
+                const isHeavyDoc = pageArea > 1500000 || this.totalPages > 20;
+                firstPage.cleanup();
+                
+                // Começar com zoom baixo para ser mais rápido
+                this.scale = isHeavyDoc ? 0.5 : 0.75;
+                
+                console.log(`🎨 Renderizando primeira página (${isHeavyDoc ? 'doc pesado, scale 0.5' : 'scale 0.75'})...`);
+                await this.renderPage(this.currentPage, isHeavyDoc ? 'low' : 'preview');
                 
                 console.log('✅ Primeira página renderizada!');
             } catch (error) {
@@ -347,20 +356,39 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 // OTIMIZAÇÃO CRÍTICA: Reduzir MUITO a resolução inicial
                 let renderScale = this.scale;
                 
+                // Limitar tamanho máximo do canvas (browsers crasham com canvas muito grande)
+                const MAX_CANVAS_AREA = 16777216; // 4096x4096 = limite seguro
+                const MAX_CANVAS_DIM = 8192; // dimensão máxima
+                
                 if (forceQuality === 'preview') {
-                    // Modo preview ULTRA-rápido - 30% da resolução
-                    renderScale = Math.min(this.scale, 0.3);
+                    // Modo preview ULTRA-rápido - 25% da resolução
+                    renderScale = Math.min(this.scale, 0.25);
                     this.renderQuality = 'preview';
+                } else if (forceQuality === 'low') {
+                    // Modo baixa qualidade para docs pesados
+                    renderScale = Math.min(this.scale * 0.5, 1.0);
+                    this.renderQuality = 'low';
                 } else if (isLargePage && this.scale < 1.0) {
-                    // Pranchas grandes com zoom baixo - 40% da resolução
-                    renderScale = this.scale * 0.4;
+                    // Pranchas grandes com zoom baixo - 35% da resolução
+                    renderScale = this.scale * 0.35;
                     this.renderQuality = 'low';
                 } else if (isLargePage && this.scale < 2.0) {
-                    // Pranchas grandes com zoom médio - 60% da resolução
-                    renderScale = this.scale * 0.6;
+                    // Pranchas grandes com zoom médio - 50% da resolução
+                    renderScale = this.scale * 0.5;
                     this.renderQuality = 'medium';
                 } else {
                     this.renderQuality = 'high';
+                }
+                
+                // Verificar se o canvas resultante não excede os limites
+                let testViewport = page.getViewport({ scale: renderScale });
+                while ((testViewport.width * testViewport.height > MAX_CANVAS_AREA || 
+                        testViewport.width > MAX_CANVAS_DIM || 
+                        testViewport.height > MAX_CANVAS_DIM) && renderScale > 0.1) {
+                    renderScale *= 0.75;
+                    testViewport = page.getViewport({ scale: renderScale });
+                    this.renderQuality = 'low';
+                    console.log(`⚠️ Canvas muito grande, reduzindo scale para ${renderScale.toFixed(2)}`);
                 }
 
                 const finalViewport = page.getViewport({ scale: renderScale });
@@ -407,18 +435,20 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 // OTIMIZAÇÃO: Liberar memória da página
                 page.cleanup();
                 
-                // Se foi preview, re-renderizar em qualidade melhor após um delay maior
+                // Se foi preview, re-renderizar em qualidade melhor após um delay
                 if (forceQuality === 'preview') {
                     setTimeout(() => {
-                        console.log('🎨 Melhorando qualidade...');
-                        this.renderPage(pageNum);
-                    }, 1000); // Aumentado para 1s para dar tempo do preview aparecer
-                } else {
+                        if (!this.isRendering) {
+                            console.log('🎨 Melhorando qualidade...');
+                            this.renderPage(pageNum);
+                        }
+                    }, 1500);
+                } else if (forceQuality !== 'low') {
                     // Pré-carregar páginas adjacentes apenas se não for prancha muito grande
-                    if (!isLargePage || this.scale < 1.0) {
+                    if (!isLargePage && this.totalPages > 1) {
                         setTimeout(() => {
                             this.preloadAdjacentPages(pageNum);
-                        }, 2000); // Delay maior para não competir com renderização atual
+                        }, 3000);
                     }
                 }
                 
