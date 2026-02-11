@@ -424,11 +424,20 @@ class DashboardController extends Controller
             // Admin vê todos
         } else {
             // Filtrar por processos que estão no setor do usuário ou atribuídos diretamente
+            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
+            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
+            // esteja em outro setor atualmente.
             $documentos_pendentes_aprovacao_query->whereHas('processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
@@ -437,6 +446,12 @@ class DashboardController extends Controller
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
@@ -569,11 +584,20 @@ class DashboardController extends Controller
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
             // Só processos do meu setor ou atribuídos a mim
+            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
+            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
+            // esteja em outro setor atualmente.
             $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
@@ -582,6 +606,12 @@ class DashboardController extends Controller
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
@@ -955,11 +985,20 @@ class DashboardController extends Controller
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
             // Só processos do meu setor ou atribuídos a mim
+            // REGRA ADICIONAL: Documentos de processos cujo Tipo de Processo tem o setor do usuário
+            // como "Setor Responsável pela Análise Inicial" também aparecem, mesmo que o processo
+            // esteja em outro setor atualmente.
             $documentos_pendentes_query->whereHas('processo', function($q) use ($usuario) {
                 $q->where(function($sub) use ($usuario) {
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
@@ -968,6 +1007,12 @@ class DashboardController extends Controller
                     $sub->where('responsavel_atual_id', $usuario->id);
                     if ($usuario->setor) {
                         $sub->orWhere('setor_atual', $usuario->setor);
+                        // Incluir processos cujo tipo tem este setor como responsável pela análise inicial
+                        $sub->orWhereHas('tipoProcesso', function($tp) use ($usuario) {
+                            $tp->whereHas('tipoSetor', function($ts) use ($usuario) {
+                                $ts->where('codigo', $usuario->setor);
+                            });
+                        });
                     }
                 });
             });
