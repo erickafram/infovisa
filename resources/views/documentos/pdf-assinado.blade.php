@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ $documento->tipoDocumento->nome }} - {{ $documento->numero_documento }}</title>
     <style>
+        @page {
+            margin: 20mm 15mm;
+            size: A4;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -12,12 +18,11 @@
         }
         
         body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 8pt;
             line-height: 1.3;
             color: #000;
-            padding: 15px;
-            padding-bottom: 100px;
+            padding: 10px 20px;
         }
         
         .logo-container {
@@ -85,8 +90,9 @@
         }
         
         .info-grid {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.5;
+            color: #000;
         }
         
         .info-row {
@@ -105,20 +111,24 @@
         
         .two-columns {
             width: 100%;
-            display: table;
-            table-layout: fixed;
+            overflow: hidden;
         }
         
         .two-columns .column {
-            width: 50%;
-            display: table-cell;
-            vertical-align: top;
-            padding-right: 10px;
+            width: 48%;
+            float: left;
+            padding-right: 2%;
         }
         
         .two-columns .column:last-child {
             padding-right: 0;
-            padding-left: 10px;
+            padding-left: 2%;
+        }
+        
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
         }
         
         .content {
@@ -139,8 +149,9 @@
             margin-bottom: 2px;
             padding: 3px 5px;
             border: 1px solid #ccc;
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.2;
+            color: #000;
         }
         
         .authenticity {
@@ -174,37 +185,37 @@
         
         .footer {
             margin-top: 30px;
-            padding: 10px 0;
+            padding: 15px 0;
             border-top: 2px solid #333;
-            font-size: 7pt;
-            color: #333;
+            font-size: 7.5pt;
+            color: #000;
             width: 100%;
+            overflow: hidden;
         }
         
         .footer-content {
-            display: table;
             width: 100%;
+            overflow: hidden;
         }
         
         .footer-logo {
-            display: table-cell;
-            vertical-align: middle;
-            width: 80px;
-            padding-right: 10px;
+            float: left;
+            width: 55px;
+            padding-right: 12px;
         }
         
         .footer-logo img {
-            max-height: 50px;
-            max-width: 70px;
+            max-height: 38px;
+            max-width: 55px;
             height: auto;
             width: auto;
+            display: block;
         }
         
         .footer-text {
-            display: table-cell;
-            vertical-align: middle;
             text-align: justify;
             line-height: 1.5;
+            word-wrap: break-word;
         }
     </style>
 </head>
@@ -219,19 +230,70 @@
     @if(isset($logomarca) && $logomarca)
         <div class="logo-container">
             @php
-                // Converte a logomarca para base64 para incluir no PDF
-                // Remove 'storage/' do início se existir, pois public_path já aponta para 'public/'
                 $logoPathRelativo = str_replace('storage/', '', $logomarca);
                 $logoPath = public_path('storage/' . $logoPathRelativo);
                 
                 if (file_exists($logoPath)) {
-                    $logoData = base64_encode(file_get_contents($logoPath));
-                    $logoExtension = pathinfo($logoPath, PATHINFO_EXTENSION);
-                    $logoMimeType = $logoExtension === 'svg' ? 'svg+xml' : $logoExtension;
-                    echo '<img src="data:image/' . $logoMimeType . ';base64,' . $logoData . '" alt="Logomarca">';
-                } else {
-                    // Debug: mostra o caminho que tentou acessar
-                    echo '<!-- Logomarca não encontrada: ' . $logoPath . ' -->';
+                    try {
+                        // Lê a imagem
+                        $imageData = file_get_contents($logoPath);
+                        $imageInfo = getimagesize($logoPath);
+                        
+                        if ($imageInfo && $imageData) {
+                            $mimeType = $imageInfo['mime'];
+                            
+                            // Cria imagem a partir dos dados
+                            $image = null;
+                            if ($mimeType === 'image/png') {
+                                $image = @imagecreatefromstring($imageData);
+                            } elseif ($mimeType === 'image/jpeg') {
+                                $image = @imagecreatefromstring($imageData);
+                            }
+                            
+                            if ($image) {
+                                // Redimensiona para máximo 200px de largura
+                                $width = imagesx($image);
+                                $height = imagesy($image);
+                                
+                                if ($width > 200) {
+                                    $newWidth = 200;
+                                    $newHeight = ($height / $width) * $newWidth;
+                                    
+                                    $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                    
+                                    // Preserva transparência para PNG
+                                    if ($mimeType === 'image/png') {
+                                        imagealphablending($resized, false);
+                                        imagesavealpha($resized, true);
+                                    }
+                                    
+                                    imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                                    
+                                    // Converte para base64
+                                    ob_start();
+                                    if ($mimeType === 'image/png') {
+                                        imagepng($resized, null, 6); // Compressão 6
+                                    } else {
+                                        imagejpeg($resized, null, 75); // Qualidade 75%
+                                    }
+                                    $resizedData = ob_get_clean();
+                                    
+                                    imagedestroy($resized);
+                                    imagedestroy($image);
+                                    
+                                    $base64 = base64_encode($resizedData);
+                                    echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca">';
+                                } else {
+                                    // Imagem já é pequena, usa direto
+                                    imagedestroy($image);
+                                    $base64 = base64_encode($imageData);
+                                    echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca">';
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Ignora erros
+                    }
                 }
             @endphp
         </div>
@@ -285,7 +347,7 @@
                 }
             @endphp
             
-            <div class="two-columns">
+            <div class="two-columns clearfix">
                 <div class="column">
                     <div class="info-row">
                         <span class="info-label">Nome Fantasia:</span>
@@ -386,17 +448,10 @@
     {{-- Rodapé --}}
     <div class="footer">
         <div class="footer-content">
-            <div class="footer-logo">
-                @php
-                    $logoVisaPath = public_path('img/logovisa.png');
-                    if (file_exists($logoVisaPath)) {
-                        $logoVisaData = base64_encode(file_get_contents($logoVisaPath));
-                        echo '<img src="data:image/png;base64,' . $logoVisaData . '" alt="Logo VISA">';
-                    }
-                @endphp
-            </div>
-            <div class="footer-text">
-                Superintendência de Vigilância em Saúde - Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO. Contatos: (63) 3218-3264 – tocantins.visa@gmail.com
+            <div class="footer-text" style="padding-left: 0;">
+                <strong>Superintendência de Vigilância em Saúde</strong><br>
+                Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
+                Contatos: (63) 3218-3264 – tocantins.visa@gmail.com
             </div>
         </div>
     </div>
