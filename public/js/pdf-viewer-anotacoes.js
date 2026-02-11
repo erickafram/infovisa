@@ -27,6 +27,13 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         currentAnnotation: null,
         hoveredAnnotationIndex: null,
         selectedAnnotationIndex: null,
+        // Controles de pan/arrastar
+        isPanning: false,
+        panStartX: 0,
+        panStartY: 0,
+        scrollLeft: 0,
+        scrollTop: 0,
+        container: null,
 
         async init() {
             // Limpar instância anterior se for um documento diferente
@@ -50,6 +57,7 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
             this.ctx = this.canvas.getContext('2d');
             this.annotationCanvas = document.getElementById('annotation-canvas');
             this.annotationCtx = this.annotationCanvas.getContext('2d');
+            this.container = this.canvas.closest('.pdf-canvas-container');
 
             // Adicionar atalho de teclado para desfazer (Ctrl+Z)
             document.addEventListener('keydown', (e) => {
@@ -70,6 +78,12 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 if (this.currentTool !== 'select') return;
                 this.handleAnnotationHover(e);
             });
+
+            // Adicionar controles de pan/arrastar
+            this.setupPanControls();
+            
+            // Adicionar zoom com scroll do mouse
+            this.setupMouseWheelZoom();
 
             try {
                 // Validar se pdfUrl está definida e não está vazia
@@ -100,6 +114,116 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
                 console.error('Erro ao carregar PDF:', error);
                 alert('Erro ao carregar o PDF. Por favor, tente novamente.');
             }
+        },
+
+        setupPanControls() {
+            if (!this.container) return;
+
+            // Pan com mouse (arrastar segurando espaço ou botão do meio)
+            let spacePressed = false;
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !e.target.matches('input, textarea')) {
+                    e.preventDefault();
+                    spacePressed = true;
+                    if (!this.isPanning) {
+                        this.container.style.cursor = 'grab';
+                    }
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'Space') {
+                    spacePressed = false;
+                    if (!this.isPanning) {
+                        this.container.style.cursor = '';
+                    }
+                }
+            });
+
+            this.container.addEventListener('mousedown', (e) => {
+                // Pan com espaço + clique esquerdo ou botão do meio
+                if ((spacePressed && e.button === 0) || e.button === 1) {
+                    e.preventDefault();
+                    this.isPanning = true;
+                    this.panStartX = e.clientX;
+                    this.panStartY = e.clientY;
+                    this.scrollLeft = this.container.scrollLeft;
+                    this.scrollTop = this.container.scrollTop;
+                    this.container.style.cursor = 'grabbing';
+                }
+            });
+
+            this.container.addEventListener('mousemove', (e) => {
+                if (this.isPanning) {
+                    e.preventDefault();
+                    const dx = e.clientX - this.panStartX;
+                    const dy = e.clientY - this.panStartY;
+                    this.container.scrollLeft = this.scrollLeft - dx;
+                    this.container.scrollTop = this.scrollTop - dy;
+                }
+            });
+
+            this.container.addEventListener('mouseup', (e) => {
+                if (this.isPanning) {
+                    this.isPanning = false;
+                    this.container.style.cursor = spacePressed ? 'grab' : '';
+                }
+            });
+
+            this.container.addEventListener('mouseleave', () => {
+                if (this.isPanning) {
+                    this.isPanning = false;
+                    this.container.style.cursor = '';
+                }
+            });
+
+            // Prevenir menu de contexto no botão do meio
+            this.container.addEventListener('contextmenu', (e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                }
+            });
+        },
+
+        setupMouseWheelZoom() {
+            if (!this.container) return;
+
+            this.container.addEventListener('wheel', async (e) => {
+                // Ctrl + Scroll para zoom
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    
+                    // Calcular posição do mouse relativa ao container
+                    const rect = this.container.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left + this.container.scrollLeft;
+                    const mouseY = e.clientY - rect.top + this.container.scrollTop;
+                    
+                    // Calcular posição relativa antes do zoom
+                    const relX = mouseX / (this.canvas.width || 1);
+                    const relY = mouseY / (this.canvas.height || 1);
+                    
+                    // Ajustar zoom
+                    const oldScale = this.scale;
+                    if (e.deltaY < 0) {
+                        // Zoom in
+                        this.scale = Math.min(this.scale + 0.25, 5.0);
+                    } else {
+                        // Zoom out
+                        this.scale = Math.max(this.scale - 0.25, 0.5);
+                    }
+                    
+                    // Renderizar com novo zoom
+                    await this.renderPage(this.currentPage);
+                    
+                    // Ajustar scroll para manter o ponto do mouse no mesmo lugar
+                    await this.$nextTick();
+                    const newMouseX = relX * this.canvas.width;
+                    const newMouseY = relY * this.canvas.height;
+                    this.container.scrollLeft = newMouseX - (e.clientX - rect.left);
+                    this.container.scrollTop = newMouseY - (e.clientY - rect.top);
+                }
+            }, { passive: false });
         },
 
         async carregarAnotacoesExistentes() {
@@ -196,15 +320,42 @@ function pdfViewerAnotacoes(documentoId, pdfUrl, anotacoesIniciais) {
         },
 
         async zoomIn() {
-            this.scale += 0.25;
-            await this.renderPage(this.currentPage);
+            await this.zoomToPoint(this.scale + 0.25);
         },
 
         async zoomOut() {
             if (this.scale > 0.5) {
-                this.scale -= 0.25;
-                await this.renderPage(this.currentPage);
+                await this.zoomToPoint(this.scale - 0.25);
             }
+        },
+
+        async zoomToPoint(newScale, centerX = null, centerY = null) {
+            if (!this.container) return;
+            
+            // Se não especificado, usar o centro do viewport
+            if (centerX === null || centerY === null) {
+                const rect = this.container.getBoundingClientRect();
+                centerX = rect.width / 2 + this.container.scrollLeft;
+                centerY = rect.height / 2 + this.container.scrollTop;
+            }
+            
+            // Calcular posição relativa antes do zoom
+            const relX = centerX / (this.canvas.width || 1);
+            const relY = centerY / (this.canvas.height || 1);
+            
+            // Aplicar novo zoom
+            this.scale = Math.max(0.5, Math.min(5.0, newScale));
+            await this.renderPage(this.currentPage);
+            
+            // Ajustar scroll para manter o ponto centralizado
+            await this.$nextTick();
+            const rect = this.container.getBoundingClientRect();
+            this.container.scrollLeft = relX * this.canvas.width - rect.width / 2;
+            this.container.scrollTop = relY * this.canvas.height - rect.height / 2;
+        },
+
+        async setZoom(percentage) {
+            await this.zoomToPoint(percentage / 100);
         },
 
         async fitToWidth() {

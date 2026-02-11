@@ -31,25 +31,57 @@
         {{-- Zoom --}}
         <div class="flex items-center gap-1">
             <button @click="zoomOut()" 
-                    class="p-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Reduzir">
+                    class="p-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Reduzir (Ctrl + Scroll)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
                 </svg>
             </button>
             
-            <span class="text-xs font-medium text-gray-600 w-10 text-center" x-text="Math.round(scale * 100) + '%'"></span>
+            {{-- Dropdown de zoom com valores predefinidos --}}
+            <div x-data="{ openZoom: false }" class="relative">
+                <button @click="openZoom = !openZoom" 
+                        class="text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 transition flex items-center gap-1 min-w-[60px] justify-center">
+                    <span x-text="Math.round(scale * 100) + '%'"></span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                
+                <div x-show="openZoom" 
+                     @click.outside="openZoom = false"
+                     x-transition
+                     class="absolute top-full mt-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
+                    <button @click="setZoom(50); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">50%</button>
+                    <button @click="setZoom(75); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">75%</button>
+                    <button @click="setZoom(100); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">100%</button>
+                    <button @click="setZoom(125); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">125%</button>
+                    <button @click="setZoom(150); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">150%</button>
+                    <button @click="setZoom(200); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">200%</button>
+                    <button @click="setZoom(300); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">300%</button>
+                    <button @click="setZoom(400); openZoom = false" class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 transition">400%</button>
+                </div>
+            </div>
             
             <button @click="zoomIn()" 
-                    class="p-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Ampliar">
+                    class="p-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition" title="Ampliar (Ctrl + Scroll)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
                 </svg>
             </button>
 
             <button @click="fitToWidth()" 
-                    class="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                    class="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                    title="Ajustar à largura">
                 Ajustar
             </button>
+            
+            {{-- Dica de navegação --}}
+            <div class="text-[10px] text-gray-500 px-2 py-1 bg-blue-50 rounded border border-blue-200 flex items-center gap-1">
+                <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-blue-700 font-medium">Espaço + Arrastar</span> para mover
+            </div>
         </div>
 
         {{-- Ferramentas de Anotação --}}
