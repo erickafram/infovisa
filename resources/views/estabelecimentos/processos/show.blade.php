@@ -3899,6 +3899,13 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
 
                 // Carrega documento na IA para perguntas
                 async carregarDocumentoNaIA() {
+                    // Verifica se o assistente de IA está ativo (se o elemento existe no DOM)
+                    const assistenteAtivo = document.getElementById('assistente-documento-chat');
+                    if (!assistenteAtivo) {
+                        console.log('Assistente de IA desativado - não será carregado documento');
+                        return;
+                    }
+
                     if (!this.documentoIdAnotacoes) {
                         alert('Nenhum documento selecionado');
                         return;
