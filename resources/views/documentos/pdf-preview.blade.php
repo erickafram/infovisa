@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ $documento->tipoDocumento->nome }} - {{ $documento->numero_documento }}</title>
     <style>
+        @page {
+            margin: 20mm 15mm;
+            size: A4;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -12,11 +18,11 @@
         }
         
         body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 8pt;
             line-height: 1.3;
             color: #000;
-            padding: 15px;
+            padding: 10px 20px;
         }
         
         .logo-container {
@@ -25,10 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 60px;
-            max-width: 200px;
+            max-width: 100%;
             height: auto;
-            width: auto;
         }
         
         .header {
@@ -39,13 +43,13 @@
         }
         
         .header h1 {
-            font-size: 11pt;
+            font-size: 14pt;
             font-weight: bold;
             margin-bottom: 2px;
         }
         
         .header .numero {
-            font-size: 9pt;
+            font-size: 14pt;
             font-weight: bold;
             margin-bottom: 3px;
         }
@@ -61,6 +65,7 @@
         .info-grid {
             font-size: 8pt;
             line-height: 1.5;
+            color: #000;
         }
 
         .cabecalho-table {
@@ -273,7 +278,7 @@
 
     {{-- Aviso de Preview --}}
     <div class="preview-notice">
-        <div class="preview-notice-title">⚠️ DOCUMENTO EM VISUALIZAÇÃO</div>
+        <div class="preview-notice-title">DOCUMENTO EM VISUALIZAÇÃO</div>
         <div class="preview-notice-text">
             Este é um preview do documento. Após a assinatura, o documento final incluirá as assinaturas eletrônicas e código de autenticidade.
         </div>

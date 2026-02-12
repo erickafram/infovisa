@@ -31,8 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 60px;
-            max-width: 200px;
+            max-height: 90px;
+            max-width: 250px;
             height: auto;
             width: auto;
         }
@@ -45,13 +45,13 @@
         }
         
         .header h1 {
-            font-size: 11pt;
+            font-size: 14pt;
             font-weight: bold;
             margin-bottom: 2px;
         }
         
         .header .numero {
-            font-size: 9pt;
+            font-size: 14pt;
             font-weight: bold;
             margin-bottom: 3px;
         }
@@ -90,7 +90,7 @@
         }
         
         .info-grid {
-            font-size: 8pt;
+            font-size: 10pt;
             line-height: 1.5;
             color: #000;
         }
@@ -128,7 +128,7 @@
             padding: 10px;
             border: none;
             min-height: 150px;
-            font-size: 8pt;
+            font-size: 10pt;
         }
         
         .signatures {
@@ -220,54 +220,9 @@
                         if ($imageInfo && $imageData) {
                             $mimeType = $imageInfo['mime'];
                             
-                            // Cria imagem a partir dos dados
-                            $image = null;
-                            if ($mimeType === 'image/png') {
-                                $image = @imagecreatefromstring($imageData);
-                            } elseif ($mimeType === 'image/jpeg') {
-                                $image = @imagecreatefromstring($imageData);
-                            }
-                            
-                            if ($image) {
-                                // Redimensiona para máximo 200px de largura
-                                $width = imagesx($image);
-                                $height = imagesy($image);
-                                
-                                if ($width > 200) {
-                                    $newWidth = 200;
-                                    $newHeight = ($height / $width) * $newWidth;
-                                    
-                                    $resized = imagecreatetruecolor($newWidth, $newHeight);
-                                    
-                                    // Preserva transparência para PNG
-                                    if ($mimeType === 'image/png') {
-                                        imagealphablending($resized, false);
-                                        imagesavealpha($resized, true);
-                                    }
-                                    
-                                    imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                                    
-                                    // Converte para base64
-                                    ob_start();
-                                    if ($mimeType === 'image/png') {
-                                        imagepng($resized, null, 6); // Compressão 6
-                                    } else {
-                                        imagejpeg($resized, null, 75); // Qualidade 75%
-                                    }
-                                    $resizedData = ob_get_clean();
-                                    
-                                    imagedestroy($resized);
-                                    imagedestroy($image);
-                                    
-                                    $base64 = base64_encode($resizedData);
-                                    echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca">';
-                                } else {
-                                    // Imagem já é pequena, usa direto
-                                    imagedestroy($image);
-                                    $base64 = base64_encode($imageData);
-                                    echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca">';
-                                }
-                            }
+                            // Usa tamanho real da imagem sem redimensionar
+                            $base64 = base64_encode($imageData);
+                            echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca" style="max-width: 100%; height: auto;">';
                         }
                     } catch (\Exception $e) {
                         // Ignora erros
