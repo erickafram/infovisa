@@ -31,8 +31,10 @@
         }
         
         .logo-container img {
-            max-width: 100%;
+            max-height: 80px;
+            max-width: 300px;
             height: auto;
+            width: auto;
         }
         
         .header {

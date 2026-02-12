@@ -31,8 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 90px;
-            max-width: 250px;
+            max-height: 80px;
+            max-width: 300px;
             height: auto;
             width: auto;
         }
