@@ -31,8 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 60px;
-            max-width: 250px;
+            max-height: 100px;
+            max-width: 400px;
             height: auto;
             width: auto;
         }
@@ -48,6 +48,7 @@
             font-size: 14pt;
             font-weight: bold;
             margin-bottom: 2px;
+            text-transform: uppercase;
         }
         
         .header .numero {

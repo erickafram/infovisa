@@ -31,8 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 60px;
-            max-width: 250px;
+            max-height: 100px;
+            max-width: 400px;
             height: auto;
             width: auto;
         }
@@ -48,6 +48,7 @@
             font-size: 14pt;
             font-weight: bold;
             margin-bottom: 2px;
+            text-transform: uppercase;
         }
         
         .header .numero {
@@ -190,7 +191,22 @@
             overflow: hidden;
         }
         
+        .footer-logo {
+            float: left;
+            width: 70px;
+            padding-right: 12px;
+        }
+        
+        .footer-logo img {
+            max-height: 50px;
+            max-width: 70px;
+            height: auto;
+            width: auto;
+            display: block;
+        }
+        
         .footer-text {
+            overflow: hidden;
             text-align: justify;
             line-height: 1.5;
             word-wrap: break-word;
@@ -383,7 +399,26 @@
     {{-- Rodapé --}}
     <div class="footer">
         <div class="footer-content">
-            <div class="footer-text" style="padding-left: 0;">
+            <div class="footer-logo">
+                @php
+                    try {
+                        $rodapeImagePath = public_path('img/rodape.jpeg');
+                        if (file_exists($rodapeImagePath)) {
+                            $imageData = file_get_contents($rodapeImagePath);
+                            $imageInfo = getimagesize($rodapeImagePath);
+                            
+                            if ($imageInfo && $imageData) {
+                                $mimeType = $imageInfo['mime'];
+                                $base64 = base64_encode($imageData);
+                                echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Rodapé" style="max-width: 100%; height: auto;">';
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Ignora erros
+                    }
+                @endphp
+            </div>
+            <div class="footer-text">
                 <strong>Superintendência de Vigilância em Saúde</strong><br>
                 Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
                 Contatos: (63) 3218-3264 – tocantins.visa@gmail.com
