@@ -31,8 +31,8 @@
         }
         
         .logo-container img {
-            max-height: 80px;
-            max-width: 300px;
+            max-height: 60px;
+            max-width: 250px;
             height: auto;
             width: auto;
         }
@@ -62,10 +62,11 @@
         
         .section {
             margin-bottom: 10px;
+            com_print_typeinfo?$_ENV
         }
         
         .info-grid {
-            font-size: 8pt;
+            font-size: 10pt;
             line-height: 1.5;
             color: #000;
         }
@@ -75,7 +76,7 @@
             border-collapse: collapse;
             table-layout: fixed;
             border: 1px solid #d0d0d0;
-            font-size: 8pt;
+            font-size: 10pt;
         }
 
         .cabecalho-table td {
@@ -103,7 +104,7 @@
             padding: 10px;
             border: none;
             min-height: 150px;
-            font-size: 8pt;
+            font-size: 10pt;
         }
         
         .preview-notice {
