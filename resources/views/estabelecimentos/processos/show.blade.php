@@ -2181,42 +2181,19 @@
                         </div>
                     </div>
 
-                    {{-- PDF Viewer com Anotações --}}
-                    <div class="flex-1 overflow-hidden"
-                         x-data="{ modoVisualizacao: 'nativo', switchToAnnotation() { this.modoVisualizacao = 'anotacao'; } }">
-                        
-                        {{-- Modo Nativo (Rápido) - usa iframe do browser --}}
-                        <template x-if="modoVisualizacao === 'nativo' && pdfUrlAnotacoes">
-                            <div class="h-full flex flex-col">
-                                <div class="px-3 py-1.5 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200 flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                        </svg>
-                                        <span class="text-xs font-medium text-green-800">Visualização Rápida</span>
-                                    </div>
-                                    <button @click="switchToAnnotation()"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg border border-purple-200 transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                        </svg>
-                                        Ativar Anotações
-                                    </button>
-                                </div>
-                                <div class="flex-1 overflow-hidden bg-gray-100">
-                                    <iframe :src="pdfUrlAnotacoes" class="w-full h-full border-0"></iframe>
-                                </div>
+                    {{-- PDF Viewer (Visualização Rápida) --}}
+                    <div class="flex-1 overflow-hidden">
+                        <div class="h-full flex flex-col">
+                            <div class="px-3 py-1.5 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <span class="text-xs font-medium text-green-800">Visualização Rápida</span>
                             </div>
-                        </template>
-                        
-                        {{-- Modo Anotações (PDF.js Canvas) --}}
-                        <template x-if="modoVisualizacao === 'anotacao' && documentoIdAnotacoes && pdfUrlAnotacoes">
-                            <div x-data="pdfViewerAnotacoes(documentoIdAnotacoes, pdfUrlAnotacoes, [])" 
-                                 x-init="init()"
-                                 class="pdf-viewer-container h-full flex flex-col">
-                                @include('components.pdf-viewer-anotacoes-compact')
+                            <div class="flex-1 overflow-hidden bg-gray-100" x-show="pdfUrlAnotacoes">
+                                <iframe :src="pdfUrlAnotacoes" class="w-full h-full border-0"></iframe>
                             </div>
-                        </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4233,6 +4210,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                 <input type="date" 
                                        name="data_inicio" 
                                        value="{{ date('Y-m-d') }}"
+                                        @if(!auth('interno')->user()?->isAdmin()) min="{{ now()->toDateString() }}" @endif
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
                             </div>
                             <div>
@@ -4242,6 +4220,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                 <input type="date" 
                                        name="data_fim" 
                                        value="{{ date('Y-m-d') }}"
+                                        @if(!auth('interno')->user()?->isAdmin()) min="{{ now()->toDateString() }}" @endif
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
                             </div>
                         </div>

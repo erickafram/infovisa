@@ -7,6 +7,31 @@
     $desativarAssistenteIA = true;
 @endphp
 
+@push('styles')
+<style>
+    /* Variáveis dinâmicas no editor: mesma aparência do texto normal */
+    .variavel-dinamica {
+        background: transparent !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    /* Compatibilidade: remove destaque amarelo de variáveis antigas inseridas com inline style */
+    #editor span[style*="background-color: #fef3c7"],
+    #editor span[style*="background-color:#fef3c7"] {
+        background: transparent !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+</style>
+@endpush
+
 @section('content')
 @if(isset($processo))
     <meta name="processo-id" content="{{ $processo->id }}">
@@ -153,15 +178,13 @@
                         </select>
 
                         {{-- Tamanho da fonte --}}
-                        <select onchange="document.execCommand('fontSize', false, this.value); this.value=''" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Tamanho">
-                            <option value="">Tamanho</option>
-                            <option value="1">Muito pequeno</option>
-                            <option value="2">Pequeno</option>
-                            <option value="3">Normal</option>
-                            <option value="4">Médio</option>
-                            <option value="5">Grande</option>
-                            <option value="6">Muito grande</option>
-                            <option value="7">Enorme</option>
+                        <select onchange="document.execCommand('fontSize', false, this.value)" class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100" title="Tamanho">
+                            <option value="2" selected>10pt (Padrão)</option>
+                            <option value="1">8pt</option>
+                            <option value="3">12pt</option>
+                            <option value="4">14pt</option>
+                            <option value="5">16pt</option>
+                            <option value="6">18pt</option>
                         </select>
 
                         {{-- Fonte --}}
@@ -357,7 +380,7 @@
                      @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
                      class="min-h-[280px] max-h-[380px] overflow-y-auto p-3 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: 'Times New Roman', serif; font-size: 13px; line-height: 1.5;">
+                     style="font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.6; color: #000;">
                     <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
                 <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
@@ -619,6 +642,25 @@ function documentoEditor() {
                     reader.readAsDataURL(blob);
                     break;
                 }
+            }
+
+            // Se não for imagem, cola texto sem formatação e mantém o padrão do documento
+            const textoPlano = event.clipboardData.getData('text/plain');
+            if (textoPlano && textoPlano.trim() !== '') {
+                event.preventDefault();
+                const lines = textoPlano.split('\n');
+                let html = '';
+                lines.forEach((line, index) => {
+                    if (line.trim()) {
+                        html += `<span style="font-family: Arial, sans-serif; font-size: 10pt;">${line}</span>`;
+                    }
+                    if (index < lines.length - 1) {
+                        html += '<br>';
+                    }
+                });
+                document.execCommand('insertHTML', false, html);
+                this.conteudo = document.getElementById('editor').innerHTML;
+                this.salvarAutomaticamente();
             }
         },
 

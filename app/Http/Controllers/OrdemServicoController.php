@@ -96,6 +96,7 @@ class OrdemServicoController extends Controller
     public function create(Request $request)
     {
         $usuario = Auth::guard('interno')->user();
+        $permiteDatasRetroativas = $usuario->isAdmin();
         
         // Verifica permissão: apenas Admin e Gestores podem criar OS
         if (!$usuario->isAdmin() && !$usuario->isGestor()) {
@@ -133,7 +134,7 @@ class OrdemServicoController extends Controller
             $processoPreSelecionado = Processo::find($request->processo_id);
         }
         
-        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios', 'estabelecimentoPreSelecionado', 'processoPreSelecionado'));
+        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios', 'estabelecimentoPreSelecionado', 'processoPreSelecionado', 'permiteDatasRetroativas'));
     }
 
     /**
@@ -163,6 +164,11 @@ class OrdemServicoController extends Controller
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'documento_anexo' => 'nullable|file|mimes:pdf|max:10240',
         ];
+
+        if (!$usuario->isAdmin()) {
+            $rules['data_inicio'] = 'required|date|after_or_equal:today';
+            $rules['data_fim'] = 'required|date|after_or_equal:data_inicio|after_or_equal:today';
+        }
         
         // Se tem estabelecimento, processo é obrigatório
         if (!empty($request->estabelecimento_id)) {
@@ -178,6 +184,7 @@ class OrdemServicoController extends Controller
             'data_inicio.required' => 'Informe a data de início da ordem de serviço.',
             'data_fim.required' => 'Informe a data de término da ordem de serviço.',
             'data_fim.after_or_equal' => 'A data de término não pode ser anterior à data de início.',
+            'data_inicio.after_or_equal' => 'Não é permitido criar ordem de serviço com data de início retroativa.',
         ];
 
         $validated = $request->validate($rules, $messages);

@@ -35,7 +35,7 @@
             text-align: center;
             margin-bottom: 15px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #ccc;
+            border-bottom: 1px solid #d0d0d0;
         }
         
         .header h1 {
@@ -58,85 +58,73 @@
             margin-bottom: 10px;
         }
         
-        .section-title {
-            font-size: 9pt;
-            font-weight: bold;
-            margin-bottom: 5px;
-            padding-bottom: 2px;
-            border-bottom: 1px solid #ccc;
-        }
-        
         .info-grid {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.5;
         }
-        
-        .info-row {
-            margin-bottom: 3px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            display: inline-block;
-            width: 120px;
-        }
-        
-        .info-value {
-            display: inline;
-        }
-        
-        .two-columns {
+
+        .cabecalho-table {
             width: 100%;
-            display: table;
+            border-collapse: collapse;
             table-layout: fixed;
+            border: 1px solid #d0d0d0;
+            font-size: 8pt;
         }
-        
-        .two-columns .column {
-            width: 50%;
-            display: table-cell;
+
+        .cabecalho-table td {
+            padding: 6px 8px;
             vertical-align: top;
-            padding-right: 10px;
+            word-wrap: break-word;
+            border-bottom: 1px solid #eaeaea;
         }
-        
-        .two-columns .column:last-child {
-            padding-right: 0;
-            padding-left: 10px;
+
+        .cabecalho-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .cabecalho-table td + td {
+            border-left: 1px solid #eaeaea;
+        }
+
+        .cabecalho-label {
+            font-weight: bold;
+            text-transform: uppercase;
         }
         
         .content {
             margin: 15px 0;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: none;
             min-height: 150px;
             font-size: 8pt;
         }
         
         .preview-notice {
             margin-top: 20px;
-            padding: 10px;
-            border: 2px solid #f59e0b;
-            background-color: #fef3c7;
+            padding: 0;
+            border: none;
+            background: transparent;
             text-align: center;
         }
         
         .preview-notice-title {
             font-weight: bold;
-            font-size: 9pt;
-            color: #92400e;
+            font-size: 6pt;
+            color: #000;
             margin-bottom: 5px;
         }
         
         .preview-notice-text {
-            font-size: 7pt;
-            color: #92400e;
+            font-size: 6pt;
+            color: #000;
         }
         
         .footer {
             margin-top: 20px;
             padding-top: 10px;
-            border-top: 1px solid #ccc;
+            border-top: none;
             text-align: center;
-            font-size: 6pt;
+            font-size: 7.5pt;
             color: #666;
         }
     </style>
@@ -163,85 +151,121 @@
     <div class="header">
         <h1>{{ $documento->tipoDocumento->nome }}</h1>
         <div class="numero">{{ $documento->numero_documento }}</div>
-        @if($processo)
-            <div class="processo">
-                @php
-                    $tipoNome = $processo->tipo_nome ?? ($processo->tipoProcesso->nome ?? 'Processo');
-                    $numeroProcesso = $processo->numero_processo ?? 'S/N';
-                @endphp
-                {{ $tipoNome }}: <strong>{{ $numeroProcesso }}</strong>
-            </div>
-        @endif
     </div>
 
-    {{-- Dados do Estabelecimento --}}
+     {{-- Dados do Estabelecimento --}}
     @if($estabelecimento)
     <div class="section">
-        <div class="section-title">Dados do Estabelecimento</div>
         <div class="info-grid">
             @php
                 $responsavelLegal = $estabelecimento->responsaveis->where('pivot.tipo_vinculo', 'legal')->first();
                 $responsavelTecnico = $estabelecimento->responsaveis->where('pivot.tipo_vinculo', 'tecnico')->first();
+                
+                // Formatar CEP (00000-000)
+                $cepFormatado = $estabelecimento->cep;
+                if (strlen($cepFormatado) === 8) {
+                    $cepFormatado = substr($cepFormatado, 0, 5) . '-' . substr($cepFormatado, 5);
+                }
+                
+                // Formatar telefone (00) 0000-0000 ou (00) 00000-0000
+                $telefoneFormatado = '';
+                if ($estabelecimento->telefone) {
+                    $tel = preg_replace('/[^0-9]/', '', $estabelecimento->telefone);
+                    if (strlen($tel) === 10) {
+                        $telefoneFormatado = '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 4) . '-' . substr($tel, 6);
+                    } elseif (strlen($tel) === 11) {
+                        $telefoneFormatado = '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 5) . '-' . substr($tel, 7);
+                    } else {
+                        $telefoneFormatado = $estabelecimento->telefone;
+                    }
+                }
+                
+                // Formatar celular
+                $celularFormatado = '';
+                if ($estabelecimento->celular) {
+                    $cel = preg_replace('/[^0-9]/', '', $estabelecimento->celular);
+                    if (strlen($cel) === 10) {
+                        $celularFormatado = '(' . substr($cel, 0, 2) . ') ' . substr($cel, 2, 4) . '-' . substr($cel, 6);
+                    } elseif (strlen($cel) === 11) {
+                        $celularFormatado = '(' . substr($cel, 0, 2) . ') ' . substr($cel, 2, 5) . '-' . substr($cel, 7);
+                    } else {
+                        $celularFormatado = $estabelecimento->celular;
+                    }
+                }
             @endphp
             
-            <div class="two-columns">
-                <div class="column">
-                    <div class="info-row">
-                        <span class="info-label">Nome Fantasia:</span>
-                        <span class="info-value">{{ $estabelecimento->nome_fantasia ?? 'N/A' }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}:</span>
-                        <span class="info-value">{{ $estabelecimento->documento_formatado }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">CEP:</span>
-                        <span class="info-value">{{ $estabelecimento->cep }}</span>
-                    </div>
-                    @if($estabelecimento->telefone)
-                    <div class="info-row">
-                        <span class="info-label">Telefone:</span>
-                        <span class="info-value">{{ $estabelecimento->telefone }}@if($estabelecimento->celular), {{ $estabelecimento->celular }}@endif</span>
-                    </div>
-                    @endif
-                </div>
-                
-                <div class="column">
-                    <div class="info-row">
-                        <span class="info-label">Razão Social:</span>
-                        <span class="info-value">{{ $estabelecimento->nome_razao_social }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Endereço:</span>
-                        <span class="info-value">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Bairro/Cidade:</span>
-                        <span class="info-value">{{ $estabelecimento->bairro }} - {{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            @if($responsavelLegal)
-            <div class="info-row">
-                <span class="info-label">Responsável Legal:</span>
-                <span class="info-value">{{ $responsavelLegal->nome }} - CPF: {{ $responsavelLegal->cpf_formatado }}</span>
-            </div>
-            @endif
-            
-            @if($responsavelTecnico)
-            <div class="info-row">
-                <span class="info-label">Responsável Técnico:</span>
-                <span class="info-value">{{ $responsavelTecnico->nome }} - CPF: {{ $responsavelTecnico->cpf_formatado }}@if($responsavelTecnico->conselho_profissional && $responsavelTecnico->numero_registro) - {{ $responsavelTecnico->conselho_profissional }}: {{ $responsavelTecnico->numero_registro }}@endif</span>
-            </div>
-            @endif
+            <table class="cabecalho-table">
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Razão Social:</span>
+                        {{ $estabelecimento->nome_razao_social }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Nome Fantasia:</span>
+                        {{ $estabelecimento->nome_fantasia ?? 'N/A' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}:</span>
+                        {{ $estabelecimento->documento_formatado }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Município:</span>
+                        {{ $estabelecimento->cidade ?? 'N/A' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Endereço:</span>
+                        {{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CEP:</span>
+                        {{ $cepFormatado }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Bairro:</span>
+                        {{ $estabelecimento->bairro ?? 'N/A' }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Telefone:</span>
+                        {{ $telefoneFormatado }}@if($celularFormatado), {{ $celularFormatado }}@endif
+                    </td>
+                </tr>
+                @if($responsavelLegal)
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Responsável Legal:</span>
+                        {{ $responsavelLegal->nome }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CPF:</span>
+                        {{ $responsavelLegal->cpf_formatado }}
+                    </td>
+                </tr>
+                @endif
+                @if($responsavelTecnico)
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Responsável Técnico:</span>
+                        {{ $responsavelTecnico->nome }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CPF:</span>
+                        {{ $responsavelTecnico->cpf_formatado }}
+                    </td>
+                </tr>
+                @endif
+            </table>
         </div>
     </div>
     @endif
 
     {{-- Conteúdo do Documento --}}
     <div class="section">
-        <div class="section-title">Conteúdo do Documento</div>
         <div class="content">
             {!! $documento->conteudo !!}
         </div>

@@ -10,6 +10,16 @@
 @push('styles')
 <style>
     [x-cloak] { display: none !important; }
+
+    /* Variáveis dinâmicas no editor: mesma aparência do texto normal */
+    .variavel-dinamica {
+        background: transparent !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
 </style>
 @endpush
 
@@ -182,7 +192,7 @@
                 
                 <!-- Toolbar do Editor -->
                 <div class="border border-gray-300 rounded-t-lg bg-gradient-to-b from-gray-50 to-gray-100 p-2 space-y-2 shadow-sm">
-                    {{-- Primeira linha: Desfazer, Títulos e Formatação básica --}}
+                    {{-- Linha única: Essencial --}}
                     <div class="flex items-center gap-1.5 flex-wrap">
                         {{-- Desfazer/Refazer --}}
                         <button type="button" onclick="document.execCommand('undo')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Desfazer (Ctrl+Z)">
@@ -198,37 +208,14 @@
 
                         <div class="w-px h-7 bg-gray-300 mx-1"></div>
 
-                        {{-- Títulos --}}
-                        <select onchange="document.execCommand('formatBlock', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all font-medium" title="Estilo">
-                            <option value="">Estilo</option>
-                            <option value="h1">Título 1</option>
-                            <option value="h2">Título 2</option>
-                            <option value="h3">Título 3</option>
-                            <option value="h4">Título 4</option>
-                            <option value="p">Parágrafo</option>
-                        </select>
-
-                        {{-- Tamanho da fonte --}}
-                        <select onchange="document.execCommand('fontSize', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Tamanho">
-                            <option value="">Tamanho</option>
-                            <option value="1">Muito pequeno</option>
-                            <option value="2">Pequeno</option>
-                            <option value="3">Normal</option>
-                            <option value="4">Médio</option>
-                            <option value="5">Grande</option>
-                            <option value="6">Muito grande</option>
-                            <option value="7">Enorme</option>
-                        </select>
-
-                        {{-- Fonte --}}
-                        <select onchange="document.execCommand('fontName', false, this.value); this.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Fonte">
-                            <option value="">Fonte</option>
-                            <option value="Arial">Arial</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="Courier New">Courier New</option>
-                            <option value="Georgia">Georgia</option>
-                            <option value="Verdana">Verdana</option>
-                            <option value="Tahoma">Tahoma</option>
+                        {{-- Tamanho da fonte (simplificado) --}}
+                        <select onchange="document.execCommand('fontSize', false, this.value)" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Tamanho da Fonte">
+                            <option value="2" selected>10pt (Padrão)</option>
+                            <option value="1">8pt</option>
+                            <option value="3">12pt</option>
+                            <option value="4">14pt</option>
+                            <option value="5">16pt</option>
+                            <option value="6">18pt</option>
                         </select>
 
                         <div class="w-px h-7 bg-gray-300 mx-1"></div>
@@ -580,10 +567,12 @@
                 <!-- Editor -->
                 <div id="editor" 
                      contenteditable="true"
+                     spellcheck="true"
+                     lang="pt-BR"
                      @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
                      @paste="handlePaste($event)"
                      class="min-h-[400px] max-h-[600px] overflow-y-auto p-6 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: 'Times New Roman', serif; font-size: 16px; line-height: 1.6;">
+                     style="font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.6; color: #000;">
                     <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
                 </div>
                 <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
@@ -1294,11 +1283,15 @@ function documentoEditor() {
         },
 
         handlePaste(event) {
-            // Permite colar imagens
+            event.preventDefault();
+            
+            // Pega o texto sem formatação
+            const text = event.clipboardData.getData('text/plain');
+            
+            // Verifica se tem imagem
             const items = event.clipboardData.items;
             for (let i = 0; i < items.length; i++) {
                 if (items[i].type.indexOf('image') !== -1) {
-                    event.preventDefault();
                     const blob = items[i].getAsFile();
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -1308,9 +1301,25 @@ function documentoEditor() {
                         this.salvarAutomaticamente();
                     };
                     reader.readAsDataURL(blob);
-                    break;
+                    return;
                 }
             }
+            
+            // Insere texto sem formatação, mas mantém quebras de linha
+            const lines = text.split('\n');
+            let html = '';
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    html += `<span style="font-family: Arial, sans-serif; font-size: 10pt;">${line}</span>`;
+                }
+                if (index < lines.length - 1) {
+                    html += '<br>';
+                }
+            });
+            
+            document.execCommand('insertHTML', false, html);
+            this.conteudo = document.getElementById('editor').innerHTML;
+            this.salvarAutomaticamente();
         },
 
         inserirTabela() {
@@ -1339,8 +1348,8 @@ function documentoEditor() {
             const editor = document.getElementById('editor');
             editor.focus();
             
-            // Insere a variável com destaque visual
-            const variavelFormatada = `<span style="background-color: #fef3c7; color: #92400e; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">${variavel}</span>&nbsp;`;
+            // Insere a variável sem destaque (mesma aparência do texto do documento)
+            const variavelFormatada = `<span class="variavel-dinamica" data-variavel="${variavel}">${variavel}</span>&nbsp;`;
             document.execCommand('insertHTML', false, variavelFormatada);
             
             this.conteudo = editor.innerHTML;

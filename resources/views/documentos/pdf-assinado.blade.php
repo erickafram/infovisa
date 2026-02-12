@@ -41,7 +41,7 @@
             text-align: center;
             margin-bottom: 15px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #ccc;
+            border-bottom: 1px solid #d0d0d0;
         }
         
         .header h1 {
@@ -94,47 +94,39 @@
             line-height: 1.5;
             color: #000;
         }
-        
-        .info-row {
-            margin-bottom: 3px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            display: inline-block;
-            width: 120px;
-        }
-        
-        .info-value {
-            display: inline;
-        }
-        
-        .two-columns {
+
+        .cabecalho-table {
             width: 100%;
-            overflow: hidden;
+            border-collapse: collapse;
+            table-layout: fixed;
+            border: 1px solid #d0d0d0;
+            font-size: 8pt;
         }
-        
-        .two-columns .column {
-            width: 48%;
-            float: left;
-            padding-right: 2%;
+
+        .cabecalho-table td {
+            padding: 6px 8px;
+            vertical-align: top;
+            word-wrap: break-word;
+            border-bottom: 1px solid #eaeaea;
         }
-        
-        .two-columns .column:last-child {
-            padding-right: 0;
-            padding-left: 2%;
+
+        .cabecalho-table tr:last-child td {
+            border-bottom: none;
         }
-        
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
+
+        .cabecalho-table td + td {
+            border-left: 1px solid #eaeaea;
+        }
+
+        .cabecalho-label {
+            font-weight: bold;
+            text-transform: uppercase;
         }
         
         .content {
             margin: 15px 0;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: none;
             min-height: 150px;
             font-size: 8pt;
         }
@@ -142,13 +134,13 @@
         .signatures {
             margin-top: 15px;
             padding-top: 8px;
-            border-top: 1px solid #ccc;
+            border-top: none;
         }
         
         .signature-item {
             margin-bottom: 2px;
-            padding: 3px 5px;
-            border: 1px solid #ccc;
+            padding: 0;
+            border: none;
             font-size: 8pt;
             line-height: 1.2;
             color: #000;
@@ -156,15 +148,15 @@
         
         .authenticity {
             margin-top: 12px;
-            padding: 6px 8px;
-            border: 1px solid #ccc;
-            background-color: #f9f9f9;
+            padding: 0;
+            border: none;
+            background: transparent;
         }
         
         .authenticity-title {
             font-weight: bold;
             margin-bottom: 3px;
-            font-size: 8pt;
+            font-size: 6pt;
         }
         
         .authenticity-text {
@@ -174,11 +166,11 @@
         
         .authenticity-code {
             font-family: 'Courier New', monospace;
-            padding: 2px 3px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            display: inline-block;
-            margin-top: 2px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            display: inline;
+            margin-top: 0;
             font-size: 6pt;
             word-break: break-all;
         }
@@ -196,20 +188,6 @@
         .footer-content {
             width: 100%;
             overflow: hidden;
-        }
-        
-        .footer-logo {
-            float: left;
-            width: 55px;
-            padding-right: 12px;
-        }
-        
-        .footer-logo img {
-            max-height: 38px;
-            max-width: 55px;
-            height: auto;
-            width: auto;
-            display: block;
         }
         
         .footer-text {
@@ -308,7 +286,6 @@
     {{-- Dados do Estabelecimento --}}
     @if($estabelecimento)
     <div class="section">
-        <div class="section-title">Dados do Estabelecimento</div>
         <div class="info-grid">
             @php
                 $responsavelLegal = $estabelecimento->responsaveis->where('pivot.tipo_vinculo', 'legal')->first();
@@ -347,71 +324,74 @@
                 }
             @endphp
             
-            <div class="two-columns clearfix">
-                <div class="column">
-                    <div class="info-row">
-                        <span class="info-label">Nome Fantasia:</span>
-                        <span class="info-value">{{ $estabelecimento->nome_fantasia ?? 'N/A' }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Razão Social:</span>
-                        <span class="info-value">{{ $estabelecimento->nome_razao_social }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}:</span>
-                        <span class="info-value">{{ $estabelecimento->documento_formatado }}</span>
-                    </div>
-                    @if($telefoneFormatado)
-                    <div class="info-row">
-                        <span class="info-label">Telefone:</span>
-                        <span class="info-value">{{ $telefoneFormatado }}@if($celularFormatado), {{ $celularFormatado }}@endif</span>
-                    </div>
-                    @endif
-                </div>
-                
-                <div class="column">
-                    <div class="info-row">
-                        <span class="info-label">CEP:</span>
-                        <span class="info-value">{{ $cepFormatado }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Endereço:</span>
-                        <span class="info-value">{{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Bairro:</span>
-                        <span class="info-value">{{ $estabelecimento->bairro }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Cidade/UF:</span>
-                        <span class="info-value">{{ $estabelecimento->cidade }}/{{ $estabelecimento->estado }}</span>
-                    </div>
-                </div>
-            </div>
+            <table class="cabecalho-table">
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Razão Social:</span>
+                        {{ $estabelecimento->nome_razao_social }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Nome Fantasia:</span>
+                        {{ $estabelecimento->nome_fantasia ?? 'N/A' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">{{ $estabelecimento->tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF' }}:</span>
+                        {{ $estabelecimento->documento_formatado }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Município:</span>
+                        {{ $estabelecimento->cidade ?? 'N/A' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Endereço:</span>
+                        {{ $estabelecimento->endereco }}, {{ $estabelecimento->numero }}@if($estabelecimento->complemento), {{ $estabelecimento->complemento }}@endif
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CEP:</span>
+                        {{ $cepFormatado }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Bairro:</span>
+                        {{ $estabelecimento->bairro ?? 'N/A' }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">Telefone:</span>
+                        {{ $telefoneFormatado }}@if($celularFormatado), {{ $celularFormatado }}@endif
+                    </td>
+                </tr>
+                @if($responsavelLegal)
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Responsável Legal:</span>
+                        {{ $responsavelLegal->nome }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CPF:</span>
+                        {{ $responsavelLegal->cpf_formatado }}
+                    </td>
+                </tr>
+                @endif
+                @if($responsavelTecnico)
+                <tr>
+                    <td>
+                        <span class="cabecalho-label">Responsável Técnico:</span>
+                        {{ $responsavelTecnico->nome }}
+                    </td>
+                    <td>
+                        <span class="cabecalho-label">CPF:</span>
+                        {{ $responsavelTecnico->cpf_formatado }}
+                    </td>
+                </tr>
+                @endif
+            </table>
         </div>
     </div>
-    
-    {{-- Responsáveis --}}
-    @if($responsavelLegal || $responsavelTecnico)
-    <div class="section">
-        <div class="section-title">Responsáveis</div>
-        <div class="info-grid">
-            @if($responsavelLegal)
-            <div class="info-row">
-                <span class="info-label">Responsável Legal:</span>
-                <span class="info-value">{{ $responsavelLegal->nome }} - CPF: {{ $responsavelLegal->cpf_formatado }}</span>
-            </div>
-            @endif
-            
-            @if($responsavelTecnico)
-            <div class="info-row">
-                <span class="info-label">Responsável Técnico:</span>
-                <span class="info-value">{{ $responsavelTecnico->nome }} - CPF: {{ $responsavelTecnico->cpf_formatado }}@if($responsavelTecnico->conselho_profissional && $responsavelTecnico->numero_registro) - {{ $responsavelTecnico->conselho_profissional }}: {{ $responsavelTecnico->numero_registro }}@endif</span>
-            </div>
-            @endif
-        </div>
-    </div>
-    @endif
     @endif
 
     {{-- Conteúdo do Documento --}}
@@ -435,7 +415,7 @@
 
     {{-- Autenticidade --}}
     <div class="authenticity">
-        <div class="authenticity-title">🔒 Verificação de Autenticidade</div>
+        <div class="authenticity-title">Verificação de Autenticidade</div>
         <div class="authenticity-text">
             A autenticidade deste documento pode ser conferida através do link:<br>
             <strong>{{ $urlAutenticidade }}</strong>
