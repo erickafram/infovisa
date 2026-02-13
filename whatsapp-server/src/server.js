@@ -274,12 +274,23 @@ app.post('/sessions/:sessionId/messages/send', async (req, res) => {
     }
 
     try {
-        const result = await session.socket.sendMessage(jid, { text: message });
+        const normalizedJid = String(jid).trim().toLowerCase();
+        const [exists] = await session.socket.onWhatsApp(normalizedJid);
+
+        if (!exists?.exists) {
+            return res.status(400).json({
+                message: 'Número não encontrado no WhatsApp. Verifique DDI, DDD e número.',
+                jid: normalizedJid,
+            });
+        }
+
+        const result = await session.socket.sendMessage(normalizedJid, { text: message });
 
         res.json({
             message: 'Mensagem enviada com sucesso.',
             messageId: result.key.id,
             key: result.key,
+            jid: normalizedJid,
         });
     } catch (err) {
         console.error(`[${sessionId}] Erro ao enviar mensagem:`, err.message);
