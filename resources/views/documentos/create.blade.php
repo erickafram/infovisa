@@ -340,6 +340,10 @@
                                             <span class="font-mono text-amber-600 text-xs">{data_extenso}</span>
                                             <span class="text-gray-500 text-xs ml-1">- Data por extenso</span>
                                         </button>
+                                        <button type="button" @click="inserirVariavel('{data_extenso_maiusculo}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                            <span class="font-mono text-amber-600 text-xs">{data_extenso_maiusculo}</span>
+                                            <span class="text-gray-500 text-xs ml-1">- Data por extenso MAIÚSCULO</span>
+                                        </button>
                                         <button type="button" @click="inserirVariavel('{ano_atual}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
                                             <span class="font-mono text-amber-600 text-xs">{ano_atual}</span>
                                             <span class="text-gray-500 text-xs ml-1">- Ano atual</span>

@@ -1886,6 +1886,9 @@ class ProcessoController extends Controller
      */
     private function substituirVariaveis($conteudo, $estabelecimento, $processo)
     {
+        // Formata atividades
+        $atividadesTexto = $this->formatarAtividadesEstabelecimento($estabelecimento);
+        
         $variaveis = [
             '{estabelecimento_nome}' => $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social,
             '{estabelecimento_razao_social}' => $estabelecimento->nome_razao_social,
@@ -1896,17 +1899,115 @@ class ProcessoController extends Controller
             '{estabelecimento_estado}' => $estabelecimento->estado,
             '{estabelecimento_cep}' => $estabelecimento->cep,
             '{estabelecimento_telefone}' => $estabelecimento->telefone_formatado ?? '',
+            '{atividades}' => $atividadesTexto,
             '{processo_numero}' => $processo->numero_processo,
             '{processo_tipo}' => $processo->tipo,
             '{processo_status}' => $processo->status_formatado,
             '{processo_data_criacao}' => $processo->created_at->format('d/m/Y'),
             '{processo_data_criacao_extenso}' => $processo->created_at->translatedFormat('d \d\e F \d\e Y'),
             '{data_atual}' => now()->format('d/m/Y'),
+            '{data_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
+            '{data_extenso_maiusculo}' => strtoupper(now()->translatedFormat('d \d\e F \d\e Y')),
             '{data_atual_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
             '{ano_atual}' => now()->format('Y'),
         ];
         
         return str_replace(array_keys($variaveis), array_values($variaveis), $conteudo);
+    }
+
+    /**
+     * Formata as atividades do estabelecimento para exibição em documentos
+     */
+    private function formatarAtividadesEstabelecimento($estabelecimento)
+    {
+        if (!$estabelecimento) {
+            return '';
+        }
+
+        $listaAtividades = [];
+
+        // 1. Primeiro tenta usar atividades_exercidas (atividades selecionadas pelo usuário)
+        if ($estabelecimento->atividades_exercidas && is_array($estabelecimento->atividades_exercidas) && count($estabelecimento->atividades_exercidas) > 0) {
+            foreach ($estabelecimento->atividades_exercidas as $atividade) {
+                if (is_array($atividade)) {
+                    $codigo = $atividade['codigo'] ?? '';
+                    $descricao = $atividade['descricao'] ?? $atividade['nome'] ?? '';
+                    $principal = isset($atividade['principal']) && $atividade['principal'];
+                    
+                    // Verifica se o código é um CNAE válido
+                    $codigoLimpo = preg_replace('/[^0-9]/', '', $codigo);
+                    $isCodigoCnaeValido = !empty($codigoLimpo) && strlen($codigoLimpo) >= 5 && strlen($codigoLimpo) <= 7;
+                    
+                    if ($isCodigoCnaeValido && ($descricao || $codigo)) {
+                        $texto = '<div style="margin-bottom: 10px; display: flex; align-items: baseline;">';
+                        if ($codigo) {
+                            $codigoFormatado = $this->formatarCodigoCnae($codigo);
+                            $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
+                        }
+                        $texto .= "<span>{$descricao}";
+                        if ($principal) {
+                            $texto .= ' - Principal';
+                        }
+                        $texto .= '</span></div>';
+                        $listaAtividades[] = $texto;
+                    }
+                }
+            }
+        }
+
+        // 2. Se não tem atividades exercidas válidas, usa CNAE principal e secundários
+        if (empty($listaAtividades)) {
+            // CNAE Principal
+            if ($estabelecimento->cnae_fiscal) {
+                $codigoFormatado = $this->formatarCodigoCnae($estabelecimento->cnae_fiscal);
+                $descricao = $estabelecimento->cnae_fiscal_descricao ?? '';
+                $texto = "<div style=\"margin-bottom: 10px; display: flex; align-items: baseline;\">";
+                $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
+                $texto .= "<span>{$descricao} - Principal</span></div>";
+                $listaAtividades[] = $texto;
+            }
+
+            // CNAEs Secundários
+            if ($estabelecimento->cnaes_secundarios && is_array($estabelecimento->cnaes_secundarios)) {
+                foreach ($estabelecimento->cnaes_secundarios as $cnae) {
+                    if (is_array($cnae)) {
+                        $codigo = $cnae['codigo'] ?? '';
+                        $descricao = $cnae['descricao'] ?? $cnae['texto'] ?? '';
+                        
+                        if ($codigo || $descricao) {
+                            $texto = '<div style="margin-bottom: 10px; display: flex; align-items: baseline;">';
+                            if ($codigo) {
+                                $codigoFormatado = $this->formatarCodigoCnae($codigo);
+                                $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
+                            }
+                            $texto .= "<span>{$descricao}</span></div>";
+                            $listaAtividades[] = $texto;
+                        }
+                    }
+                }
+            }
+        }
+
+        return implode("", $listaAtividades);
+    }
+
+    /**
+     * Formata código CNAE no padrão XX.XX-X-XX
+     */
+    private function formatarCodigoCnae($codigo)
+    {
+        // Remove caracteres não numéricos
+        $codigo = preg_replace('/[^0-9]/', '', $codigo);
+        
+        // Se já tem 7 dígitos, formata no padrão XX.XX-X-XX
+        if (strlen($codigo) === 7) {
+            return substr($codigo, 0, 2) . '.' . 
+                   substr($codigo, 2, 2) . '-' . 
+                   substr($codigo, 4, 1) . '-' . 
+                   substr($codigo, 5, 2);
+        }
+        
+        return $codigo;
     }
 
     /**

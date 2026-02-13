@@ -1198,6 +1198,7 @@ class DocumentoDigitalController extends Controller
             // Data
             '{data_atual}' => now()->format('d/m/Y'),
             '{data_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
+            '{data_extenso_maiusculo}' => strtoupper(now()->translatedFormat('d \d\e F \d\e Y')),
             '{data_atual_extenso}' => now()->translatedFormat('d \d\e F \d\e Y'),
             '{ano_atual}' => now()->format('Y'),
         ];
@@ -1300,23 +1301,24 @@ class DocumentoDigitalController extends Controller
                     
                     // Só inclui se tiver código CNAE válido
                     if ($isCodigoCnaeValido && ($descricao || $codigo)) {
-                        $texto = '• ';
+                        $texto = '<div style="margin-bottom: 10px; display: flex; align-items: baseline;">';
                         if ($codigo) {
                             // Formata o código CNAE (ex: 4711301 -> 47.11-3-01)
                             $codigoFormatado = $this->formatarCodigoCnae($codigo);
-                            $texto .= "[{$codigoFormatado}] ";
+                            $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
                         }
-                        $texto .= $descricao;
+                        $texto .= "<span>{$descricao}";
                         if ($principal) {
-                            $texto .= ' (Principal)';
+                            $texto .= ' - Principal';
                         }
+                        $texto .= '</span></div>';
                         $listaAtividades[] = $texto;
                     }
                 } elseif (is_string($atividade) && !empty($atividade)) {
                     // Verifica se é um código CNAE válido
                     $codigoLimpo = preg_replace('/[^0-9]/', '', $atividade);
                     if (!empty($codigoLimpo) && strlen($codigoLimpo) >= 5) {
-                        $listaAtividades[] = '• ' . $atividade;
+                        $listaAtividades[] = '<div style="margin-bottom: 10px;">' . $atividade . '</div>';
                     }
                 }
             }
@@ -1328,7 +1330,9 @@ class DocumentoDigitalController extends Controller
             if ($estabelecimento->cnae_fiscal) {
                 $codigoFormatado = $this->formatarCodigoCnae($estabelecimento->cnae_fiscal);
                 $descricao = $estabelecimento->cnae_fiscal_descricao ?? '';
-                $texto = "• [{$codigoFormatado}] {$descricao} (Principal)";
+                $texto = "<div style=\"margin-bottom: 10px; display: flex; align-items: baseline;\">";
+                $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
+                $texto .= "<span>{$descricao} - Principal</span></div>";
                 $listaAtividades[] = $texto;
             }
 
@@ -1340,23 +1344,23 @@ class DocumentoDigitalController extends Controller
                         $descricao = $cnae['descricao'] ?? $cnae['texto'] ?? '';
                         
                         if ($codigo || $descricao) {
-                            $texto = '• ';
+                            $texto = '<div style="margin-bottom: 10px; display: flex; align-items: baseline;">';
                             if ($codigo) {
                                 $codigoFormatado = $this->formatarCodigoCnae($codigo);
-                                $texto .= "[{$codigoFormatado}] ";
+                                $texto .= "<span style=\"font-weight: bold; margin-right: 15px; min-width: 90px; display: inline-block;\">{$codigoFormatado}</span>";
                             }
-                            $texto .= $descricao;
+                            $texto .= "<span>{$descricao}</span></div>";
                             $listaAtividades[] = $texto;
                         }
                     } elseif (is_string($cnae) && !empty($cnae)) {
                         $codigoFormatado = $this->formatarCodigoCnae($cnae);
-                        $listaAtividades[] = "• [{$codigoFormatado}]";
+                        $listaAtividades[] = "<div style=\"margin-bottom: 10px;\"><span style=\"font-weight: bold;\">{$codigoFormatado}</span></div>";
                     }
                 }
             }
         }
 
-        return implode("\n", $listaAtividades);
+        return implode("", $listaAtividades);
     }
 
     /**

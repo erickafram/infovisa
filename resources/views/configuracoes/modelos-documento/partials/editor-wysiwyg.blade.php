@@ -34,13 +34,12 @@
             {{-- Tamanho da fonte --}}
             <select @change="execCommand('fontSize', $event.target.value); $event.target.value=''" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Tamanho">
                 <option value="">Tamanho</option>
-                <option value="1">Muito pequeno</option>
-                <option value="2">Pequeno</option>
-                <option value="3">Normal</option>
-                <option value="4">Médio</option>
-                <option value="5">Grande</option>
-                <option value="6">Muito grande</option>
-                <option value="7">Enorme</option>
+                <option value="1">8pt</option>
+                <option value="2" selected>10pt (Padrão)</option>
+                <option value="3">12pt</option>
+                <option value="4">14pt</option>
+                <option value="5">16pt</option>
+                <option value="6">18pt</option>
             </select>
 
             {{-- Fonte --}}
@@ -171,49 +170,123 @@
                     </svg>
                     Variáveis
                 </button>
-                <div x-show="showVars" @click.away="showVars = false" class="absolute z-20 mt-1 w-72 bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-h-64 overflow-y-auto" style="display: none;">
-                    <p class="text-xs text-gray-500 mb-2 px-2">Clique para inserir:</p>
-                    <div class="space-y-1">
-                        <button type="button" @click="inserirVariavel('{estabelecimento_nome}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{estabelecimento_nome}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Nome do estabelecimento</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{estabelecimento_cnpj}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{estabelecimento_cnpj}</span>
-                            <span class="text-gray-500 text-xs ml-1">- CNPJ</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{estabelecimento_endereco}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{estabelecimento_endereco}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Endereço completo</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{processo_numero}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{processo_numero}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Número do processo</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{data_atual}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{data_atual}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Data atual</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{data_extenso}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{data_extenso}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Data por extenso</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{responsavel_nome}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{responsavel_nome}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Nome do responsável</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{responsavel_cpf}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{responsavel_cpf}</span>
-                            <span class="text-gray-500 text-xs ml-1">- CPF do responsável</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{municipio}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{municipio}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Município</span>
-                        </button>
-                        <button type="button" @click="inserirVariavel('{atividades}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">
-                            <span class="font-mono text-amber-600">{atividades}</span>
-                            <span class="text-gray-500 text-xs ml-1">- Lista de atividades</span>
-                        </button>
+                <div x-show="showVars" @click.away="showVars = false" class="absolute z-20 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-xl p-2 max-h-80 overflow-y-auto" style="display: none;">
+                    <p class="text-xs text-gray-500 mb-2 px-2 font-medium">Clique para inserir no documento:</p>
+                    
+                    {{-- Estabelecimento --}}
+                    <div class="mb-2">
+                        <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📍 Estabelecimento</p>
+                        <div class="space-y-0.5 mt-1">
+                            <button type="button" @click="inserirVariavel('{estabelecimento_nome}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_nome}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Nome/Fantasia</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_razao_social}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_razao_social}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Razão Social</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_cnpj}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_cnpj}</span>
+                                <span class="text-gray-500 text-xs ml-1">- CNPJ</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_cpf}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_cpf}</span>
+                                <span class="text-gray-500 text-xs ml-1">- CPF</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_endereco}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_endereco}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Endereço completo</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_bairro}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_bairro}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Bairro</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_cidade}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_cidade}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Cidade</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{municipio}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{municipio}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Município</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_telefone}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_telefone}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Telefone</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{estabelecimento_email}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{estabelecimento_email}</span>
+                                <span class="text-gray-500 text-xs ml-1">- E-mail</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{atividades}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{atividades}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Lista de atividades</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Responsável Técnico --}}
+                    <div class="mb-2">
+                        <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">👤 Responsável Técnico</p>
+                        <div class="space-y-0.5 mt-1">
+                            <button type="button" @click="inserirVariavel('{responsavel_nome}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{responsavel_nome}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Nome</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{responsavel_cpf}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{responsavel_cpf}</span>
+                                <span class="text-gray-500 text-xs ml-1">- CPF</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{responsavel_email}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{responsavel_email}</span>
+                                <span class="text-gray-500 text-xs ml-1">- E-mail</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{responsavel_conselho}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{responsavel_conselho}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Nº Conselho</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Processo --}}
+                    <div class="mb-2">
+                        <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📄 Processo</p>
+                        <div class="space-y-0.5 mt-1">
+                            <button type="button" @click="inserirVariavel('{processo_numero}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{processo_numero}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Número</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{processo_tipo}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{processo_tipo}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Tipo</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{processo_data_criacao}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{processo_data_criacao}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Data de criação</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Data --}}
+                    <div>
+                        <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📅 Data</p>
+                        <div class="space-y-0.5 mt-1">
+                            <button type="button" @click="inserirVariavel('{data_atual}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{data_atual}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Data atual (dd/mm/aaaa)</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{data_extenso}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{data_extenso}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Data por extenso</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{data_extenso_maiusculo}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{data_extenso_maiusculo}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Data por extenso MAIÚSCULO</span>
+                            </button>
+                            <button type="button" @click="inserirVariavel('{ano_atual}'); showVars = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                <span class="font-mono text-amber-600 text-xs">{ano_atual}</span>
+                                <span class="text-gray-500 text-xs ml-1">- Ano atual</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -227,7 +300,7 @@
          @input="atualizarConteudo()"
          @paste="handlePaste($event)"
          class="border border-t-0 border-gray-300 rounded-b-lg p-4 min-h-[400px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 prose max-w-none"
-         style="font-family: Arial, sans-serif; line-height: 1.6;">
+         style="font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.6; color: #000;">
     </div>
     
     @error('conteudo')
@@ -235,10 +308,10 @@
     @enderror
     
     <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">
-        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        Use o botão "Variáveis" para inserir campos dinâmicos que serão substituídos ao gerar o documento.
+        Use o botão "Variáveis" para inserir campos dinâmicos que serão substituídos automaticamente ao gerar o documento.
     </p>
 </div>
 
@@ -268,7 +341,8 @@ function modeloEditor() {
         
         inserirVariavel(variavel) {
             this.$refs.editor.focus();
-            document.execCommand('insertHTML', false, `<span class="bg-amber-100 text-amber-800 px-1 rounded font-mono text-sm">${variavel}</span>`);
+            // Insere variável sem fundo amarelo, mantendo a formatação do texto atual
+            document.execCommand('insertHTML', false, `<span style="font-family: inherit; font-size: inherit; color: inherit;">${variavel}</span>`);
             this.atualizarConteudo();
         },
         
