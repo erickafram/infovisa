@@ -4,11 +4,13 @@
 
 @section('content')
 @php
-    // Pré-calcula contadores para os stats cards
-    $totalCompletos = collect($statusDocsObrigatorios)->filter(fn($s) => $s['completo'] ?? false)->count();
-    $totalNaoEnviados = collect($statusDocsObrigatorios)->filter(fn($s) => ($s['nao_enviado'] ?? 0) > 0)->count();
-    $totalAguardandoAprovacao = ($processosComPendencias ?? collect())->count();
-    $totalNaoAtribuidos = $processos->getCollection()->filter(fn($p) => !$p->responsavel_atual_id && !$p->setor_atual)->count();
+    $resumoQuick = $resumoQuick ?? [
+        'todos' => $processos->total(),
+        'completo' => 0,
+        'nao_enviado' => 0,
+        'aguardando' => 0,
+        'nao_atribuido' => 0,
+    ];
 @endphp
 
 <div class="max-w-[1600px] mx-auto" x-data="{ mobileFilters: false }">
@@ -140,34 +142,31 @@
                 <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2 text-[11px] text-gray-600 flex-wrap">
-                            @php
-                                $quickQuery = request()->except(['quick', 'responsavel']);
-                            @endphp
                             <span class="font-semibold text-gray-700">Filtro rapido:</span>
-                            <a href="{{ route('admin.processos.index-geral', $quickQuery) }}"
+                            <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') ? 'border-gray-200 text-gray-500' : 'border-gray-300 text-gray-800 bg-white' }}">
-                                Todos
+                                Todos ({{ $resumoQuick['todos'] ?? 0 }})
                             </a>
-                            <a href="{{ route('admin.processos.index-geral', array_merge($quickQuery, ['quick' => 'completo'])) }}"
+                            <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'completo'])) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') === 'completo' ? 'border-green-300 text-green-700 bg-green-50' : 'border-gray-200 text-gray-600' }}">
-                                Completos
+                                Completos ({{ $resumoQuick['completo'] ?? 0 }})
                             </a>
-                            <a href="{{ route('admin.processos.index-geral', array_merge($quickQuery, ['quick' => 'nao_enviado'])) }}"
+                            <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_enviado'])) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') === 'nao_enviado' ? 'border-red-300 text-red-700 bg-red-50' : 'border-gray-200 text-gray-600' }}">
-                                Incompletos
+                                Incompletos ({{ $resumoQuick['nao_enviado'] ?? 0 }})
                             </a>
-                            <a href="{{ route('admin.processos.index-geral', array_merge($quickQuery, ['quick' => 'aguardando'])) }}"
+                            <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'aguardando'])) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') === 'aguardando' ? 'border-amber-300 text-amber-700 bg-amber-50' : 'border-gray-200 text-gray-600' }}">
-                                Aguardando aprovacao
+                                Aguardando aprovacao ({{ $resumoQuick['aguardando'] ?? 0 }})
                             </a>
-                            <a href="{{ route('admin.processos.index-geral', array_merge($quickQuery, ['quick' => 'nao_atribuido'])) }}"
+                            <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_atribuido'])) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') === 'nao_atribuido' ? 'border-gray-400 text-gray-700 bg-gray-100' : 'border-gray-200 text-gray-600' }}">
-                                Nao atribuidos
+                                Nao atribuidos ({{ $resumoQuick['nao_atribuido'] ?? 0 }})
                             </a>
                         </div>
 
                         @if(request('quick'))
-                            <a href="{{ route('admin.processos.index-geral', $quickQuery) }}" class="text-[10px] text-gray-500 hover:text-gray-700">Limpar</a>
+                            <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}" class="text-[10px] text-gray-500 hover:text-gray-700">Limpar</a>
                         @endif
                     </div>
                     <div class="divide-y divide-gray-100">

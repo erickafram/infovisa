@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProcessoController extends Controller
@@ -309,11 +310,19 @@ class ProcessoController extends Controller
                 $query->orderBy('created_at', 'desc');
         }
 
-        $processos = $query->with('responsavelAtual')->paginate(10)->withQueryString();
+        $precisaFiltrarEmColecao = $request->filled('docs_obrigatorios') || $request->filled('quick');
+
+        if ($precisaFiltrarEmColecao) {
+            $processosCollection = $query->with('responsavelAtual')->get();
+            $processosPaginados = null;
+        } else {
+            $processosPaginados = $query->with('responsavelAtual')->paginate(10)->withQueryString();
+            $processosCollection = $processosPaginados->getCollection();
+        }
 
         // ✅ FILTRO ADICIONAL POR COMPETÊNCIA (após paginação)
         if (!$usuario->isAdmin()) {
-            $processos->getCollection()->transform(function ($processo) use ($usuario) {
+            $processosCollection = $processosCollection->map(function ($processo) use ($usuario) {
                 // Carrega o relacionamento se não estiver carregado
                 if (!$processo->relationLoaded('estabelecimento')) {
                     $processo->load('estabelecimento');
@@ -324,18 +333,14 @@ class ProcessoController extends Controller
             // Filtra por competência
             if ($usuario->isEstadual()) {
                 // Usuário estadual: só vê processos de competência estadual
-                $processos->setCollection(
-                    $processos->getCollection()->filter(function ($processo) {
-                        return $processo->estabelecimento && $processo->estabelecimento->isCompetenciaEstadual();
-                    })
-                );
+                $processosCollection = $processosCollection->filter(function ($processo) {
+                    return $processo->estabelecimento && $processo->estabelecimento->isCompetenciaEstadual();
+                })->values();
             } elseif ($usuario->isMunicipal()) {
                 // Usuário municipal: só vê processos de competência municipal
-                $processos->setCollection(
-                    $processos->getCollection()->filter(function ($processo) {
-                        return $processo->estabelecimento && !$processo->estabelecimento->isCompetenciaEstadual();
-                    })
-                );
+                $processosCollection = $processosCollection->filter(function ($processo) {
+                    return $processo->estabelecimento && !$processo->estabelecimento->isCompetenciaEstadual();
+                })->values();
             }
         }
 
@@ -364,7 +369,7 @@ class ProcessoController extends Controller
         $statusDocsObrigatorios = [];
         $prazoFilaPublica = []; // Armazena dias restantes para fila pública
         
-        foreach ($processos as $processo) {
+        foreach ($processosCollection as $processo) {
             $docsObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
             if ($docsObrigatorios->count() > 0) {
                 $totalOk = $docsObrigatorios->where('status', 'aprovado')->count();
@@ -419,58 +424,83 @@ class ProcessoController extends Controller
             }
         }
 
+        $idsProcessosBase = $processosCollection->pluck('id');
+        $resumoQuick = [
+            'todos' => $processosCollection->count(),
+            'completo' => collect($statusDocsObrigatorios)->filter(fn($s) => $s['completo'] ?? false)->count(),
+            'nao_enviado' => collect($statusDocsObrigatorios)->filter(fn($s) => ($s['nao_enviado'] ?? 0) > 0)->count(),
+            'aguardando' => $processosComPendencias->intersect($idsProcessosBase)->count(),
+            'nao_atribuido' => $processosCollection->filter(fn($p) => !$p->responsavel_atual_id && !$p->setor_atual)->count(),
+        ];
+
         // Filtro por documentos obrigatórios (completos/pendentes)
         if ($request->filled('docs_obrigatorios')) {
             $filtroDocsObrigatorios = $request->docs_obrigatorios;
-            $processos->setCollection(
-                $processos->getCollection()->filter(function ($processo) use ($statusDocsObrigatorios, $filtroDocsObrigatorios) {
-                    $status = $statusDocsObrigatorios[$processo->id] ?? null;
-                    
-                    if ($filtroDocsObrigatorios === 'completos') {
-                        // Mostra apenas processos com docs completos (todos aprovados)
-                        return $status && $status['completo'];
-                    } elseif ($filtroDocsObrigatorios === 'pendentes') {
-                        // Mostra processos com docs pendentes (não completos ou sem docs obrigatórios definidos)
-                        return !$status || !$status['completo'];
-                    }
-                    
-                    return true;
-                })
-            );
+            $processosCollection = $processosCollection->filter(function ($processo) use ($statusDocsObrigatorios, $filtroDocsObrigatorios) {
+                $status = $statusDocsObrigatorios[$processo->id] ?? null;
+                
+                if ($filtroDocsObrigatorios === 'completos') {
+                    // Mostra apenas processos com docs completos (todos aprovados)
+                    return $status && $status['completo'];
+                } elseif ($filtroDocsObrigatorios === 'pendentes') {
+                    // Mostra processos com docs pendentes (não completos ou sem docs obrigatórios definidos)
+                    return !$status || !$status['completo'];
+                }
+                
+                return true;
+            })->values();
         }
 
         // Filtro rápido por status de documentação e atribuicao
         if ($request->filled('quick')) {
             $filtroRapido = $request->quick;
-            $processos->setCollection(
-                $processos->getCollection()->filter(function ($processo) use ($statusDocsObrigatorios, $processosComPendencias, $filtroRapido) {
-                    $status = $statusDocsObrigatorios[$processo->id] ?? null;
+            $processosCollection = $processosCollection->filter(function ($processo) use ($statusDocsObrigatorios, $processosComPendencias, $filtroRapido) {
+                $status = $statusDocsObrigatorios[$processo->id] ?? null;
 
-                    if ($filtroRapido === 'completo') {
-                        return $status && ($status['completo'] ?? false);
-                    }
+                if ($filtroRapido === 'completo') {
+                    return $status && ($status['completo'] ?? false);
+                }
 
-                    if ($filtroRapido === 'nao_enviado') {
-                        return $status && ($status['nao_enviado'] ?? 0) > 0;
-                    }
+                if ($filtroRapido === 'nao_enviado') {
+                    return $status && ($status['nao_enviado'] ?? 0) > 0;
+                }
 
-                    if ($filtroRapido === 'aguardando') {
-                        return $processosComPendencias->contains($processo->id);
-                    }
+                if ($filtroRapido === 'aguardando') {
+                    return $processosComPendencias->contains($processo->id);
+                }
 
-                    if ($filtroRapido === 'nao_atribuido') {
-                        return !$processo->responsavel_atual_id && !$processo->setor_atual;
-                    }
+                if ($filtroRapido === 'nao_atribuido') {
+                    return !$processo->responsavel_atual_id && !$processo->setor_atual;
+                }
 
-                    return true;
-                })
+                return true;
+            })->values();
+        }
+
+        if ($precisaFiltrarEmColecao) {
+            $perPage = 10;
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $itensPagina = $processosCollection->forPage($currentPage, $perPage)->values();
+
+            $processos = new LengthAwarePaginator(
+                $itensPagina,
+                $processosCollection->count(),
+                $perPage,
+                $currentPage,
+                [
+                    'path' => $request->url(),
+                    'query' => $request->query(),
+                ]
             );
+        } else {
+            $processosPaginados->setCollection($processosCollection->values());
+            $processos = $processosPaginados;
         }
 
         return view('processos.index', compact(
             'processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 
             'processosComPendencias', 'processosComDocsPendentes', 'processosComRespostasPendentes',
-            'statusDocsObrigatorios', 'prazoFilaPublica'
+            'statusDocsObrigatorios', 'prazoFilaPublica', 'resumoQuick'
         ));
     }
 
