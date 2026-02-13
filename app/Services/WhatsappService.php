@@ -72,6 +72,7 @@ class WhatsappService
                 return [
                     'sucesso' => true,
                     'status' => $status,
+                    'qr' => $data['qr'] ?? null,
                     'qr_code' => $data['qr'] ?? null,
                     'dados' => $data,
                 ];
@@ -122,6 +123,7 @@ class WhatsappService
                 return [
                     'sucesso' => true,
                     'mensagem' => 'Sessão iniciada. Escaneie o QR Code.',
+                    'qr' => $data['qr'] ?? null,
                     'qr_code' => $data['qr'] ?? null,
                 ];
             }

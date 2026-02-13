@@ -318,7 +318,12 @@ function whatsappConfig() {
                 const response = await fetch('{{ route("admin.whatsapp.status") }}');
                 const data = await response.json();
                 this.statusConexao = data.status || 'desconectado';
-                this.qrCode = data.qr_code || null;
+                this.qrCode = data.qr_code || data.qr || null;
+                if (this.statusConexao === 'aguardando_qr') {
+                    this.iniciarPolling();
+                } else {
+                    this.pararPolling();
+                }
                 if (data.mensagem && !data.sucesso) {
                     this.mostrarFeedback(data.mensagem, 'erro');
                 }
@@ -341,7 +346,7 @@ function whatsappConfig() {
                 });
                 const data = await response.json();
                 if (data.sucesso) {
-                    this.qrCode = data.qr_code;
+                    this.qrCode = data.qr_code || data.qr || null;
                     this.statusConexao = 'aguardando_qr';
                     this.mostrarFeedback(data.mensagem, 'sucesso');
                     this.iniciarPolling();
