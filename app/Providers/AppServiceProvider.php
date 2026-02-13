@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use App\Models\OrdemServico;
+use App\Models\DocumentoAssinatura;
 use App\Models\DocumentoAjuda;
 use App\Observers\OrdemServicoObserver;
+use App\Observers\DocumentoAssinaturaObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -69,6 +71,9 @@ class AppServiceProvider extends ServiceProvider
         
         // Registra Observer de OrdemServico
         OrdemServico::observe(OrdemServicoObserver::class);
+
+        // Registra Observer de DocumentoAssinatura (WhatsApp)
+        DocumentoAssinatura::observe(DocumentoAssinaturaObserver::class);
 
         // Compartilha documentos de ajuda com o layout company
         View::composer('layouts.company', function ($view) {

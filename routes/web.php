@@ -626,6 +626,25 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         });
     });
     
+    // WhatsApp - Configuração e Painel - Apenas Admin (fora do grupo configuracoes)
+    Route::prefix('whatsapp')->name('whatsapp.')->middleware('admin')->group(function () {
+        // Configuração
+        Route::get('/configuracao', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'index'])->name('configuracao');
+        Route::post('/configuracao', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'salvar'])->name('configuracao.salvar');
+        Route::post('/restaurar-template', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'restaurarTemplate'])->name('restaurar-template');
+        Route::get('/status', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'verificarStatus'])->name('status');
+        Route::post('/iniciar-sessao', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'iniciarSessao'])->name('iniciar-sessao');
+        Route::post('/encerrar-sessao', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'encerrarSessao'])->name('encerrar-sessao');
+        Route::post('/enviar-teste', [\App\Http\Controllers\Admin\WhatsappConfiguracaoController::class, 'enviarTeste'])->name('enviar-teste');
+
+        // Painel de Mensagens
+        Route::get('/painel', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'index'])->name('painel');
+        Route::get('/mensagens/{id}/detalhes', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'detalhes'])->name('mensagens.detalhes');
+        Route::post('/mensagens/{id}/reenviar', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'reenviar'])->name('mensagens.reenviar');
+        Route::post('/reenviar-todas', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'reenviarTodas'])->name('reenviar-todas');
+        Route::get('/exportar', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'exportar'])->name('exportar');
+    });
+    
     // Assistente IA
     Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chat'])->name('ia.chat');
     Route::post('/ia/extrair-pdf', [\App\Http\Controllers\AssistenteIAController::class, 'extrairPdf'])->name('assistente-ia.extrair-pdf');

@@ -2149,6 +2149,31 @@
                         </div>
                         
                         <div class="flex items-center gap-2">
+                            {{-- Botões de Navegação entre Documentos Pendentes --}}
+                            <template x-if="documentoPendente && documentosPendentesLista.length > 1">
+                                <div class="flex items-center gap-1 mr-2 border-r border-gray-300 pr-2">
+                                    <button @click="navegarDocumentoPendente('anterior')" 
+                                            :disabled="indiceDocumentoPendenteAtual === 0"
+                                            :class="indiceDocumentoPendenteAtual === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'"
+                                            class="p-1.5 text-gray-600 rounded-lg transition-colors" 
+                                            title="Documento Anterior">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                    </button>
+                                    <span class="text-xs text-gray-600 font-medium px-2" x-text="`${indiceDocumentoPendenteAtual + 1} de ${documentosPendentesLista.length}`"></span>
+                                    <button @click="navegarDocumentoPendente('proximo')" 
+                                            :disabled="indiceDocumentoPendenteAtual === documentosPendentesLista.length - 1"
+                                            :class="indiceDocumentoPendenteAtual === documentosPendentesLista.length - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'"
+                                            class="p-1.5 text-gray-600 rounded-lg transition-colors" 
+                                            title="Próximo Documento">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+                            
                             {{-- Botões Aprovar/Rejeitar (só aparecem se documento é externo e pendente) --}}
                             <template x-if="documentoPendente">
                                 <div class="flex items-center gap-2">
@@ -3478,6 +3503,8 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 documentoIdAnotacoes: null,
                 documentoNomeAnotacoes: '',
                 documentoPendente: false, // Se o documento é externo e pendente de aprovação
+                documentosPendentesLista: [], // Lista de documentos pendentes para navegação
+                indiceDocumentoPendenteAtual: 0, // Índice do documento atual na lista
                 documentoEditando: null,
                 nomeEditando: '',
                 selecionarMultiplos: false, // Para seleção múltipla de documentos
@@ -3867,11 +3894,81 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.documentoNomeAnotacoes = nomeDocumento;
                     this.modalVisualizadorAnotacoes = true;
                     
+                    // Se é um documento pendente, constrói a lista de documentos pendentes
+                    if (isPendente) {
+                        this.construirListaDocumentosPendentes(documentoId);
+                    }
+                    
                     // Notificar que o modal PDF foi aberto
                     window.dispatchEvent(new CustomEvent('pdf-modal-aberto'));
                     
                     // Carrega automaticamente o documento na IA
                     await this.carregarDocumentoNaIA();
+                },
+
+                // Constrói a lista de documentos pendentes para navegação
+                construirListaDocumentosPendentes(documentoIdAtual) {
+                    this.documentosPendentesLista = [];
+                    
+                    // Busca todos os documentos pendentes no DOM (incluindo os ocultos por Alpine)
+                    const documentosPendentes = document.querySelectorAll('.documento-item[data-status="pendente"]');
+                    
+                    console.log('Documentos pendentes encontrados:', documentosPendentes.length);
+                    
+                    documentosPendentes.forEach((el) => {
+                        const docId = parseInt(el.getAttribute('data-doc-id'));
+                        
+                        // Busca o elemento com @click que contém abrirVisualizadorAnotacoes
+                        const linkElement = el.querySelector('[\\@click*="abrirVisualizadorAnotacoes"], [x-on\\:click*="abrirVisualizadorAnotacoes"]');
+                        
+                        if (linkElement) {
+                            // Pega o atributo @click ou x-on:click
+                            const clickAttr = linkElement.getAttribute('@click') || linkElement.getAttribute('x-on:click');
+                            console.log('@click encontrado:', clickAttr);
+                            
+                            // Regex para capturar os parâmetros
+                            const matches = clickAttr.match(/abrirVisualizadorAnotacoes\((\d+),\s*'([^']+)',\s*(true|false),\s*'([^']*)'\)/);
+                            
+                            if (matches) {
+                                const [, id, url, isPending, nome] = matches;
+                                this.documentosPendentesLista.push({
+                                    id: parseInt(id),
+                                    url: url,
+                                    nome: nome
+                                });
+                                
+                                console.log('Documento adicionado:', { id: parseInt(id), nome });
+                                
+                                // Define o índice atual
+                                if (parseInt(id) === documentoIdAtual) {
+                                    this.indiceDocumentoPendenteAtual = this.documentosPendentesLista.length - 1;
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('Lista final de documentos pendentes:', this.documentosPendentesLista);
+                    console.log('Índice atual:', this.indiceDocumentoPendenteAtual);
+                },
+
+                // Navega entre documentos pendentes
+                navegarDocumentoPendente(direcao) {
+                    if (direcao === 'proximo' && this.indiceDocumentoPendenteAtual < this.documentosPendentesLista.length - 1) {
+                        this.indiceDocumentoPendenteAtual++;
+                    } else if (direcao === 'anterior' && this.indiceDocumentoPendenteAtual > 0) {
+                        this.indiceDocumentoPendenteAtual--;
+                    } else {
+                        return; // Não faz nada se já está no limite
+                    }
+                    
+                    // Carrega o documento na nova posição
+                    const doc = this.documentosPendentesLista[this.indiceDocumentoPendenteAtual];
+                    this.documentoIdAnotacoes = doc.id;
+                    this.pdfUrlAnotacoes = doc.url;
+                    this.documentoNomeAnotacoes = doc.nome;
+                    
+                    // Recarrega o documento na IA
+                    this.carregarDocumentoNaIA();
                 },
 
                 // Carrega documento na IA para perguntas
