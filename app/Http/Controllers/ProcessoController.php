@@ -310,15 +310,7 @@ class ProcessoController extends Controller
                 $query->orderBy('created_at', 'desc');
         }
 
-        $precisaFiltrarEmColecao = $request->filled('docs_obrigatorios') || $request->filled('quick');
-
-        if ($precisaFiltrarEmColecao) {
-            $processosCollection = $query->with('responsavelAtual')->get();
-            $processosPaginados = null;
-        } else {
-            $processosPaginados = $query->with('responsavelAtual')->paginate(10)->withQueryString();
-            $processosCollection = $processosPaginados->getCollection();
-        }
+        $processosCollection = $query->with('responsavelAtual')->get();
 
         // ✅ FILTRO ADICIONAL POR COMPETÊNCIA (após paginação)
         if (!$usuario->isAdmin()) {
@@ -477,25 +469,20 @@ class ProcessoController extends Controller
             })->values();
         }
 
-        if ($precisaFiltrarEmColecao) {
-            $perPage = 10;
-            $currentPage = LengthAwarePaginator::resolveCurrentPage();
-            $itensPagina = $processosCollection->forPage($currentPage, $perPage)->values();
+        $perPage = 10;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $itensPagina = $processosCollection->forPage($currentPage, $perPage)->values();
 
-            $processos = new LengthAwarePaginator(
-                $itensPagina,
-                $processosCollection->count(),
-                $perPage,
-                $currentPage,
-                [
-                    'path' => $request->url(),
-                    'query' => $request->query(),
-                ]
-            );
-        } else {
-            $processosPaginados->setCollection($processosCollection->values());
-            $processos = $processosPaginados;
-        }
+        $processos = new LengthAwarePaginator(
+            $itensPagina,
+            $processosCollection->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         return view('processos.index', compact(
             'processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 
