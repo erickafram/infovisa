@@ -873,7 +873,7 @@ class EstabelecimentoController extends Controller
                 'tipo_vinculo' => $validated['tipo_vinculo'],
                 'nivel_acesso' => $validated['nivel_acesso'],
                 'observacao' => $validated['observacao'] ?? null,
-                'vinculado_por' => auth('externo')->id(),
+                'vinculado_por' => null, // Usuário externo não tem vinculado_por
             ]
         ]);
 

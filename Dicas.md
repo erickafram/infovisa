@@ -77,9 +77,6 @@ php artisan serve --port=8001
 
 
 
-
-
-
 SERVIDOR INFOVISA
 sudo chown -R $USER:$USER /var/www/html/infovisa/
 sudo chmod -R 755 /var/www/html/infovisa/
