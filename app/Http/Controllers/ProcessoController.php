@@ -479,7 +479,7 @@ class ProcessoController extends Controller
             $perPage,
             $currentPage,
             [
-                'path' => $request->url(),
+                'path' => route('admin.processos.index-geral', [], false),
                 'query' => $request->query(),
             ]
         );
