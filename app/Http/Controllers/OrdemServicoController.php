@@ -1007,6 +1007,7 @@ class OrdemServicoController extends Controller
             'status' => 'em_andamento',
             'atividades_realizadas' => null,
             'observacoes_finalizacao' => null,
+            'acoes_executadas_ids' => [],
             'finalizada_por' => null,
             'finalizada_em' => null,
             'data_conclusao' => null,
@@ -1083,6 +1084,7 @@ class OrdemServicoController extends Controller
             $dadosOS['status'] = 'em_andamento';
             $dadosOS['atividades_realizadas'] = null;
             $dadosOS['observacoes_finalizacao'] = null;
+            $dadosOS['acoes_executadas_ids'] = [];
             $dadosOS['finalizada_por'] = null;
             $dadosOS['finalizada_em'] = null;
             $dadosOS['data_conclusao'] = null;
@@ -1349,7 +1351,15 @@ class OrdemServicoController extends Controller
         if ($todasFinalizadas) {
             // Determina o status geral baseado nas atividades
             $statusGeral = 'sim';
+            $acoesExecutadasIds = [];
             foreach ($atividades as $atv) {
+                $tipoAcaoId = $atv['tipo_acao_id'] ?? null;
+                $statusExecucaoAtividade = $atv['status_execucao'] ?? 'concluido';
+
+                if ($tipoAcaoId && $statusExecucaoAtividade !== 'nao_concluido') {
+                    $acoesExecutadasIds[] = (int) $tipoAcaoId;
+                }
+
                 if (($atv['status_execucao'] ?? 'concluido') === 'nao_concluido') {
                     $statusGeral = 'nao';
                     break;
@@ -1357,12 +1367,15 @@ class OrdemServicoController extends Controller
                     $statusGeral = 'parcial';
                 }
             }
+
+            $acoesExecutadasIds = array_values(array_unique($acoesExecutadasIds));
             
             $ordemServico->update([
                 'status' => 'finalizada',
                 'data_conclusao' => now(),
                 'finalizada_em' => now(),
                 'atividades_realizadas' => $statusGeral,
+                'acoes_executadas_ids' => $acoesExecutadasIds,
                 'observacoes_finalizacao' => 'Ordem de Serviço finalizada automaticamente após conclusão de todas as atividades.',
             ]);
             

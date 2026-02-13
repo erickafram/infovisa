@@ -669,14 +669,31 @@
             @endif
 
             {{-- Ações Vinculadas e Status de Execução --}}
+            @php
+                $acoesExecutadasIds = $ordemServico->acoes_executadas_ids ?? [];
+
+                if (($ordemServico->status === 'finalizada') && empty($acoesExecutadasIds) && !empty($ordemServico->atividades_tecnicos)) {
+                    $acoesExecutadasIds = collect($ordemServico->atividades_tecnicos)
+                        ->filter(function ($atividade) {
+                            return ($atividade['status'] ?? 'pendente') === 'finalizada'
+                                && (($atividade['status_execucao'] ?? 'concluido') !== 'nao_concluido')
+                                && !empty($atividade['tipo_acao_id']);
+                        })
+                        ->pluck('tipo_acao_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->unique()
+                        ->values()
+                        ->all();
+                }
+            @endphp
             <div class="bg-white rounded-lg border border-gray-200">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="text-base font-semibold text-gray-900">Ações Vinculadas</h2>
                     @if($ordemServico->tiposAcao()->count() > 0)
                     <div class="flex items-center gap-2">
-                        @if($ordemServico->status === 'finalizada' && $ordemServico->acoes_executadas_ids)
+                        @if($ordemServico->status === 'finalizada' && !empty($acoesExecutadasIds))
                         <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
-                            {{ count($ordemServico->acoes_executadas_ids) }} executadas
+                            {{ count($acoesExecutadasIds) }} executadas
                         </span>
                         @endif
                         <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
@@ -691,11 +708,11 @@
                             @foreach($ordemServico->tiposAcao() as $tipoAcao)
                                 @php
                                     $foiExecutada = $ordemServico->status === 'finalizada' && 
-                                                    $ordemServico->acoes_executadas_ids && 
-                                                    in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids);
+                                                    !empty($acoesExecutadasIds) && 
+                                                    in_array($tipoAcao->id, $acoesExecutadasIds);
                                     $naoFoiExecutada = $ordemServico->status === 'finalizada' && 
-                                                       (!$ordemServico->acoes_executadas_ids || 
-                                                        !in_array($tipoAcao->id, $ordemServico->acoes_executadas_ids));
+                                                       (empty($acoesExecutadasIds) || 
+                                                        !in_array($tipoAcao->id, $acoesExecutadasIds));
                                 @endphp
                                 
                                 @if($ordemServico->status === 'finalizada')
