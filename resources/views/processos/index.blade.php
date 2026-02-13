@@ -140,7 +140,9 @@
                 <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2 text-[11px] text-gray-600 flex-wrap">
-                            @php($quickQuery = request()->except(['quick', 'responsavel']))
+                            @php
+                                $quickQuery = request()->except(['quick', 'responsavel']);
+                            @endphp
                             <span class="font-semibold text-gray-700">Filtro rapido:</span>
                             <a href="{{ route('admin.processos.index-geral', $quickQuery) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') ? 'border-gray-200 text-gray-500' : 'border-gray-300 text-gray-800 bg-white' }}">
