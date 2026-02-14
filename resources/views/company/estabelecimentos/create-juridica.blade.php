@@ -1297,19 +1297,34 @@ function estabelecimentoFormCompany() {
             this.mensagem = '';
 
             try {
-                // Primeiro busca na API externa (BrasilAPI)
-                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-                if (!response.ok) throw new Error('CNPJ não encontrado');
+                const response = await fetch('{{ url("/api/consultar-cnpj") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        cnpj: this.cnpjBusca
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'CNPJ não encontrado em nenhuma base de dados');
+                }
+
+                const data = result.data || {};
+                const apiSource = result.api_source || 'API';
                 
-                const data = await response.json();
-                
-                // Preenche os dados
+                // Preenche os dados (mesmo padrão do admin)
                 this.dados.cnpj = this.cnpjBusca;
                 this.dados.razao_social = data.razao_social || '';
                 this.dados.nome_fantasia = data.nome_fantasia || data.razao_social || '';
                 this.dados.natureza_juridica = data.natureza_juridica || '';
                 this.dados.porte = data.porte || '';
-                this.dados.descricao_situacao_cadastral = data.descricao_situacao_cadastral || '';
+                this.dados.descricao_situacao_cadastral = data.descricao_situacao_cadastral || data.situacao_cadastral || '';
                 this.dados.capital_social = data.capital_social || 0;
                 this.dados.cnae_fiscal = data.cnae_fiscal?.toString() || '';
                 this.dados.cnae_fiscal_descricao = data.cnae_fiscal_descricao || '';
@@ -1318,19 +1333,23 @@ function estabelecimentoFormCompany() {
                 if (data.data_inicio_atividade) {
                     this.dados.data_inicio_atividade_raw = data.data_inicio_atividade;
                     const parts = data.data_inicio_atividade.split('-');
-                    this.dados.data_inicio_atividade = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    if (parts.length === 3) {
+                        this.dados.data_inicio_atividade = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    } else {
+                        this.dados.data_inicio_atividade = data.data_inicio_atividade;
+                    }
                 }
 
                 // CNAEs secundários
                 this.dados.cnaes_secundarios = data.cnaes_secundarios || [];
                 
                 // Endereço
-                this.dados.endereco = data.logradouro || '';
+                this.dados.endereco = data.endereco || data.logradouro || '';
                 this.dados.numero = data.numero || '';
                 this.dados.complemento = data.complemento || '';
                 this.dados.bairro = data.bairro || '';
-                this.dados.cidade = data.municipio || '';
-                this.dados.estado = data.uf || '';
+                this.dados.cidade = data.cidade || data.municipio || '';
+                this.dados.estado = data.estado || data.uf || '';
                 this.dados.cep = data.cep?.replace(/\D/g, '') || '';
                 if (this.dados.cep) {
                     this.dados.cep = this.dados.cep.replace(/(\d{5})(\d{3})/, '$1-$2');
@@ -1338,15 +1357,16 @@ function estabelecimentoFormCompany() {
                 this.dados.codigo_municipio_ibge = data.codigo_municipio_ibge?.toString() || '';
                 
                 // Telefone e email
-                if (data.ddd_telefone_1) {
-                    this.dados.telefone = data.ddd_telefone_1.replace(/\D/g, '');
+                const telefoneApi = data.telefone || data.ddd_telefone_1 || '';
+                if (telefoneApi) {
+                    this.dados.telefone = telefoneApi.replace(/\D/g, '');
                     this.formatarTelefone();
                 }
                 this.dados.email = data.email || '';
 
                 // Tipo de setor baseado na natureza jurídica
                 const natureza = (data.natureza_juridica || '').toLowerCase();
-                const tipoSetor = (natureza.includes('público') || natureza.includes('administração pública')) ? 'publico' : 'privado';
+                const tipoSetor = data.tipo_setor || ((natureza.includes('público') || natureza.includes('administração pública')) ? 'publico' : 'privado');
                 this.dados.tipo_setor = tipoSetor;
 
                 // Se for PÚBLICO, verifica se já existem estabelecimentos com este CNPJ
@@ -1367,7 +1387,7 @@ function estabelecimentoFormCompany() {
                 }
 
                 this.dadosCarregados = true;
-                this.mensagem = 'Dados carregados com sucesso!';
+                this.mensagem = `Dados carregados com sucesso via ${apiSource}!`;
                 this.tipoMensagem = 'success';
 
             } catch (error) {
