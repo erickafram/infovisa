@@ -278,12 +278,21 @@ class WhatsappService
         if (!$this->estaOperacional() || !$this->config->enviar_ao_assinar) {
             Log::info('WhatsApp: Envio desativado ou não operacional', [
                 'documento_id' => $documento->id,
+                'config_existe' => (bool) $this->config,
+                'ativo' => $this->config?->ativo,
+                'status_conexao' => $this->config?->status_conexao,
+                'enviar_ao_assinar' => $this->config?->enviar_ao_assinar,
             ]);
             return $resultados;
         }
 
         // Carrega o processo e o estabelecimento do documento
-        $documento->loadMissing(['processo.estabelecimento.usuariosVinculados', 'processo.estabelecimento.usuarioExterno', 'tipoDocumento']);
+        $documento->loadMissing([
+            'processo.usuarioExterno',
+            'processo.estabelecimento.usuariosVinculados',
+            'processo.estabelecimento.usuarioExterno',
+            'tipoDocumento'
+        ]);
 
         $processo = $documento->processo;
         if (!$processo) {
@@ -310,6 +319,11 @@ class WhatsappService
         $destinatarios = $usuariosVinculados;
         if ($estabelecimento->usuarioExterno && !empty($estabelecimento->usuarioExterno->telefone)) {
             $destinatarios->push($estabelecimento->usuarioExterno);
+        }
+
+        // Inclui também o usuário externo que abriu o processo (quando houver)
+        if ($processo->usuarioExterno && !empty($processo->usuarioExterno->telefone)) {
+            $destinatarios->push($processo->usuarioExterno);
         }
 
         // Remove duplicados pelo ID
