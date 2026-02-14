@@ -247,9 +247,9 @@ class WhatsappService
         $template = $this->config->mensagem_template ?? WhatsappConfiguracao::getTemplatePadrao();
 
         // Monta o link para o documento
-        $linkDocumento = route('verificar.autenticidade', [
-            'codigo' => $documento->codigo_autenticidade,
-        ]);
+        $linkDocumento = !empty($documento->codigo_autenticidade)
+            ? route('verificar.autenticidade', ['codigo' => $documento->codigo_autenticidade])
+            : route('verificar.autenticidade.form');
 
         $variaveis = [
             '{nome_usuario}' => $usuario->nome,
@@ -307,6 +307,12 @@ class WhatsappService
                 'processo_id' => $processo->id,
             ]);
             return $resultados;
+        }
+
+        // Garante código de autenticidade para montar o link na mensagem
+        if (empty($documento->codigo_autenticidade)) {
+            $documento->codigo_autenticidade = DocumentoDigital::gerarCodigoAutenticidade();
+            $documento->save();
         }
 
         // Busca usuários vinculados ao estabelecimento com telefone
