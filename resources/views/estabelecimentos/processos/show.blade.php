@@ -189,7 +189,7 @@
     @endif
 
     {{-- Aviso de Prazo da Fila Pública --}}
-    @if($avisoFilaPublica)
+    @if($avisoFilaPublica && $processo->status !== 'arquivado')
         @php
             $dias = $avisoFilaPublica['dias_restantes'];
             $corBg = $avisoFilaPublica['atrasado'] ? 'bg-red-50' : ($dias <= 5 ? 'bg-amber-50' : 'bg-cyan-50');

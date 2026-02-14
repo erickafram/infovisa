@@ -283,7 +283,7 @@ class WhatsappService
         }
 
         // Carrega o processo e o estabelecimento do documento
-        $documento->loadMissing(['processo.estabelecimento.usuariosVinculados', 'tipoDocumento']);
+        $documento->loadMissing(['processo.estabelecimento.usuariosVinculados', 'processo.estabelecimento.usuarioExterno', 'tipoDocumento']);
 
         $processo = $documento->processo;
         if (!$processo) {
@@ -300,16 +300,32 @@ class WhatsappService
             return $resultados;
         }
 
-        // Busca todos os usuários externos vinculados ao estabelecimento
+        // Busca usuários vinculados ao estabelecimento com telefone
         $usuariosVinculados = $estabelecimento->usuariosVinculados()
-            ->where('usuarios_externos.ativo', true)
             ->whereNotNull('usuarios_externos.telefone')
             ->where('usuarios_externos.telefone', '!=', '')
             ->get();
 
-        $resultados['total'] = $usuariosVinculados->count();
+        // Inclui também o usuário criador do estabelecimento (quando houver)
+        $destinatarios = $usuariosVinculados;
+        if ($estabelecimento->usuarioExterno && !empty($estabelecimento->usuarioExterno->telefone)) {
+            $destinatarios->push($estabelecimento->usuarioExterno);
+        }
 
-        foreach ($usuariosVinculados as $usuario) {
+        // Remove duplicados pelo ID
+        $destinatarios = $destinatarios->unique('id')->values();
+
+        if ($destinatarios->isEmpty()) {
+            Log::warning('WhatsApp: Nenhum destinatário com telefone para notificação', [
+                'documento_id' => $documento->id,
+                'estabelecimento_id' => $estabelecimento->id,
+            ]);
+            return $resultados;
+        }
+
+        $resultados['total'] = $destinatarios->count();
+
+        foreach ($destinatarios as $usuario) {
             $mensagemTexto = $this->montarMensagem($documento, $estabelecimento, $usuario);
 
             // Cria o registro da mensagem

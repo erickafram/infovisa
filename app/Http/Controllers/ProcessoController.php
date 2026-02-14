@@ -800,7 +800,8 @@ class ProcessoController extends Controller
         
         // Calcula informações do prazo de fila pública se aplicável
         $avisoFilaPublica = null;
-        if ($processo->tipoProcesso && 
+        if ($processo->status !== 'arquivado' &&
+            $processo->tipoProcesso && 
             $processo->tipoProcesso->exibir_fila_publica && 
             $processo->tipoProcesso->exibir_aviso_prazo_fila && 
             $processo->tipoProcesso->prazo_fila_publica > 0) {

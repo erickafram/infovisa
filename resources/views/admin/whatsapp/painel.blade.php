@@ -39,11 +39,11 @@
     </div>
 
     {{-- Filtros --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.whatsapp.painel') }}" class="flex flex-wrap items-end gap-3">
-            <div class="flex-1 min-w-[150px]">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                <select name="status" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+        <form method="GET" action="{{ route('admin.whatsapp.painel') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3.5 items-end">
+            <div class="xl:col-span-2">
+                <label class="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Status</label>
+                <select name="status" class="w-full h-11 rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Todos</option>
                     <option value="pendente" {{ request('status') === 'pendente' ? 'selected' : '' }}>Pendente</option>
                     <option value="enviado" {{ request('status') === 'enviado' ? 'selected' : '' }}>Enviado</option>
@@ -52,36 +52,38 @@
                     <option value="erro" {{ request('status') === 'erro' ? 'selected' : '' }}>Erro</option>
                 </select>
             </div>
-            <div class="flex-1 min-w-[130px]">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Data Início</label>
+            <div class="xl:col-span-2">
+                <label class="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Data Início</label>
                 <input type="date" name="data_inicio" value="{{ request('data_inicio') }}"
-                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
+                       class="w-full h-11 rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
-            <div class="flex-1 min-w-[130px]">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Data Fim</label>
+            <div class="xl:col-span-2">
+                <label class="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Data Fim</label>
                 <input type="date" name="data_fim" value="{{ request('data_fim') }}"
-                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
+                       class="w-full h-11 rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
-            <div class="flex-1 min-w-[150px]">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Estabelecimento</label>
+            <div class="sm:col-span-2 xl:col-span-2">
+                <label class="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Estabelecimento</label>
                 <input type="text" name="estabelecimento" value="{{ request('estabelecimento') }}" placeholder="Buscar..."
-                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
+                       class="w-full h-11 rounded-lg border-gray-300 shadow-sm text-sm placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500">
             </div>
-            <div class="flex-1 min-w-[150px]">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Destinatário</label>
+            <div class="sm:col-span-2 xl:col-span-2">
+                <label class="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Destinatário</label>
                 <input type="text" name="destinatario" value="{{ request('destinatario') }}" placeholder="Buscar..."
-                       class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
+                       class="w-full h-11 rounded-lg border-gray-300 shadow-sm text-sm placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500">
             </div>
-            <div class="flex gap-2">
-                <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
+            <div class="sm:col-span-2 xl:col-span-2">
+                <div class="flex gap-2 w-full">
+                <button type="submit" class="inline-flex items-center justify-center gap-1.5 h-11 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors w-full">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                     Filtrar
                 </button>
-                <a href="{{ route('admin.whatsapp.painel') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors">
+                <a href="{{ route('admin.whatsapp.painel') }}" class="inline-flex items-center justify-center gap-1.5 h-11 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors w-full">
                     Limpar
                 </a>
+                </div>
             </div>
         </form>
     </div>

@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\Log;
 class DocumentoAssinaturaObserver
 {
     /**
+     * Quando uma assinatura é criada já com status assinado,
+     * também processa notificação via WhatsApp.
+     */
+    public function created(DocumentoAssinatura $assinatura): void
+    {
+        if ($assinatura->status !== 'assinado') {
+            return;
+        }
+
+        $this->processarNotificacao($assinatura);
+    }
+
+    /**
      * Quando uma assinatura é atualizada (assinada),
      * verifica se todas as assinaturas obrigatórias estão completas
      * e envia notificação via WhatsApp
@@ -21,6 +34,14 @@ class DocumentoAssinaturaObserver
             return;
         }
 
+        $this->processarNotificacao($assinatura);
+    }
+
+    /**
+     * Processa notificação quando assinatura chega em estado assinado
+     */
+    private function processarNotificacao(DocumentoAssinatura $assinatura): void
+    {
         $documento = $assinatura->documentoDigital;
         if (!$documento) {
             return;
@@ -34,13 +55,6 @@ class DocumentoAssinaturaObserver
         // Todas assinadas! Enviar WhatsApp
         try {
             $service = new WhatsappService();
-
-            if (!$service->estaOperacional()) {
-                Log::info('WhatsApp Observer: Serviço não operacional, pulando notificação', [
-                    'documento_id' => $documento->id,
-                ]);
-                return;
-            }
 
             $resultados = $service->notificarDocumentoAssinado($documento);
 
