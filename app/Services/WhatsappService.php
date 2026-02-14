@@ -247,7 +247,7 @@ class WhatsappService
         $template = $this->config->mensagem_template ?? WhatsappConfiguracao::getTemplatePadrao();
 
         // Monta o link para o documento
-        $linkDocumento = route('verificar.autenticidade.resultado', [
+        $linkDocumento = route('verificar.autenticidade', [
             'codigo' => $documento->codigo_autenticidade,
         ]);
 
