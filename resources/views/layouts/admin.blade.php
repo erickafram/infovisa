@@ -269,29 +269,6 @@
                         </svg>
                         <span x-show="showLabels()" class="text-sm font-medium">Usuários Externos</span>
                     </a>
-
-                    {{-- Diário Oficial --}}
-                    <a href="{{ route('admin.diario-oficial.index') }}" 
-                       title="Diário Oficial"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative {{ request()->routeIs('admin.diario-oficial.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
-                       :class="!showLabels() ? 'lg:justify-center' : ''">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
-                        <span x-show="showLabels()" class="text-sm font-medium">Diário Oficial</span>
-                        @php
-                            $alertasNaoLidos = 0;
-                            try {
-                                $alertasNaoLidos = \App\Models\DiarioBuscaAlerta::where('usuario_interno_id', auth('interno')->id())->where('lido', false)->count();
-                            } catch (\Exception $e) {}
-                        @endphp
-                        @if($alertasNaoLidos > 0)
-                        <span class="absolute top-1 right-1 flex h-5 w-5">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-5 w-5 bg-red-500 text-[10px] text-white justify-center items-center font-bold">{{ $alertasNaoLidos > 9 ? '9+' : $alertasNaoLidos }}</span>
-                        </span>
-                        @endif
-                    </a>
                     @endif
 
                     {{-- Configurações --}}

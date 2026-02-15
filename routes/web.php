@@ -652,23 +652,6 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/ia/documentos-processo/{estabelecimento}/{processo}', [\App\Http\Controllers\AssistenteIAController::class, 'listarDocumentosProcesso']);
     Route::post('/ia/extrair-multiplos-pdfs', [\App\Http\Controllers\AssistenteIAController::class, 'extrairMultiplosPdfs']);
     
-    // Diário Oficial
-    Route::prefix('diario-oficial')->name('diario-oficial.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'index'])->name('index');
-        Route::post('/buscar', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'buscar'])->name('buscar');
-        
-        // Buscas Salvas
-        Route::get('/buscas-salvas', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'listarBuscas'])->name('buscas.listar');
-        Route::post('/salvar-busca', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'salvarBusca'])->name('buscas.salvar');
-        Route::delete('/excluir-busca/{id}', [\App\Http\Controllers\Admin\DiarioOficialController::class, 'excluirBusca'])->name('buscas.excluir');
-        
-        // PDF Viewer e Proxy
-        Route::prefix('pdf')->name('pdf.')->group(function () {
-            Route::get('/proxy', [\App\Http\Controllers\Admin\PDFController::class, 'proxy'])->name('proxy');
-            Route::get('/viewer', [\App\Http\Controllers\Admin\PDFController::class, 'viewer'])->name('viewer');
-            Route::post('/search', [\App\Http\Controllers\Admin\PDFController::class, 'searchInPdf'])->name('search');
-        });
-    });
     
     // Relatórios
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
