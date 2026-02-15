@@ -656,6 +656,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     // Relatórios
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('index');
+        Route::get('/documentos-gerados', [\App\Http\Controllers\Admin\RelatorioController::class, 'documentosGerados'])->name('documentos-gerados');
         Route::get('/equipamentos-radiacao', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacao'])->name('equipamentos-radiacao');
         Route::get('/equipamentos-radiacao/export', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacaoExport'])->name('equipamentos-radiacao.export');
         Route::get('/equipamentos-radiacao/declaracoes', [\App\Http\Controllers\Admin\RelatorioController::class, 'declaracoesSemEquipamentos'])->name('equipamentos-radiacao.declaracoes');

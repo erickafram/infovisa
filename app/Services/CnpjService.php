@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -14,6 +15,20 @@ class CnpjService
     private const MINHA_RECEITA_URL = 'https://minhareceita.org';
     private const BRASIL_API_URL = 'https://brasilapi.com.br/api/cnpj/v1';
     private const RECEITA_WS_URL = 'https://www.receitaws.com.br/v1/cnpj';
+
+    /**
+     * Cliente HTTP padronizado para consultas externas.
+     *
+     * Em ambiente local desabilita verificação SSL para evitar erros de certificado
+     * (cURL error 60 em máquinas de desenvolvimento sem cadeia de CA configurada).
+     */
+    private function httpClient(): PendingRequest
+    {
+        return Http::timeout(self::TIMEOUT)
+            ->withOptions([
+                'verify' => !app()->environment('local'),
+            ]);
+    }
 
     /**
      * Consulta dados de CNPJ com fallback em múltiplas APIs
@@ -83,10 +98,7 @@ class CnpjService
                 'cnpj' => $cnpj
             ]);
             
-            $response = Http::timeout(self::TIMEOUT)
-                ->withOptions([
-                    'verify' => false, // Desabilita verificação SSL temporariamente
-                ])
+            $response = $this->httpClient()
                 ->withHeaders([
                     'Accept' => 'application/json',
                     'User-Agent' => 'InfoVISA/3.0'
@@ -134,7 +146,11 @@ class CnpjService
     private function consultarBrasilApi(string $cnpj): ?array
     {
         try {
-            $response = Http::timeout(self::TIMEOUT)
+            $response = $this->httpClient()
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'InfoVISA/3.0'
+                ])
                 ->get(self::BRASIL_API_URL . '/' . $cnpj);
 
             if ($response->successful()) {
@@ -162,7 +178,11 @@ class CnpjService
     private function consultarReceitaWs(string $cnpj): ?array
     {
         try {
-            $response = Http::timeout(self::TIMEOUT)
+            $response = $this->httpClient()
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'InfoVISA/3.0'
+                ])
                 ->get(self::RECEITA_WS_URL . '/' . $cnpj);
 
             if ($response->successful()) {

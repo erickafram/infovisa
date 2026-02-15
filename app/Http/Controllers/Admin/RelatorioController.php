@@ -285,5 +285,80 @@ class RelatorioController extends Controller
             'declaracoes'
         ));
     }
+
+    /**
+     * Relatório de documentos digitais gerados
+     *
+     * Regras de visibilidade:
+     * - Admin, Gestor Estadual e Técnico Estadual: visualizam documentos do estado
+     * - Gestor Municipal e Técnico Municipal: visualizam apenas documentos do seu município
+     */
+    public function documentosGerados(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        $query = DocumentoDigital::query()
+            ->with([
+                'tipoDocumento:id,nome',
+                'usuarioCriador:id,nome',
+                'processo:id,numero_processo,estabelecimento_id',
+                'processo.estabelecimento:id,nome_fantasia,razao_social,municipio_id',
+                'processo.estabelecimento.municipio:id,nome',
+            ])
+            ->whereNotNull('numero_documento');
+
+        // Usuários municipais veem apenas documentos do seu município
+        if ($usuario->isMunicipal()) {
+            $query->whereHas('processo.estabelecimento', function ($q) use ($usuario) {
+                $q->where('municipio_id', $usuario->municipio_id);
+            });
+        }
+
+        // Filtros opcionais
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('created_at', '>=', $request->data_inicio);
+        }
+
+        if ($request->filled('data_fim')) {
+            $query->whereDate('created_at', '<=', $request->data_fim);
+        }
+
+        if ($request->filled('busca')) {
+            $busca = trim($request->busca);
+
+            $query->where(function ($q) use ($busca) {
+                $q->where('numero_documento', 'like', "%{$busca}%")
+                    ->orWhere('nome', 'like', "%{$busca}%")
+                    ->orWhereHas('tipoDocumento', function ($tipoQ) use ($busca) {
+                        $tipoQ->where('nome', 'like', "%{$busca}%");
+                    })
+                    ->orWhereHas('processo', function ($processoQ) use ($busca) {
+                        $processoQ->where('numero_processo', 'like', "%{$busca}%");
+                    })
+                    ->orWhereHas('processo.estabelecimento', function ($estQ) use ($busca) {
+                        $estQ->where('nome_fantasia', 'like', "%{$busca}%")
+                            ->orWhere('razao_social', 'like', "%{$busca}%");
+                    });
+            });
+        }
+
+        $documentos = $query
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $totais = [
+            'total' => (clone $query)->count(),
+            'assinados' => (clone $query)->where('status', 'assinado')->count(),
+            'aguardando_assinatura' => (clone $query)->where('status', 'aguardando_assinatura')->count(),
+            'rascunhos' => (clone $query)->where('status', 'rascunho')->count(),
+        ];
+
+        return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais'));
+    }
 }
 

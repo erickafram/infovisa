@@ -115,36 +115,5 @@ composer install --no-dev --optimize-autoloader
 
 
 
-# 1. Instalar Node.js (se não tiver)
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-sudo yum install -y nodejs
-
-# 2. Copiar e instalar
-sudo mkdir -p /opt/infovisa-whatsapp
-sudo cp -r /var/www/html/infovisa/whatsapp-server/* /opt/infovisa-whatsapp/
-cd /opt/infovisa-whatsapp
-npm install --production
-
-# 3. Criar serviço systemd
-sudo nano /etc/systemd/system/infovisa-whatsapp.service
-
-
-[Unit]
-Description=INFOVISA WhatsApp Server
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/infovisa-whatsapp
-ExecStart=/usr/bin/node src/server.js
-Restart=on-failure
-Environment=PORT=3000
-Environment=API_KEY=sua_chave_secreta
-
-[Install]
-WantedBy=multi-user.target
-
-# 4. Ativar e iniciar
-sudo systemctl daemon-reload
-sudo systemctl enable infovisa-whatsapp
-sudo systemctl start infovisa-whatsapp
+NOTEBOOK
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User'); php -v | Select-Object -First 1 | Out-String; php artisan serve
