@@ -8,6 +8,7 @@ use App\Models\Estabelecimento;
 use App\Models\Processo;
 use App\Models\OrdemServico;
 use App\Models\DocumentoDigital;
+use App\Models\TipoDocumento;
 use App\Models\UsuarioInterno;
 use App\Models\Atividade;
 use App\Models\AtividadeEquipamentoRadiacao;
@@ -297,6 +298,8 @@ class RelatorioController extends Controller
     {
         $usuario = auth('interno')->user();
 
+        $tiposDocumento = TipoDocumento::orderBy('nome')->get(['id', 'nome']);
+
         $query = DocumentoDigital::query()
             ->with([
                 'tipoDocumento:id,nome',
@@ -317,6 +320,10 @@ class RelatorioController extends Controller
         // Filtros opcionais
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('tipo_documento_id')) {
+            $query->where('tipo_documento_id', $request->tipo_documento_id);
         }
 
         if ($request->filled('data_inicio')) {
@@ -348,7 +355,7 @@ class RelatorioController extends Controller
 
         $documentos = $query
             ->orderByDesc('created_at')
-            ->paginate(20)
+            ->paginate(10)
             ->withQueryString();
 
         $totais = [
@@ -358,7 +365,7 @@ class RelatorioController extends Controller
             'rascunhos' => (clone $query)->where('status', 'rascunho')->count(),
         ];
 
-        return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais'));
+        return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais', 'tiposDocumento'));
     }
 }
 

@@ -38,9 +38,9 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-semibold text-gray-800">Filtros</h2>
-            <span class="text-xs text-gray-500">Use busca, status e período</span>
+            <span class="text-xs text-gray-500">Use busca, status, tipo e período</span>
         </div>
-        <form method="GET" action="{{ route('admin.relatorios.documentos-gerados') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <form method="GET" action="{{ route('admin.relatorios.documentos-gerados') }}" class="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div class="md:col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1">Busca</label>
                 <input
@@ -59,6 +59,18 @@
                     <option value="rascunho" @selected(request('status') === 'rascunho')>Rascunho</option>
                     <option value="aguardando_assinatura" @selected(request('status') === 'aguardando_assinatura')>Aguardando Assinatura</option>
                     <option value="assinado" @selected(request('status') === 'assinado')>Assinado</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de documento</label>
+                <select name="tipo_documento_id" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos</option>
+                    @foreach($tiposDocumento as $tipoDocumento)
+                        <option value="{{ $tipoDocumento->id }}" @selected((string) request('tipo_documento_id') === (string) $tipoDocumento->id)>
+                            {{ $tipoDocumento->nome }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
 
@@ -149,8 +161,8 @@
         </div>
 
         @if($documentos->hasPages())
-            <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                {{ $documentos->links() }}
+            <div class="px-6 py-4 border-t border-gray-200">
+                {{ $documentos->links('pagination.tailwind-clean') }}
             </div>
         @endif
     </div>

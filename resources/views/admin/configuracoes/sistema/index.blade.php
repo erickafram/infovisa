@@ -173,16 +173,16 @@
                 <input type="hidden" name="_form_ia" value="1">
 
                 <div class="space-y-6">
-                    {{-- Ativar/Desativar IA --}}
+                    {{-- Ativar/Desativar IA (Interno) --}}
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div class="flex-1">
                             <label class="text-sm font-medium text-gray-900 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
-                                Status do Assistente
+                                Assistente IA - Usuário Interno
                             </label>
-                            <p class="text-xs text-gray-600 mt-1">Ative ou desative o chat de IA para todos os usuários internos</p>
+                            <p class="text-xs text-gray-600 mt-1">Ative ou desative o chat de IA para os usuários internos (área administrativa)</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" 
@@ -193,6 +193,30 @@
                             <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
                             <span class="ml-3 text-sm font-medium text-gray-900">
                                 {{ $iaAtiva && $iaAtiva->valor === 'true' ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </label>
+                    </div>
+
+                    {{-- Ativar/Desativar IA (Externo) --}}
+                    <div class="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+                        <div class="flex-1 pr-4">
+                            <label class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H9a4 4 0 00-4 4v2m12 0H7m10-10a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                                Assistente IA - Usuário Externo
+                            </label>
+                            <p class="text-xs text-gray-700 mt-1">Ative o assistente no painel do usuário externo (/company/dashboard), com foco em orientar como cadastrar estabelecimento, abrir processo e enviar documentos.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="ia_externa_ativa" 
+                                   value="1"
+                                   {{ $iaExternaAtiva && $iaExternaAtiva->valor === 'true' ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900">
+                                {{ $iaExternaAtiva && $iaExternaAtiva->valor === 'true' ? 'Ativo' : 'Inativo' }}
                             </span>
                         </label>
                     </div>
@@ -266,10 +290,10 @@
                             <div class="text-sm text-blue-800">
                                 <p class="font-semibold mb-2">O que o Assistente de IA pode fazer:</p>
                                 <ul class="space-y-1 text-xs">
-                                    <li>• Responder perguntas sobre funcionalidades do sistema</li>
-                                    <li>• Orientar usuários sobre como realizar tarefas</li>
-                                    <li>• Fornecer estatísticas e relatórios em tempo real</li>
-                                    <li>• Consultar dados do banco (estabelecimentos, processos, documentos)</li>
+                                    <li>• Assistente interno: apoio operacional da equipe da vigilância</li>
+                                    <li>• Assistente externo: orientação didática para empresas e responsáveis</li>
+                                    <li>• Instruções passo a passo sobre cadastro de estabelecimento e abertura de processo</li>
+                                    <li>• Suporte sobre envio de documentos e acompanhamento de pendências</li>
                                 </ul>
                             </div>
                         </div>

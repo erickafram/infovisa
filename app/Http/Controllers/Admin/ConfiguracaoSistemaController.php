@@ -18,6 +18,7 @@ class ConfiguracaoSistemaController extends Controller
         
         // Configurações da IA
         $iaAtiva = ConfiguracaoSistema::where('chave', 'ia_ativa')->first();
+        $iaExternaAtiva = ConfiguracaoSistema::where('chave', 'ia_externa_ativa')->first();
         $iaApiKey = ConfiguracaoSistema::where('chave', 'ia_api_key')->first();
         $iaApiUrl = ConfiguracaoSistema::where('chave', 'ia_api_url')->first();
         $iaModel = ConfiguracaoSistema::where('chave', 'ia_model')->first();
@@ -32,6 +33,7 @@ class ConfiguracaoSistemaController extends Controller
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
             'iaAtiva',
+            'iaExternaAtiva',
             'iaApiKey',
             'iaApiUrl',
             'iaModel',
@@ -50,6 +52,7 @@ class ConfiguracaoSistemaController extends Controller
             'logomarca_estadual' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'remover_logomarca_estadual' => 'nullable|boolean',
             'ia_ativa' => 'nullable|boolean',
+            'ia_externa_ativa' => 'nullable|boolean',
             'ia_api_key' => 'nullable|string',
             'ia_api_url' => 'nullable|url',
             'ia_model' => 'nullable|string',
@@ -79,21 +82,26 @@ class ConfiguracaoSistemaController extends Controller
                 ['chave' => 'ia_ativa'],
                 ['valor' => $request->has('ia_ativa') ? 'true' : 'false']
             );
+
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_externa_ativa'],
+                ['valor' => $request->has('ia_externa_ativa') ? 'true' : 'false']
+            );
             
-            if ($request->filled('ia_api_key')) {
-                ConfiguracaoSistema::where('chave', 'ia_api_key')
-                    ->update(['valor' => $request->ia_api_key]);
-            }
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_api_key'],
+                ['valor' => $request->ia_api_key ?? '']
+            );
             
-            if ($request->filled('ia_api_url')) {
-                ConfiguracaoSistema::where('chave', 'ia_api_url')
-                    ->update(['valor' => $request->ia_api_url]);
-            }
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_api_url'],
+                ['valor' => $request->ia_api_url ?? '']
+            );
             
-            if ($request->filled('ia_model')) {
-                ConfiguracaoSistema::where('chave', 'ia_model')
-                    ->update(['valor' => $request->ia_model]);
-            }
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_model'],
+                ['valor' => $request->ia_model ?? '']
+            );
             
             // Busca na web
             ConfiguracaoSistema::updateOrCreate(
@@ -125,6 +133,7 @@ class ConfiguracaoSistemaController extends Controller
         
         // Verifica se foi apenas atualização de IA (sem logomarca) - fallback para compatibilidade
         $atualizouIA = $request->has('ia_ativa') || 
+                       $request->has('ia_externa_ativa') || 
                        $request->filled('ia_api_key') || 
                        $request->filled('ia_api_url') || 
                        $request->filled('ia_model') ||

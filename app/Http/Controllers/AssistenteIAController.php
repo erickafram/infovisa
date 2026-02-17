@@ -5,13 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use App\Models\ConfiguracaoSistema;
+use App\Models\DocumentoAjuda;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
+use App\Models\ProcessoAlerta;
 use App\Models\OrdemServico;
 use App\Models\DocumentoDigital;
 use App\Models\DocumentoPop;
 use App\Models\CategoriaPop;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class AssistenteIAController extends Controller
 {
@@ -235,6 +240,516 @@ class AssistenteIAController extends Controller
                 'success' => false,
             ], 200); // CORRIGIDO: retorna 200 com success=false
         }
+    }
+
+    /**
+     * Chat do assistente IA para usuários externos (área company)
+     */
+    public function chatExterno(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:2000',
+            'history' => 'nullable|array',
+        ]);
+
+        $iaExternaAtiva = ConfiguracaoSistema::where('chave', 'ia_externa_ativa')->value('valor');
+        if ($iaExternaAtiva !== 'true') {
+            return response()->json([
+                'error' => 'Assistente de IA para usuários externos está desativado',
+                'success' => false,
+            ], 403);
+        }
+
+        $usuario = auth('externo')->user();
+        if (!$usuario) {
+            return response()->json([
+                'error' => 'Usuário não autenticado',
+                'success' => false,
+            ], 401);
+        }
+
+        $userMessage = $request->input('message');
+        $history = $request->input('history', []);
+
+        try {
+            $documentosAjuda = $this->carregarBaseConhecimentoDocumentosAjuda();
+
+            \Log::info('Chat externo IA - documentos carregados', [
+                'total_docs' => count($documentosAjuda),
+                'titulos' => array_map(fn($d) => $d['titulo'] ?? 'sem titulo', $documentosAjuda),
+                'tamanhos' => array_map(fn($d) => mb_strlen($d['conteudo'] ?? ''), $documentosAjuda),
+                'pergunta' => $userMessage,
+            ]);
+
+            if (empty($documentosAjuda)) {
+                return response()->json([
+                    'response' => 'Não há conteúdo disponível nos Documentos de Ajuda para responder no momento. Solicite ao administrador o upload/ativação dos PDFs em Configurações > Documentos de Ajuda.',
+                    'success' => false,
+                ], 200);
+            }
+
+            $contextoDocumentos = $this->montarContextoPerguntaDocumentosAjuda($documentosAjuda, $userMessage);
+            $systemPrompt = $this->construirSystemPromptExterno($contextoDocumentos, $usuario->nome);
+
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt],
+            ];
+
+            foreach ($history as $msg) {
+                if (isset($msg['role']) && isset($msg['content'])) {
+                    $messages[] = [
+                        'role' => $msg['role'],
+                        'content' => $msg['content'],
+                    ];
+                }
+            }
+
+            $messages[] = ['role' => 'user', 'content' => $userMessage];
+            $messages = $this->limparMensagensUTF8($messages);
+
+            $apiKey = ConfiguracaoSistema::where('chave', 'ia_api_key')->value('valor');
+            $apiUrl = ConfiguracaoSistema::where('chave', 'ia_api_url')->value('valor');
+            $model = ConfiguracaoSistema::where('chave', 'ia_model')->value('valor');
+
+            if (empty($apiKey) || empty($apiUrl) || empty($model)) {
+                return response()->json([
+                    'error' => 'Configurações da IA não encontradas',
+                    'response' => 'O assistente está temporariamente indisponível. Tente novamente em instantes.',
+                    'success' => false,
+                ], 500);
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(60)->post($apiUrl, [
+                'model' => $model,
+                'messages' => $messages,
+                'max_tokens' => 1200,
+                'temperature' => 0.15,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $assistantMessage = $data['choices'][0]['message']['content'] ?? 'Não consegui gerar uma resposta agora.';
+                $titulosFontes = $this->obterTitulosFontesMaisRelevantes($documentosAjuda, $userMessage);
+                $assistantMessage = $this->garantirLinhaFontesExterno($assistantMessage, $titulosFontes);
+
+                return response()->json([
+                    'response' => $assistantMessage,
+                    'success' => true,
+                ]);
+            }
+
+            \Log::error('Erro API IA (externo)', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return response()->json([
+                'error' => 'Erro ao comunicar com a IA',
+                'response' => 'Estou com instabilidade no momento. Tente novamente em alguns segundos.',
+                'success' => false,
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error('Exceção chat externo IA', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Erro ao processar sua mensagem',
+                'response' => 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.',
+                'success' => false,
+            ], 200);
+        }
+    }
+
+    /**
+     * Prompt dedicado para assistência de usuários externos.
+     */
+    private function construirSystemPromptExterno(string $contextoDocumentos, string $nomeUsuario): string
+    {
+        return "Você é o Assistente do InfoVISA para usuários EXTERNOS (empresas/estabelecimentos).\n"
+            . "Responda sempre em português do Brasil, com linguagem simples e didática.\n"
+            . "\n"
+            . "REGRA ABSOLUTA (OBRIGATÓRIA):\n"
+            . "- Você SÓ pode responder com base no conteúdo dos DOCUMENTOS DE AJUDA fornecidos abaixo.\n"
+            . "- É PROIBIDO usar conhecimento externo, memória do modelo ou suposições.\n"
+            . "- Se a resposta não estiver explícita nos documentos, responda EXATAMENTE:\n"
+            . "  'Não encontrei essa informação nos documentos de ajuda disponíveis.'\n"
+            . "\n"
+            . "SELEÇÃO DO DOCUMENTO CORRETO:\n"
+            . "- Cada documento trata de um ASSUNTO ESPECÍFICO. Identifique qual documento é o correto para a pergunta.\n"
+            . "- O documento marcado como [MAIS RELEVANTE] foi selecionado automaticamente, mas CONFIRME se o conteúdo realmente responde à pergunta.\n"
+            . "- 'INSTRUTIVO DARE' → trata de gerar boletos/guias DARE para pagamento de taxas.\n"
+            . "- 'Instrutivo INFOVISA' ou 'MANUAL DE CADASTRO' → trata de cadastrar estabelecimentos, abrir processos, usar o sistema InfoVISA.\n"
+            . "- Se a pergunta é sobre cadastro de estabelecimento, use o Instrutivo INFOVISA ou MANUAL DE CADASTRO, NÃO o INSTRUTIVO DARE.\n"
+            . "- Se a pergunta é sobre gerar DARE/boleto/guia de pagamento, use o INSTRUTIVO DARE.\n"
+            . "\n"
+            . "FORMATO DE RESPOSTA:\n"
+            . "- Quando houver instrução, responda em passos numerados.\n"
+            . "- No final, inclua: 'Fonte(s): [título(s) do(s) documento(s)]'.\n"
+            . "\n"
+            . "USUÁRIO ATUAL:\n"
+            . "- Nome: {$nomeUsuario}\n"
+            . "\n"
+            . "==== BASE DE CONHECIMENTO (DOCUMENTOS DE AJUDA) ====\n"
+            . $contextoDocumentos;
+    }
+
+    /**
+     * Carrega e extrai texto de todos os PDFs ativos de Documentos de Ajuda.
+     */
+    private function carregarBaseConhecimentoDocumentosAjuda(): array
+    {
+        $documentos = DocumentoAjuda::ativos()->ordenado()->get(['id', 'titulo', 'arquivo', 'updated_at']);
+
+        if ($documentos->isEmpty()) {
+            return [];
+        }
+
+        $hashBase = md5(
+            $documentos->count() . '|' .
+            optional($documentos->max('updated_at'))->timestamp . '|' .
+            $documentos->pluck('id')->implode('-')
+        );
+
+        return Cache::remember("ia_externo_docs_{$hashBase}", now()->addMinutes(20), function () use ($documentos) {
+            $parser = new PdfParser();
+            $base = [];
+
+            foreach ($documentos as $doc) {
+                try {
+                    if (empty($doc->arquivo)) {
+                        \Log::warning('DocumentoAjuda sem arquivo para IA externa', [
+                            'documento_id' => $doc->id,
+                            'titulo' => $doc->titulo,
+                        ]);
+                        continue;
+                    }
+
+                    if (!Storage::disk('local')->exists($doc->arquivo)) {
+                        \Log::warning('Arquivo de DocumentoAjuda não encontrado no disco', [
+                            'documento_id' => $doc->id,
+                            'titulo' => $doc->titulo,
+                            'arquivo' => $doc->arquivo,
+                            'path_tentado' => Storage::disk('local')->path($doc->arquivo),
+                        ]);
+                        continue;
+                    }
+
+                    $caminhoArquivo = Storage::disk('local')->path($doc->arquivo);
+                    $pdf = $parser->parseFile($caminhoArquivo);
+                    $texto = $this->normalizarTextoDocumentoAjuda($pdf->getText() ?? '');
+
+                    \Log::info('DocumentoAjuda extraído para IA externa', [
+                        'documento_id' => $doc->id,
+                        'titulo' => $doc->titulo,
+                        'texto_length' => mb_strlen($texto),
+                    ]);
+
+                    if (mb_strlen($texto) < 40) {
+                        \Log::warning('DocumentoAjuda com texto muito curto', [
+                            'documento_id' => $doc->id,
+                            'titulo' => $doc->titulo,
+                            'texto_length' => mb_strlen($texto),
+                        ]);
+                        continue;
+                    }
+
+                    $base[] = [
+                        'titulo' => $doc->titulo,
+                        'conteudo' => mb_substr($texto, 0, 50000),
+                    ];
+                } catch (\Throwable $e) {
+                    \Log::warning('Falha ao extrair DocumentoAjuda para IA externa', [
+                        'documento_id' => $doc->id,
+                        'titulo' => $doc->titulo,
+                        'erro' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return $base;
+        });
+    }
+
+    /**
+     * Monta contexto textual com base em todos os documentos, priorizando os mais relevantes.
+     */
+    private function montarContextoPerguntaDocumentosAjuda(array $documentos, string $pergunta): string
+    {
+        // Pontuar cada documento por relevância
+        $documentosPontuados = [];
+
+        foreach ($documentos as $indice => $doc) {
+            $titulo = $doc['titulo'] ?? ('Documento ' . ($indice + 1));
+            $conteudo = $doc['conteudo'] ?? '';
+            $score = $this->pontuarRelevanciaDocumento($titulo, $conteudo, $pergunta);
+            $documentosPontuados[] = [
+                'indice' => $indice,
+                'titulo' => $titulo,
+                'conteudo' => $conteudo,
+                'score' => $score,
+            ];
+        }
+
+        // Ordenar por relevância (maior score primeiro)
+        usort($documentosPontuados, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        // Alocar mais espaço para os documentos mais relevantes
+        $limitesChars = [12000, 6000, 3000, 2000, 2000]; // proporcional à relevância
+        $blocos = [];
+
+        foreach ($documentosPontuados as $pos => $doc) {
+            $limiteChars = $limitesChars[$pos] ?? 2000;
+            $titulo = $doc['titulo'];
+            $conteudo = $doc['conteudo'];
+
+            // Se o conteúdo cabe no limite, envia tudo
+            if (mb_strlen($conteudo) <= $limiteChars) {
+                $trecho = $conteudo;
+            } else {
+                $trecho = $this->extrairTrechoRelevanteDocumentoAjuda($conteudo, $pergunta, $limiteChars);
+                if (empty($trecho)) {
+                    $trecho = mb_substr($conteudo, 0, $limiteChars);
+                }
+            }
+
+            $relevancia = $pos === 0 ? ' [MAIS RELEVANTE]' : '';
+            $blocos[] = "[DOC " . ($doc['indice'] + 1) . "] {$titulo}{$relevancia}\n{$trecho}";
+        }
+
+        return implode("\n\n------------------------------\n\n", $blocos);
+    }
+
+    /**
+     * Pontua a relevância de um documento para uma pergunta.
+     */
+    private function pontuarRelevanciaDocumento(string $titulo, string $conteudo, string $pergunta): float
+    {
+        $perguntaLower = mb_strtolower($pergunta);
+        $tituloLower = mb_strtolower($titulo);
+        $conteudoLower = mb_strtolower($conteudo);
+        $score = 0.0;
+
+        // Extrair termos significativos da pergunta (>= 4 chars)
+        $termos = preg_split('/\s+/u', $perguntaLower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $termos = array_values(array_filter($termos, fn($t) => mb_strlen(trim($t)) >= 4));
+
+        // Bonus alto para matches no título (mais indicativo)
+        foreach ($termos as $termo) {
+            if (mb_strpos($tituloLower, $termo) !== false) {
+                $score += 20;
+            }
+        }
+
+        // Verificar combinações de 2 palavras consecutivas (bigramas) no título
+        for ($i = 0; $i < count($termos) - 1; $i++) {
+            $bigrama = $termos[$i] . ' ' . $termos[$i + 1];
+            if (mb_strpos($tituloLower, $bigrama) !== false) {
+                $score += 30;
+            }
+        }
+
+        // Contar ocorrências de cada termo no conteúdo
+        foreach ($termos as $termo) {
+            $ocorrencias = mb_substr_count($conteudoLower, $termo);
+            $score += min($ocorrencias, 50); // cap para não distorcer documentos longos
+        }
+
+        // Verificar bigramas no conteúdo (2 palavras juntas = muito relevante)
+        for ($i = 0; $i < count($termos) - 1; $i++) {
+            $bigrama = $termos[$i] . ' ' . $termos[$i + 1];
+            $ocorrencias = mb_substr_count($conteudoLower, $bigrama);
+            $score += $ocorrencias * 5;
+        }
+
+        // Normalizar pelo tamanho do documento (densidade)
+        $tamanho = max(mb_strlen($conteudo), 1);
+        $densityBonus = ($score / ($tamanho / 1000)) * 0.5;
+        $score += $densityBonus;
+
+        return $score;
+    }
+
+    /**
+     * Retorna os títulos dos documentos mais relevantes para a pergunta.
+     */
+    private function obterTitulosFontesMaisRelevantes(array $documentos, string $pergunta, int $maxFontes = 2): array
+    {
+        $pontuados = [];
+
+        foreach ($documentos as $indice => $doc) {
+            $titulo = trim((string) ($doc['titulo'] ?? ('Documento ' . ($indice + 1))));
+            $conteudo = (string) ($doc['conteudo'] ?? '');
+            $score = $this->pontuarRelevanciaDocumento($titulo, $conteudo, $pergunta);
+
+            $pontuados[] = [
+                'titulo' => $titulo,
+                'score' => $score,
+            ];
+        }
+
+        if (empty($pontuados)) {
+            return [];
+        }
+
+        usort($pontuados, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        $fontes = [];
+        foreach ($pontuados as $item) {
+            if ($item['titulo'] === '') {
+                continue;
+            }
+
+            if ($item['score'] <= 0 && !empty($fontes)) {
+                continue;
+            }
+
+            $fontes[] = $item['titulo'];
+            if (count($fontes) >= $maxFontes) {
+                break;
+            }
+        }
+
+        if (empty($fontes)) {
+            $fontes[] = $pontuados[0]['titulo'];
+        }
+
+        return array_values(array_unique($fontes));
+    }
+
+    /**
+     * Garante que a resposta do assistente externo sempre termine com a linha de Fonte(s).
+     */
+    private function garantirLinhaFontesExterno(string $resposta, array $titulosFontes): string
+    {
+        $respostaLimpa = trim((string) $resposta);
+        $titulosFontes = array_values(array_filter(array_map('trim', $titulosFontes)));
+
+        if (empty($titulosFontes)) {
+            return $respostaLimpa;
+        }
+
+        $linhaFontes = 'Fonte(s): ' . implode(' ', array_map(function ($titulo) {
+            return '[' . $titulo . ']';
+        }, $titulosFontes));
+
+        // Remove qualquer linha de fonte já existente (Fonte(s), Fontes, markdown, blockquote) para evitar duplicação.
+        $respostaSemFonte = preg_replace('/^\s*(?:>\s*)?(?:\*\*)?\s*fontes?(?:\(s\))?\s*:\s*.*$/imu', '', $respostaLimpa);
+        $respostaSemFonte = preg_replace('/^\s*(?:>\s*)?(?:\*\*)?\s*fonte(?:\(s\))?\s*:\s*.*$/imu', '', (string) $respostaSemFonte);
+        $respostaSemFonte = trim((string) $respostaSemFonte);
+
+        if ($respostaSemFonte === '') {
+            return $linhaFontes;
+        }
+
+        return $respostaSemFonte . "\n\n" . $linhaFontes;
+    }
+
+    /**
+     * Extrai trecho de maior relevância do documento com base na pergunta,
+     * usando janela deslizante com pontuação de densidade de termos.
+     */
+    private function extrairTrechoRelevanteDocumentoAjuda(string $conteudo, string $pergunta, int $limiteChars = 6000): string
+    {
+        $conteudo = trim($conteudo);
+        if ($conteudo === '') {
+            return '';
+        }
+
+        $termos = preg_split('/\s+/u', mb_strtolower($pergunta), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $termos = array_values(array_filter($termos, fn($t) => mb_strlen(trim($t)) >= 4));
+
+        if (empty($termos)) {
+            return mb_substr($conteudo, 0, $limiteChars);
+        }
+
+        $conteudoLower = mb_strtolower($conteudo);
+        $tamanhoConteudo = mb_strlen($conteudo);
+        $janelaSize = min($limiteChars, $tamanhoConteudo);
+
+        // Se o conteúdo cabe no limite, retorna tudo
+        if ($tamanhoConteudo <= $limiteChars) {
+            return $conteudo;
+        }
+
+        // Bigramas da pergunta para bonus de proximidade
+        $bigramas = [];
+        for ($i = 0; $i < count($termos) - 1; $i++) {
+            $bigramas[] = $termos[$i] . ' ' . $termos[$i + 1];
+        }
+
+        // Janela deslizante: encontrar a posição com maior densidade de termos
+        $melhorScore = -1;
+        $melhorPos = 0;
+        $passo = max(200, intdiv($tamanhoConteudo, 100)); // ~100 amostras máximo
+
+        for ($pos = 0; $pos <= $tamanhoConteudo - $janelaSize; $pos += $passo) {
+            $janela = mb_substr($conteudoLower, $pos, $janelaSize);
+            $score = 0;
+
+            foreach ($termos as $termo) {
+                $score += mb_substr_count($janela, $termo);
+            }
+
+            foreach ($bigramas as $bigrama) {
+                $score += mb_substr_count($janela, $bigrama) * 3;
+            }
+
+            if ($score > $melhorScore) {
+                $melhorScore = $score;
+                $melhorPos = $pos;
+            }
+        }
+
+        // Refinar: tentar ajustar ao redor da melhor posição encontrada
+        $refinaInicio = max(0, $melhorPos - $passo);
+        $refinaFim = min($tamanhoConteudo - $janelaSize, $melhorPos + $passo);
+
+        for ($pos = $refinaInicio; $pos <= $refinaFim; $pos += 50) {
+            $janela = mb_substr($conteudoLower, $pos, $janelaSize);
+            $score = 0;
+
+            foreach ($termos as $termo) {
+                $score += mb_substr_count($janela, $termo);
+            }
+
+            foreach ($bigramas as $bigrama) {
+                $score += mb_substr_count($janela, $bigrama) * 3;
+            }
+
+            if ($score > $melhorScore) {
+                $melhorScore = $score;
+                $melhorPos = $pos;
+            }
+        }
+
+        $trecho = mb_substr($conteudo, $melhorPos, $janelaSize);
+
+        if ($melhorPos > 0) {
+            $trecho = '... ' . $trecho;
+        }
+
+        if ($tamanhoConteudo > ($melhorPos + $janelaSize)) {
+            $trecho .= ' ...';
+        }
+
+        return $trecho;
+    }
+
+    /**
+     * Normaliza texto extraído de PDFs.
+     */
+    private function normalizarTextoDocumentoAjuda(string $texto): string
+    {
+        $texto = preg_replace('/\x{00A0}/u', ' ', $texto);
+        $texto = preg_replace('/[ \t]+/u', ' ', $texto);
+        $texto = preg_replace('/\n{3,}/u', "\n\n", $texto);
+
+        return trim($texto ?? '');
     }
 
     /**

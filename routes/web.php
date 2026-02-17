@@ -148,6 +148,9 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
     
     // Busca de responsável por CPF
     Route::post('/responsaveis/buscar-cpf', [\App\Http\Controllers\Company\EstabelecimentoController::class, 'buscarResponsavelPorCpf'])->name('responsaveis.buscar-cpf');
+
+    // Assistente IA (usuário externo)
+    Route::post('/ia/chat', [\App\Http\Controllers\AssistenteIAController::class, 'chatExterno'])->name('ia.chat');
 });
 
 /*

@@ -55,7 +55,7 @@
                 </div>
             </div>
             <p class="text-sm text-gray-600 mb-4">
-                Cadastre profissionais autônomos, MEIs ou estabelecimentos vinculados a pessoa física.
+                Cadastre profissionais autônomos.
                 Informe os dados manualmente.
             </p>
             <a href="{{ route('company.estabelecimentos.create.fisica') }}" 
