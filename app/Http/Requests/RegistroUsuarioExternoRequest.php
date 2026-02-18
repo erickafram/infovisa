@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\VinculoEstabelecimento;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\UsuarioExterno;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,9 +25,15 @@ class RegistroUsuarioExternoRequest extends FormRequest
     {
         return [
             'nome' => ['required', 'string', 'min:3', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14', 'unique:usuarios_externos,cpf', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/', function ($attribute, $value, $fail) {
-                if (!$this->validarCpf($value)) {
+            'cpf' => ['required', 'string', 'size:14', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/', function ($attribute, $value, $fail) {
+                $cpfLimpo = preg_replace('/\D/', '', $value);
+
+                if (!$this->validarCpf($cpfLimpo)) {
                     $fail('O CPF informado é inválido.');
+                }
+
+                if (UsuarioExterno::whereRaw("regexp_replace(cpf, '[^0-9]', '', 'g') = ?", [$cpfLimpo])->exists()) {
+                    $fail('Este CPF já está cadastrado.');
                 }
             }],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:usuarios_externos,email'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estabelecimento;
 use App\Models\UsuarioExterno;
 use App\Enums\VinculoEstabelecimento;
 use Illuminate\Http\Request;
@@ -103,7 +104,20 @@ class UsuarioExternoController extends Controller
      */
     public function show(UsuarioExterno $usuarioExterno)
     {
-        return view('admin.usuarios-externos.show', compact('usuarioExterno'));
+        $usuarioExterno->load([
+            'estabelecimentosVinculados' => fn ($query) => $query
+                ->orderBy('estabelecimento_usuario_externo.created_at', 'desc')
+        ]);
+
+        $estabelecimentosComoCriador = Estabelecimento::where('usuario_externo_id', $usuarioExterno->id)
+            ->get();
+
+        $estabelecimentosRelacionados = $usuarioExterno->estabelecimentosVinculados
+            ->merge($estabelecimentosComoCriador)
+            ->unique('id')
+            ->values();
+
+        return view('admin.usuarios-externos.show', compact('usuarioExterno', 'estabelecimentosRelacionados'));
     }
 
     /**

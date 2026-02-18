@@ -116,6 +116,75 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Estabelecimentos Vinculados --}}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7l9-4 9 4m-9-4v18m-9-7l9 4 9-4M3 7v10m18-10v10"/>
+                    </svg>
+                    Estabelecimentos Vinculados ({{ $estabelecimentosRelacionados->count() }})
+                </h2>
+
+                @if($estabelecimentosRelacionados->isNotEmpty())
+                    <div class="space-y-3">
+                        @foreach($estabelecimentosRelacionados as $estabelecimento)
+                            <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 truncate">
+                                            {{ $estabelecimento->nome_fantasia ?: $estabelecimento->nome_razao_social }}
+                                        </p>
+                                        <p class="text-xs text-gray-600 mt-1">
+                                            {{ $estabelecimento->documento_formatado ?: '-' }}
+                                            @if($estabelecimento->cidade || $estabelecimento->estado)
+                                                • {{ trim(($estabelecimento->cidade ?? '') . ' - ' . ($estabelecimento->estado ?? ''), ' -') }}
+                                            @endif
+                                        </p>
+                                        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                            @if((int) $estabelecimento->usuario_externo_id === (int) $usuarioExterno->id)
+                                                <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-medium">
+                                                    Criador do cadastro
+                                                </span>
+                                            @endif
+                                            @if(!empty($estabelecimento->pivot->tipo_vinculo))
+                                                <span class="px-2 py-1 rounded-full bg-blue-100 text-blue-800 font-medium">
+                                                    {{ ucfirst($estabelecimento->pivot->tipo_vinculo) }}
+                                                </span>
+                                            @endif
+                                            @if(!empty($estabelecimento->pivot->nivel_acesso))
+                                                <span class="px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 font-medium">
+                                                    {{ ucfirst($estabelecimento->pivot->nivel_acesso) }}
+                                                </span>
+                                            @endif
+                                            @if(!empty($estabelecimento->pivot->created_at))
+                                                <span class="text-gray-500">
+                                                    Vinculado em {{ optional($estabelecimento->pivot->created_at)->format('d/m/Y H:i') ?? '-' }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col gap-2 shrink-0">
+                                        <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}"
+                                           class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
+                                            Ver estabelecimento
+                                        </a>
+                                        <a href="{{ route('admin.estabelecimentos.usuarios.index', $estabelecimento->id) }}"
+                                           class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors">
+                                            Gerenciar usuários
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm text-gray-600">Este usuário externo ainda não possui estabelecimentos vinculados.</p>
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- Sidebar --}}
