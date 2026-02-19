@@ -420,7 +420,7 @@
             </div>
             <div class="footer-text">
                 Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
-                Contatos: (63) 3218-3264 – tocantins.visa@gmail.com
+                Contatos: (63) 3027-4484 – tocantins.visa@gmail.com
             </div>
         </div>
     </div>
