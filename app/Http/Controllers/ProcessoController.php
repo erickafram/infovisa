@@ -14,6 +14,7 @@ use App\Models\ModeloDocumento;
 use App\Models\UsuarioInterno;
 use App\Models\DocumentoResposta;
 use App\Models\DocumentoDigital;
+use App\Models\TipoSetor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -336,6 +337,29 @@ class ProcessoController extends Controller
             }
         }
 
+        // Setores disponíveis para filtro (com base nos processos visíveis)
+        $setoresCodigos = $processosCollection
+            ->pluck('setor_atual')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $setoresNomes = TipoSetor::whereIn('codigo', $setoresCodigos)
+            ->pluck('nome', 'codigo');
+
+        $setoresDisponiveis = $setoresCodigos
+            ->mapWithKeys(function ($codigo) use ($setoresNomes) {
+                return [$codigo => $setoresNomes[$codigo] ?? $codigo];
+            })
+            ->sort();
+
+        // Filtro por setor
+        if ($request->filled('setor')) {
+            $processosCollection = $processosCollection
+                ->where('setor_atual', $request->setor)
+                ->values();
+        }
+
         // Dados para filtros
         $tiposProcesso = TipoProcesso::ativos()
             ->paraUsuario(auth('interno')->user())
@@ -487,7 +511,7 @@ class ProcessoController extends Controller
         return view('processos.index', compact(
             'processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 
             'processosComPendencias', 'processosComDocsPendentes', 'processosComRespostasPendentes',
-            'statusDocsObrigatorios', 'prazoFilaPublica', 'resumoQuick'
+            'statusDocsObrigatorios', 'prazoFilaPublica', 'resumoQuick', 'setoresDisponiveis'
         ));
     }
 

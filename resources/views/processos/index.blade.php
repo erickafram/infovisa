@@ -36,7 +36,7 @@
                         </svg>
                         Filtros
                     </h3>
-                    @if(request()->hasAny(['busca', 'tipo', 'status', 'docs_obrigatorios', 'ano', 'responsavel', 'ordenacao']))
+                    @if(request()->hasAny(['busca', 'tipo', 'status', 'docs_obrigatorios', 'ano', 'responsavel', 'setor', 'ordenacao']))
                         <a href="{{ route('admin.processos.index-geral') }}" class="text-[10px] text-red-500 hover:text-red-700 font-medium" title="Limpar todos os filtros">Limpar</a>
                     @endif
                 </div>
@@ -92,6 +92,17 @@
                             <option value="meu_setor" {{ request('responsavel') == 'meu_setor' ? 'selected' : '' }}>Meu setor</option>
                             @endif
                             <option value="nao_atribuido" {{ request('responsavel') == 'nao_atribuido' ? 'selected' : '' }}>Não atribuídos</option>
+                        </select>
+                    </div>
+
+                    {{-- Setor --}}
+                    <div>
+                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Setor</label>
+                        <select name="setor" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Todos</option>
+                            @foreach(($setoresDisponiveis ?? collect()) as $codigo => $nome)
+                                <option value="{{ $codigo }}" {{ request('setor') == $codigo ? 'selected' : '' }}>{{ $nome }}</option>
+                            @endforeach
                         </select>
                     </div>
 
