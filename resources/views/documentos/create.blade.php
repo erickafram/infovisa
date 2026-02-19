@@ -761,7 +761,7 @@
                     <template x-for="usuario in usuariosFiltrados" :key="usuario.id">
                         <label class="flex items-start p-2 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all group bg-white">
                             <input type="checkbox" 
-                                   name="assinaturas[]" 
+                                   x-model="assinaturasSelecionadas"
                                    :value="usuario.id"
                                    class="mt-0.5 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
                             <div class="ml-2 flex-1 min-w-0">
@@ -783,6 +783,10 @@
                         </div>
                     </template>
                 </div>
+
+                <template x-for="usuarioId in assinaturasSelecionadas" :key="`assinatura-hidden-${usuarioId}`">
+                    <input type="hidden" name="assinaturas[]" :value="usuarioId">
+                </template>
             </div>
 
         {{-- Botões de Ação --}}
@@ -1007,6 +1011,7 @@ const tiposDocumentoData = {
 function buscaTecnicos() {
     return {
         busca: '',
+        assinaturasSelecionadas: [],
         usuariosFiltrados: [
             @foreach($usuariosInternos as $usuario)
                 {
@@ -1630,7 +1635,7 @@ function documentoEditor() {
             console.log('Conteúdo:', this.conteudo);
             console.log('Tipo selecionado:', this.tipoSelecionado);
             
-            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]:checked');
+            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]');
             console.log('Assinaturas selecionadas:', assinaturas.length);
             
             if (assinaturas.length === 0) {
