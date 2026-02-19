@@ -15,45 +15,76 @@
 
 <div class="max-w-[1600px] mx-auto" x-data="{ mobileFilters: false }">
     {{-- Header --}}
-    <div class="mb-5">
+    <div class="mb-6">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-xl font-bold text-gray-900">Processos</h1>
-                <p class="text-xs text-gray-500 mt-0.5">{{ $processos->total() }} encontrado(s)</p>
+                <h1 class="text-2xl font-bold text-gray-900">Processos</h1>
+                <p class="text-sm text-gray-500 mt-1">{{ $processos->total() }} encontrado(s) • Use a busca e os filtros para refinar a lista</p>
             </div>
         </div>
     </div>
 
+    @php
+        $filtrosAtivos = [
+            'Busca' => request('busca'),
+            'Tipo' => $tiposProcesso->firstWhere('codigo', request('tipo'))->nome ?? null,
+            'Status' => request('status') ? ($statusDisponiveis[request('status')] ?? request('status')) : null,
+            'Documentação' => request('docs_obrigatorios') === 'completos' ? 'Completos' : (request('docs_obrigatorios') === 'pendentes' ? 'Pendentes' : null),
+            'Responsável' => request('responsavel') === 'meus' ? 'Meus processos' : (request('responsavel') === 'meu_setor' ? 'Meu setor' : (request('responsavel') === 'nao_atribuido' ? 'Não atribuídos' : null)),
+            'Setor' => request('setor') ? (($setoresDisponiveis[request('setor')] ?? request('setor'))) : null,
+            'Ano' => request('ano'),
+        ];
+        $filtrosAtivos = array_filter($filtrosAtivos, fn($valor) => filled($valor));
+    @endphp
+
+    @if(count($filtrosAtivos) > 0)
+        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <span class="text-xs font-semibold text-blue-800 uppercase tracking-wide">Filtros ativos</span>
+                <a href="{{ route('admin.processos.index-geral') }}" class="text-xs font-medium text-blue-700 hover:text-blue-900">Limpar tudo</a>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach($filtrosAtivos as $nome => $valor)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-200 rounded-full text-xs text-blue-800">
+                        <span class="font-semibold">{{ $nome }}:</span>
+                        <span>{{ $valor }}</span>
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Layout principal --}}
     <div class="flex gap-5">
         {{-- Sidebar de Filtros --}}
-        <div class="w-64 flex-shrink-0 hidden lg:block">
+        <div class="w-72 flex-shrink-0 hidden lg:block">
             <form method="GET" action="{{ route('admin.processos.index-geral') }}" class="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-4">
-                <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50 rounded-t-xl flex items-center justify-between">
-                    <h3 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
                         </svg>
                         Filtros
                     </h3>
                     @if(request()->hasAny(['busca', 'tipo', 'status', 'docs_obrigatorios', 'ano', 'responsavel', 'setor', 'ordenacao']))
-                        <a href="{{ route('admin.processos.index-geral') }}" class="text-[10px] text-red-500 hover:text-red-700 font-medium" title="Limpar todos os filtros">Limpar</a>
+                        <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-red-500 hover:text-red-700 font-medium" title="Limpar todos os filtros">Limpar</a>
                     @endif
                 </div>
 
-                <div class="p-3 space-y-2.5">
+                <div class="p-4 space-y-3">
                     {{-- Busca --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Buscar</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Buscar</label>
                         <input type="text" name="busca" value="{{ request('busca') }}"
                                placeholder="Nº processo ou estabelecimento..."
-                               class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="mt-1 text-xs text-gray-500">Ex.: 2026/00015, Farmácia, 12.345.678/0001-90</p>
                     </div>
 
                     {{-- Tipo de Processo --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Tipo</label>
-                        <select name="tipo" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Tipo</label>
+                        <select name="tipo" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Todos</option>
                             @foreach($tiposProcesso as $tipo)
                             <option value="{{ $tipo->codigo }}" {{ request('tipo') == $tipo->codigo ? 'selected' : '' }}>{{ $tipo->nome }}</option>
@@ -63,8 +94,8 @@
 
                     {{-- Status --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Status</label>
-                        <select name="status" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Status</label>
+                        <select name="status" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Todos</option>
                             @foreach($statusDisponiveis as $key => $nome)
                             <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>{{ $nome }}</option>
@@ -74,8 +105,8 @@
 
                     {{-- Documentação --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Documentação</label>
-                        <select name="docs_obrigatorios" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Documentação</label>
+                        <select name="docs_obrigatorios" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Todos</option>
                             <option value="completos" {{ request('docs_obrigatorios') == 'completos' ? 'selected' : '' }}>Completos</option>
                             <option value="pendentes" {{ request('docs_obrigatorios') == 'pendentes' ? 'selected' : '' }}>Pendentes</option>
@@ -84,8 +115,8 @@
 
                     {{-- Responsável --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Responsável</label>
-                        <select name="responsavel" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Responsável</label>
+                        <select name="responsavel" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Todos</option>
                             <option value="meus" {{ request('responsavel') == 'meus' ? 'selected' : '' }}>Meus processos</option>
                             @if(auth('interno')->user()->setor)
@@ -97,8 +128,8 @@
 
                     {{-- Setor --}}
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Setor</label>
-                        <select name="setor" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Setor</label>
+                        <select name="setor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Todos</option>
                             @foreach(($setoresDisponiveis ?? collect()) as $codigo => $nome)
                                 <option value="{{ $codigo }}" {{ request('setor') == $codigo ? 'selected' : '' }}>{{ $nome }}</option>
@@ -109,8 +140,8 @@
                     {{-- Ano e Ordenação --}}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Ano</label>
-                            <select name="ano" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Ano</label>
+                            <select name="ano" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Todos</option>
                                 @foreach($anos as $anoItem)
                                 <option value="{{ $anoItem }}" {{ request('ano') == $anoItem ? 'selected' : '' }}>{{ $anoItem }}</option>
@@ -118,8 +149,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wider">Ordenar</label>
-                            <select name="ordenacao" class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">Ordenar</label>
+                            <select name="ordenacao" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="recentes" {{ request('ordenacao', 'recentes') == 'recentes' ? 'selected' : '' }}>Recentes</option>
                                 <option value="antigos" {{ request('ordenacao') == 'antigos' ? 'selected' : '' }}>Antigos</option>
                                 <option value="numero" {{ request('ordenacao') == 'numero' ? 'selected' : '' }}>Número</option>
@@ -129,13 +160,16 @@
                 </div>
 
                 {{-- Botão Filtrar --}}
-                <div class="px-3 pb-3">
-                    <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-1.5">
+                <div class="px-4 pb-4 space-y-2">
+                    <button type="submit" class="w-full px-3 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                         Filtrar
                     </button>
+                    <a href="{{ route('admin.processos.index-geral') }}" class="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Limpar filtros
+                    </a>
                 </div>
             </form>
         </div>
@@ -151,8 +185,8 @@
         <div class="flex-1 min-w-0">
             @if($processos->count() > 0)
                 <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2 text-[11px] text-gray-600 flex-wrap">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
                             <span class="font-semibold text-gray-700">Filtro rapido:</span>
                             <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}"
                                class="px-2 py-0.5 rounded-full border {{ request('quick') ? 'border-gray-200 text-gray-500' : 'border-gray-300 text-gray-800 bg-white' }}">
@@ -177,7 +211,7 @@
                         </div>
 
                         @if(request('quick'))
-                            <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}" class="text-[10px] text-gray-500 hover:text-gray-700">Limpar</a>
+                            <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}" class="text-xs text-gray-500 hover:text-gray-700">Limpar</a>
                         @endif
                     </div>
                     <div class="divide-y divide-gray-100">
@@ -226,7 +260,7 @@
 
                         <a href="{{ route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]) }}"
                            class="block hover:bg-gray-50 transition relative">
-                            <div class="px-4 py-3 flex items-center gap-4">
+                            <div class="px-4 py-4 flex items-center gap-4">
                                 {{-- Barra de status da documentação --}}
                                 <div class="w-1 self-stretch rounded-full
                                     @if($docStatus === 'completo') bg-green-300
@@ -238,16 +272,16 @@
 
                                 {{-- Informacoes principais --}}
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-0.5">
-                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full border border-gray-200 text-gray-600 flex-shrink-0 inline-flex items-center gap-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border border-gray-200 text-gray-600 flex-shrink-0 inline-flex items-center gap-1">
                                             <span class="w-1.5 h-1.5 rounded-full {{ $statusDot }}"></span>
                                             {{ $processo->status_nome }}
                                         </span>
-                                        <span class="text-[11px] text-gray-400 truncate">{{ $processo->tipo_nome }}</span>
+                                        <span class="text-xs text-gray-500 truncate">{{ $processo->tipo_nome }}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-sm font-bold text-gray-900">{{ $processo->numero_processo }}</span>
-                                        <span class="text-xs text-gray-600 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
+                                        <span class="text-base font-bold text-gray-900">{{ $processo->numero_processo }}</span>
+                                        <span class="text-sm text-gray-600 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
                                             {{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}
                                         </span>
                                     </div>
@@ -281,32 +315,32 @@
                                 </div>
 
                                 {{-- Meta info --}}
-                                <div class="hidden md:flex items-center gap-3 text-[10px] text-gray-500">
+                                <div class="hidden sm:flex items-center gap-3 text-xs text-gray-500">
                                     @if($docs)
-                                        <span class="font-semibold {{ $docs['completo'] ? 'text-green-500' : 'text-amber-500' }}">
-                                            {{ $docs['ok'] }}/{{ $docs['total'] }}
+                                        <span class="font-medium {{ $docs['completo'] ? 'text-green-600' : 'text-amber-600' }}">
+                                            Docs {{ $docs['ok'] }}/{{ $docs['total'] }}
                                         </span>
                                     @endif
 
                                     @if($prazo)
                                         <span class="font-medium {{ $prazo['atrasado'] ? 'text-red-500' : ($prazo['dias_restantes'] <= 5 ? 'text-amber-500' : 'text-cyan-500') }}">
                                             @if($prazo['atrasado'])
-                                                {{ abs($prazo['dias_restantes']) }}d atraso
+                                                Prazo: {{ abs($prazo['dias_restantes']) }}d atraso
                                             @else
-                                                {{ $prazo['dias_restantes'] }}d
+                                                Prazo: {{ $prazo['dias_restantes'] }}d
                                             @endif
                                         </span>
                                     @endif
 
                                     @if($processo->setor_atual || $processo->responsavelAtual)
-                                        <span class="inline-flex flex-col min-w-0">
-                                            <span class="truncate text-cyan-700">{{ $processo->setor_atual_nome }}</span>
+                                        <span class="inline-flex flex-col min-w-0 leading-tight">
+                                            <span class="truncate text-cyan-700">Setor: {{ $processo->setor_atual_nome }}</span>
                                             @if($processo->responsavelAtual)
-                                                <span class="truncate text-gray-600">{{ $processo->responsavelAtual->nome }}</span>
+                                                <span class="truncate text-gray-600">Resp.: {{ $processo->responsavelAtual->nome }}</span>
                                             @endif
                                         </span>
                                     @else
-                                        <span class="italic text-gray-400">Nao atribuido</span>
+                                        <span class="italic text-gray-400">Não atribuído</span>
                                     @endif
 
                                 </div>
@@ -328,8 +362,8 @@
                     <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <h3 class="mt-4 text-sm font-medium text-gray-900">Nenhum processo encontrado</h3>
-                    <p class="mt-1 text-xs text-gray-500">Tente ajustar os filtros de busca</p>
+                    <h3 class="mt-4 text-base font-semibold text-gray-900">Nenhum processo encontrado</h3>
+                    <p class="mt-1 text-sm text-gray-500">Tente ajustar os filtros de busca</p>
                     <a href="{{ route('admin.processos.index-geral') }}" class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700">
                         Limpar filtros
                     </a>
