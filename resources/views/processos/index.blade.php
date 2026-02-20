@@ -215,15 +215,15 @@
                         @endif
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm text-left text-gray-700">
+                        <table class="w-full table-fixed text-sm text-left text-gray-700">
                             <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600">
                                 <tr>
-                                    <th class="px-4 py-3 font-semibold">Status</th>
-                                    <th class="px-4 py-3 font-semibold">Processo</th>
-                                    <th class="px-4 py-3 font-semibold">Estabelecimento</th>
-                                    <th class="px-4 py-3 font-semibold">Documentação</th>
-                                    <th class="px-4 py-3 font-semibold">Prazo</th>
-                                    <th class="px-4 py-3 font-semibold">Atribuição</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[13%]">Status</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[14%]">Processo</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[24%]">Estabelecimento</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[22%]">Documentação</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[10%]">Prazo</th>
+                                    <th class="px-3 py-2.5 font-semibold w-[17%]">Atribuição</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -259,28 +259,28 @@
                                 @endphp
                                 <tr class="hover:bg-gray-50 transition cursor-pointer"
                                     onclick="window.location='{{ $processoUrl }}'">
-                                    <td class="px-4 py-3 align-top">
+                                    <td class="px-3 py-2.5 align-top">
                                         <div class="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-full border border-gray-200 text-gray-700">
                                             <span class="w-1.5 h-1.5 rounded-full {{ $statusDot }}"></span>
                                             {{ $processo->status_nome }}
                                         </div>
-                                        <div class="text-xs text-gray-500 mt-1">{{ $processo->tipo_nome }}</div>
+                                        <div class="text-[11px] text-gray-500 mt-1 truncate" title="{{ $processo->tipo_nome }}">{{ $processo->tipo_nome }}</div>
                                     </td>
-                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                    <td class="px-3 py-2.5 align-top whitespace-nowrap">
                                         <a href="{{ $processoUrl }}"
                                            class="text-sm font-bold text-gray-900 hover:text-blue-700"
                                            onclick="event.stopPropagation()">
                                             {{ $processo->numero_processo }}
                                         </a>
                                     </td>
-                                    <td class="px-4 py-3 align-top min-w-[240px]">
-                                        <div class="font-medium text-gray-800 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
+                                    <td class="px-3 py-2.5 align-top">
+                                        <div class="font-medium text-gray-800 text-xs leading-tight break-words" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
                                             {{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 align-top min-w-[210px]">
+                                    <td class="px-3 py-2.5 align-top">
                                         @if($docs)
-                                            <div class="inline-flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium
+                                            <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium
                                                 @if($docStatus === 'completo') bg-green-50 text-green-700 border border-green-200
                                                 @elseif($docStatus === 'nao_enviado') bg-red-50 text-red-700 border border-red-200
                                                 @elseif($docStatus === 'aguardando' || $temPendenciaAprovacao) bg-amber-50 text-amber-700 border border-amber-200
@@ -294,24 +294,24 @@
                                                     @else bg-gray-300
                                                     @endif
                                                 "></span>
-                                                Docs {{ $docs['ok'] }}/{{ $docs['total'] }}
+                                                {{ $docs['ok'] }}/{{ $docs['total'] }} docs
                                             </div>
                                         @else
-                                            <span class="text-xs text-gray-400 italic">Sem informação</span>
+                                            <span class="text-[11px] text-gray-400 italic">Sem info</span>
                                         @endif
 
-                                        <div class="flex items-center gap-2 mt-1">
+                                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
                                             @if($temPendenciaAprovacao)
-                                                <span class="text-[11px] text-amber-600">Aguardando aprovação</span>
+                                                <span class="text-[10px] text-amber-600">Aguardando</span>
                                             @endif
                                             @if($temRespostasPendentes)
-                                                <span class="text-[11px] text-purple-600">Respostas pendentes</span>
+                                                <span class="text-[10px] text-purple-600">Resp. pend.</span>
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                    <td class="px-3 py-2.5 align-top whitespace-nowrap">
                                         @if($prazo)
-                                            <span class="text-xs font-medium {{ $prazo['atrasado'] ? 'text-red-600' : ($prazo['dias_restantes'] <= 5 ? 'text-amber-600' : 'text-cyan-600') }}">
+                                            <span class="text-[11px] font-medium {{ $prazo['atrasado'] ? 'text-red-600' : ($prazo['dias_restantes'] <= 5 ? 'text-amber-600' : 'text-cyan-600') }}">
                                                 @if($prazo['atrasado'])
                                                     {{ abs($prazo['dias_restantes']) }}d atraso
                                                 @else
@@ -319,19 +319,19 @@
                                                 @endif
                                             </span>
                                         @else
-                                            <span class="text-xs text-gray-400">-</span>
+                                            <span class="text-[11px] text-gray-400">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 align-top min-w-[190px]">
+                                    <td class="px-3 py-2.5 align-top">
                                         @if($processo->setor_atual || $processo->responsavelAtual)
-                                            <div class="text-xs leading-tight">
-                                                <div class="text-cyan-700 font-medium truncate">Setor: {{ $processo->setor_atual_nome }}</div>
+                                            <div class="text-[11px] leading-tight whitespace-normal break-words">
+                                                <div class="text-cyan-700 font-medium">Setor: {{ $processo->setor_atual_nome }}</div>
                                                 @if($processo->responsavelAtual)
-                                                    <div class="text-gray-600 truncate">Resp.: {{ $processo->responsavelAtual->nome }}</div>
+                                                    <div class="text-gray-600 mt-0.5">Resp.: {{ $processo->responsavelAtual->nome }}</div>
                                                 @endif
                                             </div>
                                         @else
-                                            <span class="text-xs italic text-gray-400">Não atribuído</span>
+                                            <span class="text-[11px] italic text-gray-400">Não atribuído</span>
                                         @endif
                                     </td>
                                 </tr>
