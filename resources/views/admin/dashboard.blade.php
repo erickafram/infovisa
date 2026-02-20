@@ -431,12 +431,18 @@
 
             {{-- Processos do Setor --}}
             <div class="border-t border-gray-100" x-data="processosAtribuidos()">
-                <div class="px-3 py-1.5 bg-teal-50/60 border-b border-teal-100/60">
-                    <span class="text-[11px] font-semibold text-teal-600 uppercase tracking-wider flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                        Processos do Setor
-                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-bold" x-text="processos.filter(p => p.is_do_setor).length"></span>
+                <div class="px-3 py-1.5 bg-teal-50/60 border-b border-teal-100/60 flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-semibold text-teal-600 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                        <span>Processos do Setor</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-bold" x-text="processos.filter(p => p.is_do_setor).length"></span>
                     </span>
+                    @if(auth('interno')->user()->setor)
+                        <a href="{{ route('admin.processos.index-geral', ['setor' => auth('interno')->user()->setor, 'apenas_ativos' => 1]) }}"
+                           class="text-[11px] text-gray-400 hover:text-teal-700 transition whitespace-nowrap">
+                            ver todos
+                        </a>
+                    @endif
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[180px] overflow-y-auto">
                     <template x-if="loading">

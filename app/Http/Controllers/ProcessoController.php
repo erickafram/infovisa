@@ -271,6 +271,11 @@ class ProcessoController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filtro para exibir apenas processos ativos (mesma lógica do dashboard)
+        if ($request->boolean('apenas_ativos')) {
+            $query->whereNotIn('status', ['arquivado', 'concluido']);
+        }
+
         // Filtro por ano
         if ($request->filled('ano')) {
             $query->where('ano', $request->ano);
