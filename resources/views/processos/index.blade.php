@@ -214,139 +214,130 @@
                             <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}" class="text-xs text-gray-500 hover:text-gray-700">Limpar</a>
                         @endif
                     </div>
-                    <div class="divide-y divide-gray-100">
-                    @foreach($processos as $processo)
-                        @php
-                            $docs = $statusDocsObrigatorios[$processo->id] ?? null;
-                            $prazo = $prazoFilaPublica[$processo->id] ?? null;
-                            $temPendenciaAprovacao = ($processosComPendencias ?? collect())->contains($processo->id);
-                            $temRespostasPendentes = ($processosComRespostasPendentes ?? collect())->contains($processo->id);
-                            $naoAtribuido = !$processo->responsavel_atual_id && !$processo->setor_atual;
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-700">
+                            <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600">
+                                <tr>
+                                    <th class="px-4 py-3 font-semibold">Status</th>
+                                    <th class="px-4 py-3 font-semibold">Processo</th>
+                                    <th class="px-4 py-3 font-semibold">Estabelecimento</th>
+                                    <th class="px-4 py-3 font-semibold">Documentação</th>
+                                    <th class="px-4 py-3 font-semibold">Prazo</th>
+                                    <th class="px-4 py-3 font-semibold">Atribuição</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                            @foreach($processos as $processo)
+                                @php
+                                    $docs = $statusDocsObrigatorios[$processo->id] ?? null;
+                                    $prazo = $prazoFilaPublica[$processo->id] ?? null;
+                                    $temPendenciaAprovacao = ($processosComPendencias ?? collect())->contains($processo->id);
+                                    $temRespostasPendentes = ($processosComRespostasPendentes ?? collect())->contains($processo->id);
 
-                            // Status de documentação
-                            $docStatus = 'sem_info'; // cinza
-                            if ($docs) {
-                                if ($docs['completo']) {
-                                    $docStatus = 'completo'; // verde
-                                } elseif (($docs['nao_enviado'] ?? 0) > 0) {
-                                    $docStatus = 'nao_enviado'; // vermelho
-                                } elseif (($docs['pendente'] ?? 0) > 0) {
-                                    $docStatus = 'aguardando'; // amarelo
-                                } elseif (($docs['rejeitado'] ?? 0) > 0) {
-                                    $docStatus = 'rejeitado'; // vermelho
-                                }
-                            }
+                                    $docStatus = 'sem_info';
+                                    if ($docs) {
+                                        if ($docs['completo']) {
+                                            $docStatus = 'completo';
+                                        } elseif (($docs['nao_enviado'] ?? 0) > 0 || ($docs['rejeitado'] ?? 0) > 0) {
+                                            $docStatus = 'nao_enviado';
+                                        } elseif (($docs['pendente'] ?? 0) > 0) {
+                                            $docStatus = 'aguardando';
+                                        }
+                                    }
 
-                            // Cor do badge de status do processo
-                            $statusColor = match($processo->status) {
-                                'aberto' => 'text-blue-600',
-                                'em_analise' => 'text-amber-600',
-                                'pendente' => 'text-orange-600',
-                                'concluido' => 'text-green-600',
-                                'arquivado' => 'text-gray-500',
-                                'parado' => 'text-red-600',
-                                default => 'text-gray-600',
-                            };
-                            $statusDot = match($processo->status) {
-                                'aberto' => 'bg-blue-400',
-                                'em_analise' => 'bg-amber-400',
-                                'pendente' => 'bg-orange-400',
-                                'concluido' => 'bg-green-400',
-                                'arquivado' => 'bg-gray-400',
-                                'parado' => 'bg-red-400',
-                                default => 'bg-gray-300',
-                            };
-                        @endphp
+                                    $statusDot = match($processo->status) {
+                                        'aberto' => 'bg-blue-400',
+                                        'em_analise' => 'bg-amber-400',
+                                        'pendente' => 'bg-orange-400',
+                                        'concluido' => 'bg-green-400',
+                                        'arquivado' => 'bg-gray-400',
+                                        'parado' => 'bg-red-400',
+                                        default => 'bg-gray-300',
+                                    };
 
-                        <a href="{{ route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]) }}"
-                           class="block hover:bg-gray-50 transition relative">
-                            <div class="px-4 py-4 flex items-center gap-4">
-                                {{-- Barra de status da documentação --}}
-                                <div class="w-1 self-stretch rounded-full
-                                    @if($docStatus === 'completo') bg-green-300
-                                    @elseif($docStatus === 'nao_enviado' || $docStatus === 'rejeitado') bg-red-300
-                                    @elseif($docStatus === 'aguardando' || $temPendenciaAprovacao) bg-amber-300
-                                    @else bg-gray-200
-                                    @endif
-                                "></div>
-
-                                {{-- Informacoes principais --}}
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border border-gray-200 text-gray-600 flex-shrink-0 inline-flex items-center gap-1">
+                                    $processoUrl = route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]);
+                                @endphp
+                                <tr class="hover:bg-gray-50 transition cursor-pointer"
+                                    onclick="window.location='{{ $processoUrl }}'">
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-full border border-gray-200 text-gray-700">
                                             <span class="w-1.5 h-1.5 rounded-full {{ $statusDot }}"></span>
                                             {{ $processo->status_nome }}
-                                        </span>
-                                        <span class="text-xs text-gray-500 truncate">{{ $processo->tipo_nome }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-base font-bold text-gray-900">{{ $processo->numero_processo }}</span>
-                                        <span class="text-sm text-gray-600 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">{{ $processo->tipo_nome }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                        <a href="{{ $processoUrl }}"
+                                           class="text-sm font-bold text-gray-900 hover:text-blue-700"
+                                           onclick="event.stopPropagation()">
+                                            {{ $processo->numero_processo }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-3 align-top min-w-[240px]">
+                                        <div class="font-medium text-gray-800 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
                                             {{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}
-                                        </span>
-                                    </div>
-                                </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 align-top min-w-[210px]">
+                                        @if($docs)
+                                            <div class="inline-flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium
+                                                @if($docStatus === 'completo') bg-green-50 text-green-700 border border-green-200
+                                                @elseif($docStatus === 'nao_enviado') bg-red-50 text-red-700 border border-red-200
+                                                @elseif($docStatus === 'aguardando' || $temPendenciaAprovacao) bg-amber-50 text-amber-700 border border-amber-200
+                                                @else bg-gray-50 text-gray-600 border border-gray-200
+                                                @endif
+                                            ">
+                                                <span class="w-2 h-2 rounded-full
+                                                    @if($docStatus === 'completo') bg-green-400
+                                                    @elseif($docStatus === 'nao_enviado') bg-red-400
+                                                    @elseif($docStatus === 'aguardando' || $temPendenciaAprovacao) bg-amber-400
+                                                    @else bg-gray-300
+                                                    @endif
+                                                "></span>
+                                                Docs {{ $docs['ok'] }}/{{ $docs['total'] }}
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-gray-400 italic">Sem informação</span>
+                                        @endif
 
-                                {{-- Indicadores visuais --}}
-                                <div class="flex items-center gap-1">
-                                    @if($docStatus === 'aguardando' || $temPendenciaAprovacao)
-                                        <span class="w-6 h-6 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center" title="Documentos aguardando aprovação">
-                                            <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                        </span>
-                                    @elseif($docStatus === 'completo')
-                                        <span class="w-6 h-6 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center" title="Documentação completa">
-                                            <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </span>
-                                    @endif
-
-                                    @if($temRespostasPendentes)
-                                        <span class="w-6 h-6 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center" title="Respostas pendentes de avaliação">
-                                            <svg class="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                                            </svg>
-                                        </span>
-                                    @endif
-
-                                    
-                                </div>
-
-                                {{-- Meta info --}}
-                                <div class="hidden sm:flex items-center gap-3 text-xs text-gray-500">
-                                    @if($docs)
-                                        <span class="font-medium {{ $docs['completo'] ? 'text-green-600' : 'text-amber-600' }}">
-                                            Docs {{ $docs['ok'] }}/{{ $docs['total'] }}
-                                        </span>
-                                    @endif
-
-                                    @if($prazo)
-                                        <span class="font-medium {{ $prazo['atrasado'] ? 'text-red-500' : ($prazo['dias_restantes'] <= 5 ? 'text-amber-500' : 'text-cyan-500') }}">
-                                            @if($prazo['atrasado'])
-                                                Prazo: {{ abs($prazo['dias_restantes']) }}d atraso
-                                            @else
-                                                Prazo: {{ $prazo['dias_restantes'] }}d
+                                        <div class="flex items-center gap-2 mt-1">
+                                            @if($temPendenciaAprovacao)
+                                                <span class="text-[11px] text-amber-600">Aguardando aprovação</span>
                                             @endif
-                                        </span>
-                                    @endif
-
-                                    @if($processo->setor_atual || $processo->responsavelAtual)
-                                        <span class="inline-flex flex-col min-w-0 leading-tight">
-                                            <span class="truncate text-cyan-700">Setor: {{ $processo->setor_atual_nome }}</span>
-                                            @if($processo->responsavelAtual)
-                                                <span class="truncate text-gray-600">Resp.: {{ $processo->responsavelAtual->nome }}</span>
+                                            @if($temRespostasPendentes)
+                                                <span class="text-[11px] text-purple-600">Respostas pendentes</span>
                                             @endif
-                                        </span>
-                                    @else
-                                        <span class="italic text-gray-400">Não atribuído</span>
-                                    @endif
-
-                                </div>
-                            </div>
-                        </a>
-                    @endforeach
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                        @if($prazo)
+                                            <span class="text-xs font-medium {{ $prazo['atrasado'] ? 'text-red-600' : ($prazo['dias_restantes'] <= 5 ? 'text-amber-600' : 'text-cyan-600') }}">
+                                                @if($prazo['atrasado'])
+                                                    {{ abs($prazo['dias_restantes']) }}d atraso
+                                                @else
+                                                    {{ $prazo['dias_restantes'] }}d restantes
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 align-top min-w-[190px]">
+                                        @if($processo->setor_atual || $processo->responsavelAtual)
+                                            <div class="text-xs leading-tight">
+                                                <div class="text-cyan-700 font-medium truncate">Setor: {{ $processo->setor_atual_nome }}</div>
+                                                @if($processo->responsavelAtual)
+                                                    <div class="text-gray-600 truncate">Resp.: {{ $processo->responsavelAtual->nome }}</div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-xs italic text-gray-400">Não atribuído</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
