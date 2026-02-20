@@ -901,6 +901,10 @@ class DashboardController extends Controller
         }
 
         $total = $processos->count();
+        $totalMeuDireto = $processos->filter(fn($p) => $p->responsavel_atual_id == $usuario->id)->count();
+        $totalDoSetor = $usuario->setor
+            ? $processos->filter(fn($p) => $p->setor_atual === $usuario->setor)->count()
+            : 0;
         $lastPage = ceil($total / $perPage) ?: 1;
         $processosPaginados = $processos->forPage($page, $perPage)->values();
 
@@ -951,6 +955,8 @@ class DashboardController extends Controller
             'current_page' => (int) $page,
             'last_page' => $lastPage,
             'total' => $total,
+            'total_meu_direto' => $totalMeuDireto,
+            'total_do_setor' => $totalDoSetor,
             'per_page' => $perPage,
         ]);
     }

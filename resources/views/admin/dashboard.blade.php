@@ -309,7 +309,7 @@
                     <span class="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Processos
-                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold" x-text="processos.filter(p => p.is_meu_direto).length"></span>
+                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold" x-text="totalMeuDireto"></span>
                     </span>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[160px] overflow-y-auto">
@@ -435,7 +435,7 @@
                     <span class="text-[11px] font-semibold text-teal-600 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                         <span>Processos do Setor</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-bold" x-text="processos.filter(p => p.is_do_setor).length"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-bold" x-text="totalDoSetor"></span>
                     </span>
                     @if(auth('interno')->user()->setor)
                         <a href="{{ route('admin.processos.index-geral', ['setor' => auth('interno')->user()->setor, 'apenas_ativos' => 1]) }}"
@@ -582,14 +582,19 @@ function processosAtribuidosRef() { return {}; }
 
 function processosAtribuidos() {
     return {
-        processos: [], loading: true, currentPage: 1, lastPage: 1, total: 0,
+        processos: [], loading: true, currentPage: 1, lastPage: 1, total: 0, totalMeuDireto: 0, totalDoSetor: 0,
         init() { this.load(); },
         async load() {
             this.loading = true;
             try {
                 const r = await fetch(`{{ route('admin.dashboard.processos-atribuidos') }}?page=${this.currentPage}`);
                 const d = await r.json();
-                this.processos = d.data; this.currentPage = d.current_page; this.lastPage = d.last_page; this.total = d.total;
+                this.processos = d.data;
+                this.currentPage = d.current_page;
+                this.lastPage = d.last_page;
+                this.total = d.total;
+                this.totalMeuDireto = d.total_meu_direto ?? this.processos.filter(p => p.is_meu_direto).length;
+                this.totalDoSetor = d.total_do_setor ?? this.processos.filter(p => p.is_do_setor).length;
             } catch(e) { console.error(e); }
             this.loading = false;
         },
