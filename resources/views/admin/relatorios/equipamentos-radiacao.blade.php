@@ -311,7 +311,9 @@
                                 <div class="bg-white rounded-lg p-4 border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all">
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="flex-1 min-w-0">
-                                            <h4 class="font-semibold text-gray-900" x-text="est.nome"></h4>
+                                                          <a :href="'{{ url('/admin/estabelecimentos') }}/' + est.id"
+                                                              class="font-semibold text-gray-900 hover:text-blue-700 hover:underline"
+                                                              x-text="est.nome"></a>
                                             <p class="text-sm text-gray-600 mt-1" x-text="est.cnpj"></p>
                                             <div class="flex flex-wrap gap-1.5 mt-3">
                                                 <template x-for="ativ in est.atividades" :key="ativ">
@@ -398,9 +400,10 @@
                                 'atividades_codigos' => $estabelecimento->atividades_radiacao->pluck('codigo_atividade')->map(fn($c) => preg_replace('/[^0-9]/', '', $c))->toArray()
                             ]) }})">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">
+                                <a href="{{ route('admin.estabelecimentos.show', $estabelecimento) }}"
+                                   class="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline">
                                     {{ $estabelecimento->nome_fantasia ?? $estabelecimento->razao_social }}
-                                </div>
+                                </a>
                                 @if($estabelecimento->nome_fantasia && $estabelecimento->razao_social)
                                     <div class="text-xs text-gray-500">
                                         {{ $estabelecimento->razao_social }}
