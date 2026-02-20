@@ -2177,17 +2177,16 @@
                             {{-- Botões Aprovar/Rejeitar (só aparecem se documento é externo e pendente) --}}
                             <template x-if="documentoPendente">
                                 <div class="flex items-center gap-2">
-                                    <form :action="`{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${documentoIdAnotacoes}/aprovar`" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                            Aprovar
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            @click="aprovarDocumentoNoModal()"
+                                            class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Aprovar
+                                    </button>
                                     <button type="button" 
-                                            @click="documentoRejeitando = documentoIdAnotacoes; modalRejeitar = true; fecharModalPDF()"
+                                            @click="documentoRejeitando = documentoIdAnotacoes; modalRejeitar = true"
                                             class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -3539,6 +3538,15 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 // Inicialização
                 init() {
                     this.carregarPastas();
+
+                    window.addEventListener('documento-avaliado', (event) => {
+                        const detalhe = event.detail || {};
+                        if (!detalhe.docId || !detalhe.status) return;
+
+                        if (this.modalVisualizadorAnotacoes && this.documentoPendente) {
+                            this.tratarDocumentoAvaliadoNoModal(parseInt(detalhe.docId), detalhe.status);
+                        }
+                    });
                 },
 
                 // Função para mostrar notificações
@@ -3969,6 +3977,72 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     
                     // Recarrega o documento na IA
                     this.carregarDocumentoNaIA();
+                },
+
+                tratarDocumentoAvaliadoNoModal(docId, status) {
+                    if (!this.documentosPendentesLista || this.documentosPendentesLista.length === 0) return;
+
+                    const indiceAvaliado = this.documentosPendentesLista.findIndex(doc => parseInt(doc.id) === parseInt(docId));
+                    if (indiceAvaliado === -1) return;
+
+                    this.documentosPendentesLista.splice(indiceAvaliado, 1);
+
+                    if (this.documentosPendentesLista.length === 0) {
+                        this.documentoPendente = false;
+                        this.indiceDocumentoPendenteAtual = 0;
+                        this.mostrarNotificacao(`Documento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'} com sucesso! Não há mais pendentes nesta lista.`, 'success');
+                        return;
+                    }
+
+                    let novoIndice = indiceAvaliado;
+                    if (novoIndice >= this.documentosPendentesLista.length) {
+                        novoIndice = this.documentosPendentesLista.length - 1;
+                    }
+
+                    this.indiceDocumentoPendenteAtual = novoIndice;
+                    const proximoDoc = this.documentosPendentesLista[novoIndice];
+
+                    this.documentoIdAnotacoes = proximoDoc.id;
+                    this.pdfUrlAnotacoes = proximoDoc.url;
+                    this.documentoNomeAnotacoes = proximoDoc.nome;
+
+                    this.carregarDocumentoNaIA();
+                    this.mostrarNotificacao(`Documento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'} com sucesso!`, 'success');
+                },
+
+                async aprovarDocumentoNoModal() {
+                    if (!this.documentoIdAnotacoes) return;
+                    if (!confirm('Aprovar este documento?')) return;
+
+                    const url = `{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${this.documentoIdAnotacoes}/aprovar`;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            this.mostrarNotificacao(data.message || 'Erro ao aprovar documento', 'error');
+                            return;
+                        }
+
+                        if (window.atualizarDocumentoUI) {
+                            window.atualizarDocumentoUI(this.documentoIdAnotacoes, 'aprovado');
+                        }
+
+                        window.dispatchEvent(new CustomEvent('documento-avaliado', {
+                            detail: { docId: this.documentoIdAnotacoes, status: 'aprovado' }
+                        }));
+                    } catch (error) {
+                        console.error('Erro ao aprovar documento no modal:', error);
+                        this.mostrarNotificacao('Erro ao aprovar documento', 'error');
+                    }
                 },
 
                 // Carrega documento na IA para perguntas
@@ -4892,6 +4966,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    window.atualizarDocumentoUI = atualizarDocumentoUI;
+
     const atualizarRespostaUI = (respostaItem, status) => {
         if (!respostaItem) return;
         respostaItem.dataset.status = status;
@@ -4963,6 +5039,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 atualizarDocumentoUI(docId, 'aprovado');
+                window.dispatchEvent(new CustomEvent('documento-avaliado', {
+                    detail: { docId: parseInt(docId), status: 'aprovado' }
+                }));
                 mostrarNotificacao('Documento aprovado com sucesso!', 'success');
             })
             .catch(() => mostrarNotificacao('Erro ao aprovar documento', 'error'));
@@ -5038,6 +5117,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (docIdValue) atualizarDocumentoUI(docIdValue, 'rejeitado');
             window.dispatchEvent(new CustomEvent('fechar-modal-rejeitar'));
+            if (docIdValue) {
+                window.dispatchEvent(new CustomEvent('documento-avaliado', {
+                    detail: { docId: parseInt(docIdValue), status: 'rejeitado' }
+                }));
+            }
             mostrarNotificacao('Documento rejeitado com sucesso!', 'success');
         })
         .catch(() => mostrarNotificacao('Erro ao rejeitar documento', 'error'));
