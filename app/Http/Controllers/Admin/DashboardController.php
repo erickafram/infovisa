@@ -668,9 +668,14 @@ class DashboardController extends Controller
         // Agrupar documentos por processo
         $tarefasArray = [];
         foreach($documentos_pendentes as $doc) {
+            $processo = $doc->processo;
+            if (!$processo) {
+                continue;
+            }
+
             $key = 'processo_' . $doc->processo_id;
-            $tipoProcesso = $doc->processo->tipo ?? null;
-            $tipoProcessoNome = $doc->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $tipoProcesso = $processo->tipo ?? null;
+            $tipoProcessoNome = $processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
             // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
             $isLicenciamento = $tipoProcesso === 'licenciamento';
             
@@ -679,9 +684,9 @@ class DashboardController extends Controller
                 $tarefasArray[$key] = [
                     'tipo' => 'aprovacao',
                     'processo_id' => $doc->processo_id,
-                    'estabelecimento_id' => $doc->processo->estabelecimento_id,
-                    'estabelecimento' => $doc->processo->estabelecimento->nome_fantasia ?? $doc->processo->estabelecimento->razao_social ?? 'Estabelecimento',
-                    'numero_processo' => $doc->processo->numero_processo,
+                    'estabelecimento_id' => $processo->estabelecimento_id,
+                    'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                    'numero_processo' => $processo->numero_processo,
                     'tipo_processo' => $tipoProcessoNome,
                     'is_licenciamento' => $isLicenciamento,
                     'primeiro_arquivo' => $doc->nome_original,
@@ -705,10 +710,17 @@ class DashboardController extends Controller
 
         // Respostas são tratadas separadamente para mostrar o tipo de documento original
         foreach($respostas_pendentes as $resposta) {
-            $key = 'resposta_' . $resposta->documentoDigital->processo_id;
-            $tipoDocumento = $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento';
-            $tipoProcesso = $resposta->documentoDigital->processo->tipo ?? null;
-            $tipoProcessoNome = $resposta->documentoDigital->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $documentoDigital = $resposta->documentoDigital;
+            $processo = $documentoDigital?->processo;
+
+            if (!$documentoDigital || !$processo) {
+                continue;
+            }
+
+            $key = 'resposta_' . $documentoDigital->processo_id;
+            $tipoDocumento = $documentoDigital->tipoDocumento->nome ?? 'Documento';
+            $tipoProcesso = $processo->tipo ?? null;
+            $tipoProcessoNome = $processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
             // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
             $isLicenciamento = $tipoProcesso === 'licenciamento';
             
@@ -716,10 +728,10 @@ class DashboardController extends Controller
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
                     'tipo' => 'resposta',
-                    'processo_id' => $resposta->documentoDigital->processo_id,
-                    'estabelecimento_id' => $resposta->documentoDigital->processo->estabelecimento_id,
-                    'estabelecimento' => $resposta->documentoDigital->processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
-                    'numero_processo' => $resposta->documentoDigital->processo->numero_processo,
+                    'processo_id' => $documentoDigital->processo_id,
+                    'estabelecimento_id' => $processo->estabelecimento_id,
+                    'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
+                    'numero_processo' => $processo->numero_processo,
                     'tipo_processo' => $tipoProcessoNome,
                     'is_licenciamento' => $isLicenciamento,
                     'tipo_documento' => $tipoDocumento,
@@ -1083,9 +1095,14 @@ class DashboardController extends Controller
         // Agrupar documentos por processo
         $tarefasArray = [];
         foreach($documentos_pendentes as $doc) {
+            $processo = $doc->processo;
+            if (!$processo) {
+                continue;
+            }
+
             $key = 'processo_' . $doc->processo_id;
-            $tipoProcesso = $doc->processo->tipo ?? null;
-            $tipoProcessoNome = $doc->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $tipoProcesso = $processo->tipo ?? null;
+            $tipoProcessoNome = $processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
             $isLicenciamento = $tipoProcesso === 'licenciamento';
             
             if (!isset($tarefasArray[$key])) {
@@ -1093,9 +1110,9 @@ class DashboardController extends Controller
                 $tarefasArray[$key] = [
                     'tipo' => 'aprovacao',
                     'processo_id' => $doc->processo_id,
-                    'estabelecimento_id' => $doc->processo->estabelecimento_id,
-                    'estabelecimento' => $doc->processo->estabelecimento->nome_fantasia ?? $doc->processo->estabelecimento->razao_social ?? 'Estabelecimento',
-                    'numero_processo' => $doc->processo->numero_processo,
+                    'estabelecimento_id' => $processo->estabelecimento_id,
+                    'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social ?? 'Estabelecimento',
+                    'numero_processo' => $processo->numero_processo,
                     'tipo_processo' => $tipoProcessoNome,
                     'is_licenciamento' => $isLicenciamento,
                     'primeiro_arquivo' => $doc->nome_original,
@@ -1119,20 +1136,27 @@ class DashboardController extends Controller
 
         // Respostas são tratadas separadamente
         foreach($respostas_pendentes as $resposta) {
-            $key = 'resposta_' . $resposta->documentoDigital->processo_id;
-            $tipoDocumento = $resposta->documentoDigital->tipoDocumento->nome ?? 'Documento';
-            $tipoProcesso = $resposta->documentoDigital->processo->tipo ?? null;
-            $tipoProcessoNome = $resposta->documentoDigital->processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
+            $documentoDigital = $resposta->documentoDigital;
+            $processo = $documentoDigital?->processo;
+
+            if (!$documentoDigital || !$processo) {
+                continue;
+            }
+
+            $key = 'resposta_' . $documentoDigital->processo_id;
+            $tipoDocumento = $documentoDigital->tipoDocumento->nome ?? 'Documento';
+            $tipoProcesso = $processo->tipo ?? null;
+            $tipoProcessoNome = $processo->tipo_nome ?? ucfirst($tipoProcesso ?? 'Processo');
             $isLicenciamento = $tipoProcesso === 'licenciamento';
             
             if (!isset($tarefasArray[$key])) {
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
                     'tipo' => 'resposta',
-                    'processo_id' => $resposta->documentoDigital->processo_id,
-                    'estabelecimento_id' => $resposta->documentoDigital->processo->estabelecimento_id,
-                    'estabelecimento' => $resposta->documentoDigital->processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
-                    'numero_processo' => $resposta->documentoDigital->processo->numero_processo,
+                    'processo_id' => $documentoDigital->processo_id,
+                    'estabelecimento_id' => $processo->estabelecimento_id,
+                    'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
+                    'numero_processo' => $processo->numero_processo,
                     'tipo_processo' => $tipoProcessoNome,
                     'is_licenciamento' => $isLicenciamento,
                     'tipo_documento' => $tipoDocumento,
