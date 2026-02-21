@@ -1564,6 +1564,22 @@
                     <form method="POST" action="{{ route('admin.estabelecimentos.processos.upload', [$estabelecimento->id, $processo->id]) }}" enctype="multipart/form-data">
                         @csrf
                         
+                        {{-- Tipo de Documento --}}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Documento <span class="text-red-500">*</span>
+                            </label>
+                            <select name="tipo_documento" 
+                                    required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white">
+                                <option value="" disabled selected>Selecione o tipo de documento</option>
+                                <option value="Termo de Vistoria">Termo de Vistoria</option>
+                                <option value="Auto de Infração">Auto de Infração</option>
+                                <option value="Notificação">Notificação</option>
+                                <option value="Usar nome do arquivo">Usar nome do arquivo PDF</option>
+                            </select>
+                        </div>
+
                         {{-- Upload de Arquivo --}}
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -1589,7 +1605,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <p class="text-xs text-blue-700">
-                                    O arquivo será identificado como "Arquivo Externo" na lista de documentos.
+                                    O documento será identificado pelo tipo selecionado acima.
                                 </p>
                             </div>
                         </div>

@@ -1301,6 +1301,19 @@ class ProcessoController extends Controller
             
             // Caminho relativo para salvar no banco (com barras normais)
             $caminhoRelativo = 'processos/' . $processoId . '/' . $nomeArquivo;
+
+            // Determinar tipo e nome de exibição
+            $tipoSelecionado = $request->input('tipo_documento', 'Arquivo Externo');
+            $tipoSlug = Str::slug($tipoSelecionado, '_');
+            
+            // Lógica para nome visual e tipo
+            if ($tipoSelecionado === 'Arquivo Externo' || $tipoSelecionado === 'Usar nome do arquivo') {
+                $tipoSlug = 'arquivo_externo';
+                $nomeVisual = $nomeOriginal;
+            } else {
+                // Se escolheu um tipo específico (ex: Termo de Vistoria), usa esse nome
+                $nomeVisual = $tipoSelecionado . '.' . $extensao;
+            }
             
             // Cria registro no banco
             ProcessoDocumento::create([
@@ -1308,11 +1321,11 @@ class ProcessoController extends Controller
                 'usuario_id' => Auth::id(),
                 'tipo_usuario' => 'interno',
                 'nome_arquivo' => $nomeArquivo,
-                'nome_original' => $nomeOriginal,
+                'nome_original' => $nomeVisual,
                 'caminho' => $caminhoRelativo,
                 'extensao' => $extensao,
                 'tamanho' => $tamanho,
-                'tipo_documento' => 'arquivo_externo',
+                'tipo_documento' => $tipoSlug,
             ]);
             
             return redirect()

@@ -20,6 +20,14 @@
         padding: 0 !important;
         border-radius: 0 !important;
     }
+
+    /* TinyMCE responsivo */
+    .tox-tinymce {
+        border-radius: 0 0 0.5rem 0.5rem !important;
+    }
+    .tox .tox-edit-area__iframe {
+        background: #fff !important;
+    }
 </style>
 @endpush
 
@@ -189,338 +197,104 @@
                 </h2>
             </div>
             <div class="p-3">
-                
-                <!-- Toolbar do Editor -->
-                <div class="border border-gray-300 rounded-t-lg bg-gradient-to-b from-gray-50 to-gray-100 p-2 space-y-2 shadow-sm">
-                    {{-- Linha única: Essencial --}}
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        {{-- Desfazer/Refazer --}}
-                        <button type="button" onclick="document.execCommand('undo')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Desfazer (Ctrl+Z)">
+
+                {{-- Botão Variáveis Dinâmicas (acima do editor) --}}
+                <div class="mb-2 flex items-center gap-2 flex-wrap">
+                    <div class="relative" x-data="{ showVarsDropdown: false }">
+                        <button type="button" @click="showVarsDropdown = !showVarsDropdown" class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded hover:bg-amber-100 hover:shadow transition-all" title="Inserir variável dinâmica">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                             </svg>
+                            Inserir Variáveis
                         </button>
-                        <button type="button" onclick="document.execCommand('redo')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Refazer (Ctrl+Y)">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
-                            </svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        {{-- Tamanho da fonte (simplificado) --}}
-                        <select onchange="document.execCommand('fontSize', false, this.value)" class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-white hover:shadow transition-all" title="Tamanho da Fonte">
-                            <option value="2" selected>10pt (Padrão)</option>
-                            <option value="1">8pt</option>
-                            <option value="3">12pt</option>
-                            <option value="4">14pt</option>
-                            <option value="5">16pt</option>
-                            <option value="6">18pt</option>
-                        </select>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        {{-- Botão Variáveis Dinâmicas --}}
-                        <div class="relative" x-data="{ showVarsDropdown: false }">
-                            <button type="button" @click="showVarsDropdown = !showVarsDropdown" class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded hover:bg-amber-100 hover:shadow transition-all" title="Inserir variável dinâmica">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                Variáveis
-                            </button>
-                            <div x-show="showVarsDropdown" @click.away="showVarsDropdown = false" 
-                                 x-transition:enter="transition ease-out duration-100"
-                                 x-transition:enter-start="transform opacity-0 scale-95"
-                                 x-transition:enter-end="transform opacity-100 scale-100"
-                                 class="absolute z-50 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-xl p-2 max-h-80 overflow-y-auto" style="display: none;">
-                                <p class="text-xs text-gray-500 mb-2 px-2 font-medium">Clique para inserir no documento:</p>
-                                
-                                {{-- Estabelecimento --}}
-                                <div class="mb-2">
-                                    <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📍 Estabelecimento</p>
-                                    <div class="space-y-0.5 mt-1">
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_nome}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_nome}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Nome/Fantasia</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_razao_social}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_razao_social}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Razão Social</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_cnpj}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_cnpj}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- CNPJ</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_cpf}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_cpf}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- CPF</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_endereco}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_endereco}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Endereço completo</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_bairro}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_bairro}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Bairro</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_cidade}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_cidade}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Cidade</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{municipio}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{municipio}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Município</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_telefone}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_telefone}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Telefone</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{estabelecimento_email}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{estabelecimento_email}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- E-mail</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{atividades}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{atividades}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Lista de atividades</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {{-- Responsável Técnico --}}
-                                <div class="mb-2">
-                                    <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">👤 Responsável Técnico</p>
-                                    <div class="space-y-0.5 mt-1">
-                                        <button type="button" @click="inserirVariavel('{responsavel_nome}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{responsavel_nome}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Nome</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{responsavel_cpf}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{responsavel_cpf}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- CPF</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{responsavel_email}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{responsavel_email}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- E-mail</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{responsavel_conselho}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{responsavel_conselho}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Nº Conselho</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {{-- Processo --}}
-                                <div class="mb-2">
-                                    <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📄 Processo</p>
-                                    <div class="space-y-0.5 mt-1">
-                                        <button type="button" @click="inserirVariavel('{processo_numero}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{processo_numero}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Número</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{processo_tipo}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{processo_tipo}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Tipo</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{processo_data_criacao}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{processo_data_criacao}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Data de criação</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {{-- Data --}}
-                                <div>
-                                    <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📅 Data</p>
-                                    <div class="space-y-0.5 mt-1">
-                                        <button type="button" @click="inserirVariavel('{data_atual}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{data_atual}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Data atual (dd/mm/aaaa)</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{data_extenso}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{data_extenso}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Data por extenso</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{data_extenso_maiusculo}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{data_extenso_maiusculo}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Data por extenso MAIÚSCULO</span>
-                                        </button>
-                                        <button type="button" @click="inserirVariavel('{ano_atual}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
-                                            <span class="font-mono text-amber-600 text-xs">{ano_atual}</span>
-                                            <span class="text-gray-500 text-xs ml-1">- Ano atual</span>
-                                        </button>
-                                    </div>
+                        <div x-show="showVarsDropdown" @click.away="showVarsDropdown = false" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             class="absolute z-50 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-xl p-2 max-h-80 overflow-y-auto" style="display: none;">
+                            <p class="text-xs text-gray-500 mb-2 px-2 font-medium">Clique para inserir no documento:</p>
+                            
+                            {{-- Estabelecimento --}}
+                            <div class="mb-2">
+                                <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📍 Estabelecimento</p>
+                                <div class="space-y-0.5 mt-1">
+                                    @foreach([
+                                        ['{estabelecimento_nome}', 'Nome/Fantasia'],
+                                        ['{estabelecimento_razao_social}', 'Razão Social'],
+                                        ['{estabelecimento_cnpj}', 'CNPJ'],
+                                        ['{estabelecimento_cpf}', 'CPF'],
+                                        ['{estabelecimento_endereco}', 'Endereço completo'],
+                                        ['{estabelecimento_bairro}', 'Bairro'],
+                                        ['{estabelecimento_cidade}', 'Cidade'],
+                                        ['{municipio}', 'Município'],
+                                        ['{estabelecimento_telefone}', 'Telefone'],
+                                        ['{estabelecimento_email}', 'E-mail'],
+                                        ['{atividades}', 'Lista de atividades'],
+                                    ] as $var)
+                                    <button type="button" @click="inserirVariavel('{{ $var[0] }}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                        <span class="font-mono text-amber-600 text-xs">{{ $var[0] }}</span>
+                                        <span class="text-gray-500 text-xs ml-1">- {{ $var[1] }}</span>
+                                    </button>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        <button type="button" onclick="document.execCommand('bold')" class="p-2 hover:bg-white hover:shadow rounded font-bold text-sm transition-all" title="Negrito">
-                            B
-                        </button>
-                        <button type="button" onclick="document.execCommand('italic')" class="p-2 hover:bg-white hover:shadow rounded italic text-sm transition-all" title="Itálico">
-                            I
-                        </button>
-                        <button type="button" onclick="document.execCommand('underline')" class="p-2 hover:bg-white hover:shadow rounded underline text-sm transition-all" title="Sublinhado">
-                            U
-                        </button>
-                        <button type="button" onclick="document.execCommand('strikeThrough')" class="p-2 hover:bg-white hover:shadow rounded line-through text-sm transition-all" title="Tachado">
-                            S
-                        </button>
-                        <button type="button" onclick="document.execCommand('subscript')" class="p-2 hover:bg-white hover:shadow rounded text-sm transition-all" title="Subscrito">
-                            X<sub>2</sub>
-                        </button>
-                        <button type="button" onclick="document.execCommand('superscript')" class="p-2 hover:bg-white hover:shadow rounded text-sm transition-all" title="Sobrescrito">
-                            X<sup>2</sup>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        {{-- Cor do texto --}}
-                        <div class="relative" x-data="{ showColorPicker: false }">
-                            <button type="button" @click="showColorPicker = !showColorPicker" class="p-2 hover:bg-white hover:shadow rounded flex items-center gap-1 transition-all" title="Cor do texto">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                                </svg>
-                                <span class="text-xs">A</span>
-                            </button>
-                            <div x-show="showColorPicker" @click.away="showColorPicker = false" class="absolute z-10 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg grid grid-cols-8 gap-1" style="display: none;">
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#000000')" class="w-6 h-6 rounded border border-gray-300" style="background: #000000" title="Preto"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FF0000')" class="w-6 h-6 rounded border border-gray-300" style="background: #FF0000" title="Vermelho"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#00FF00')" class="w-6 h-6 rounded border border-gray-300" style="background: #00FF00" title="Verde"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#0000FF')" class="w-6 h-6 rounded border border-gray-300" style="background: #0000FF" title="Azul"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FFFF00')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFFF00" title="Amarelo"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FF00FF')" class="w-6 h-6 rounded border border-gray-300" style="background: #FF00FF" title="Magenta"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#00FFFF')" class="w-6 h-6 rounded border border-gray-300" style="background: #00FFFF" title="Ciano"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FFFFFF')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFFFFF" title="Branco"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#808080')" class="w-6 h-6 rounded border border-gray-300" style="background: #808080" title="Cinza"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#800000')" class="w-6 h-6 rounded border border-gray-300" style="background: #800000" title="Marrom"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#008000')" class="w-6 h-6 rounded border border-gray-300" style="background: #008000" title="Verde escuro"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#000080')" class="w-6 h-6 rounded border border-gray-300" style="background: #000080" title="Azul escuro"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FFA500')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFA500" title="Laranja"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#800080')" class="w-6 h-6 rounded border border-gray-300" style="background: #800080" title="Roxo"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#FFC0CB')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFC0CB" title="Rosa"></button>
-                                <button type="button" onclick="document.execCommand('foreColor', false, '#A52A2A')" class="w-6 h-6 rounded border border-gray-300" style="background: #A52A2A" title="Marrom escuro"></button>
+                            {{-- Responsável Técnico --}}
+                            <div class="mb-2">
+                                <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">👤 Responsável Técnico</p>
+                                <div class="space-y-0.5 mt-1">
+                                    @foreach([
+                                        ['{responsavel_nome}', 'Nome'],
+                                        ['{responsavel_cpf}', 'CPF'],
+                                        ['{responsavel_email}', 'E-mail'],
+                                        ['{responsavel_conselho}', 'Nº Conselho'],
+                                    ] as $var)
+                                    <button type="button" @click="inserirVariavel('{{ $var[0] }}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                        <span class="font-mono text-amber-600 text-xs">{{ $var[0] }}</span>
+                                        <span class="text-gray-500 text-xs ml-1">- {{ $var[1] }}</span>
+                                    </button>
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
 
-                        {{-- Cor de fundo --}}
-                        <div class="relative" x-data="{ showBgPicker: false }">
-                            <button type="button" @click="showBgPicker = !showBgPicker" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Cor de fundo">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                                </svg>
-                            </button>
-                            <div x-show="showBgPicker" @click.away="showBgPicker = false" class="absolute z-10 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg grid grid-cols-8 gap-1" style="display: none;">
-                                <button type="button" onclick="document.execCommand('backColor', false, 'transparent')" class="w-6 h-6 rounded border border-gray-300 bg-white" title="Sem cor"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#FFFF00')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFFF00" title="Amarelo"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#00FF00')" class="w-6 h-6 rounded border border-gray-300" style="background: #00FF00" title="Verde"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#00FFFF')" class="w-6 h-6 rounded border border-gray-300" style="background: #00FFFF" title="Ciano"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#FF00FF')" class="w-6 h-6 rounded border border-gray-300" style="background: #FF00FF" title="Magenta"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#FFA500')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFA500" title="Laranja"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#FFC0CB')" class="w-6 h-6 rounded border border-gray-300" style="background: #FFC0CB" title="Rosa"></button>
-                                <button type="button" onclick="document.execCommand('backColor', false, '#E0E0E0')" class="w-6 h-6 rounded border border-gray-300" style="background: #E0E0E0" title="Cinza claro"></button>
+                            {{-- Processo --}}
+                            <div class="mb-2">
+                                <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📄 Processo</p>
+                                <div class="space-y-0.5 mt-1">
+                                    @foreach([
+                                        ['{processo_numero}', 'Número'],
+                                        ['{processo_tipo}', 'Tipo'],
+                                        ['{processo_data_criacao}', 'Data de criação'],
+                                    ] as $var)
+                                    <button type="button" @click="inserirVariavel('{{ $var[0] }}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                        <span class="font-mono text-amber-600 text-xs">{{ $var[0] }}</span>
+                                        <span class="text-gray-500 text-xs ml-1">- {{ $var[1] }}</span>
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            {{-- Data --}}
+                            <div>
+                                <p class="text-xs font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded">📅 Data</p>
+                                <div class="space-y-0.5 mt-1">
+                                    @foreach([
+                                        ['{data_atual}', 'Data atual (dd/mm/aaaa)'],
+                                        ['{data_extenso}', 'Data por extenso'],
+                                        ['{data_extenso_maiusculo}', 'Data por extenso MAIÚSCULO'],
+                                        ['{ano_atual}', 'Ano atual'],
+                                    ] as $var)
+                                    <button type="button" @click="inserirVariavel('{{ $var[0] }}'); showVarsDropdown = false" class="w-full text-left px-2 py-1 text-sm hover:bg-amber-50 rounded">
+                                        <span class="font-mono text-amber-600 text-xs">{{ $var[0] }}</span>
+                                        <span class="text-gray-500 text-xs ml-1">- {{ $var[1] }}</span>
+                                    </button>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Segunda linha: Alinhamento e listas --}}
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="document.execCommand('justifyLeft')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Alinhar à esquerda">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm0 4h10v2H2V8zm0 4h16v2H2v-2zm0 4h10v2H2v-2z"/></svg>
-                        </button>
-                        <button type="button" onclick="document.execCommand('justifyCenter')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Centralizar">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm3 4h10v2H5V8zm-3 4h16v2H2v-2zm3 4h10v2H5v-2z"/></svg>
-                        </button>
-                        <button type="button" onclick="document.execCommand('justifyRight')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Alinhar à direita">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm6 4h10v2H8V8zm-6 4h16v2H2v-2zm6 4h10v2H8v-2z"/></svg>
-                        </button>
-                        <button type="button" onclick="document.execCommand('justifyFull')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Justificar">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4h16v2H2V4zm0 4h16v2H2V8zm0 4h16v2H2v-2zm0 4h16v2H2v-2z"/></svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        <button type="button" onclick="document.execCommand('insertUnorderedList')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Lista">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h2v2H3V4zm4 0h10v2H7V4zM3 9h2v2H3V9zm4 0h10v2H7V9zm-4 5h2v2H3v-2zm4 0h10v2H7v-2z"/></svg>
-                        </button>
-                        <button type="button" onclick="document.execCommand('insertOrderedList')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Lista numerada">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h1v3H3V4zm0 5h1v3H3V9zm0 5h1v3H3v-3zm4-9h10v2H7V5zm0 5h10v2H7v-2zm0 5h10v2H7v-2z"/></svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        <button type="button" onclick="document.execCommand('indent')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Aumentar recuo">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h14v2H3V4zm0 4h14v2H3V8zm0 4h14v2H3v-2zm0 4h14v2H3v-2zM1 8l3 3-3 3V8z"/></svg>
-                        </button>
-                        <button type="button" onclick="document.execCommand('outdent')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Diminuir recuo">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4h14v2H3V4zm0 4h14v2H3V8zm0 4h14v2H3v-2zm0 4h14v2H3v-2zM7 8L4 11l3 3V8z"/></svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        {{-- Botão Inserir Imagem --}}
-                        <button type="button" @click="$refs.imageInput.click()" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir Imagem">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-                        <input type="file" x-ref="imageInput" @change="inserirImagem($event)" accept="image/*" class="hidden">
-
-                        <button type="button" onclick="document.execCommand('createLink', false, prompt('Digite a URL:'))" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir link">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-
-                        <button type="button" onclick="document.execCommand('unlink')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Remover link">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 6.707 6.293a1 1 0 00-1.414 1.414L8.586 11l-3.293 3.293a1 1 0 101.414 1.414L10 12.414l3.293 3.293a1 1 0 001.414-1.414L11.414 11l3.293-3.293z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        {{-- Tabela --}}
-                        <button type="button" @click="inserirTabela()" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir tabela">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-
-                        {{-- Linha horizontal --}}
-                        <button type="button" onclick="document.execCommand('insertHorizontalRule')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Inserir linha horizontal">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-
-                        <div class="w-px h-7 bg-gray-300 mx-1"></div>
-
-                        <button type="button" onclick="document.execCommand('removeFormat')" class="p-2 hover:bg-white hover:shadow rounded transition-all" title="Limpar formatação">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-
-                        <div class="relative">
-                            <button type="button" @click="verificarOrtografia()" class="p-2 hover:bg-green-100 hover:shadow rounded text-green-600 transition-all" title="Verificar ortografia">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </button>
-                            <span x-show="contadorErros > 0" 
-                                  x-text="contadorErros"
-                                  class="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full border-2 border-white"></span>
-                        </div>
-
-                        <button type="button" @click="limparTudo()" class="p-2 hover:bg-red-100 hover:shadow rounded text-red-600 transition-all" title="Limpar tudo">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    
-                    <span x-show="salvandoAuto" class="ml-auto text-sm text-green-600 flex items-center gap-1.5 font-medium">
+                    <span x-show="salvandoAuto" class="text-sm text-green-600 flex items-center gap-1.5 font-medium">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -531,7 +305,7 @@
 
                 {{-- Logomarca do Documento --}}
                 @if(isset($logomarca) && $logomarca)
-                    <div class="border border-b-0 border-gray-300 bg-gradient-to-b from-blue-50 to-white p-4 flex items-center justify-between">
+                    <div class="border border-gray-300 bg-gradient-to-b from-blue-50 to-white p-4 flex items-center justify-between rounded-t-lg">
                         <div class="flex items-center gap-3">
                             <img src="{{ asset($logomarca) }}" 
                                  alt="Logomarca" 
@@ -568,18 +342,9 @@
                     </div>
                 @endif
 
-                <!-- Editor -->
-                <div id="editor" 
-                     contenteditable="true"
-                     spellcheck="true"
-                     lang="pt-BR"
-                     @input="conteudo = $el.innerHTML; salvarAutomaticamente(); verificarErrosTempoReal()"
-                     @paste="handlePaste($event)"
-                     class="min-h-[400px] max-h-[600px] overflow-y-auto p-6 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                     style="font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.6; color: #000;">
-                    <p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>
-                </div>
-                <textarea name="conteudo" x-model="conteudo" class="sr-only" required></textarea>
+                <!-- Editor TinyMCE -->
+                <textarea id="editor-tinymce" style="visibility: hidden;"></textarea>
+                <input type="hidden" name="conteudo" x-model="conteudo">
 
             </div>
         </div>
@@ -994,6 +759,9 @@
     </div>
 </div>
 
+<!-- TinyMCE CDN -->
+<script src="https://cdn.tiny.cloud/1/jr5azrsekth852dmtlbhhpicv6uzvkqn76qvngomcu1rsayk/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
 <script>
 // Dados dos tipos de documento (prazo_notificacao)
 const tiposDocumentoData = {
@@ -1080,6 +848,8 @@ function documentoEditor() {
         edicaoBloqueada: false,
 
         init() {
+            const self = this;
+            
             // Inicia verificação de edição se for edição de documento existente
             if (this.documentoId) {
                 this.iniciarVerificacaoEdicao();
@@ -1094,22 +864,18 @@ function documentoEditor() {
             
             // Tenta recuperar dados salvos do localStorage
             const dadosSalvos = localStorage.getItem(this.chaveLocalStorage);
+            let conteudoInicial = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
             
             if (dadosSalvos) {
                 try {
                     const dados = JSON.parse(dadosSalvos);
-                    
-                    // Recupera o conteúdo
                     if (dados.conteudo) {
+                        conteudoInicial = dados.conteudo;
                         this.conteudo = dados.conteudo;
-                        document.getElementById('editor').innerHTML = this.conteudo;
                         this.dadosRecuperados = true;
                     }
-                    
-                    // Recupera o tipo de documento selecionado
                     if (dados.tipoSelecionado) {
                         this.tipoSelecionado = dados.tipoSelecionado;
-                        // Aguarda o próximo tick para garantir que o select foi renderizado
                         this.$nextTick(() => {
                             const selectTipo = document.querySelector('select[name="tipo_documento_id"]');
                             if (selectTipo) {
@@ -1117,19 +883,88 @@ function documentoEditor() {
                             }
                         });
                     }
-                    
                     console.log('Dados recuperados do localStorage:', dados);
                 } catch (e) {
                     console.error('Erro ao recuperar dados do localStorage:', e);
-                    // Se houver erro, inicia com editor vazio
-                    this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
-                    document.getElementById('editor').innerHTML = this.conteudo;
                 }
             } else {
-                // Inicia com editor vazio
-                this.conteudo = '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>';
-                document.getElementById('editor').innerHTML = this.conteudo;
+                this.conteudo = conteudoInicial;
             }
+
+            // Inicializa TinyMCE
+            tinymce.init({
+                selector: '#editor-tinymce',
+                language: 'pt_BR',
+                language_url: 'https://cdn.tiny.cloud/1/jr5azrsekth852dmtlbhhpicv6uzvkqn76qvngomcu1rsayk/tinymce/6/langs/pt_BR.js',
+                height: 500,
+                min_height: 400,
+                max_height: 800,
+                resize: true,
+                menubar: 'file edit view insert format table',
+                plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                    'insertdatetime', 'media', 'table', 'help', 'wordcount', 'pagebreak',
+                    'emoticons', 'nonbreaking'
+                ],
+                toolbar: [
+                    'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor removeformat',
+                    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | pagebreak | fullscreen code help'
+                ],
+                font_size_formats: '8pt 10pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 36pt',
+                block_formats: 'Parágrafo=p; Título 1=h1; Título 2=h2; Título 3=h3; Título 4=h4; Título 5=h5; Título 6=h6; Pré-formatado=pre',
+                content_style: `
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        font-size: 10pt; 
+                        line-height: 1.6; 
+                        color: #000; 
+                        padding: 15px;
+                        margin: 0;
+                    }
+                    table { border-collapse: collapse; width: 100%; }
+                    table td, table th { border: 1px solid #ddd; padding: 8px; }
+                    img { max-width: 100%; height: auto; }
+                    .variavel-dinamica {
+                        background: transparent !important;
+                        color: inherit !important;
+                        font-family: inherit !important;
+                        font-size: inherit !important;
+                        padding: 0 !important;
+                    }
+                `,
+                // Permitir upload de imagem via drag & drop / paste
+                images_upload_handler: (blobInfo) => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blobInfo.blob());
+                    });
+                },
+                paste_data_images: true,
+                automatic_uploads: true,
+                // Configurações de idioma e interface
+                branding: false,
+                promotion: false,
+                statusbar: true,
+                elementpath: true,
+                // Evento de inicialização
+                setup: (editor) => {
+                    editor.on('init', () => {
+                        editor.setContent(conteudoInicial);
+                    });
+                    
+                    // Sincroniza conteúdo com Alpine.js
+                    editor.on('input change keyup', () => {
+                        self.conteudo = editor.getContent();
+                        self.salvarAutomaticamente();
+                        self.verificarErrosTempoReal();
+                    });
+                    
+                    // Salvar referência global para facilitar acesso
+                    window._tinymceEditor = editor;
+                }
+            });
         },
 
         // Métodos para controle de edição simultânea
@@ -1230,8 +1065,9 @@ function documentoEditor() {
             clearTimeout(this.timeoutVerificacao);
             
             this.timeoutVerificacao = setTimeout(async () => {
-                const editor = document.getElementById('editor');
-                const texto = editor.innerText || editor.textContent;
+                const editor = tinymce.get('editor-tinymce');
+                if (!editor) return;
+                const texto = editor.getContent({ format: 'text' });
                 
                 if (!texto.trim() || texto.length < 10) {
                     this.contadorErros = 0;
@@ -1280,10 +1116,12 @@ function documentoEditor() {
             
             const reader = new FileReader();
             reader.onload = (e) => {
-                const img = `<img src="${e.target.result}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-                document.execCommand('insertHTML', false, img);
-                this.conteudo = document.getElementById('editor').innerHTML;
-                this.salvarAutomaticamente();
+                const editor = tinymce.get('editor-tinymce');
+                if (editor) {
+                    editor.insertContent(`<img src="${e.target.result}" style="max-width: 100%; height: auto; margin: 10px 0;" />`);
+                    this.conteudo = editor.getContent();
+                    this.salvarAutomaticamente();
+                }
             };
             reader.readAsDataURL(file);
             
@@ -1292,91 +1130,63 @@ function documentoEditor() {
         },
 
         handlePaste(event) {
-            event.preventDefault();
-            
-            // Pega o texto sem formatação
-            const text = event.clipboardData.getData('text/plain');
-            
-            // Verifica se tem imagem
-            const items = event.clipboardData.items;
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    const blob = items[i].getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = `<img src="${e.target.result}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-                        document.execCommand('insertHTML', false, img);
-                        this.conteudo = document.getElementById('editor').innerHTML;
-                        this.salvarAutomaticamente();
-                    };
-                    reader.readAsDataURL(blob);
-                    return;
-                }
-            }
-            
-            // Insere texto sem formatação, mas mantém quebras de linha
-            const lines = text.split('\n');
-            let html = '';
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    html += `<span style="font-family: Arial, sans-serif; font-size: 10pt;">${line}</span>`;
-                }
-                if (index < lines.length - 1) {
-                    html += '<br>';
-                }
-            });
-            
-            document.execCommand('insertHTML', false, html);
-            this.conteudo = document.getElementById('editor').innerHTML;
-            this.salvarAutomaticamente();
+            // TinyMCE handles paste natively - this method is kept for compatibility
+            // but TinyMCE's built-in paste handling is superior
         },
 
         inserirTabela() {
-            const linhas = prompt('Número de linhas:', '3');
-            const colunas = prompt('Número de colunas:', '3');
-            
-            if (!linhas || !colunas) return;
-            
-            let tabela = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
-            for (let i = 0; i < parseInt(linhas); i++) {
-                tabela += '<tr>';
-                for (let j = 0; j < parseInt(colunas); j++) {
-                    tabela += '<td style="border: 1px solid #ddd; padding: 8px;">&nbsp;</td>';
+            const editor = tinymce.get('editor-tinymce');
+            if (editor) {
+                // TinyMCE has built-in table plugin, but we keep this for the Variables button
+                const linhas = prompt('Número de linhas:', '3');
+                const colunas = prompt('Número de colunas:', '3');
+                
+                if (!linhas || !colunas) return;
+                
+                let tabela = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+                for (let i = 0; i < parseInt(linhas); i++) {
+                    tabela += '<tr>';
+                    for (let j = 0; j < parseInt(colunas); j++) {
+                        tabela += '<td style="border: 1px solid #ddd; padding: 8px;">&nbsp;</td>';
+                    }
+                    tabela += '</tr>';
                 }
-                tabela += '</tr>';
-            }
-            tabela += '</table><p>&nbsp;</p>';
-            
-            document.execCommand('insertHTML', false, tabela);
-            this.conteudo = document.getElementById('editor').innerHTML;
-            this.salvarAutomaticamente();
-        },
-
-        // Inserir variável dinâmica no editor
-        inserirVariavel(variavel) {
-            const editor = document.getElementById('editor');
-            editor.focus();
-            
-            // Insere a variável sem destaque (mesma aparência do texto do documento)
-            const variavelFormatada = `<span class="variavel-dinamica" data-variavel="${variavel}">${variavel}</span>&nbsp;`;
-            document.execCommand('insertHTML', false, variavelFormatada);
-            
-            this.conteudo = editor.innerHTML;
-            this.salvarAutomaticamente();
-        },
-
-        limparTudo() {
-            if (confirm('Tem certeza que deseja limpar todo o conteúdo? Esta ação não pode ser desfeita.')) {
-                document.getElementById('editor').innerHTML = '<p><br></p>';
-                this.conteudo = '<p><br></p>';
+                tabela += '</table><p>&nbsp;</p>';
+                
+                editor.insertContent(tabela);
+                this.conteudo = editor.getContent();
                 this.salvarAutomaticamente();
             }
         },
 
+        // Inserir variável dinâmica no editor
+        inserirVariavel(variavel) {
+            const editor = tinymce.get('editor-tinymce');
+            if (editor) {
+                const variavelFormatada = `<span class="variavel-dinamica" data-variavel="${variavel}">${variavel}</span>&nbsp;`;
+                editor.insertContent(variavelFormatada);
+                this.conteudo = editor.getContent();
+                this.salvarAutomaticamente();
+            }
+        },
+
+        limparTudo() {
+            if (confirm('Tem certeza que deseja limpar todo o conteúdo? Esta ação não pode ser desfeita.')) {
+                const editor = tinymce.get('editor-tinymce');
+                if (editor) {
+                    editor.setContent('<p><br></p>');
+                    this.conteudo = '<p><br></p>';
+                    this.salvarAutomaticamente();
+                }
+            }
+        },
+
         async verificarOrtografia() {
-            const editor = document.getElementById('editor');
-            const conteudoHTML = editor.innerHTML;
-            const texto = editor.innerText || editor.textContent;
+            const tmceEditor = tinymce.get('editor-tinymce');
+            if (!tmceEditor) return;
+            
+            const conteudoHTML = tmceEditor.getContent();
+            const texto = tmceEditor.getContent({ format: 'text' });
             
             if (!texto.trim()) {
                 alert('Digite algum texto para verificar a ortografia.');
@@ -1467,13 +1277,14 @@ function documentoEditor() {
                     
                     // Função global para substituir palavra
                     window.substituirPalavra = (palavraErrada, sugestao, index) => {
-                        const editor = document.getElementById('editor');
-                        let conteudo = editor.innerHTML;
+                        const tmceEditor = tinymce.get('editor-tinymce');
+                        if (!tmceEditor) return;
+                        let conteudo = tmceEditor.getContent();
                         
                         // Criar regex para encontrar a palavra (case insensitive)
                         const regex = new RegExp(`\\b${palavraErrada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
                         
-                        // Substituir primeira ocorrência sem destaque (para não aparecer no PDF)
+                        // Substituir primeira ocorrência
                         let substituido = false;
                         conteudo = conteudo.replace(regex, (match) => {
                             if (!substituido) {
@@ -1484,7 +1295,7 @@ function documentoEditor() {
                         });
                         
                         // Atualizar editor
-                        editor.innerHTML = conteudo;
+                        tmceEditor.setContent(conteudo);
                         this.conteudo = conteudo;
                         this.salvarAutomaticamente();
                         
@@ -1561,13 +1372,13 @@ function documentoEditor() {
                 if (this.modelos && this.modelos.length > 0) {
                     console.log('Carregando modelo:', this.modelos[0]);
                     this.conteudo = this.modelos[0].conteudo;
-                    const editor = document.getElementById('editor');
-                    if (editor) {
-                        editor.innerHTML = this.conteudo;
+                    const tmceEditor = tinymce.get('editor-tinymce');
+                    if (tmceEditor) {
+                        tmceEditor.setContent(this.conteudo);
                         console.log('Modelo carregado no editor com sucesso!');
                         this.salvarAutomaticamente();
                     } else {
-                        console.error('Editor não encontrado no DOM');
+                        console.error('Editor TinyMCE não encontrado');
                     }
                 } else {
                     console.log('Nenhum modelo disponível para este tipo de documento');
@@ -1623,6 +1434,12 @@ function documentoEditor() {
             this.modalConfirmarFinalizacao = false;
             this.confirmandoFinalizacao = true;
             
+            // Sincroniza conteúdo do TinyMCE
+            const editor = tinymce.get('editor-tinymce');
+            if (editor) {
+                this.conteudo = editor.getContent();
+            }
+            
             // Define a ação como finalizar
             document.getElementById('inputAcao').value = 'finalizar';
             
@@ -1631,7 +1448,12 @@ function documentoEditor() {
         },
 
         handleSubmit(event) {
-            // Debug: verifica o conteúdo
+            // Sincroniza conteúdo do TinyMCE antes de submeter
+            const editor = tinymce.get('editor-tinymce');
+            if (editor) {
+                this.conteudo = editor.getContent();
+            }
+            
             console.log('Conteúdo:', this.conteudo);
             console.log('Tipo selecionado:', this.tipoSelecionado);
             
