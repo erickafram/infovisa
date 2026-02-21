@@ -578,6 +578,46 @@
                      x-data="{
                          arquivosPessoaFisica: [],
                          maxArquivosPF: 6,
+                         avisoSelecaoOutros: false,
+                         permitirSelecaoOutros: false,
+                         avisoSelecaoOutrosTimeout: null,
+                         avisoSelecaoOutrosInterval: null,
+                         contagemAvisoOutros: 35,
+                         prepararSelecaoOutros(e) {
+                             if (this.permitirSelecaoOutros) {
+                                 return;
+                             }
+
+                             if (e) {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                             }
+
+                             if (this.avisoSelecaoOutros) {
+                                 return;
+                             }
+
+                             this.contagemAvisoOutros = 35;
+                             this.mostrarAvisoSelecaoOutros();
+
+                             this.avisoSelecaoOutrosInterval = setInterval(() => {
+                                 this.contagemAvisoOutros--;
+                                 if (this.contagemAvisoOutros <= 0) {
+                                     clearInterval(this.avisoSelecaoOutrosInterval);
+                                     this.avisoSelecaoOutrosInterval = null;
+                                 }
+                             }, 1000);
+                         },
+                         mostrarAvisoSelecaoOutros() {
+                             this.avisoSelecaoOutros = true;
+                             if (this.avisoSelecaoOutrosTimeout) {
+                                 clearTimeout(this.avisoSelecaoOutrosTimeout);
+                             }
+                             this.avisoSelecaoOutrosTimeout = setTimeout(() => {
+                                 this.avisoSelecaoOutros = false;
+                                 this.permitirSelecaoOutros = true;
+                             }, 35000);
+                         },
                          handleFilesPessoaFisica(e) {
                              const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
                              if (files) {
@@ -597,12 +637,18 @@
                              // Limpa o input para permitir selecionar o mesmo arquivo novamente
                              if (e.target && e.target.value) e.target.value = '';
                              this.dragoverDiverso = false;
+                             this.permitirSelecaoOutros = false;
                          },
                          removeFilePF(index) {
                              this.arquivosPessoaFisica.splice(index, 1);
                          },
                          async enviarTodosPF() {
                              if (this.arquivosPessoaFisica.length === 0 || this.enviandoDiverso) return;
+
+                             const confirmarEnvio = confirm('Não envie documentos desnecessários aqui. Esta aba não é para resposta de notificações, projeto arquitetônico ou documentos similares. Envie apenas se a Vigilância Sanitária solicitar ofício, memorando ou documento diverso. Documentos enviados sem necessidade para o processo serão ignorados e excluídos. Deseja continuar?');
+                             if (!confirmarEnvio) {
+                                 return;
+                             }
                              
                              this.enviandoDiverso = true;
                              let sucessos = 0;
@@ -680,13 +726,13 @@
                         
                         {{-- Aviso especial para Outros Documentos --}}
                         <template x-if="tipoDocDiverso === 'Outros Documentos'">
-                            <div class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-xl mb-4">
-                                <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <div class="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+                                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
                                 <div>
-                                    <p class="text-sm font-medium text-green-800">Upload múltiplo habilitado!</p>
-                                    <p class="text-xs text-green-700 mt-1">Você pode selecionar até 6 arquivos de uma vez para enviar.</p>
+                                    <p class="text-sm font-medium text-amber-800">Atenção antes de enviar</p>
+                                    <p class="text-xs text-amber-700 mt-1">Você pode selecionar até 6 arquivos PDF de uma vez.</p>
                                 </div>
                             </div>
                         </template>
@@ -742,6 +788,29 @@
                         {{-- Área de Upload Múltiplo (Outros Documentos - até 6 arquivos) --}}
                         <template x-if="tipoDocDiverso === 'Outros Documentos'">
                             <div class="mb-4">
+                                <div x-show="avisoSelecaoOutros" x-cloak x-transition class="fixed inset-0 z-[90] flex items-center justify-center p-4">
+                                    <div class="absolute inset-0 bg-black/60"></div>
+                                    <div class="relative w-[min(92vw,760px)] bg-amber-50 border border-amber-300 rounded-xl shadow-2xl p-5">
+                                        <div class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-medium text-amber-800">Atenção antes de enviar</p>
+                                                <p class="text-xs text-amber-700 mt-1">Não envie documentos desnecessários aqui, pois esta aba não é para upload de resposta de notificações, projeto arquitetônico ou documentos similares.</p>
+                                                <p class="text-xs text-amber-700 mt-1">Envie apenas quando a Vigilância Sanitária solicitar.</p>
+                                                <p class="text-xs text-amber-700 mt-1">Documentos como ofício e memorando podem ser enviados, pois no tipo de documento existem essas opções.</p>
+                                                <p class="text-xs text-amber-700 mt-1">Documentos enviados sem necessidade para o processo serão ignorados e excluídos.</p>
+                                                <p class="text-xs text-amber-700 mt-1">Você pode selecionar até 6 arquivos PDF de uma vez.</p>
+                                                <div class="mt-3 p-3 bg-amber-100 border border-amber-300 rounded-lg">
+                                                    <p class="text-sm font-semibold text-amber-900">Aguarde para liberar a seleção</p>
+                                                    <p class="text-2xl font-extrabold text-amber-900 leading-none mt-1"><span x-text="contagemAvisoOutros"></span>s</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Arquivos * 
                                     <span class="text-gray-500 font-normal">(<span x-text="arquivosPessoaFisica.length"></span>/6 selecionados)</span>
@@ -753,11 +822,12 @@
                                      @dragleave.prevent="dragoverDiverso = false"
                                      @drop.prevent="handleFilesPessoaFisica($event)">
                                     <input type="file" 
+                                         @click="prepararSelecaoOutros($event)"
                                            @change="handleFilesPessoaFisica($event)"
                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                            accept=".pdf"
                                            multiple
-                                           :disabled="arquivosPessoaFisica.length >= maxArquivosPF">
+                                         :disabled="arquivosPessoaFisica.length >= maxArquivosPF || (avisoSelecaoOutros && !permitirSelecaoOutros)">
                                     <div class="border-2 border-dashed rounded-xl p-6 text-center transition-all"
                                          :class="dragoverDiverso ? 'border-green-500 bg-green-50' : (arquivosPessoaFisica.length >= maxArquivosPF ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50')">
                                         <template x-if="arquivosPessoaFisica.length < maxArquivosPF">
