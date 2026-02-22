@@ -596,11 +596,41 @@
                     <input type="hidden" name="cnaes_secundarios" :value="JSON.stringify(dados.cnaes_secundarios)">
 
                     {{-- Lista de Atividades (Principal + Secundárias) --}}
-                    <div class="mb-6">
+                    <div class="mb-6 relative">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Selecione as atividades que o estabelecimento exerce <span class="text-red-500">*</span>
                         </label>
                         <p class="text-xs text-gray-500 mb-3">Marque apenas as atividades que serão efetivamente exercidas neste estabelecimento.</p>
+                        <div x-show="popupAvisoAtividades"
+                             x-transition.opacity
+                             class="absolute inset-0 z-20 rounded-lg bg-white/90 backdrop-blur-[1px] flex items-center justify-center p-4"
+                             style="display: none;">
+                            <div class="w-full max-w-3xl rounded-xl border-2 border-amber-300 bg-amber-50 shadow-2xl p-6">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-6 h-6 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-6a1 1 0 00-1 1v2a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <h4 class="text-lg font-bold text-amber-900 mb-2">Atenção obrigatória antes de selecionar as atividades</h4>
+                                        <p class="text-sm text-amber-900 leading-relaxed">
+                                            Selecione somente as atividades realmente exercidas neste estabelecimento e que sejam de interesse à saúde.
+                                            Essas atividades serão as mesmas que constarão no Alvará Sanitário.
+                                            Atividades marcadas e não exercidas podem gerar cobrança de taxas e notificação sanitária.
+                                        </p>
+                                        <div class="mt-4 flex items-center justify-between gap-3">
+                                            <span class="text-xs font-medium text-amber-700">
+                                                Este aviso será fechado automaticamente em <span x-text="popupAvisoAtividadesExpiraEm"></span>s
+                                            </span>
+                                            <button type="button"
+                                                    @click="fecharPopupAvisoAtividades()"
+                                                    class="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">
+                                                Li e entendi
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
                             {{-- Atividade Principal --}}
@@ -1117,6 +1147,9 @@ function estabelecimentoFormCompany() {
         cnaeErro: '',
         loadingCnae: false,
         cnaeResultados: [],
+        popupAvisoAtividades: false,
+        popupAvisoAtividadesTimer: null,
+        popupAvisoAtividadesExpiraEm: 15,
         dados: {
             cnpj: '',
             razao_social: '',
@@ -1146,6 +1179,14 @@ function estabelecimentoFormCompany() {
         },
 
         init() {
+            this.$watch('abaAtiva', (value) => {
+                if (value === 'atividades') {
+                    this.exibirPopupAvisoAtividades();
+                } else {
+                    this.fecharPopupAvisoAtividades(true);
+                }
+            });
+
             // Watchers para verificar competência quando atividades mudarem
             this.$watch('atividadesExercidas', (value) => {
                 this.verificarCompetencia();
@@ -1171,6 +1212,31 @@ function estabelecimentoFormCompany() {
             this.$watch('respostasQuestionario2', () => {
                 this.verificarCompetencia();
             }, { deep: true });
+        },
+
+        exibirPopupAvisoAtividades() {
+            this.fecharPopupAvisoAtividades(true);
+            this.popupAvisoAtividades = true;
+            this.popupAvisoAtividadesExpiraEm = 15;
+
+            this.popupAvisoAtividadesTimer = setInterval(() => {
+                this.popupAvisoAtividadesExpiraEm -= 1;
+                if (this.popupAvisoAtividadesExpiraEm <= 0) {
+                    this.fecharPopupAvisoAtividades(true);
+                }
+            }, 1000);
+        },
+
+        fecharPopupAvisoAtividades(silencioso = false) {
+            if (this.popupAvisoAtividadesTimer) {
+                clearInterval(this.popupAvisoAtividadesTimer);
+                this.popupAvisoAtividadesTimer = null;
+            }
+
+            this.popupAvisoAtividades = false;
+            if (!silencioso) {
+                this.popupAvisoAtividadesExpiraEm = 15;
+            }
         },
 
         async verificarCompetencia() {
