@@ -204,6 +204,41 @@ class DashboardController extends Controller
     public function index()
     {
         $usuario = Auth::guard('interno')->user();
+
+        // Aniversariantes do mês (escopo por perfil do usuário logado)
+        $mesAtual = now()->month;
+        $hojeMd = now()->format('m-d');
+
+        $aniversariantesQuery = UsuarioInterno::query()
+            ->where('ativo', true)
+            ->whereNotNull('data_nascimento');
+
+        $escopoAniversariantes = 'Geral';
+
+        if ($usuario->isEstadual()) {
+            $aniversariantesQuery->whereIn('nivel_acesso', ['gestor_estadual', 'tecnico_estadual']);
+            $escopoAniversariantes = 'Estadual';
+        } elseif ($usuario->isMunicipal()) {
+            $aniversariantesQuery->whereIn('nivel_acesso', ['gestor_municipal', 'tecnico_municipal'])
+                ->where('municipio_id', $usuario->municipio_id);
+            $escopoAniversariantes = $usuario->municipio ?? 'Município';
+        }
+
+        $aniversariantes_mes = $aniversariantesQuery
+            ->whereMonth('data_nascimento', $mesAtual)
+            ->orderByRaw('EXTRACT(DAY FROM data_nascimento) ASC')
+            ->orderBy('nome', 'ASC')
+            ->get(['id', 'nome', 'data_nascimento', 'nivel_acesso', 'municipio_id']);
+
+        $aniversariantes_mes->transform(function ($u) use ($hojeMd) {
+            $u->dia_aniversario = $u->data_nascimento ? $u->data_nascimento->format('d/m') : null;
+            $u->eh_hoje = $u->data_nascimento ? $u->data_nascimento->format('m-d') === $hojeMd : false;
+            return $u;
+        });
+
+        $eh_aniversariante_hoje = $usuario->data_nascimento
+            ? $usuario->data_nascimento->format('m-d') === $hojeMd
+            : false;
         
         // Conta estabelecimentos pendentes baseado no perfil do usuário
         $estabelecimentosPendentesQuery = Estabelecimento::pendentes()->with('usuarioExterno');
@@ -551,7 +586,10 @@ class DashboardController extends Controller
             'documentos_pendentes_aprovacao',
             'respostas_pendentes_aprovacao',
             'atalhos_rapidos',
-            'avisos_sistema'
+            'avisos_sistema',
+            'aniversariantes_mes',
+            'eh_aniversariante_hoje',
+            'escopoAniversariantes'
         ));
     }
 

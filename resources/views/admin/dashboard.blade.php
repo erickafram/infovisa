@@ -113,6 +113,51 @@
     </div>
     @endif
 
+    {{-- Aniversariantes do Mês --}}
+    @if(isset($aniversariantes_mes) && $aniversariantes_mes->count() > 0)
+    <div class="bg-white rounded-xl border border-pink-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 bg-pink-50 border-b border-pink-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9V5a3 3 0 00-6 0v4M7 9h10l1 11H6L7 9z"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-semibold text-pink-900">Aniversariantes de {{ now()->locale('pt_BR')->isoFormat('MMMM') }}</h3>
+                    <p class="text-[11px] text-pink-700">Escopo: {{ $escopoAniversariantes ?? 'Geral' }}</p>
+                </div>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full bg-pink-100 text-pink-700 font-bold">{{ $aniversariantes_mes->count() }}</span>
+        </div>
+
+        @if($eh_aniversariante_hoje)
+        <div class="px-4 py-2 bg-green-50 border-b border-green-100">
+            <p class="text-sm font-semibold text-green-700">🎉 Parabéns, {{ Str::words(auth('interno')->user()->nome, 2, '') }}! Feliz aniversário!</p>
+        </div>
+        @endif
+
+        <div class="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+            @forelse($aniversariantes_mes as $anv)
+            <div class="px-4 py-2.5 flex items-center justify-between {{ $anv->eh_hoje ? 'bg-green-50/60' : '' }}">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                        {{ $anv->nome }}
+                        @if($anv->eh_hoje)
+                            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Hoje</span>
+                        @endif
+                    </p>
+                    <p class="text-[11px] text-gray-500">{{ $anv->nivel_acesso?->label() ?? '-' }}</p>
+                </div>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-pink-100 text-pink-700">{{ $anv->dia_aniversario }}</span>
+            </div>
+            @empty
+            <div class="px-4 py-5 text-center">
+                <p class="text-sm text-gray-500">Nenhum aniversariante neste mês.</p>
+            </div>
+            @endforelse
+        </div>
+    </div>
+    @endif
+
     {{-- Card de OSs Vencidas (apenas para gestores e admins) --}}
     @if(auth('interno')->user()->isGestor() || auth('interno')->user()->isAdmin())
     <div x-data="ordensServicoVencidas()" class="bg-white rounded-lg border border-red-200 shadow-sm" x-show="ordens.length > 0" x-cloak>
