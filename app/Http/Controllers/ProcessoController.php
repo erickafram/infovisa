@@ -1352,18 +1352,64 @@ class ProcessoController extends Controller
             ->where('id', $documentoId)
             ->first();
         
-        if ($docDigital && $docDigital->arquivo_pdf) {
-            // É um documento digital
-            $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $docDigital->arquivo_pdf);
-            
-            if (!file_exists($caminhoCompleto)) {
-                abort(404, 'PDF não encontrado');
+        if ($docDigital) {
+            $documentoAssinadoCompleto = $docDigital->status === 'assinado' && $docDigital->todasAssinaturasCompletas();
+
+            if ($docDigital->arquivo_pdf && $documentoAssinadoCompleto) {
+                // É um documento digital finalizado com todas as assinaturas
+                $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $docDigital->arquivo_pdf);
+                
+                if (!file_exists($caminhoCompleto)) {
+                    abort(404, 'PDF não encontrado');
+                }
+                
+                return response()->file($caminhoCompleto, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="documento.pdf"'
+                ]);
             }
-            
-            return response()->file($caminhoCompleto, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="documento.pdf"'
+
+            // Documento digital ainda não finalizado: gera preview completo (logomarca + dados)
+            $docDigital->loadMissing([
+                'tipoDocumento',
+                'processo.tipoProcesso',
+                'processo.estabelecimento.responsaveis',
+                'processo.estabelecimento.municipio',
             ]);
+
+            $processoDoc = $docDigital->processo;
+            $estabelecimentoDoc = $processoDoc ? $processoDoc->estabelecimento : null;
+
+            $logomarca = null;
+            if ($estabelecimentoDoc && $estabelecimentoDoc->isCompetenciaEstadual()) {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            } elseif ($estabelecimentoDoc && $estabelecimentoDoc->municipio_id) {
+                $municipio = $estabelecimentoDoc->relationLoaded('municipio')
+                    ? $estabelecimentoDoc->municipio
+                    : \App\Models\Municipio::find($estabelecimentoDoc->municipio_id);
+
+                if ($municipio && !empty($municipio->logomarca)) {
+                    $logomarca = $municipio->logomarca;
+                } else {
+                    $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                }
+            } else {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            }
+
+            $pdf = Pdf::loadView('documentos.pdf-preview', [
+                'documento' => $docDigital,
+                'processo' => $processoDoc,
+                'estabelecimento' => $estabelecimentoDoc,
+                'logomarca' => $logomarca,
+            ])
+                ->setPaper('a4')
+                ->setOption('margin-top', 10)
+                ->setOption('margin-bottom', 10)
+                ->setOption('margin-left', 10)
+                ->setOption('margin-right', 10);
+
+            return $pdf->stream(($docDigital->numero_documento ?? 'documento') . '_preview.pdf');
         }
         
         // Senão, busca como arquivo externo
