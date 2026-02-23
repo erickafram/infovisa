@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Estabelecimento;
 use App\Models\EstabelecimentoHistorico;
+use App\Models\Pactuacao;
 use App\Models\UsuarioExterno;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -638,6 +639,56 @@ class EstabelecimentoController extends Controller
     public function editAtividades(string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
+
+        // Carrega respostas dos questionários com metadados da pergunta (por CNAE)
+        $normalizarCnae = fn($cnae) => preg_replace('/[^0-9]/', '', (string) $cnae);
+
+        $respostasQuestionario = is_array($estabelecimento->respostas_questionario) ? $estabelecimento->respostas_questionario : [];
+        $respostasQuestionario2 = is_array($estabelecimento->respostas_questionario2) ? $estabelecimento->respostas_questionario2 : [];
+
+        $respostasQuestionarioNorm = [];
+        foreach ($respostasQuestionario as $cnae => $resposta) {
+            $codigo = $normalizarCnae($cnae);
+            if ($codigo !== '') {
+                $respostasQuestionarioNorm[$codigo] = $resposta;
+            }
+        }
+
+        $respostasQuestionario2Norm = [];
+        foreach ($respostasQuestionario2 as $cnae => $resposta) {
+            $codigo = $normalizarCnae($cnae);
+            if ($codigo !== '') {
+                $respostasQuestionario2Norm[$codigo] = $resposta;
+            }
+        }
+
+        $cnaesQuestionarios = collect(array_keys($respostasQuestionarioNorm))
+            ->merge(array_keys($respostasQuestionario2Norm))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $pactuacoesQuestionario = empty($cnaesQuestionarios)
+            ? collect()
+            : Pactuacao::whereIn('cnae_codigo', $cnaesQuestionarios)
+                ->where('requer_questionario', true)
+                ->where('ativo', true)
+                ->get()
+                ->keyBy('cnae_codigo');
+
+        $questionariosRespondidos = collect($cnaesQuestionarios)->map(function ($codigo) use ($pactuacoesQuestionario, $respostasQuestionarioNorm, $respostasQuestionario2Norm) {
+            $pactuacao = $pactuacoesQuestionario->get($codigo);
+
+            return [
+                'cnae' => $codigo,
+                'descricao' => $pactuacao->cnae_descricao ?? null,
+                'pergunta' => $pactuacao->pergunta ?? null,
+                'resposta' => $respostasQuestionarioNorm[$codigo] ?? null,
+                'pergunta2' => $pactuacao->pergunta2 ?? null,
+                'resposta2' => $respostasQuestionario2Norm[$codigo] ?? null,
+            ];
+        });
         
         // Verifica se o usuário tem permissão para editar atividades deste estabelecimento
         if (auth('interno')->check()) {
@@ -764,7 +815,7 @@ class EstabelecimentoController extends Controller
             ];
         }
         
-        return view('estabelecimentos.atividades', compact('estabelecimento', 'atividadesApi'));
+        return view('estabelecimentos.atividades', compact('estabelecimento', 'atividadesApi', 'questionariosRespondidos'));
     }
 
     /**

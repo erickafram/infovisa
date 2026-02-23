@@ -3003,8 +3003,9 @@
     </template>
 
     {{-- Modal de Rejeitar Documento --}}
+    <template x-teleport="body">
     <template x-if="modalRejeitar">
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalRejeitar" @fechar-modal-rejeitar.window="modalRejeitar = false; motivoRejeicao = ''" style="display: none;">
+        <div class="fixed inset-0 overflow-y-auto" x-show="modalRejeitar" @fechar-modal-rejeitar.window="modalRejeitar = false; motivoRejeicao = ''" style="display: none; z-index: 10050;">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalRejeitar = false"></div>
                 <div class="inline-block w-full max-w-md my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
@@ -3064,6 +3065,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 </div>
             </div>
         </div>
+    </template>
     </template>
 
     {{-- Modal de Histórico do Processo --}}

@@ -45,11 +45,10 @@
         ];
     }
     
-    // 2. Documentos em rascunho onde o usuário é assinante
-    $docsRascunho = \App\Models\DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
-        ->whereHas('documentoDigital', function($q) {
-            $q->where('status', 'rascunho');
-        })
+    // 2. Documentos em rascunho criados pelo usuário logado
+    // (evita contagem indevida de assinaturas antigas em rascunhos de terceiros)
+    $docsRascunho = \App\Models\DocumentoDigital::where('usuario_criador_id', $usuario->id)
+        ->where('status', 'rascunho')
         ->count();
     
     if ($docsRascunho > 0) {
@@ -64,28 +63,31 @@
         ];
     }
     
-    // 3. Estabelecimentos pendentes de aprovação (apenas para admins)
-    if ($usuario->isAdmin() || $usuario->nivel_acesso->value >= 3) {
-        $estabelecimentosPendentes = \App\Models\Estabelecimento::where('situacao', 'pendente')->count();
-        
-        if ($estabelecimentosPendentes > 0) {
-            $alertas[] = [
-                'tipo' => 'estabelecimento',
-                'titulo' => 'Estabelecimentos Pendentes',
-                'mensagem' => $estabelecimentosPendentes . ' estabelecimento(s) aguardando aprovação',
-                'quantidade' => $estabelecimentosPendentes,
-                'cor' => 'orange',
-                'icone' => 'building',
-                'link' => route('admin.estabelecimentos.pendentes'),
-            ];
-        }
-    }
+    // 3. Estabelecimentos pendentes de aprovação
+    // Removido do sino para evitar alertas globais fora do escopo de "minhas demandas / meu setor"
     
     // 5. Documentos pendentes de aprovação (enviados por empresas)
     $docsPendentesQuery = \App\Models\ProcessoDocumento::where('status_aprovacao', 'pendente')
         ->where('tipo_usuario', 'externo');
     $respostasPendentesQuery = \App\Models\DocumentoResposta::where('status', 'pendente');
     
+    // Filtrar por responsável/setor (minhas demandas + meu setor)
+    $docsPendentesQuery->where(function($q) use ($usuario) {
+        $q->whereHas('processo', function($p) use ($usuario) {
+            $p->where('responsavel_atual_id', $usuario->id);
+            if ($usuario->setor) {
+                $p->orWhere('setor_atual', $usuario->setor);
+            }
+        });
+    });
+    
+    $respostasPendentesQuery->whereHas('documentoDigital.processo', function($p) use ($usuario) {
+        $p->where('responsavel_atual_id', $usuario->id);
+        if ($usuario->setor) {
+            $p->orWhere('setor_atual', $usuario->setor);
+        }
+    });
+
     // Filtrar por competência
     if ($usuario->isEstadual()) {
         // Estadual - filtra por competência manual ou null, depois filtra em memória
@@ -288,6 +290,8 @@ function marcarNotificacaoLida(notificacaoId) {
     const baseUrl = window.APP_BASE_URL || '';
     fetch(`${baseUrl}/admin/notificacoes/${notificacaoId}/marcar-lida`, {
         method: 'POST',
+        credentials: 'same-origin',
+        keepalive: true,
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json',

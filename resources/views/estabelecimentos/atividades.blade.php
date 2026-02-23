@@ -87,19 +87,87 @@
                 </div>
 
                 {{-- Respostas dos Questionários --}}
-                @if($estabelecimento->respostas_questionario && count($estabelecimento->respostas_questionario) > 0)
-                <div class="flex items-center gap-3 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-200">
-                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs font-semibold text-yellow-900">Questionários:</span>
-                        @foreach($estabelecimento->respostas_questionario as $cnae => $resposta)
-                            <span class="px-2 py-1 rounded-md text-xs font-bold {{ $resposta === 'sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $cnae }}: {{ strtoupper($resposta) }}
-                            </span>
+                @if(isset($questionariosRespondidos) && $questionariosRespondidos->count() > 0)
+                <div class="bg-yellow-50 px-4 py-3 rounded-lg border border-yellow-200 min-w-[360px]" x-data="{ expandido: false }">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-xs font-semibold text-yellow-900">Questionários respondidos</span>
+                        <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-semibold">
+                            {{ $questionariosRespondidos->count() }} CNAE(s)
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        @foreach($questionariosRespondidos as $index => $quest)
+                            <div class="bg-white/70 border border-yellow-100 rounded-md p-2" x-show="expandido || {{ $index < 3 ? 'true' : 'false' }}" x-cloak>
+                                <p class="text-[11px] font-semibold text-gray-700 mb-1">
+                                    CNAE {{ $quest['cnae'] }}
+                                    @if(!empty($quest['descricao']))
+                                        - {{ $quest['descricao'] }}
+                                    @endif
+                                </p>
+
+                                @if(!empty($quest['pergunta']))
+                                    <p class="text-[11px] text-gray-700">
+                                        <span class="font-medium">Pergunta 1:</span> {{ $quest['pergunta'] }}
+                                    </p>
+                                @endif
+                                @if(!empty($quest['resposta']))
+                                    <p class="text-[11px] flex items-center gap-1.5">
+                                        <span class="font-medium text-gray-700">Resposta:</span>
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ strtolower((string) $quest['resposta']) === 'sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                            @if(strtolower((string) $quest['resposta']) === 'sim')
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                Sim
+                                            @else
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                                Não
+                                            @endif
+                                        </span>
+                                    </p>
+                                @endif
+
+                                @if(!empty($quest['pergunta2']))
+                                    <p class="text-[11px] text-gray-700 mt-1">
+                                        <span class="font-medium">Pergunta 2:</span> {{ $quest['pergunta2'] }}
+                                    </p>
+                                @endif
+                                @if(!empty($quest['resposta2']))
+                                    <p class="text-[11px] flex items-center gap-1.5">
+                                        <span class="font-medium text-gray-700">Resposta 2:</span>
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ strtolower((string) $quest['resposta2']) === 'sim' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                            @if(strtolower((string) $quest['resposta2']) === 'sim')
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                Sim
+                                            @else
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                                Não
+                                            @endif
+                                        </span>
+                                    </p>
+                                @endif
+                            </div>
                         @endforeach
                     </div>
+
+                    @if($questionariosRespondidos->count() > 3)
+                        <button type="button"
+                                @click="expandido = !expandido"
+                                class="mt-2 text-xs font-semibold text-yellow-800 hover:text-yellow-900 underline underline-offset-2">
+                            <span x-show="!expandido">Mostrar mais {{ $questionariosRespondidos->count() - 3 }} questionário(s)</span>
+                            <span x-show="expandido">Mostrar menos</span>
+                        </button>
+                    @endif
                 </div>
                 @endif
             </div>

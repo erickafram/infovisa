@@ -57,6 +57,27 @@ class NotificacaoController extends Controller
             ->findOrFail($id);
         
         $notificacao->marcarComoLida();
+
+        // Se for notificação de OS, marca também duplicadas relacionadas
+        // (mesmo tipo + mesma OS por id ou por link), incluindo casos legados sem ordem_servico_id.
+        if (str_starts_with((string) $notificacao->tipo, 'ordem_servico') || $notificacao->tipo === 'atividade_reiniciada') {
+            Notificacao::doUsuario($usuario->id)
+                ->naoLidas()
+                ->where('tipo', $notificacao->tipo)
+                ->where(function ($query) use ($notificacao) {
+                    if (!empty($notificacao->ordem_servico_id)) {
+                        $query->where('ordem_servico_id', $notificacao->ordem_servico_id);
+                    }
+
+                    if (!empty($notificacao->link)) {
+                        $query->orWhere('link', $notificacao->link);
+                    }
+                })
+                ->update([
+                    'lida' => true,
+                    'lida_em' => now(),
+                ]);
+        }
         
         return response()->json([
             'success' => true,

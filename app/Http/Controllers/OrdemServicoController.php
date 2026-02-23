@@ -303,6 +303,21 @@ class OrdemServicoController extends Controller
         if (!$this->podeVisualizarOS($usuario, $ordemServico)) {
             abort(403, 'Você não tem permissão para visualizar esta ordem de serviço.');
         }
+
+        // Ao visualizar a OS, marca como lidas as notificações pendentes relacionadas a ela
+        // Compatibilidade: considera tanto ordem_servico_id quanto link da OS
+        $osPath = '/admin/ordens-servico/' . $ordemServico->id;
+
+        \App\Models\Notificacao::doUsuario($usuario->id)
+            ->naoLidas()
+            ->where(function ($query) use ($ordemServico, $osPath) {
+                $query->where('ordem_servico_id', $ordemServico->id)
+                      ->orWhere('link', 'like', '%' . $osPath . '%');
+            })
+            ->update([
+                'lida' => true,
+                'lida_em' => now(),
+            ]);
         
         $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
         
