@@ -213,6 +213,15 @@
                                 </div>
                                 <p class="text-sm font-medium text-gray-900" x-text="t.titulo"></p>
                                 <p class="text-xs text-gray-500 mt-0.5" x-text="t.subtitulo"></p>
+                                <template x-if="t.tipo === 'os' && (t.em_finalizacao || t.atrasado)">
+                                    <p class="text-[11px] font-medium mt-1 flex items-center gap-1" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span x-text="t.atrasado ? 'Prazo de finalização expirado!' : 'Prazo p/ finalizar até ' + t.prazo_finalizacao_formatado"></span>
+                                    </p>
+                                </template>
+                                <template x-if="t.tipo === 'os' && !t.em_finalizacao && !t.atrasado && t.data_fim_formatada">
+                                    <p class="text-[11px] text-gray-400 mt-1">Encerramento: <span x-text="t.data_fim_formatada"></span> • Finalizar em até 15 dias após</p>
+                                </template>
                                 <template x-if="t.tipo_acao">
                                     <p class="text-xs text-blue-600 mt-0.5" x-text="t.tipo_acao"></p>
                                 </template>
@@ -413,13 +422,25 @@ function todasTarefas() {
 
         getIconBgClass(t) {
             if (t.tipo === 'assinatura') return 'bg-amber-100';
-            if (t.tipo === 'os') return 'bg-blue-100';
+            if (t.tipo === 'os') return t.atrasado ? 'bg-red-100' : (t.em_finalizacao ? 'bg-amber-100' : 'bg-blue-100');
             if (t.tipo === 'resposta') return t.atrasado ? 'bg-red-100' : 'bg-green-100';
             return t.atrasado ? 'bg-red-100' : 'bg-purple-100';
         },
 
         getBadgeClass(t) {
             if (t.tipo === 'assinatura') return 'bg-amber-100 text-amber-700';
+            if (t.tipo === 'os') {
+                if (t.atrasado) return 'bg-red-100 text-red-700';
+                if (t.em_finalizacao) {
+                    if (t.dias_para_finalizar <= 3) return 'bg-orange-100 text-orange-700';
+                    if (t.dias_para_finalizar <= 7) return 'bg-amber-100 text-amber-700';
+                    return 'bg-yellow-100 text-yellow-700';
+                }
+                if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
+                if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
+                if (t.dias_restantes === null) return 'bg-gray-100 text-gray-600';
+                return 'bg-green-100 text-green-700';
+            }
             if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
             if (t.atrasado) return 'bg-red-100 text-red-700';
             if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
@@ -430,13 +451,17 @@ function todasTarefas() {
 
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
-            if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'os') {
                 if (t.atrasado) return 'Atrasado';
-                if (t.dias_restantes === 0) return 'Hoje';
+                if (t.em_finalizacao) {
+                    if (t.dias_para_finalizar === 0) return 'Último dia';
+                    return 'Finalizar ' + t.dias_para_finalizar + 'd';
+                }
+                if (t.dias_restantes === 0) return 'Encerra hoje';
                 if (t.dias_restantes === null) return 'Sem prazo';
                 return t.dias_restantes + 'd';
             }
+            if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
                 if (t.atrasado) return (t.dias_pendente - 5) + 'd atraso';
                 if (t.dias_restantes === 0) return 'Hoje';

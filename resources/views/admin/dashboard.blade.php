@@ -256,15 +256,26 @@
                                     </span>
                                 </div>
                                 <template x-for="t in tarefas.filter(t => t.tipo === 'os')" :key="'os-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50/50 transition" :class="t.atrasado ? 'bg-red-50/30' : ''">
-                                        <div class="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50/50 transition" :class="t.atrasado ? 'bg-red-50/30' : (t.em_finalizacao ? 'bg-amber-50/30' : '')">
+                                        <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : (t.em_finalizacao ? 'bg-amber-100' : 'bg-blue-100')">
+                                            <svg class="w-3 h-3" :class="t.atrasado ? 'text-red-600' : (t.em_finalizacao ? 'text-amber-600' : 'text-blue-600')" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
                                             <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
+                                            <template x-if="t.em_finalizacao || t.atrasado">
+                                                <p class="text-[10px] font-medium truncate flex items-center gap-0.5 mt-0.5" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'">
+                                                    <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    <span x-text="t.atrasado ? 'Prazo de finalização expirado!' : 'Prazo p/ finalizar até ' + t.prazo_finalizacao_formatado"></span>
+                                                </p>
+                                            </template>
+                                            <template x-if="!t.em_finalizacao && !t.atrasado && t.data_fim_formatada">
+                                                <p class="text-[10px] text-gray-400 truncate mt-0.5">
+                                                    Encerramento: <span x-text="t.data_fim_formatada"></span> • Finalizar em até 15 dias após
+                                                </p>
+                                            </template>
                                         </div>
-                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                     </a>
                                 </template>
                             </div>
@@ -552,6 +563,19 @@ function tarefasPaginadas() {
         prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
+            if (t.tipo === 'os') {
+                if (t.atrasado) return 'bg-red-100 text-red-700'; // Passou 15 dias após data_fim
+                if (t.em_finalizacao) {
+                    if (t.dias_para_finalizar <= 3) return 'bg-orange-100 text-orange-700';
+                    if (t.dias_para_finalizar <= 7) return 'bg-amber-100 text-amber-700';
+                    return 'bg-yellow-100 text-yellow-700';
+                }
+                // Antes de data_fim (em execução)
+                if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
+                if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
+                if (t.dias_restantes === null) return 'bg-gray-100 text-gray-600';
+                return 'bg-green-100 text-green-700';
+            }
             if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
             if (t.atrasado) return 'bg-red-100 text-red-700';
             if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
@@ -561,6 +585,18 @@ function tarefasPaginadas() {
         },
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
+            if (t.tipo === 'os') {
+                if (t.atrasado) return 'Atrasado';
+                if (t.em_finalizacao) {
+                    if (t.dias_para_finalizar === 0) return 'Último dia';
+                    return 'Finalizar ' + t.dias_para_finalizar + 'd';
+                }
+                // Antes de data_fim
+                if (t.dias_restantes === 0) return 'Encerra hoje';
+                if (t.dias_restantes === null) return '-';
+                if (t.dias_restantes < 0) return 'Finalizar ' + t.dias_para_finalizar + 'd'; // fallback
+                return t.dias_restantes + 'd';
+            }
             if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
                 if (t.atrasado) return (t.dias_pendente - 5) + 'd';

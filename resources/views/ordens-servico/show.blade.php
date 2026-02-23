@@ -631,6 +631,25 @@
                                         <p class="text-xs text-green-700">{{ $atividade['observacoes_finalizacao'] }}</p>
                                     </div>
                                 @endif
+
+                                {{-- Confirmação de documentos no processo --}}
+                                @if($statusAtividade === 'finalizada' && !empty($atividade['confirmou_documentos']))
+                                    <div class="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                                        <svg class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <p class="text-xs font-medium text-amber-900">
+                                                {{ $atividade['confirmou_documentos_nome'] ?? 'Técnico' }} confirmou que inseriu os documentos no processo.
+                                            </p>
+                                            @if(!empty($atividade['confirmou_documentos_em']))
+                                                <p class="text-[10px] text-amber-700 mt-0.5">
+                                                    {{ \Carbon\Carbon::parse($atividade['confirmou_documentos_em'])->format('d/m/Y \à\s H:i') }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -940,6 +959,15 @@
         // Limpa seleção de estabelecimento se existir
         const selectEstab = document.getElementById('estabelecimento_id_atividade');
         if (selectEstab) selectEstab.value = '';
+
+        // Reseta checkbox e erro de confirmação de documentos
+        const checkDoc = document.getElementById('checkConfirmaDocumentos');
+        if (checkDoc) {
+            checkDoc.checked = false;
+            checkDoc.closest('label').classList.remove('ring-2', 'ring-red-400');
+            const erroCheck = document.getElementById('erroCheckDocumentos');
+            if (erroCheck) erroCheck.classList.add('hidden');
+        }
         
         document.getElementById('modalFinalizarAtividade').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -969,6 +997,16 @@
             alert('⚠️ Informe as observações (mínimo 10 caracteres).');
             return;
         }
+
+        // Valida checkbox de confirmação de documentos (se existir — só aparece quando OS tem processo)
+        const checkDocumentos = document.getElementById('checkConfirmaDocumentos');
+        if (checkDocumentos && !checkDocumentos.checked) {
+            const erroCheck = document.getElementById('erroCheckDocumentos');
+            if (erroCheck) erroCheck.classList.remove('hidden');
+            checkDocumentos.closest('label').classList.add('ring-2', 'ring-red-400');
+            checkDocumentos.focus();
+            return;
+        }
         
         // Pega estabelecimento se existir
         const selectEstab = document.getElementById('estabelecimento_id_atividade');
@@ -990,7 +1028,8 @@
                     atividade_index: index,
                     status_execucao: statusSelecionado.value,
                     observacoes: observacoes,
-                    estabelecimento_id: estabelecimentoId
+                    estabelecimento_id: estabelecimentoId,
+                    confirmou_documentos: document.getElementById('checkConfirmaDocumentos')?.checked || false
                 })
             });
 
@@ -1242,7 +1281,45 @@
                 <p class="mt-1.5 text-xs text-gray-400">Mínimo de 10 caracteres</p>
             </div>
 
-            {{-- Aviso --}}
+            {{-- Aviso sobre documentos no processo (só aparece se OS tem processo vinculado) --}}
+            @if($ordemServico->processo_id)
+            <div id="avisoDocumentosProcesso" class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-6a1 1 0 00-1 1v2a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-bold text-amber-900 mb-1">Você já inseriu os documentos necessários no processo?</h4>
+                        <p class="text-xs text-amber-800 leading-relaxed">
+                            Após finalizar esta atividade, você deve garantir que todos os documentos 
+                            (Termo de Vistoria, Relatório de Inspeção, etc.) foram inseridos no processo vinculado a esta OS.
+                        </p>
+                        @if($ordemServico->estabelecimento_id)
+                        <a href="{{ route('admin.estabelecimentos.processos.show', [$ordemServico->estabelecimento_id, $ordemServico->processo_id]) }}"
+                           target="_blank"
+                           class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Abrir Processo Vinculado
+                        </a>
+                        @endif
+                        <label class="flex items-start gap-2 mt-3 p-2.5 bg-white border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-50 transition-colors">
+                            <input type="checkbox" id="checkConfirmaDocumentos" 
+                                   class="mt-0.5 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
+                            <span class="text-xs font-medium text-amber-900 leading-relaxed">
+                                Confirmo que já inseri ou irei inserir os documentos necessários no processo vinculado a esta Ordem de Serviço.
+                            </span>
+                        </label>
+                        <p id="erroCheckDocumentos" class="hidden mt-1.5 text-xs text-red-600 font-medium">
+                            ⚠️ Você deve confirmar antes de finalizar a atividade.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- Aviso geral --}}
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
                 <p class="text-xs text-blue-800">
                     <strong>💡 Informação:</strong> Ao finalizar sua atividade, ela será marcada como concluída. 

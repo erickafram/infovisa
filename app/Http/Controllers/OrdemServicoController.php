@@ -1326,6 +1326,14 @@ class OrdemServicoController extends Controller
         $atividades[$atividadeIndex]['finalizada_por'] = $usuario->id;
         $atividades[$atividadeIndex]['finalizada_em'] = now()->toISOString();
         $atividades[$atividadeIndex]['observacoes_finalizacao'] = $validated['observacoes'];
+
+        // Registra confirmação de documentos no processo (se a OS tem processo vinculado)
+        if ($ordemServico->processo_id && $request->boolean('confirmou_documentos')) {
+            $atividades[$atividadeIndex]['confirmou_documentos'] = true;
+            $atividades[$atividadeIndex]['confirmou_documentos_por'] = $usuario->id;
+            $atividades[$atividadeIndex]['confirmou_documentos_nome'] = $usuario->nome;
+            $atividades[$atividadeIndex]['confirmou_documentos_em'] = now()->toISOString();
+        }
         
         // Dados para atualizar na OS
         $dadosOS = ['atividades_tecnicos' => $atividades];

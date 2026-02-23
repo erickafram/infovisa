@@ -763,6 +763,12 @@ class DashboardController extends Controller
             $isVencido = $diasRestantes !== null && $diasRestantes < 0;
             $tiposAcao = $os->tiposAcao();
             
+            // Prazo de 15 dias após data_fim para finalizar a OS
+            $prazoFinalizacao = $os->data_fim ? $os->data_fim->copy()->addDays(15) : null;
+            $diasParaFinalizar = $prazoFinalizacao ? now()->startOfDay()->diffInDays($prazoFinalizacao->startOfDay(), false) : null;
+            $emFinalizacao = $isVencido && $diasParaFinalizar !== null && $diasParaFinalizar >= 0; // Passou data_fim mas ainda dentro dos 15 dias
+            $finalizacaoAtrasada = $diasParaFinalizar !== null && $diasParaFinalizar < 0; // Passou os 15 dias
+            
             $todasTarefas->push([
                 'tipo' => 'os',
                 'id' => $os->id,
@@ -772,7 +778,11 @@ class DashboardController extends Controller
                     ($tiposAcao && $tiposAcao->count() > 0 ? ' • ' . $tiposAcao->first()->descricao : ''),
                 'url' => route('admin.ordens-servico.show', $os),
                 'dias_restantes' => $diasRestantes,
-                'atrasado' => $isVencido,
+                'atrasado' => $finalizacaoAtrasada, // Atrasado = passou os 15 dias de finalização
+                'em_finalizacao' => $emFinalizacao, // Passou data_fim mas dentro dos 15 dias
+                'dias_para_finalizar' => $diasParaFinalizar,
+                'data_fim_formatada' => $os->data_fim ? $os->data_fim->format('d/m/Y') : null,
+                'prazo_finalizacao_formatado' => $prazoFinalizacao ? $prazoFinalizacao->format('d/m/Y') : null,
                 'ordem' => 0, // PRIORIDADE MÁXIMA
             ]);
         }
