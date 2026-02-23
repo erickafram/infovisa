@@ -145,7 +145,6 @@
                             <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Hoje</span>
                         @endif
                     </p>
-                    <p class="text-[10px] text-gray-500">{{ $anv->nivel_acesso?->label() ?? '-' }}</p>
                 </div>
                 <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">{{ $anv->dia_aniversario }}</span>
             </div>
