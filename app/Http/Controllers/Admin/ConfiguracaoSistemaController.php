@@ -15,6 +15,9 @@ class ConfiguracaoSistemaController extends Controller
     public function index()
     {
         $logomarcaEstadual = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
+        if ($logomarcaEstadual && $logomarcaEstadual->valor) {
+            $logomarcaEstadual->valor = ConfiguracaoSistema::normalizarCaminhoLogomarca($logomarcaEstadual->valor);
+        }
         
         // Configurações da IA
         $iaAtiva = ConfiguracaoSistema::where('chave', 'ia_ativa')->first();

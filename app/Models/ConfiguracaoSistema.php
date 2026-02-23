@@ -44,6 +44,40 @@ class ConfiguracaoSistema extends Model
      */
     public static function logomarcaEstadual()
     {
-        return self::obter('logomarca_estadual');
+        return self::normalizarCaminhoLogomarca(self::obter('logomarca_estadual'));
+    }
+
+    /**
+     * Normaliza caminhos de logomarca para formato público esperado (storage/...)
+     */
+    public static function normalizarCaminhoLogomarca(?string $valor): ?string
+    {
+        if (empty($valor)) {
+            return null;
+        }
+
+        $valor = trim($valor);
+
+        if (str_starts_with($valor, 'http://') || str_starts_with($valor, 'https://') || str_starts_with($valor, 'data:')) {
+            return $valor;
+        }
+
+        if (str_starts_with($valor, '/storage/')) {
+            return ltrim($valor, '/');
+        }
+
+        if (str_starts_with($valor, 'storage/')) {
+            return $valor;
+        }
+
+        if (str_starts_with($valor, 'sistema/logomarcas/')) {
+            return 'storage/' . $valor;
+        }
+
+        if (!str_contains($valor, '/')) {
+            return 'storage/sistema/logomarcas/' . $valor;
+        }
+
+        return 'storage/' . ltrim($valor, '/');
     }
 }
