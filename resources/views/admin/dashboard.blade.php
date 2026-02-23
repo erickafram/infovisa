@@ -140,7 +140,7 @@
             <div class="px-3 py-1.5 flex items-center justify-between {{ $anv->eh_hoje ? 'bg-green-50/60' : '' }}">
                 <div class="min-w-0">
                     <p class="text-xs font-medium text-gray-900 truncate">
-                        {{ $anv->nome }}
+                        {{ Str::words($anv->nome, 2, '') }}
                         @if($anv->eh_hoje)
                             <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Hoje</span>
                         @endif
