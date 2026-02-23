@@ -201,19 +201,19 @@
     @endif
 
     {{-- Stats Cards --}}
-    <div id="tour-stats-cards" class="grid grid-cols-3 gap-3">
+    <div id="tour-stats-cards" class="grid grid-cols-3 gap-2">
         {{-- Para Mim --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-2 px-3 py-2">
+                <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Minhas demandas</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $stats['para_mim_total'] ?? 0 }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Minhas demandas</p>
+                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ $stats['para_mim_total'] ?? 0 }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-3 text-[11px]">
+            <div class="px-3 py-1 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-2 text-[10px]">
                 <span class="flex items-center gap-1 text-blue-600">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     <span class="font-semibold">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS
@@ -227,17 +227,17 @@
         </div>
 
         {{-- Meu Setor --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-2 px-3 py-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Meu Setor</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Meu Setor</p>
+                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-3 text-[11px]">
+            <div class="px-3 py-1 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-2 text-[10px]">
                 <span class="flex items-center gap-1 text-purple-600">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span class="font-semibold">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</span> aprovações
@@ -251,17 +251,17 @@
         </div>
 
         {{-- Cadastros Pendentes --}}
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-600 transition">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group">
+            <div class="flex items-center gap-2 px-3 py-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-600 transition">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cadastros Pendentes</p>
-                    <p class="text-2xl font-bold text-gray-900 leading-tight">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Cadastros Pendentes</p>
+                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
                 </div>
             </div>
-            <div class="px-4 py-1.5 bg-amber-50/80 border-t border-amber-100/60 flex items-center gap-1 text-[11px] text-amber-600">
+            <div class="px-3 py-1 bg-amber-50/80 border-t border-amber-100/60 flex items-center gap-1 text-[10px] text-amber-600">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Aguardando aprovação
                 <svg class="w-3 h-3 ml-auto text-gray-300 group-hover:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
