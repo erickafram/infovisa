@@ -91,16 +91,32 @@ php artisan view:clear
 sudo systemctl restart httpd
 sudo systemctl restart php-fpm
 
-SE DER ERRO TENTE ESSE
+
+-- SUBIR PARA GIT
+git add .
+git commit -m "Implementação de questionários dinâmicos e override de competência"
+git push -u origin main
+
+
+ESSE É FUNCIONANDO
 cd /var/www/html/infovisa
-sudo chown -R $USER:$USER /var/www/html/infovisa/ .git/
-git pull origin main
-php composer.phar install --no-dev --optimize-autoloader --ignore-platform-reqs
+sudo chown -R $USER:$USER /var/www/html/infovisa .git
+git pull --ff-only origin main
+
+composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan view:clear
-sudo php artisan config:cache && sudo chown apache:apache bootstrap/cache/config.php
+php artisan optimize:clear
+php artisan config:cache
 npm run build
-sudo chown -R apache:apache /var/www/html/infovisa/ && sudo chmod -R 775 /var/www/html/infovisa/storage/ /var/www/html/infovisa/bootstrap/cache/
+
+# permissões só onde precisa
+sudo chown -R apache:apache storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
+
+# garantir link da logo
+[ -L public/storage ] || sudo ln -s ../storage/app/public public/storage
+sudo chown -h apache:apache public/storage
+
 sudo systemctl restart httpd php-fpm
 
 
