@@ -13,6 +13,40 @@ use Illuminate\Support\Facades\Http;
 class EstabelecimentoController extends Controller
 {
     /**
+     * Busca CNAEs pactuados por código ou descrição (autocomplete para inclusão manual)
+     */
+    public function buscarCnaesPactuacao(Request $request)
+    {
+        if (!auth('interno')->check() || !auth('interno')->user()->isAdmin()) {
+            abort(403, 'Apenas administradores podem buscar CNAEs manualmente.');
+        }
+
+        $query = trim((string) $request->input('q', ''));
+
+        if (mb_strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        $queryLimpo = preg_replace('/[^0-9]/', '', $query);
+
+        $resultados = Pactuacao::where('ativo', true)
+            ->where(function ($q) use ($query, $queryLimpo) {
+                $q->where('cnae_descricao', 'ilike', '%' . $query . '%');
+
+                if (!empty($queryLimpo)) {
+                    $q->orWhereRaw("regexp_replace(cnae_codigo, '[^0-9]', '', 'g') like ?", ["%{$queryLimpo}%"]);
+                }
+            })
+            ->select('cnae_codigo as codigo', 'cnae_descricao as descricao')
+            ->distinct()
+            ->orderBy('cnae_codigo')
+            ->limit(30)
+            ->get();
+
+        return response()->json($resultados);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -849,9 +883,59 @@ class EstabelecimentoController extends Controller
         if (!empty($validated['atividades_exercidas'])) {
             $atividades = json_decode($validated['atividades_exercidas'], true);
         }
+
+        if (!is_array($atividades)) {
+            $atividades = [];
+        }
+
+        $podeGerenciarCnaeManual = auth('interno')->check() && auth('interno')->user()->isAdmin();
+
+        // Mantém apenas estrutura esperada e identifica atividades manuais
+        $atividades = collect($atividades)
+            ->filter(fn($atividade) => is_array($atividade) && !empty($atividade['codigo']))
+            ->map(function ($atividade) use ($podeGerenciarCnaeManual) {
+                return [
+                    'codigo' => (string) ($atividade['codigo'] ?? ''),
+                    'descricao' => (string) ($atividade['descricao'] ?? ''),
+                    'principal' => (bool) ($atividade['principal'] ?? false),
+                    'manual' => $podeGerenciarCnaeManual ? (bool) ($atividade['manual'] ?? false) : false,
+                ];
+            })
+            ->values()
+            ->all();
+
+        // Persiste CNAEs manuais também em cnaes_secundarios para reaparecer na tela
+        $cnaesSecundariosAtuais = is_array($estabelecimento->cnaes_secundarios)
+            ? $estabelecimento->cnaes_secundarios
+            : [];
+
+        $cnaesSecundariosNaoManuais = collect($cnaesSecundariosAtuais)
+            ->filter(fn($cnae) => is_array($cnae) && empty($cnae['manual']))
+            ->values()
+            ->all();
+
+        $cnaesManuaisSelecionados = collect($atividades)
+            ->filter(fn($atividade) => !empty($atividade['manual']))
+            ->map(function ($atividade) {
+                return [
+                    'codigo' => $atividade['codigo'],
+                    'descricao' => $atividade['descricao'],
+                    'manual' => true,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $cnaesSecundariosFinal = collect(array_merge($cnaesSecundariosNaoManuais, $cnaesManuaisSelecionados))
+            ->unique(function ($cnae) {
+                return preg_replace('/[^0-9]/', '', (string) ($cnae['codigo'] ?? ''));
+            })
+            ->values()
+            ->all();
         
         $estabelecimento->update([
-            'atividades_exercidas' => $atividades
+            'atividades_exercidas' => $atividades,
+            'cnaes_secundarios' => $cnaesSecundariosFinal,
         ]);
         
         $estabelecimento->touch();

@@ -211,6 +211,9 @@
                                         <span x-show="atividade.tipo === 'principal'">⭐ Principal</span>
                                         <span x-show="atividade.tipo === 'secundaria'">Secundária</span>
                                     </span>
+                                    <span x-show="atividade.manual" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                        Manual
+                                    </span>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-gray-100 text-gray-800" 
                                           x-text="atividade.codigo"></span>
                                 </div>
@@ -227,6 +230,55 @@
                 </svg>
                 <p class="mt-2 text-sm text-gray-500">Nenhuma atividade encontrada na API da Receita Federal.</p>
                 <p class="mt-1 text-xs text-gray-400">Verifique se o CNPJ está correto ou tente novamente mais tarde.</p>
+            </div>
+            @endif
+
+            @if(auth('interno')->check() && auth('interno')->user()->isAdmin())
+            {{-- Busca Manual de CNAE via Pactuação --}}
+            <div class="mt-6 bg-white border-2 border-dashed border-blue-300 rounded-lg p-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <h4 class="text-base font-semibold text-blue-800">Adicionar Atividade Manualmente</h4>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">
+                    Busque CNAEs cadastrados na pactuação e adicione manualmente para este estabelecimento.
+                </p>
+
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <input type="text"
+                               x-model="cnaeBusca"
+                               @keydown.enter.prevent="buscarCnaeAdicional"
+                               placeholder="Digite código CNAE ou descrição"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p x-show="cnaeErro" class="absolute text-xs text-red-600 mt-1" x-text="cnaeErro"></p>
+                    </div>
+                    <button type="button"
+                            @click="buscarCnaeAdicional"
+                            :disabled="loadingCnae"
+                            class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                        <span x-show="!loadingCnae">Buscar</span>
+                        <span x-show="loadingCnae">Buscando...</span>
+                    </button>
+                </div>
+
+                <div x-show="cnaeResultados.length > 0" class="mt-4 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                    <template x-for="resultado in cnaeResultados" :key="resultado.codigo + '_' + resultado.descricao">
+                        <div class="flex items-start justify-between p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                            <div>
+                                <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full" x-text="resultado.codigo"></span>
+                                <p class="text-sm text-gray-800 mt-1" x-text="resultado.descricao"></p>
+                            </div>
+                            <button type="button"
+                                    @click="adicionarCnaeManual(resultado)"
+                                    class="ml-3 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white border border-blue-200 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors">
+                                Adicionar
+                            </button>
+                        </div>
+                    </template>
+                </div>
             </div>
             @endif
         </div>
@@ -301,6 +353,10 @@ function atividadesForm() {
         atividadesSelecionadas: [],
         competenciaEstadual: false,
         atividadesEstaduais: [],
+        cnaeBusca: '',
+        cnaeResultados: [],
+        cnaeErro: '',
+        loadingCnae: false,
 
         init() {
             // Inicializa com as atividades já salvas
@@ -313,7 +369,8 @@ function atividadesForm() {
                 this.atividadesSelecionadas = atividadesSalvas.map(a => ({
                     codigo: a.codigo,
                     descricao: a.descricao,
-                    principal: a.principal || false
+                    principal: a.principal || false,
+                    manual: a.manual || false
                 }));
             }
             
@@ -407,7 +464,8 @@ function atividadesForm() {
                 this.atividadesSelecionadas.push({
                     codigo: atividade.codigo,
                     descricao: atividade.descricao,
-                    principal: atividade.tipo === 'principal'
+                    principal: atividade.tipo === 'principal',
+                    manual: !!atividade.manual
                 });
             }
             
@@ -416,6 +474,83 @@ function atividadesForm() {
 
         getAtividadesJSON() {
             return JSON.stringify(this.atividadesSelecionadas);
+        },
+
+        async buscarCnaeAdicional() {
+            if (!this.cnaeBusca || this.cnaeBusca.trim().length < 3) {
+                this.cnaeErro = 'Digite pelo menos 3 caracteres para buscar';
+                return;
+            }
+
+            this.cnaeErro = '';
+            this.loadingCnae = true;
+            this.cnaeResultados = [];
+
+            try {
+                const termoBusca = this.cnaeBusca.trim();
+
+                if (/^\d+$/.test(termoBusca)) {
+                    const response = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/${termoBusca}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.id) {
+                            this.cnaeResultados = [{
+                                codigo: data.id,
+                                descricao: data.descricao
+                            }];
+                        }
+                    }
+                } else {
+                    const response = await fetch(`{{ route('admin.estabelecimentos.buscar-cnaes') }}?q=${encodeURIComponent(termoBusca)}`);
+                    if (response.ok) {
+                        this.cnaeResultados = await response.json();
+                    } else {
+                        this.cnaeErro = 'Erro ao buscar CNAE';
+                    }
+                }
+
+                if (this.cnaeResultados.length === 0 && !this.cnaeErro) {
+                    this.cnaeErro = 'Nenhum CNAE encontrado';
+                }
+            } catch (error) {
+                console.error('Erro na busca manual de CNAE:', error);
+                this.cnaeErro = 'Erro ao buscar CNAE';
+            } finally {
+                this.loadingCnae = false;
+            }
+        },
+
+        adicionarCnaeManual(cnae) {
+            const codigo = String(cnae.codigo || '').trim();
+            if (!codigo) {
+                return;
+            }
+
+            const codigoNormalizado = codigo.replace(/[^0-9]/g, '');
+
+            const existeDisponiveis = this.atividadesDisponiveis.some(a => String(a.codigo || '').replace(/[^0-9]/g, '') === codigoNormalizado);
+            if (!existeDisponiveis) {
+                this.atividadesDisponiveis.unshift({
+                    codigo: cnae.codigo,
+                    descricao: cnae.descricao || '',
+                    tipo: 'secundaria',
+                    manual: true
+                });
+            }
+
+            const existeSelecionadas = this.atividadesSelecionadas.some(a => String(a.codigo || '').replace(/[^0-9]/g, '') === codigoNormalizado);
+            if (!existeSelecionadas) {
+                this.atividadesSelecionadas.push({
+                    codigo: cnae.codigo,
+                    descricao: cnae.descricao || '',
+                    principal: false,
+                    manual: true
+                });
+            }
+
+            this.cnaeBusca = '';
+            this.cnaeResultados = [];
+            this.cnaeErro = '';
         }
     }
 }

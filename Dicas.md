@@ -98,10 +98,18 @@ git commit -m "Implementação de questionários dinâmicos e override de compet
 git push -u origin main
 
 
-ESSE É FUNCIONANDO
+ESSE É FUNCIONANDO (SEM SOBRESCREVER .env)
 cd /var/www/html/infovisa
+
+# backup rápido do .env antes do pull
+cp .env /tmp/infovisa.env.bak
+
+# pull seguro
 sudo chown -R $USER:$USER /var/www/html/infovisa .git
 git pull --ff-only origin main
+
+# se por algum motivo o .env mudar, restaura automaticamente
+cmp -s .env /tmp/infovisa.env.bak || cp /tmp/infovisa.env.bak .env
 
 composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 php artisan migrate --force
@@ -118,6 +126,9 @@ sudo chmod -R 775 storage bootstrap/cache
 sudo chown -h apache:apache public/storage
 
 sudo systemctl restart httpd php-fpm
+
+# conferência opcional: .env NÃO deve ser versionado
+git ls-files .env
 
 
 -- SUBIR PARA GIT
