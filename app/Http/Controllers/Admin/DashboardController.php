@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\NivelAcesso;
 use App\Models\UsuarioExterno;
 use App\Models\UsuarioInterno;
 use App\Models\Estabelecimento;
@@ -216,11 +217,21 @@ class DashboardController extends Controller
         $escopoAniversariantes = 'Geral';
 
         if ($usuario->isEstadual()) {
-            $aniversariantesQuery->whereIn('nivel_acesso', ['gestor_estadual', 'tecnico_estadual']);
+            $aniversariantesQuery->whereIn('nivel_acesso', [
+                NivelAcesso::GestorEstadual->value,
+                NivelAcesso::TecnicoEstadual->value,
+                NivelAcesso::Administrador->value,
+            ]);
             $escopoAniversariantes = 'Estadual';
         } elseif ($usuario->isMunicipal()) {
-            $aniversariantesQuery->whereIn('nivel_acesso', ['gestor_municipal', 'tecnico_municipal'])
-                ->where('municipio_id', $usuario->municipio_id);
+            $aniversariantesQuery->where(function ($q) use ($usuario) {
+                $q->where(function ($q2) use ($usuario) {
+                    $q2->whereIn('nivel_acesso', [
+                        NivelAcesso::GestorMunicipal->value,
+                        NivelAcesso::TecnicoMunicipal->value,
+                    ])->where('municipio_id', $usuario->municipio_id);
+                })->orWhere('nivel_acesso', NivelAcesso::Administrador->value);
+            });
             $escopoAniversariantes = $usuario->municipio ?? 'Município';
         }
 
