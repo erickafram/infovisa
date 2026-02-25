@@ -173,7 +173,7 @@ class OrdemServicoController extends Controller
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
-            'atividades_tecnicos' => 'required|json',
+            'atividades_tecnicos' => 'nullable|json',
             'observacoes' => 'nullable|string',
             'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
@@ -210,10 +210,10 @@ class OrdemServicoController extends Controller
         $validated = $request->validate($rules, $messages);
         
         // Processa e valida a estrutura de atividades com técnicos
-        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'], true);
+        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'] ?? '[]', true);
         
-        if (!is_array($atividadesTecnicos) || empty($atividadesTecnicos)) {
-            return back()->withErrors(['atividades_tecnicos' => 'Atribua técnicos para todas as atividades selecionadas.'])->withInput();
+        if (!is_array($atividadesTecnicos)) {
+            return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos por atividade inválida.'])->withInput();
         }
         
         // Valida se todos os técnicos existem e têm permissão
@@ -222,6 +222,17 @@ class OrdemServicoController extends Controller
             if (!isset($atividade['tecnicos']) || !is_array($atividade['tecnicos'])) {
                 return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos inválida.'])->withInput();
             }
+
+            if (!empty($atividade['tecnicos'])) {
+                if (!isset($atividade['responsavel_id']) || !$atividade['responsavel_id']) {
+                    return back()->withErrors(['atividades_tecnicos' => 'Defina um responsável para cada atividade com técnicos atribuídos.'])->withInput();
+                }
+
+                if (!in_array((int) $atividade['responsavel_id'], array_map('intval', $atividade['tecnicos']), true)) {
+                    return back()->withErrors(['atividades_tecnicos' => 'O responsável deve estar na lista de técnicos da atividade.'])->withInput();
+                }
+            }
+
             $tecnicosIds = array_merge($tecnicosIds, $atividade['tecnicos']);
         }
         
@@ -441,7 +452,7 @@ class OrdemServicoController extends Controller
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
-            'atividades_tecnicos' => 'required|json',
+            'atividades_tecnicos' => 'nullable|json',
             'observacoes' => 'nullable|string',
             'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
@@ -462,10 +473,10 @@ class OrdemServicoController extends Controller
         ]);
         
         // Processa e valida a estrutura de atividades com técnicos
-        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'], true);
+        $atividadesTecnicos = json_decode($validated['atividades_tecnicos'] ?? '[]', true);
         
-        if (!is_array($atividadesTecnicos) || empty($atividadesTecnicos)) {
-            return back()->withErrors(['atividades_tecnicos' => 'Atribua técnicos para todas as atividades selecionadas.'])->withInput();
+        if (!is_array($atividadesTecnicos)) {
+            return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos por atividade inválida.'])->withInput();
         }
         
         // Valida se todos os técnicos existem e têm permissão
@@ -474,6 +485,17 @@ class OrdemServicoController extends Controller
             if (!isset($atividade['tecnicos']) || !is_array($atividade['tecnicos'])) {
                 return back()->withErrors(['atividades_tecnicos' => 'Estrutura de técnicos inválida.'])->withInput();
             }
+
+            if (!empty($atividade['tecnicos'])) {
+                if (!isset($atividade['responsavel_id']) || !$atividade['responsavel_id']) {
+                    return back()->withErrors(['atividades_tecnicos' => 'Defina um responsável para cada atividade com técnicos atribuídos.'])->withInput();
+                }
+
+                if (!in_array((int) $atividade['responsavel_id'], array_map('intval', $atividade['tecnicos']), true)) {
+                    return back()->withErrors(['atividades_tecnicos' => 'O responsável deve estar na lista de técnicos da atividade.'])->withInput();
+                }
+            }
+
             $tecnicosIds = array_merge($tecnicosIds, $atividade['tecnicos']);
         }
         
@@ -1401,9 +1423,13 @@ class OrdemServicoController extends Controller
         // Valida os dados
         $validated = $request->validate([
             'atividade_index' => 'required|integer|min:0',
-            'status_execucao' => 'required|in:concluido,parcial,nao_concluido',
-            'observacoes' => 'required|string|min:10|max:1000',
+            'status_execucao' => 'nullable|in:concluido,parcial,nao_concluido',
+            'observacoes' => 'nullable|string|max:1000',
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'execucao_estabelecimentos' => 'nullable|array',
+            'execucao_estabelecimentos.*.estabelecimento_id' => 'required|integer|exists:estabelecimentos,id',
+            'execucao_estabelecimentos.*.executada' => 'required|boolean',
+            'execucao_estabelecimentos.*.justificativa' => 'nullable|string|max:1000',
         ], [
             'atividade_index.required' => 'Índice da atividade é obrigatório.',
             'status_execucao.required' => 'Selecione o status da execução.',
@@ -1450,13 +1476,120 @@ class OrdemServicoController extends Controller
                 'message' => 'Esta atividade já foi finalizada.'
             ], 400);
         }
+
+        // Determina os estabelecimentos afetados pela atividade
+        $todosEstabelecimentosOs = $ordemServico->getTodosEstabelecimentos();
+        $atividadeEstabelecimentoId = $atividade['estabelecimento_id'] ?? null;
+
+        if (!empty($atividadeEstabelecimentoId)) {
+            $estabelecimentosAtividade = $todosEstabelecimentosOs->where('id', (int) $atividadeEstabelecimentoId)->values();
+        } else {
+            $estabelecimentosAtividade = $todosEstabelecimentosOs->values();
+        }
+
+        // Controle de execução por estabelecimento
+        $execucaoEstabelecimentos = [];
+        $statusExecucaoFinal = $validated['status_execucao'] ?? null;
+        $observacoesFinalizacao = trim((string) ($validated['observacoes'] ?? ''));
+
+        if ($estabelecimentosAtividade->count() > 1) {
+            $execucaoPayload = collect($validated['execucao_estabelecimentos'] ?? []);
+
+            if ($execucaoPayload->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Informe a execução da atividade para cada estabelecimento.'
+                ], 422);
+            }
+
+            $idsEsperados = $estabelecimentosAtividade->pluck('id')->map(fn($id) => (int) $id)->sort()->values();
+            $idsRecebidos = $execucaoPayload->pluck('estabelecimento_id')->map(fn($id) => (int) $id)->sort()->values();
+
+            if ($idsEsperados->toJson() !== $idsRecebidos->toJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'É obrigatório informar a execução para todos os estabelecimentos vinculados à atividade.'
+                ], 422);
+            }
+
+            foreach ($execucaoPayload as $item) {
+                $estId = (int) ($item['estabelecimento_id'] ?? 0);
+                $executada = filter_var($item['executada'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                $executada = $executada === null ? false : $executada;
+                $justificativa = trim((string) ($item['justificativa'] ?? ''));
+
+                if (!$executada && mb_strlen($justificativa) < 10) {
+                    $nomeEst = optional($estabelecimentosAtividade->firstWhere('id', $estId))->nome_fantasia
+                        ?? optional($estabelecimentosAtividade->firstWhere('id', $estId))->nome_razao_social
+                        ?? "ID {$estId}";
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Informe justificativa (mínimo 10 caracteres) para o estabelecimento {$nomeEst}."
+                    ], 422);
+                }
+
+                $est = $estabelecimentosAtividade->firstWhere('id', $estId);
+                $execucaoEstabelecimentos[] = [
+                    'estabelecimento_id' => $estId,
+                    'estabelecimento_nome' => $est?->nome_fantasia ?? $est?->nome_razao_social,
+                    'executada' => $executada,
+                    'justificativa' => $executada ? null : $justificativa,
+                ];
+            }
+
+            $executadasCount = collect($execucaoEstabelecimentos)->where('executada', true)->count();
+            if ($executadasCount === 0) {
+                $statusExecucaoFinal = 'nao_concluido';
+            } elseif ($executadasCount === count($execucaoEstabelecimentos)) {
+                $statusExecucaoFinal = 'concluido';
+            } else {
+                $statusExecucaoFinal = 'parcial';
+            }
+
+            // Observação geral opcional para múltiplos estabelecimentos
+            if (empty($observacoesFinalizacao)) {
+                $observacoesFinalizacao = 'Finalização por estabelecimento registrada.';
+            }
+        } elseif ($estabelecimentosAtividade->count() === 1) {
+            // Para atividade de estabelecimento único, mantém regra antiga
+            if (empty($statusExecucaoFinal)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selecione o status da execução.'
+                ], 422);
+            }
+
+            if (mb_strlen($observacoesFinalizacao) < 10) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Informe as observações da atividade (mínimo 10 caracteres).'
+                ], 422);
+            }
+
+            $est = $estabelecimentosAtividade->first();
+            $execucaoEstabelecimentos[] = [
+                'estabelecimento_id' => $est->id,
+                'estabelecimento_nome' => $est->nome_fantasia ?? $est->nome_razao_social,
+                'executada' => $statusExecucaoFinal !== 'nao_concluido',
+                'justificativa' => $statusExecucaoFinal === 'nao_concluido' ? $observacoesFinalizacao : null,
+            ];
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não há estabelecimentos vinculados para esta atividade.'
+            ], 422);
+        }
         
         // Atualiza o status da atividade
         $atividades[$atividadeIndex]['status'] = 'finalizada';
-        $atividades[$atividadeIndex]['status_execucao'] = $validated['status_execucao'];
+        $atividades[$atividadeIndex]['status_execucao'] = $statusExecucaoFinal;
         $atividades[$atividadeIndex]['finalizada_por'] = $usuario->id;
         $atividades[$atividadeIndex]['finalizada_em'] = now()->toISOString();
-        $atividades[$atividadeIndex]['observacoes_finalizacao'] = $validated['observacoes'];
+        $atividades[$atividadeIndex]['observacoes_finalizacao'] = $observacoesFinalizacao;
+        if (!empty($execucaoEstabelecimentos)) {
+            $atividades[$atividadeIndex]['execucao_estabelecimentos'] = $execucaoEstabelecimentos;
+        }
 
         // Registra confirmação de documentos no processo (se a OS tem processo vinculado)
         if ($ordemServico->processo_id && $request->boolean('confirmou_documentos')) {

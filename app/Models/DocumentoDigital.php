@@ -36,6 +36,8 @@ class DocumentoDigital extends Model
         'prazo_finalizado_em',
         'prazo_finalizado_por',
         'prazo_finalizado_motivo',
+        'processos_ids',
+        'os_id',
     ];
 
     protected $casts = [
@@ -47,6 +49,7 @@ class DocumentoDigital extends Model
         'data_vencimento' => 'date',
         'prazo_iniciado_em' => 'datetime',
         'prazo_finalizado_em' => 'datetime',
+        'processos_ids' => 'array',
     ];
 
     /**
@@ -107,6 +110,34 @@ class DocumentoDigital extends Model
     public function processo()
     {
         return $this->belongsTo(Processo::class);
+    }
+
+    /**
+     * Relacionamento com OS de origem
+     */
+    public function ordemServico()
+    {
+        return $this->belongsTo(\App\Models\OrdemServico::class, 'os_id');
+    }
+
+    /**
+     * Verifica se é um documento em lote (multi-processo)
+     */
+    public function isLote(): bool
+    {
+        return !empty($this->processos_ids) && count($this->processos_ids) > 1;
+    }
+
+    /**
+     * Retorna os processos vinculados ao lote
+     */
+    public function processosLote()
+    {
+        if (!$this->isLote()) {
+            return collect();
+        }
+
+        return Processo::with('estabelecimento')->whereIn('id', $this->processos_ids)->get();
     }
 
     /**

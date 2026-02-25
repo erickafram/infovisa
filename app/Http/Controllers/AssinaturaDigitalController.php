@@ -96,7 +96,7 @@ class AssinaturaDigitalController extends Controller
                     ->with('warning', 'Você precisa configurar sua senha de assinatura digital primeiro.');
             }
 
-            $documento = DocumentoDigital::with(['tipoDocumento', 'processo.estabelecimento'])
+            $documento = DocumentoDigital::with(['tipoDocumento', 'processo.estabelecimento', 'ordemServico'])
                 ->findOrFail($documentoId);
 
             // Verifica se o usuário está na lista de assinantes
@@ -248,17 +248,29 @@ class AssinaturaDigitalController extends Controller
                 
                 // Atualiza status do documento para "assinado"
                 $documento->status = 'assinado';
+                $documento->finalizado_em = now();
                 $documento->save();
 
-                // Gerar PDF com as assinaturas
-                $this->gerarPdfComAssinaturas($documento);
+                // Verifica se é documento em lote (múltiplos processos)
+                if ($documento->isLote()) {
+                    // Fan-out: distribui para todos os processos vinculados
+                    $documentoController = app(\App\Http\Controllers\DocumentoDigitalController::class);
+                    $documentoController->executarDistribuicaoLote($documento);
+                } else {
+                    // Documento único: gera PDF com assinaturas
+                    $this->gerarPdfComAssinaturas($documento);
+                }
             }
+
+            $isLote = $documento->isLote();
+            $mensagem = 'Documento assinado com sucesso!'
+                . ($todasAssinadas && $isLote ? ' O documento foi distribuído para ' . count($documento->processos_ids) . ' processos vinculados.' : '');
 
             // Retorna JSON se for requisição AJAX
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true, 
-                    'message' => 'Documento assinado com sucesso!',
+                    'message' => $mensagem,
                     'todas_assinadas' => $todasAssinadas
                 ]);
             }
@@ -266,7 +278,7 @@ class AssinaturaDigitalController extends Controller
             // Redireciona para a lista de documentos pendentes
             return redirect()
                 ->route('admin.documentos.index')
-                ->with('success', 'Documento assinado com sucesso!');
+                ->with('success', $mensagem);
         } else {
             // Recusa o documento
             $assinatura->status = 'recusado';
@@ -286,6 +298,15 @@ class AssinaturaDigitalController extends Controller
                 ->route('admin.assinatura.pendentes')
                 ->with('info', 'Documento recusado.');
         }
+    }
+
+    /**
+     * Gera PDF do documento com assinaturas eletrônicas.
+     * Pode ser chamado externamente (ex: distribuição de documentos em lote).
+     */
+    public function gerarPdfAssinado(DocumentoDigital $documento)
+    {
+        return $this->gerarPdfComAssinaturas($documento);
     }
 
     /**
@@ -479,9 +500,16 @@ class AssinaturaDigitalController extends Controller
                     }
                     
                     $documento->status = 'assinado';
+                    $documento->finalizado_em = now();
                     $documento->save();
 
-                    $this->gerarPdfComAssinaturas($documento);
+                    // Verifica se é documento em lote (múltiplos processos)
+                    if ($documento->isLote()) {
+                        $documentoController = app(\App\Http\Controllers\DocumentoDigitalController::class);
+                        $documentoController->executarDistribuicaoLote($documento);
+                    } else {
+                        $this->gerarPdfComAssinaturas($documento);
+                    }
                 }
 
                 $assinados++;

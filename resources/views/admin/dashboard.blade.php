@@ -278,7 +278,7 @@
                 <div class="flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     <h3 class="text-sm font-semibold text-gray-800">Minhas demandas</h3>
-                    <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length || '0'"></span>
+                    <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'rascunho_lote').length || '0'"></span>
                 </div>
                 <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-gray-400 hover:text-blue-600 transition">ver todos</a>
             </div>
@@ -288,7 +288,7 @@
                         <svg class="animate-spin h-5 w-5 text-blue-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length > 0">
+                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'rascunho_lote').length > 0">
                     <div>
                         {{-- Ordens de Serviço --}}
                         <template x-if="tarefas.filter(t => t.tipo === 'os').length > 0">
@@ -343,14 +343,38 @@
                                             <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
                                             <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                         </div>
-                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Assinar</span>
+                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700" x-text="t.is_lote ? 'Lote' : 'Assinar'"></span>
+                                    </a>
+                                </template>
+                            </div>
+                        </template>
+
+                        {{-- Rascunhos em Lote (multi-processo) --}}
+                        <template x-if="tarefas.filter(t => t.tipo === 'rascunho_lote').length > 0">
+                            <div>
+                                <div class="px-3 py-1.5 bg-purple-50/60 border-b border-purple-100/60">
+                                    <span class="text-[11px] font-semibold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        Documentos em Lote (Rascunho)
+                                    </span>
+                                </div>
+                                <template x-for="t in tarefas.filter(t => t.tipo === 'rascunho_lote')" :key="'lote-' + t.id">
+                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50/50 transition">
+                                        <div class="w-6 h-6 rounded-md bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
+                                            <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
+                                        </div>
+                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Editar</span>
                                     </a>
                                 </template>
                             </div>
                         </template>
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura').length === 0">
+                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'rascunho_lote').length === 0">
                     <div class="p-6 text-center">
                         <svg class="w-8 h-8 text-green-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <p class="text-xs text-gray-400">Tudo em dia!</p>

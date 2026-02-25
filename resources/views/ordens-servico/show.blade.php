@@ -692,6 +692,34 @@
                                     </div>
                                 @endif
 
+                                @if($statusAtividade === 'finalizada' && !empty($atividade['execucao_estabelecimentos']) && is_array($atividade['execucao_estabelecimentos']))
+                                    <div class="mt-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                                        <p class="text-xs font-semibold text-gray-700 mb-2">Execução por estabelecimento</p>
+                                        <div class="space-y-2">
+                                            @foreach($atividade['execucao_estabelecimentos'] as $execEst)
+                                                @php
+                                                    $executadaEst = (bool)($execEst['executada'] ?? false);
+                                                @endphp
+                                                <div class="p-2 rounded border {{ $executadaEst ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' }}">
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <p class="text-xs font-medium {{ $executadaEst ? 'text-green-800' : 'text-red-800' }}">
+                                                            {{ $execEst['estabelecimento_nome'] ?? ('ID ' . ($execEst['estabelecimento_id'] ?? '-')) }}
+                                                        </p>
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded {{ $executadaEst ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                            {{ $executadaEst ? 'Executada' : 'Não executada' }}
+                                                        </span>
+                                                    </div>
+                                                    @if(!$executadaEst && !empty($execEst['justificativa']))
+                                                        <p class="text-xs text-red-700 mt-1">
+                                                            <span class="font-medium">Justificativa:</span> {{ $execEst['justificativa'] }}
+                                                        </p>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
                                 {{-- Confirmação de documentos no processo --}}
                                 @if($statusAtividade === 'finalizada' && !empty($atividade['confirmou_documentos']))
                                     <div class="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
@@ -937,8 +965,28 @@
 @endpush
 
 @push('scripts')
+@php
+    $estabelecimentosJs = $ordemServico->getTodosEstabelecimentos()
+        ->map(function ($est) use ($ordemServico) {
+            $processoId = $est->pivot->processo_id ?? null;
+            if (!$processoId && $ordemServico->estabelecimento_id == $est->id) {
+                $processoId = $ordemServico->processo_id;
+            }
+
+            return [
+                'id' => (int) $est->id,
+                'nome' => $est->nome_fantasia ?? $est->nome_razao_social,
+                'cnpj' => $est->cnpj_formatado ?? $est->cnpj ?? $est->cpf_cnpj ?? null,
+                'processo_id' => $processoId ? (int) $processoId : null,
+            ];
+        })
+        ->values()
+        ->all();
+@endphp
 <script>
     let estabelecimentoAtual = 0;
+    const atividadesTecnicosOs = @json($ordemServico->atividades_tecnicos ?? []);
+    const estabelecimentosOs = @json($estabelecimentosJs);
 
     function exibirEstabelecimento(indice) {
         const cards = document.querySelectorAll('.estabelecimento-slide');
@@ -1060,6 +1108,20 @@
         const selectEstab = document.getElementById('estabelecimento_id_atividade');
         if (selectEstab) selectEstab.value = '';
 
+        const atividade = atividadesTecnicosOs[parseInt(index)];
+        const estabelecimentosAtividade = obterEstabelecimentosDaAtividade(atividade);
+        const isMulti = estabelecimentosAtividade.length > 1;
+
+        const statusWrap = document.getElementById('status-execucao-wrap');
+        const observacoesWrap = document.getElementById('observacoes-wrap');
+        const btnCriarDoc = document.getElementById('btnCriarDocumentoExecutados');
+
+        if (statusWrap) statusWrap.classList.toggle('hidden', isMulti);
+        if (observacoesWrap) observacoesWrap.classList.toggle('hidden', isMulti);
+        if (btnCriarDoc) btnCriarDoc.classList.toggle('hidden', !isMulti);
+
+        renderizarExecucaoPorEstabelecimento(index);
+
         // Reseta checkbox e erro de confirmação de documentos
         const checkDoc = document.getElementById('checkConfirmaDocumentos');
         if (checkDoc) {
@@ -1073,6 +1135,74 @@
         document.body.style.overflow = 'hidden';
     }
 
+    function obterEstabelecimentosDaAtividade(atividade) {
+        if (!atividade) return [];
+
+        const estAtividadeId = atividade.estabelecimento_id ? parseInt(atividade.estabelecimento_id) : null;
+        if (estAtividadeId) {
+            return estabelecimentosOs.filter(est => parseInt(est.id) === estAtividadeId);
+        }
+
+        return estabelecimentosOs;
+    }
+
+    function renderizarExecucaoPorEstabelecimento(index) {
+        const wrap = document.getElementById('execucao-estabelecimentos-wrap');
+        const container = document.getElementById('execucao-estabelecimentos-container');
+        if (!wrap || !container) return;
+
+        const atividade = atividadesTecnicosOs[parseInt(index)];
+        const estabelecimentos = obterEstabelecimentosDaAtividade(atividade);
+
+        container.innerHTML = '';
+
+        if (!estabelecimentos || estabelecimentos.length <= 1) {
+            wrap.classList.add('hidden');
+            return;
+        }
+
+        wrap.classList.remove('hidden');
+
+        estabelecimentos.forEach((est) => {
+            const bloco = document.createElement('div');
+            bloco.className = 'border border-gray-200 rounded-lg p-3 bg-gray-50';
+            bloco.innerHTML = `
+                <div class="mb-2">
+                    <p class="text-sm font-semibold text-gray-900">${est.nome || 'Estabelecimento'}</p>
+                    ${est.cnpj ? `<p class="text-xs text-gray-500">${est.cnpj}</p>` : ''}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                    <label class="flex items-center gap-2 p-2 bg-white border border-green-200 rounded cursor-pointer">
+                        <input type="radio" name="execucao_estab_${est.id}" value="sim" class="execucao-estab-radio" data-est-id="${est.id}">
+                        <span class="text-sm text-green-700 font-medium">Executada</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 bg-white border border-red-200 rounded cursor-pointer">
+                        <input type="radio" name="execucao_estab_${est.id}" value="nao" class="execucao-estab-radio" data-est-id="${est.id}">
+                        <span class="text-sm text-red-700 font-medium">Não executada</span>
+                    </label>
+                </div>
+                <div class="hidden" id="justificativa-wrap-${est.id}">
+                    <textarea id="justificativa-estab-${est.id}" rows="2" class="w-full px-3 py-2 text-sm border border-red-300 rounded focus:ring-2 focus:ring-red-500" placeholder="Justifique por que não foi executada neste estabelecimento..."></textarea>
+                    <p class="text-xs text-red-600 mt-1">Justificativa obrigatória (mínimo 10 caracteres).</p>
+                </div>
+            `;
+            container.appendChild(bloco);
+        });
+
+        container.querySelectorAll('.execucao-estab-radio').forEach((radio) => {
+            radio.addEventListener('change', function() {
+                const estId = this.dataset.estId;
+                const justificativaWrap = document.getElementById(`justificativa-wrap-${estId}`);
+                if (!justificativaWrap) return;
+                justificativaWrap.classList.toggle('hidden', this.value !== 'nao');
+                if (this.value !== 'nao') {
+                    const textarea = document.getElementById(`justificativa-estab-${estId}`);
+                    if (textarea) textarea.value = '';
+                }
+            });
+        });
+    }
+
     // Função para fechar modal de finalizar atividade
     function fecharModalFinalizarAtividade() {
         document.getElementById('modalFinalizarAtividade').classList.add('hidden');
@@ -1084,18 +1214,51 @@
         const index = document.getElementById('atividadeIndex').value;
         const observacoes = document.getElementById('observacoes_atividade').value;
         const btnFinalizar = document.getElementById('btnFinalizarAtividade');
+        const atividade = atividadesTecnicosOs[parseInt(index)];
+        const estabelecimentosAtividade = obterEstabelecimentosDaAtividade(atividade);
+        const isMulti = estabelecimentosAtividade.length > 1;
         
-        // Valida status de execução
-        const statusSelecionado = document.querySelector('input[name="status_execucao"]:checked');
-        if (!statusSelecionado) {
-            alert('⚠️ Selecione o status da execução.');
-            return;
+        // Para estabelecimento único mantém validações antigas
+        let statusSelecionado = document.querySelector('input[name="status_execucao"]:checked');
+        if (!isMulti) {
+            if (!statusSelecionado) {
+                alert('⚠️ Selecione o status da execução.');
+                return;
+            }
+            if (!observacoes || observacoes.trim().length < 10) {
+                alert('⚠️ Informe as observações (mínimo 10 caracteres).');
+                return;
+            }
         }
-        
-        // Valida observações
-        if (!observacoes || observacoes.trim().length < 10) {
-            alert('⚠️ Informe as observações (mínimo 10 caracteres).');
-            return;
+
+        let execucaoEstabelecimentosPayload = [];
+        if (estabelecimentosAtividade.length > 1) {
+            for (const est of estabelecimentosAtividade) {
+                const selecionado = document.querySelector(`input[name="execucao_estab_${est.id}"]:checked`);
+                if (!selecionado) {
+                    alert(`⚠️ Informe se a atividade foi executada no estabelecimento ${est.nome}.`);
+                    return;
+                }
+
+                const executada = selecionado.value === 'sim';
+                let justificativa = null;
+
+                if (!executada) {
+                    const txt = document.getElementById(`justificativa-estab-${est.id}`);
+                    justificativa = (txt?.value || '').trim();
+                    if (justificativa.length < 10) {
+                        alert(`⚠️ Informe justificativa (mínimo 10 caracteres) para ${est.nome}.`);
+                        txt?.focus();
+                        return;
+                    }
+                }
+
+                execucaoEstabelecimentosPayload.push({
+                    estabelecimento_id: est.id,
+                    executada: executada,
+                    justificativa: justificativa,
+                });
+            }
         }
 
         // Valida checkbox de confirmação de documentos (se existir — só aparece quando OS tem processo)
@@ -1126,10 +1289,11 @@
                 },
                 body: JSON.stringify({
                     atividade_index: index,
-                    status_execucao: statusSelecionado.value,
-                    observacoes: observacoes,
+                    status_execucao: isMulti ? null : statusSelecionado.value,
+                    observacoes: isMulti ? null : observacoes,
                     estabelecimento_id: estabelecimentoId,
-                    confirmou_documentos: document.getElementById('checkConfirmaDocumentos')?.checked || false
+                    confirmou_documentos: document.getElementById('checkConfirmaDocumentos')?.checked || false,
+                    execucao_estabelecimentos: execucaoEstabelecimentosPayload
                 })
             });
 
@@ -1164,6 +1328,37 @@
         const btnFinalizar = document.getElementById('btnFinalizarAtividade');
         btnFinalizar.disabled = false;
         btnFinalizar.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar';
+    }
+
+    function abrirCriacaoDocumentoParaExecutados() {
+        const index = document.getElementById('atividadeIndex').value;
+        const atividade = atividadesTecnicosOs[parseInt(index)];
+        const estabelecimentosAtividade = obterEstabelecimentosDaAtividade(atividade);
+
+        if (estabelecimentosAtividade.length <= 1) {
+            alert('Esta opção está disponível apenas para atividade com múltiplos estabelecimentos.');
+            return;
+        }
+
+        const processosIds = [];
+        for (const est of estabelecimentosAtividade) {
+            const selecionado = document.querySelector(`input[name="execucao_estab_${est.id}"]:checked`);
+            if (selecionado && selecionado.value === 'sim') {
+                if (est.processo_id) {
+                    processosIds.push(parseInt(est.processo_id));
+                }
+            }
+        }
+
+        const processosUnicos = [...new Set(processosIds)];
+        if (processosUnicos.length === 0) {
+            alert('Marque pelo menos um estabelecimento como "Executada" para criar documento digital nos processos correspondentes.');
+            return;
+        }
+
+        const baseUrl = '{{ route("admin.documentos.create") }}';
+        const url = `${baseUrl}?processos_ids=${encodeURIComponent(processosUnicos.join(','))}&os_id={{ $ordemServico->id }}`;
+        window.open(url, '_blank');
     }
 
     // Aplica textos prontos nas observacoes
@@ -1304,7 +1499,7 @@
 
 {{-- Modal Finalizar Atividade Individual --}}
 <div id="modalFinalizarAtividade" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[85vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
         {{-- Header Clean --}}
         <div class="sticky top-0 bg-white px-6 py-4 border-b border-gray-100">
             <div class="text-center">
@@ -1328,7 +1523,7 @@
             <input type="hidden" id="atividadeIndex" name="atividade_index" value="">
             
             {{-- Status de Execução --}}
-            <div>
+            <div id="status-execucao-wrap">
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     Status da execução <span class="text-red-500">*</span>
                 </label>
@@ -1348,8 +1543,19 @@
                 </div>
             </div>
 
+            {{-- Execução por estabelecimento (somente quando atividade é geral com múltiplos estabelecimentos) --}}
+            <div id="execucao-estabelecimentos-wrap" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Execução por estabelecimento <span class="text-red-500">*</span>
+                </label>
+                <p class="text-xs text-gray-500 mb-2">
+                    Marque em quais estabelecimentos esta atividade foi executada. Para os não executados, informe justificativa.
+                </p>
+                <div id="execucao-estabelecimentos-container" class="space-y-2"></div>
+            </div>
+
             {{-- Observações --}}
-            <div>
+            <div id="observacoes-wrap">
                 <label for="observacoes_atividade" class="block text-sm font-medium text-gray-700 mb-2">
                     Observações <span class="text-red-500">*</span>
                 </label>
@@ -1381,40 +1587,76 @@
                 <p class="mt-1.5 text-xs text-gray-400">Mínimo de 10 caracteres</p>
             </div>
 
-            {{-- Aviso sobre documentos no processo (só aparece se OS tem processo vinculado) --}}
-            @if($ordemServico->processo_id)
-            <div id="avisoDocumentosProcesso" class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
-                <div class="flex items-start gap-3">
-                    <svg class="w-6 h-6 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-6a1 1 0 00-1 1v2a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            {{-- Documentos nos Processos Vinculados --}}
+            @php
+                $processosVinculadosIds = $ordemServico->getTodosEstabelecimentos()
+                    ->pluck('pivot.processo_id')
+                    ->filter()
+                    ->map(fn($id) => (int) $id)
+                    ->unique()
+                    ->values();
+
+                if ($processosVinculadosIds->isEmpty() && $ordemServico->processo_id) {
+                    $processosVinculadosIds = collect([(int) $ordemServico->processo_id]);
+                }
+
+                $processosVinculadosAviso = \App\Models\Processo::with('estabelecimento')
+                    ->whereIn('id', $processosVinculadosIds)
+                    ->get();
+
+                $temMultiplosProcessos = $processosVinculadosAviso->count() > 1;
+            @endphp
+            @if($processosVinculadosAviso->count() > 0)
+            <div id="avisoDocumentosProcesso" class="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                {{-- Header da seção --}}
+                <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <div class="flex-1">
-                        <h4 class="text-sm font-bold text-amber-900 mb-1">Você já inseriu os documentos necessários no processo?</h4>
-                        <p class="text-xs text-amber-800 leading-relaxed">
-                            Após finalizar esta atividade, você deve garantir que todos os documentos 
-                            (Termo de Vistoria, Relatório de Inspeção, etc.) foram inseridos no processo vinculado a esta OS.
-                        </p>
-                        @if($ordemServico->estabelecimento_id)
-                        <a href="{{ route('admin.estabelecimentos.processos.show', [$ordemServico->estabelecimento_id, $ordemServico->processo_id]) }}"
-                           target="_blank"
-                           class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                            Abrir Processo Vinculado
-                        </a>
-                        @endif
-                        <label class="flex items-start gap-2 mt-3 p-2.5 bg-white border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-50 transition-colors">
-                            <input type="checkbox" id="checkConfirmaDocumentos" 
-                                   class="mt-0.5 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
-                            <span class="text-xs font-medium text-amber-900 leading-relaxed">
-                                Confirmo que já inseri ou irei inserir os documentos necessários no processo vinculado a esta Ordem de Serviço.
-                            </span>
-                        </label>
-                        <p id="erroCheckDocumentos" class="hidden mt-1.5 text-xs text-red-600 font-medium">
-                            ⚠️ Você deve confirmar antes de finalizar a atividade.
-                        </p>
+                    <h4 class="text-sm font-semibold text-gray-800">Documentos nos Processos</h4>
+                </div>
+
+                <div class="px-4 py-3 space-y-3">
+                    {{-- Links dos processos --}}
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($processosVinculadosAviso as $procAviso)
+                            @if($procAviso->estabelecimento_id)
+                            <a href="{{ route('admin.estabelecimentos.processos.show', [$procAviso->estabelecimento_id, $procAviso->id]) }}"
+                               target="_blank"
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                                {{ $procAviso->numero_processo ?? ('Processo #' . $procAviso->id) }}
+                            </a>
+                            @endif
+                        @endforeach
                     </div>
+
+                    {{-- Botão criar documento (visível apenas para multi-estabelecimento, controlado via JS) --}}
+                    <button type="button"
+                            id="btnCriarDocumentoExecutados"
+                            onclick="abrirCriacaoDocumentoParaExecutados()"
+                            class="hidden w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-lg hover:bg-indigo-100 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Criar Documento Digital para Executados
+                    </button>
+
+                    {{-- Checkbox de confirmação --}}
+                    <label class="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-100/60 transition-colors">
+                        <input type="checkbox" id="checkConfirmaDocumentos" 
+                               class="mt-0.5 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
+                        <span class="text-xs font-medium text-amber-900 leading-relaxed">
+                            {{ $temMultiplosProcessos
+                                ? 'Confirmo que já inseri ou irei inserir os documentos em todos os processos vinculados.'
+                                : 'Confirmo que já inseri ou irei inserir os documentos no processo vinculado.' }}
+                        </span>
+                    </label>
+                    <p id="erroCheckDocumentos" class="hidden text-xs text-red-600 font-medium -mt-2">
+                        ⚠️ Você deve confirmar antes de finalizar a atividade.
+                    </p>
                 </div>
             </div>
             @endif
@@ -1422,26 +1664,26 @@
             {{-- Aviso geral --}}
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
                 <p class="text-xs text-blue-800">
-                    <strong>💡 Informação:</strong> Ao finalizar sua atividade, ela será marcada como concluída. 
-                    A OS será automaticamente finalizada quando todas as atividades forem concluídas por seus respectivos técnicos.
+                    <strong>💡</strong> Ao finalizar sua atividade, ela será marcada como concluída. 
+                    A OS será automaticamente finalizada quando todas as atividades forem concluídas.
                 </p>
             </div>
 
-            {{-- Botões Centralizados --}}
-            <div class="flex items-center justify-center gap-3 pt-2">
+            {{-- Botões de ação --}}
+            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
                 <button type="button" 
                         onclick="fecharModalFinalizarAtividade()"
-                        class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                        class="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
                     Cancelar
                 </button>
                 <button type="button" 
                         id="btnFinalizarAtividade"
                         onclick="confirmarFinalizarAtividade()"
-                        class="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm hover:shadow transition-all">
+                        class="inline-flex items-center justify-center gap-2 px-8 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm hover:shadow transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Finalizar
+                    Finalizar Atividade
                 </button>
             </div>
         </form>

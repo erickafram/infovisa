@@ -137,6 +137,23 @@
                 <span class="text-gray-900 font-medium">Novo Documento</span>
             </div>
             
+            @if(isset($processosSelecionados) && $processosSelecionados->count() > 1)
+                <div class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p class="text-sm font-semibold text-purple-800 mb-1">Criação em lote para múltiplos processos</p>
+                    <p class="text-xs text-purple-700 mb-2">Este documento será criado em {{ $processosSelecionados->count() }} processos selecionados.</p>
+                    <div class="space-y-1">
+                        @foreach($processosSelecionados as $procSel)
+                            <p class="text-xs text-purple-700">
+                                • {{ $procSel->numero_processo ?? ('Processo #' . $procSel->id) }}
+                                @if($procSel->estabelecimento)
+                                    — {{ $procSel->estabelecimento->nome_fantasia ?? $procSel->estabelecimento->razao_social }}
+                                @endif
+                            </p>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             @if(isset($processo))
                 <div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,8 +167,16 @@
     <form id="formDocumento" method="POST" action="{{ route('admin.documentos.store') }}" @submit="handleSubmit">
         @csrf
         
-        @if(isset($processo))
+        @if(isset($processosSelecionados) && $processosSelecionados->count() > 0)
+            @foreach($processosSelecionados as $procSel)
+                <input type="hidden" name="processos_ids[]" value="{{ $procSel->id }}">
+            @endforeach
+        @elseif(isset($processo))
             <input type="hidden" name="processo_id" value="{{ $processo->id }}">
+        @endif
+
+        @if(isset($osId) && $osId)
+            <input type="hidden" name="os_id" value="{{ $osId }}">
         @endif
         
         {{-- Campo hidden para a ação (rascunho ou finalizar) --}}
@@ -833,7 +858,7 @@ function documentoEditor() {
         confirmandoFinalizacao: false,
         contadorErros: 0,
         timeoutVerificacao: null,
-        chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id", "novo") }}',
+        chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id") ?: (request()->get("processos_ids") ?: "novo") }}',
         // Campos de prazo
         temPrazo: false,
         prazoDias: null,

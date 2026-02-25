@@ -75,6 +75,30 @@
                     <span class="font-medium">{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}</span>
                 </div>
             @endif
+
+            {{-- Banner Documento em Lote --}}
+            @if($documento->isLote())
+            <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-purple-900">Documento em Lote — {{ count($documento->processos_ids) }} processos</h4>
+                        <p class="text-xs text-purple-700 mt-0.5">
+                            Ao finalizar e assinar, este documento será distribuído automaticamente para todos os processos vinculados.
+                        </p>
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            @foreach($documento->processosLote() as $procLote)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-purple-700 bg-purple-100 rounded">
+                                    {{ $procLote->numero_processo }} — {{ $procLote->estabelecimento->nome_fantasia ?? '' }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
             
             {{-- Aviso sobre edição --}}
             @if($documento->assinaturas->where('status', 'assinado')->count() === 0)

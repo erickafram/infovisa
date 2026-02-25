@@ -838,15 +838,43 @@ class DashboardController extends Controller
 
         // 2º PRIORIDADE: Documentos pendentes de assinatura
         foreach($assinaturas as $ass) {
+            $doc = $ass->documentoDigital;
+            $isLote = $doc && !empty($doc->processos_ids) && count($doc->processos_ids) > 1;
             $todasTarefas->push([
                 'tipo' => 'assinatura',
-                'id' => $ass->documentoDigital->id,
-                'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
-                'subtitulo' => 'Assinatura • ' . $ass->created_at->diffForHumans(),
-                'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                'id' => $doc->id,
+                'titulo' => ($doc->tipoDocumento->nome ?? 'Documento') . ($isLote ? ' (Lote)' : ''),
+                'subtitulo' => $isLote
+                    ? 'Lote p/ ' . count($doc->processos_ids) . ' processos • ' . $ass->created_at->diffForHumans()
+                    : 'Assinatura • ' . $ass->created_at->diffForHumans(),
+                'url' => route('admin.assinatura.assinar', $doc->id),
                 'badge' => null,
                 'atrasado' => false,
+                'is_lote' => $isLote,
                 'ordem' => 1, // SEGUNDA PRIORIDADE - Assinaturas
+            ]);
+        }
+
+        // 2.5º PRIORIDADE: Documentos em lote (rascunho) criados pelo usuário
+        $documentosLoteRascunho = \App\Models\DocumentoDigital::where('usuario_criador_id', $usuario->id)
+            ->where('status', 'rascunho')
+            ->whereNotNull('processos_ids')
+            ->with('tipoDocumento')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(fn($d) => !empty($d->processos_ids) && count($d->processos_ids) > 1);
+
+        foreach ($documentosLoteRascunho as $docLote) {
+            $todasTarefas->push([
+                'tipo' => 'rascunho_lote',
+                'id' => $docLote->id,
+                'titulo' => ($docLote->tipoDocumento->nome ?? 'Documento') . ' (Lote)',
+                'subtitulo' => 'Rascunho p/ ' . count($docLote->processos_ids) . ' processos • ' . $docLote->created_at->diffForHumans(),
+                'url' => route('admin.documentos.edit', $docLote->id),
+                'badge' => 'Rascunho',
+                'atrasado' => false,
+                'is_lote' => true,
+                'ordem' => 1, // Mesma prioridade que assinaturas
             ]);
         }
 
@@ -1266,19 +1294,50 @@ class DashboardController extends Controller
 
         // 2º PRIORIDADE: Documentos pendentes de assinatura
         foreach($assinaturas as $ass) {
+            $doc = $ass->documentoDigital;
+            $isLote = $doc && !empty($doc->processos_ids) && count($doc->processos_ids) > 1;
             $todasTarefasCompleta->push([
                 'tipo' => 'assinatura',
-                'id' => $ass->documentoDigital->id,
-                'titulo' => $ass->documentoDigital->tipoDocumento->nome ?? 'Documento',
-                'subtitulo' => $ass->documentoDigital->processo->estabelecimento->nome_fantasia ?? 
-                               $ass->documentoDigital->processo->estabelecimento->razao_social ?? 'Estabelecimento',
-                'numero_processo' => $ass->documentoDigital->processo->numero_processo ?? null,
-                'url' => route('admin.assinatura.assinar', $ass->documentoDigital->id),
+                'id' => $doc->id,
+                'titulo' => ($doc->tipoDocumento->nome ?? 'Documento') . ($isLote ? ' (Lote)' : ''),
+                'subtitulo' => $isLote
+                    ? 'Lote p/ ' . count($doc->processos_ids) . ' processos'
+                    : ($doc->processo->estabelecimento->nome_fantasia ??
+                       $doc->processo->estabelecimento->razao_social ?? 'Estabelecimento'),
+                'numero_processo' => $doc->processo->numero_processo ?? null,
+                'url' => route('admin.assinatura.assinar', $doc->id),
                 'badge' => null,
                 'atrasado' => false,
+                'is_lote' => $isLote,
                 'ordem' => 1,
                 'data' => $ass->created_at->format('d/m/Y H:i'),
                 'created_at' => $ass->created_at,
+                'grupo' => 'para_mim',
+            ]);
+        }
+
+        // 2.5º PRIORIDADE: Documentos em lote (rascunho) criados pelo usuário
+        $documentosLoteRascunhoTodos = \App\Models\DocumentoDigital::where('usuario_criador_id', $usuario->id)
+            ->where('status', 'rascunho')
+            ->whereNotNull('processos_ids')
+            ->with('tipoDocumento')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(fn($d) => !empty($d->processos_ids) && count($d->processos_ids) > 1);
+
+        foreach ($documentosLoteRascunhoTodos as $docLote) {
+            $todasTarefasCompleta->push([
+                'tipo' => 'rascunho_lote',
+                'id' => $docLote->id,
+                'titulo' => ($docLote->tipoDocumento->nome ?? 'Documento') . ' (Lote)',
+                'subtitulo' => 'Rascunho p/ ' . count($docLote->processos_ids) . ' processos',
+                'url' => route('admin.documentos.edit', $docLote->id),
+                'badge' => 'Rascunho',
+                'atrasado' => false,
+                'is_lote' => true,
+                'ordem' => 1,
+                'data' => $docLote->created_at->format('d/m/Y H:i'),
+                'created_at' => $docLote->created_at,
                 'grupo' => 'para_mim',
             ]);
         }
@@ -1334,6 +1393,7 @@ class DashboardController extends Controller
         // Contadores GLOBAIS (sempre completos, independente do filtro ativo)
         $osCount = $todasTarefasCompleta->where('tipo', 'os')->count();
         $assinaturaCount = $todasTarefasCompleta->where('tipo', 'assinatura')->count();
+        $rascunhoLoteCount = $todasTarefasCompleta->where('tipo', 'rascunho_lote')->count();
         $aprovacaoCount = $todasTarefasCompleta->where('tipo', 'aprovacao')->count();
         $respostaCount = $todasTarefasCompleta->where('tipo', 'resposta')->count();
         $contadores = [
@@ -1341,17 +1401,18 @@ class DashboardController extends Controller
             'aprovacao' => $aprovacaoCount,
             'resposta' => $respostaCount,
             'assinatura' => $assinaturaCount,
+            'rascunho_lote' => $rascunhoLoteCount,
             'os' => $osCount,
-            'para_mim' => $osCount + $assinaturaCount,
+            'para_mim' => $osCount + $assinaturaCount + $rascunhoLoteCount,
             'setor' => $aprovacaoCount + $respostaCount,
         ];
 
         // Aplicar filtro
         $todasTarefas = match($filtro) {
-            'para_mim' => $todasTarefasCompleta->whereIn('tipo', ['os', 'assinatura']),
+            'para_mim' => $todasTarefasCompleta->whereIn('tipo', ['os', 'assinatura', 'rascunho_lote']),
             'setor' => $todasTarefasCompleta->whereIn('tipo', ['aprovacao', 'resposta']),
             'os' => $todasTarefasCompleta->where('tipo', 'os'),
-            'assinatura' => $todasTarefasCompleta->where('tipo', 'assinatura'),
+            'assinatura' => $todasTarefasCompleta->whereIn('tipo', ['assinatura', 'rascunho_lote']),
             'aprovacao' => $todasTarefasCompleta->where('tipo', 'aprovacao'),
             'resposta' => $todasTarefasCompleta->where('tipo', 'resposta'),
             default => $todasTarefasCompleta,

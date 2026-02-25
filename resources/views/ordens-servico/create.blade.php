@@ -990,7 +990,7 @@
         }
 
         // Selecionar processo para um estabelecimento específico
-        function selecionarProcessoEstabelecimento(estId, processoId) {
+        window.selecionarProcessoEstabelecimento = function(estId, processoId) {
             const hiddenInput = document.getElementById(`processo-hidden-est-${estId}`);
             if (hiddenInput) {
                 hiddenInput.value = processoId;
@@ -1004,7 +1004,7 @@
             if (estabelecimentosSelecionados.length > 0 && estabelecimentosSelecionados[0].id == estId) {
                 document.getElementById('processo_id').value = processoId;
             }
-        }
+        };
 
         // Carregar processos de um estabelecimento específico (por card)
         function carregarProcessosEstabelecimento(estId, processoIdPreSelecionado) {
@@ -1226,10 +1226,16 @@
                 atividadeDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="font-medium text-gray-900">${tituloAtividade}</h4>
-                        <button type="button" onclick="abrirModalTecnicosAtividade('${atividade.id}', '${atividade.nome.replace(/'/g, "\\'")}')" 
-                                class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">
-                            ${tecnicosAtribuidos.responsavel ? 'Editar' : 'Atribuir'} Técnicos
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="abrirModalTecnicosAtividade('${atividade.id}', '${atividade.nome.replace(/'/g, "\\'")}')" 
+                                    class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">
+                                ${tecnicosAtribuidos.responsavel ? 'Editar' : 'Atribuir'} Técnicos
+                            </button>
+                            <button type="button" onclick="if(confirm('Remover este tipo de ação?')) removerTipoAcao('${atividade.id}')"
+                                    class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors">
+                                Remover
+                            </button>
+                        </div>
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
                         <p><span class="font-medium">Responsável:</span> ${responsavelNome}</p>
@@ -1505,6 +1511,32 @@
         confirmarTiposAcao();
 
         document.querySelector('form').addEventListener('submit', function(e) {
+            // Validação explícita de período
+            const dataInicio = document.getElementById('data_inicio');
+            const dataFim = document.getElementById('data_fim');
+            if (!dataInicio?.value) {
+                e.preventDefault();
+                alert('Informe a Data de Início da Ordem de Serviço.');
+                dataInicio?.focus();
+                dataInicio?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            if (!dataFim?.value) {
+                e.preventDefault();
+                alert('Informe a Data de Término da Ordem de Serviço.');
+                dataFim?.focus();
+                dataFim?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Validação explícita de tipos de ação
+            if (atividadesSelecionadas.length === 0) {
+                e.preventDefault();
+                alert('Selecione pelo menos um Tipo de Ação para criar a Ordem de Serviço.');
+                document.getElementById('tipos-acao-display')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
             // Validação: pelo menos 1 estabelecimento selecionado quando "com estabelecimento"
             if (comEstabelecimentoRadio.checked && estabelecimentosSelecionados.length === 0) {
                 e.preventDefault();
@@ -1528,23 +1560,6 @@
                 }
             }
             
-            // Validação de técnicos por atividade
-            if (atividadesSelecionadas.length > 0) {
-                let atividadesSemTecnicos = [];
-                
-                atividadesSelecionadas.forEach(atividade => {
-                    const tecnicosAtribuidos = atividadesTecnicos[atividade.id];
-                    if (!tecnicosAtribuidos || !tecnicosAtribuidos.responsavel) {
-                        atividadesSemTecnicos.push(atividade.nome);
-                    }
-                });
-                
-                if (atividadesSemTecnicos.length > 0) {
-                    e.preventDefault();
-                    alert('As seguintes atividades não possuem técnicos atribuídos:\n\n' + atividadesSemTecnicos.join('\n') + '\n\nAtribua técnicos para todas as atividades antes de continuar.');
-                    return;
-                }
-            }
         });
 
         // Pré-seleção de estabelecimento e processo (quando vindo de um processo)

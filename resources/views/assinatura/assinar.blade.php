@@ -11,12 +11,30 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Voltar
             </a>
-            <h1 class="text-xl font-bold text-gray-900">Assinatura Digital</h1>
-            <p class="text-sm text-gray-500 mt-1">Revise e assine o documento digitalmente</p>
+            <h1 class="text-xl font-bold text-gray-900">
+                @if($documento->isLote())
+                    Assinatura em Lote
+                @else
+                    Assinatura Digital
+                @endif
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">
+                @if($documento->isLote())
+                    Este documento será aplicado a {{ count($documento->processos_ids) }} processos após todas as assinaturas
+                @else
+                    Revise e assine o documento digitalmente
+                @endif
+            </p>
         </div>
-        <span class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 rounded-lg border border-yellow-200">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-            Pendente de Assinatura
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border
+            {{ $documento->isLote() ? 'text-purple-700 bg-purple-50 border-purple-200' : 'text-yellow-700 bg-yellow-50 border-yellow-200' }}">
+            @if($documento->isLote())
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Lote • {{ count($documento->processos_ids) }} processos
+            @else
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                Pendente de Assinatura
+            @endif
         </span>
     </div>
 
@@ -35,7 +53,39 @@
                 </div>
             </div>
 
-            @if($documento->processo)
+            @if($documento->isLote())
+            {{-- Info Lote --}}
+            <div class="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <span class="text-sm font-semibold text-purple-800">Documento em Lote — {{ count($documento->processos_ids) }} processos vinculados</span>
+                </div>
+                <p class="text-xs text-purple-600 mb-3">Ao assinar, este documento será distribuído automaticamente para todos os processos listados abaixo.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    @foreach($documento->processosLote() as $proc)
+                    <a href="{{ route('admin.estabelecimentos.processos.show', [$proc->estabelecimento_id, $proc->id]) }}" 
+                       class="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-sm transition group">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-purple-700 group-hover:text-purple-900">{{ $proc->numero_processo ?? 'S/N' }}</p>
+                            <p class="text-[11px] text-gray-500 truncate">{{ $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? 'N/A' }}</p>
+                        </div>
+                        <svg class="w-3.5 h-3.5 text-gray-300 group-hover:text-purple-500 flex-shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                    @endforeach
+                </div>
+                @if($documento->os_id)
+                <div class="mt-3 pt-3 border-t border-purple-200">
+                    <a href="{{ route('admin.ordens-servico.show', $documento->os_id) }}" class="inline-flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-medium transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Ordem de Serviço #{{ $documento->ordemServico->numero ?? $documento->os_id }}
+                    </a>
+                </div>
+                @endif
+            </div>
+            @elseif($documento->processo)
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                     <p class="text-xs text-gray-500 mb-1">Processo</p>
@@ -105,9 +155,14 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     Visualizar Documento
                 </button>
-                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition shadow-sm">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition shadow-sm
+                    {{ $documento->isLote() ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Assinar Documento
+                    @if($documento->isLote())
+                        Assinar Documento em Lote
+                    @else
+                        Assinar Documento
+                    @endif
                 </button>
             </div>
             

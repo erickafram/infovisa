@@ -188,6 +188,11 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 </template>
+                                <template x-if="t.tipo === 'rascunho_lote'">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </template>
                             </div>
 
                             {{-- Conteúdo --}}
@@ -198,10 +203,10 @@
                                           :class="{
                                               'bg-blue-100 text-blue-700': t.tipo === 'os',
                                               'bg-amber-100 text-amber-700': t.tipo === 'assinatura',
-                                              'bg-purple-100 text-purple-700': t.tipo === 'aprovacao',
+                                              'bg-purple-100 text-purple-700': t.tipo === 'aprovacao' || t.tipo === 'rascunho_lote',
                                               'bg-green-100 text-green-700': t.tipo === 'resposta'
                                           }"
-                                          x-text="{'os': 'Ordem de Serviço', 'assinatura': 'Assinatura', 'aprovacao': 'Aprovação', 'resposta': 'Resposta'}[t.tipo]"></span>
+                                          x-text="{'os': 'Ordem de Serviço', 'assinatura': 'Assinatura', 'aprovacao': 'Aprovação', 'resposta': 'Resposta', 'rascunho_lote': 'Rascunho Lote'}[t.tipo]"></span>
                                     <template x-if="t.tipo_processo">
                                         <span class="text-[10px] px-2 py-0.5 rounded font-medium"
                                               :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
@@ -209,6 +214,9 @@
                                     </template>
                                     <template x-if="t.numero_processo">
                                         <span class="text-xs text-gray-500" x-text="t.numero_processo"></span>
+                                    </template>
+                                    <template x-if="t.is_lote">
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Lote</span>
                                     </template>
                                 </div>
                                 <p class="text-sm font-medium text-gray-900" x-text="t.titulo"></p>
@@ -347,7 +355,7 @@ function todasTarefas() {
             this.filtro = value;
             this.currentPage = 1;
 
-            if (['para_mim', 'os', 'assinatura'].includes(value)) {
+            if (['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(value)) {
                 this.scope = 'para_mim';
             } else if (['setor', 'aprovacao', 'resposta'].includes(value)) {
                 this.scope = 'setor';
@@ -363,7 +371,7 @@ function todasTarefas() {
 
             if (value === 'todos') {
                 this.filtro = 'todos';
-            } else if (value === 'para_mim' && !['para_mim', 'os', 'assinatura'].includes(this.filtro)) {
+            } else if (value === 'para_mim' && !['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(this.filtro)) {
                 this.filtro = 'para_mim';
             } else if (value === 'setor' && !['setor', 'aprovacao', 'resposta'].includes(this.filtro)) {
                 this.filtro = 'setor';
@@ -385,13 +393,14 @@ function todasTarefas() {
             ];
 
             if (this.scope === 'todos') return base;
-            if (this.scope === 'para_mim') return base.filter(i => ['para_mim', 'os', 'assinatura'].includes(i.value));
+            if (this.scope === 'para_mim') return base.filter(i => ['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(i.value));
             return base.filter(i => ['setor', 'aprovacao', 'resposta'].includes(i.value));
         },
 
         typeButtonClass(value) {
             if (value === 'os') return this.filtro === value ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100';
             if (value === 'assinatura') return this.filtro === value ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100';
+            if (value === 'rascunho_lote') return this.filtro === value ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100';
             if (value === 'aprovacao') return this.filtro === value ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100';
             if (value === 'resposta') return this.filtro === value ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100';
             if (value === 'para_mim') return this.filtro === value ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100';
@@ -424,6 +433,7 @@ function todasTarefas() {
             if (t.tipo === 'assinatura') return 'bg-amber-100';
             if (t.tipo === 'os') return t.atrasado ? 'bg-red-100' : (t.em_finalizacao ? 'bg-amber-100' : 'bg-blue-100');
             if (t.tipo === 'resposta') return t.atrasado ? 'bg-red-100' : 'bg-green-100';
+            if (t.tipo === 'rascunho_lote') return 'bg-purple-100';
             return t.atrasado ? 'bg-red-100' : 'bg-purple-100';
         },
 

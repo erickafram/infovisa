@@ -137,14 +137,40 @@ class DocumentoDigitalController extends Controller
         $processoId = $request->get('processo_id');
         $processo = null;
 
-        if ($processoId) {
+        $processosIds = $request->input('processos_ids', []);
+        if (is_string($processosIds)) {
+            $processosIds = array_filter(array_map('trim', explode(',', $processosIds)));
+        }
+        $processosIds = collect($processosIds)
+            ->map(fn($id) => (int) $id)
+            ->filter(fn($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $processosSelecionados = collect();
+        if (!empty($processosIds)) {
+            $processosSelecionados = \App\Models\Processo::with('estabelecimento.municipioRelacionado')
+                ->whereIn('id', $processosIds)
+                ->get();
+        }
+
+        if ($processosSelecionados->isNotEmpty()) {
+            $processo = $processosSelecionados->first();
+        } elseif ($processoId) {
             $processo = \App\Models\Processo::with('estabelecimento.municipioRelacionado')->find($processoId);
+            if ($processo) {
+                $processosSelecionados = collect([$processo]);
+                $processosIds = [$processo->id];
+            }
         }
 
         // Determina qual logomarca usar
         $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
 
-        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca'));
+        $osId = $request->get('os_id');
+
+        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId'));
     }
 
     /**
@@ -224,6 +250,10 @@ class DocumentoDigitalController extends Controller
             'assinaturas.*' => 'exists:usuarios_internos,id',
             'prazo_dias' => 'nullable|integer|min:1',
             'tipo_prazo' => 'nullable|in:corridos,uteis',
+            'processo_id' => 'nullable|exists:processos,id',
+            'processos_ids' => 'nullable|array',
+            'processos_ids.*' => 'exists:processos,id',
+            'os_id' => 'nullable|exists:ordens_servico,id',
         ]);
 
         try {
@@ -232,16 +262,21 @@ class DocumentoDigitalController extends Controller
             // Busca o tipo de documento para pegar o nome
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
             
-            // Busca o processo e estabelecimento se existir
-            $processo = null;
-            $estabelecimento = null;
-            if ($request->processo_id) {
-                $processo = \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])->find($request->processo_id);
-                $estabelecimento = $processo?->estabelecimento;
+            $processosIds = collect($request->input('processos_ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter(fn($id) => $id > 0)
+                ->unique()
+                ->values();
+
+            if ($processosIds->isEmpty() && $request->processo_id) {
+                $processosIds = collect([(int) $request->processo_id]);
             }
-            
-            // Substitui as variáveis no conteúdo
-            $conteudoProcessado = $this->substituirVariaveis($request->conteudo, $estabelecimento, $processo);
+
+            $processosDestino = $processosIds->isNotEmpty()
+                ? \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])
+                    ->whereIn('id', $processosIds)
+                    ->get()
+                : collect();
             
             // Calcula data de vencimento se prazo foi informado
             $dataVencimento = null;
@@ -271,62 +306,143 @@ class DocumentoDigitalController extends Controller
                 }
             }
             
-            $documento = DocumentoDigital::create([
-                'tipo_documento_id' => $request->tipo_documento_id,
-                'processo_id' => $request->processo_id,
-                'usuario_criador_id' => Auth::guard('interno')->user()->id,
-                'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
-                'nome' => $tipoDocumento->nome, // Nome do tipo de documento
-                'conteudo' => $conteudoProcessado, // Usa conteúdo com variáveis substituídas
-                'sigiloso' => $request->sigiloso ?? false,
-                'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
-                'prazo_dias' => $request->prazo_dias,
-                'tipo_prazo' => $tipoPrazo,
-                'data_vencimento' => $dataVencimento,
-                'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false, // Herda do tipo de documento
-            ]);
+            $isLote = $processosIds->count() > 1;
 
-            // Criar assinaturas
-            foreach ($request->assinaturas as $index => $usuarioId) {
-                DocumentoAssinatura::create([
-                    'documento_digital_id' => $documento->id,
-                    'usuario_interno_id' => $usuarioId,
-                    'ordem' => $index + 1,
-                    'obrigatoria' => true,
-                    'status' => 'pendente',
+            // ===================================================
+            // LOTE (multi-processo): cria UM documento vinculado a
+            // todos os processos. O fan-out acontece na assinatura.
+            // ===================================================
+            if ($isLote) {
+                $primeiroProcesso = $processosDestino->first();
+
+                $documento = DocumentoDigital::create([
+                    'tipo_documento_id' => $request->tipo_documento_id,
+                    'processo_id'       => $primeiroProcesso?->id,
+                    'processos_ids'     => $processosIds->all(),
+                    'os_id'             => $request->os_id,
+                    'usuario_criador_id' => Auth::guard('interno')->user()->id,
+                    'numero_documento'  => DocumentoDigital::gerarNumeroDocumento(),
+                    'nome'              => $tipoDocumento->nome,
+                    'conteudo'          => $request->conteudo, // sem substituição — será feita no fan-out
+                    'sigiloso'          => $request->sigiloso ?? false,
+                    'status'            => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
+                    'prazo_dias'        => $request->prazo_dias,
+                    'tipo_prazo'        => $tipoPrazo,
+                    'data_vencimento'   => $dataVencimento,
+                    'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false,
                 ]);
-            }
 
-            // Salva a primeira versão do documento
-            $documento->salvarVersao(
-                Auth::guard('interno')->user()->id,
-                $conteudoProcessado, // Usa conteúdo com variáveis substituídas
-                null
-            );
-
-            // Se finalizar, gera PDF e salva no processo
-            if ($request->acao === 'finalizar' && $request->processo_id) {
-                $this->gerarESalvarPDF($documento, $request->processo_id);
-            }
-
-            // ✅ REGISTRAR EVENTO NO HISTÓRICO
-            if ($request->processo_id) {
-                $processo = \App\Models\Processo::find($request->processo_id);
-                if ($processo) {
-                    \App\Models\ProcessoEvento::registrarDocumentoDigitalCriado($processo, $documento);
+                foreach ($request->assinaturas as $index => $usuarioId) {
+                    DocumentoAssinatura::create([
+                        'documento_digital_id' => $documento->id,
+                        'usuario_interno_id'   => $usuarioId,
+                        'ordem'                => $index + 1,
+                        'obrigatoria'          => true,
+                        'status'               => 'pendente',
+                    ]);
                 }
+
+                $documento->salvarVersao(
+                    Auth::guard('interno')->user()->id,
+                    $request->conteudo,
+                    null
+                );
+
+                DB::commit();
+
+                $msgProcessos = $processosDestino->pluck('numero_processo')->implode(', ');
+
+                if ($request->os_id) {
+                    return redirect()->route('admin.ordens-servico.show', $request->os_id)
+                        ->with('success', "Documento criado para {$processosDestino->count()} processos ({$msgProcessos}). " .
+                            ($documento->status === 'rascunho'
+                                ? 'Está como rascunho — finalize e assine para distribuir aos processos.'
+                                : 'Aguardando assinatura — ao assinar, será distribuído aos processos.'));
+                }
+
+                return redirect()->route('admin.documentos.show', $documento->id)
+                    ->with('success', "Documento em lote criado para {$processosDestino->count()} processos. " .
+                        ($documento->status === 'rascunho'
+                            ? 'Edite e finalize quando estiver pronto.'
+                            : 'Aguardando assinatura.'));
+            }
+
+            // ===================================================
+            // ÚNICO (1 processo ou nenhum): fluxo normal
+            // ===================================================
+            $documentosCriados = collect();
+
+            $destinos = $processosDestino->isNotEmpty() ? $processosDestino : collect([null]);
+
+            foreach ($destinos as $processoDestino) {
+                $estabelecimento = $processoDestino?->estabelecimento;
+                $conteudoProcessado = $this->substituirVariaveis($request->conteudo, $estabelecimento, $processoDestino);
+
+                $documento = DocumentoDigital::create([
+                    'tipo_documento_id' => $request->tipo_documento_id,
+                    'processo_id' => $processoDestino?->id,
+                    'os_id' => $request->os_id,
+                    'usuario_criador_id' => Auth::guard('interno')->user()->id,
+                    'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
+                    'nome' => $tipoDocumento->nome,
+                    'conteudo' => $conteudoProcessado,
+                    'sigiloso' => $request->sigiloso ?? false,
+                    'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
+                    'prazo_dias' => $request->prazo_dias,
+                    'tipo_prazo' => $tipoPrazo,
+                    'data_vencimento' => $dataVencimento,
+                    'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false,
+                ]);
+
+                foreach ($request->assinaturas as $index => $usuarioId) {
+                    DocumentoAssinatura::create([
+                        'documento_digital_id' => $documento->id,
+                        'usuario_interno_id' => $usuarioId,
+                        'ordem' => $index + 1,
+                        'obrigatoria' => true,
+                        'status' => 'pendente',
+                    ]);
+                }
+
+                $documento->salvarVersao(
+                    Auth::guard('interno')->user()->id,
+                    $conteudoProcessado,
+                    null
+                );
+
+                if ($request->acao === 'finalizar' && $processoDestino?->id) {
+                    $this->gerarESalvarPDF($documento, $processoDestino->id);
+                }
+
+                if ($processoDestino?->id) {
+                    \App\Models\ProcessoEvento::registrarDocumentoDigitalCriado($processoDestino, $documento);
+                }
+
+                $documentosCriados->push($documento);
             }
 
             DB::commit();
 
-            // Se veio de um processo, redireciona de volta para o processo
-            if ($request->processo_id) {
-                $processo = \App\Models\Processo::find($request->processo_id);
+            if ($request->os_id) {
+                return redirect()->route('admin.ordens-servico.show', $request->os_id)
+                    ->with('success', $documentosCriados->count() > 1
+                        ? "{$documentosCriados->count()} documentos criados com sucesso para os processos selecionados!"
+                        : 'Documento criado com sucesso!');
+            }
+
+            // Se veio de um processo único, redireciona de volta para o processo
+            if ($processosDestino->count() === 1) {
+                $processo = $processosDestino->first();
                 return redirect()->route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id])
                     ->with('success', 'Documento criado com sucesso!' . ($request->acao === 'finalizar' ? ' PDF gerado e anexado ao processo.' : ''));
             }
 
-            return redirect()->route('admin.documentos.show', $documento->id)
+            if ($processosDestino->count() > 1) {
+                return redirect()->route('admin.documentos.index')
+                    ->with('success', "{$documentosCriados->count()} documentos criados com sucesso para os processos selecionados!");
+            }
+
+            return redirect()->route('admin.documentos.show', $documentosCriados->first()->id)
                 ->with('success', 'Documento criado com sucesso!');
 
         } catch (\Exception $e) {
@@ -452,11 +568,21 @@ class DocumentoDigitalController extends Controller
             );
 
             // Se finalizar, gera PDF e salva no processo
-            if ($request->acao === 'finalizar' && $documento->processo_id) {
+            // (para documentos em lote, o PDF é gerado na assinatura/fan-out)
+            if ($request->acao === 'finalizar' && $documento->processo_id && !$documento->isLote()) {
                 $this->gerarESalvarPDF($documento, $documento->processo_id);
             }
 
             DB::commit();
+
+            // Redireciona de volta
+            if ($documento->isLote()) {
+                return redirect()->route('admin.documentos.show', $documento->id)
+                    ->with('success', 'Documento em lote atualizado com sucesso!' .
+                        ($request->acao === 'finalizar'
+                            ? ' Aguardando assinaturas para distribuição aos ' . count($documento->processos_ids) . ' processos.'
+                            : ''));
+            }
 
             // Redireciona de volta para o processo
             if ($documento->processo_id) {
@@ -665,9 +791,128 @@ class DocumentoDigitalController extends Controller
                 'status' => 'assinado',
                 'finalizado_em' => now(),
             ]);
+
+            // Fan-out: se é documento em lote, distribui para todos os processos
+            if ($documento->isLote()) {
+                $this->executarDistribuicaoLote($documento);
+            } else {
+                // Documento único: gera PDF no processo vinculado
+                if ($documento->processo_id) {
+                    $this->gerarESalvarPDF($documento, $documento->processo_id);
+                }
+            }
         }
 
-        return back()->with('success', 'Documento assinado com sucesso!');
+        return back()->with('success', 'Documento assinado com sucesso!' .
+            ($documento->isLote() && $documento->status === 'assinado'
+                ? ' O documento foi distribuído para todos os processos vinculados.'
+                : ''));
+    }
+
+    /**
+     * Distribui um documento em lote para todos os processos vinculados.
+     * Cria uma cópia assinada para cada processo com substituição de variáveis e PDF.
+     * Chamado internamente e também pelo AssinaturaDigitalController após todas as assinaturas.
+     */
+    public function executarDistribuicaoLote(DocumentoDigital $documentoOriginal)
+    {
+        $processosIds = $documentoOriginal->processos_ids ?? [];
+        if (empty($processosIds)) {
+            return;
+        }
+
+        $processos = \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])
+            ->whereIn('id', $processosIds)
+            ->get();
+
+        $assinaturasOriginais = $documentoOriginal->assinaturas()->get();
+
+        foreach ($processos as $processo) {
+            $estabelecimento = $processo->estabelecimento;
+            $conteudoProcessado = $this->substituirVariaveis(
+                $documentoOriginal->conteudo,
+                $estabelecimento,
+                $processo
+            );
+
+            // Cria cópia do documento vinculada ao processo
+            $copia = DocumentoDigital::create([
+                'tipo_documento_id'  => $documentoOriginal->tipo_documento_id,
+                'processo_id'        => $processo->id,
+                'usuario_criador_id' => $documentoOriginal->usuario_criador_id,
+                'numero_documento'   => DocumentoDigital::gerarNumeroDocumento(),
+                'nome'               => $documentoOriginal->nome,
+                'conteudo'           => $conteudoProcessado,
+                'sigiloso'           => $documentoOriginal->sigiloso,
+                'status'             => 'assinado',
+                'finalizado_em'      => $documentoOriginal->finalizado_em,
+                'prazo_dias'         => $documentoOriginal->prazo_dias,
+                'tipo_prazo'         => $documentoOriginal->tipo_prazo,
+                'data_vencimento'    => $documentoOriginal->data_vencimento,
+                'prazo_notificacao'  => $documentoOriginal->prazo_notificacao,
+                'codigo_autenticidade' => DocumentoDigital::gerarCodigoAutenticidade(),
+            ]);
+
+            // Copia as assinaturas (já assinadas)
+            foreach ($assinaturasOriginais as $assOrig) {
+                DocumentoAssinatura::create([
+                    'documento_digital_id' => $copia->id,
+                    'usuario_interno_id'   => $assOrig->usuario_interno_id,
+                    'ordem'                => $assOrig->ordem,
+                    'obrigatoria'          => $assOrig->obrigatoria,
+                    'status'               => $assOrig->status,
+                    'assinado_em'          => $assOrig->assinado_em,
+                    'hash_assinatura'      => $assOrig->hash_assinatura,
+                ]);
+            }
+
+            // Salva versão
+            $copia->salvarVersao(
+                $documentoOriginal->usuario_criador_id,
+                $conteudoProcessado,
+                null
+            );
+
+            // Gera PDF assinado com QR code e assinaturas (usa o mesmo método do AssinaturaDigitalController)
+            $assinaturaController = app(\App\Http\Controllers\AssinaturaDigitalController::class);
+            $caminhoArquivo = $assinaturaController->gerarPdfAssinado($copia);
+
+            // Também vincula o PDF como ProcessoDocumento para aparecer no processo
+            if ($caminhoArquivo) {
+                $documentoExistente = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
+                    ->where('observacoes', 'Documento Digital: ' . $copia->numero_documento)
+                    ->first();
+
+                if (!$documentoExistente) {
+                    $nomeArquivo = $copia->numero_documento . '.pdf';
+                    \App\Models\ProcessoDocumento::create([
+                        'processo_id' => $processo->id,
+                        'usuario_id' => $documentoOriginal->usuario_criador_id,
+                        'tipo_usuario' => 'interno',
+                        'nome_arquivo' => basename($caminhoArquivo),
+                        'nome_original' => $nomeArquivo,
+                        'caminho' => $caminhoArquivo,
+                        'extensao' => 'pdf',
+                        'tamanho' => \Storage::disk('public')->size($caminhoArquivo),
+                        'tipo_documento' => 'documento_digital',
+                        'observacoes' => 'Documento Digital: ' . $copia->numero_documento,
+                    ]);
+                }
+            }
+
+            // Registra evento no processo
+            \App\Models\ProcessoEvento::registrarDocumentoDigitalCriado($processo, $copia);
+        }
+
+        // Desvincula o documento original dos processos individuais para que
+        // apenas as cópias distribuídas apareçam nos processos
+        $documentoOriginal->update(['processo_id' => null]);
+
+        \Log::info('Documento em lote distribuído', [
+            'documento_original_id' => $documentoOriginal->id,
+            'processos_count' => $processos->count(),
+            'processos_ids' => $processosIds,
+        ]);
     }
 
     /**

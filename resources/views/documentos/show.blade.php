@@ -124,9 +124,56 @@
                         @endif
                     </div>
                 </div>
-            </div>
 
-            {{-- Conteúdo do Documento --}}
+                {{-- Informação de Lote Multi-Processo --}}
+                @if($documento->isLote())
+                <div class="md:col-span-2 mt-2">
+                    <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-semibold text-purple-900">Documento em Lote — {{ count($documento->processos_ids) }} processos</h4>
+                                <p class="text-xs text-purple-700 mt-0.5">
+                                    @if($documento->status === 'rascunho')
+                                        Ao finalizar e assinar, este documento será distribuído automaticamente para todos os processos abaixo.
+                                    @elseif($documento->status === 'aguardando_assinatura')
+                                        Quando todas as assinaturas forem concluídas, o documento será distribuído para todos os processos abaixo.
+                                    @else
+                                        Este documento foi distribuído para os processos abaixo.
+                                    @endif
+                                </p>
+                                <div class="flex flex-wrap gap-1.5 mt-2">
+                                    @foreach($documento->processosLote() as $procLote)
+                                        <a href="{{ route('admin.estabelecimentos.processos.show', [$procLote->estabelecimento_id, $procLote->id]) }}"
+                                           target="_blank"
+                                           class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                            {{ $procLote->numero_processo }}
+                                            <span class="text-gray-500">— {{ $procLote->estabelecimento->nome_fantasia ?? $procLote->estabelecimento->razao_social ?? '' }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                                @if($documento->os_id)
+                                <div class="mt-2 pt-2 border-t border-purple-200">
+                                    <a href="{{ route('admin.ordens-servico.show', $documento->os_id) }}"
+                                       class="inline-flex items-center gap-1 text-xs font-medium text-purple-700 hover:text-purple-900 hover:underline">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                        Ver Ordem de Serviço de origem
+                                    </a>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
             @if($documento->status === 'rascunho')
             <div class="p-5">
                 <h2 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
