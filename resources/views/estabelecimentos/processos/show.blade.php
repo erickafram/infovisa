@@ -875,17 +875,20 @@
                                 @if($item['tipo'] === 'digital')
                                     @php
                                         $docDigital = $item['documento'];
-                                        $assinaturasPendentes = $docDigital->assinaturas()->where('status', 'pendente')->count();
-                                        $todasAssinaturas = $docDigital->assinaturas()->count();
+                                        $assinaturas = ($docDigital->assinaturas ?? collect())->sortBy('ordem')->values();
+                                        $assinaturasPendentes = $assinaturas->where('status', 'pendente')->count();
+                                        $todasAssinaturas = $assinaturas->count();
                                         $temAssinaturasPendentes = $assinaturasPendentes > 0;
                                         
                                         // Verificar se o usuário logado precisa assinar este documento
                                         $usuarioLogado = auth('interno')->user();
-                                        $assinaturaUsuario = $docDigital->assinaturas()
-                                            ->where('usuario_interno_id', $usuarioLogado->id)
-                                            ->where('status', 'pendente')
-                                            ->first();
+                                        $assinaturaUsuario = $assinaturas->first(function($ass) use ($usuarioLogado) {
+                                            return $ass->usuario_interno_id == $usuarioLogado->id && $ass->status === 'pendente';
+                                        });
                                         $usuarioPrecisaAssinar = $assinaturaUsuario !== null && $docDigital->status !== 'rascunho';
+
+                                        $assinaturasRealizadasLista = $assinaturas->filter(fn($ass) => $ass->status === 'assinado')->values();
+                                        $assinaturasPendentesLista = $assinaturas->filter(fn($ass) => $ass->status === 'pendente')->values();
                                     @endphp
                                 @php
                                     // Determinar cor da borda baseado no status do documento
@@ -1017,6 +1020,27 @@
                                                         </span>
                                                     @endif
                                                 </div>
+
+                                                @if($statusGeral === 'aguardando_assinatura')
+                                                    <div class="mt-1 space-y-1">
+                                                        <p class="text-[11px] text-gray-600">
+                                                            <span class="font-semibold text-green-700">Assinaram:</span>
+                                                            @if($assinaturasRealizadasLista->count() > 0)
+                                                                {{ $assinaturasRealizadasLista->map(fn($ass) => Str::words($ass->usuarioInterno->nome ?? 'Usuário', 2, ''))->implode(', ') }}
+                                                            @else
+                                                                <span class="text-gray-400">ninguém ainda</span>
+                                                            @endif
+                                                        </p>
+                                                        <p class="text-[11px] text-orange-700">
+                                                            <span class="font-semibold">Faltam assinar:</span>
+                                                            @if($assinaturasPendentesLista->count() > 0)
+                                                                {{ $assinaturasPendentesLista->map(fn($ass) => Str::words($ass->usuarioInterno->nome ?? 'Usuário', 2, ''))->implode(', ') }}
+                                                            @else
+                                                                <span class="text-gray-400">nenhum</span>
+                                                            @endif
+                                                        </p>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                         

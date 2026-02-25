@@ -25,7 +25,7 @@ class OrdemServicoController extends Controller
         $usuario = Auth::guard('interno')->user();
         
         // Query base
-        $query = OrdemServico::with(['estabelecimento', 'municipio'])
+        $query = OrdemServico::with(['estabelecimento', 'estabelecimentos', 'municipio'])
             ->orderBy('created_at', 'desc');
         
         // Filtro por competência baseado no nível de acesso
@@ -48,18 +48,31 @@ class OrdemServicoController extends Controller
             $term = trim($request->input('estabelecimento'));
             $numericTerm = preg_replace('/\D+/', '', $term);
 
-            $query->whereHas('estabelecimento', function ($subQuery) use ($term, $numericTerm) {
-                $subQuery->where(function ($inner) use ($term, $numericTerm) {
-                    // Busca case-insensitive usando ILIKE (PostgreSQL)
-                    $inner->whereRaw("nome_fantasia ILIKE ?", ["%{$term}%"])
-                        ->orWhereRaw("razao_social ILIKE ?", ["%{$term}%"])
-                        ->orWhere('cnpj', 'like', "%{$term}%")
-                        ->orWhere('cpf', 'like', "%{$term}%");
+            $query->where(function ($scope) use ($term, $numericTerm) {
+                $scope->whereHas('estabelecimento', function ($subQuery) use ($term, $numericTerm) {
+                    $subQuery->where(function ($inner) use ($term, $numericTerm) {
+                        $inner->whereRaw("nome_fantasia ILIKE ?", ["%{$term}%"])
+                            ->orWhereRaw("razao_social ILIKE ?", ["%{$term}%"])
+                            ->orWhere('cnpj', 'like', "%{$term}%")
+                            ->orWhere('cpf', 'like', "%{$term}%");
 
-                    if (!empty($numericTerm)) {
-                        $inner->orWhere('cnpj', 'like', "%{$numericTerm}%")
-                              ->orWhere('cpf', 'like', "%{$numericTerm}%");
-                    }
+                        if (!empty($numericTerm)) {
+                            $inner->orWhere('cnpj', 'like', "%{$numericTerm}%")
+                                  ->orWhere('cpf', 'like', "%{$numericTerm}%");
+                        }
+                    });
+                })->orWhereHas('estabelecimentos', function ($subQuery) use ($term, $numericTerm) {
+                    $subQuery->where(function ($inner) use ($term, $numericTerm) {
+                        $inner->whereRaw("nome_fantasia ILIKE ?", ["%{$term}%"])
+                            ->orWhereRaw("razao_social ILIKE ?", ["%{$term}%"])
+                            ->orWhere('cnpj', 'like', "%{$term}%")
+                            ->orWhere('cpf', 'like', "%{$term}%");
+
+                        if (!empty($numericTerm)) {
+                            $inner->orWhere('cnpj', 'like', "%{$numericTerm}%")
+                                  ->orWhere('cpf', 'like', "%{$numericTerm}%");
+                        }
+                    });
                 });
             });
         }
@@ -156,6 +169,8 @@ class OrdemServicoController extends Controller
         $rules = [
             'tipo_vinculacao' => 'required|in:com_estabelecimento,sem_estabelecimento',
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'estabelecimentos_ids' => 'nullable|array',
+            'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'required|json',
@@ -170,14 +185,19 @@ class OrdemServicoController extends Controller
             $rules['data_fim'] = 'required|date|after_or_equal:data_inicio|after_or_equal:today';
         }
         
-        // Se tem estabelecimento, processo é obrigatório
-        if (!empty($request->estabelecimento_id)) {
-            $rules['processo_id'] = 'required|exists:processos,id';
-        } else {
-            $rules['processo_id'] = 'nullable|exists:processos,id';
+        // Processo agora é obrigatório por estabelecimento (via processos_estabelecimentos)
+        $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
+        $rules['processo_id'] = 'nullable|exists:processos,id';
+        
+        // Validação de processos por estabelecimento
+        if (!empty($estabelecimentosIds)) {
+            $rules['processos_estabelecimentos'] = 'required|array';
+            $rules['processos_estabelecimentos.*'] = 'required|exists:processos,id';
         }
         
         $messages = [
+            'processos_estabelecimentos.required' => 'Selecione um processo para cada estabelecimento.',
+            'processos_estabelecimentos.*.required' => 'Cada estabelecimento deve ter um processo vinculado.',
             'processo_id.required' => 'Selecione um processo vinculado ao estabelecimento.',
             'atividades_tecnicos.required' => 'Atribua técnicos para todas as atividades selecionadas.',
             'atividades_tecnicos.json' => 'Estrutura de técnicos por atividade inválida.',
@@ -227,12 +247,27 @@ class OrdemServicoController extends Controller
             $validated['documento_anexo_nome'] = $arquivo->getClientOriginalName();
         }
         
+        // Coleta IDs de estabelecimentos múltiplos e mapeamento de processos
+        $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
+        $processosEstabelecimentos = $request->input('processos_estabelecimentos', []);
+        
+        // Se tem múltiplos, usa o primeiro como referência para competência
+        $estabelecimentoRef = null;
+        if (!empty($estabelecimentosIds)) {
+            $validated['estabelecimento_id'] = $estabelecimentosIds[0]; // primeiro como referência principal
+            $estabelecimentoRef = Estabelecimento::find($estabelecimentosIds[0]);
+            // Processo principal = processo do primeiro estabelecimento (compatibilidade)
+            if (isset($processosEstabelecimentos[$estabelecimentosIds[0]])) {
+                $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
+            }
+        }
+        
         // Determina competência e município
         if (!empty($validated['estabelecimento_id'])) {
             // Tem estabelecimento vinculado
-            $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
+            $estabelecimento = $estabelecimentoRef ?? Estabelecimento::findOrFail($validated['estabelecimento_id']);
             
-            // Se não foi especificado processo_id, tenta vincular ao processo ativo do estabelecimento
+            // Se não foi especificado processo_id e não veio de processosEstabelecimentos, tenta vincular ao processo ativo
             if (empty($validated['processo_id'])) {
                 $processoAtivo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
                     ->whereIn('status', ['aberto', 'em_andamento'])
@@ -277,12 +312,31 @@ class OrdemServicoController extends Controller
         
         // Gera número da OS e define data de abertura automática
         // Usa transação para garantir atomicidade na geração do número
-        $ordemServico = \DB::transaction(function () use ($validated) {
+        $ordemServico = \DB::transaction(function () use ($validated, $estabelecimentosIds, $processosEstabelecimentos) {
             $validated['numero'] = OrdemServico::gerarNumero();
             $validated['data_abertura'] = now()->format('Y-m-d');
             $validated['status'] = 'em_andamento';
             
-            return OrdemServico::create($validated);
+            $os = OrdemServico::create($validated);
+            
+            // Salva múltiplos estabelecimentos na tabela pivot com processo_id
+            if (!empty($estabelecimentosIds)) {
+                $syncData = [];
+                foreach ($estabelecimentosIds as $estId) {
+                    $syncData[$estId] = [
+                        'processo_id' => $processosEstabelecimentos[$estId] ?? null,
+                    ];
+                }
+                $os->estabelecimentos()->sync($syncData);
+            } elseif (!empty($validated['estabelecimento_id'])) {
+                // Se apenas um estabelecimento (legado), salva no pivot também
+                $estId = $validated['estabelecimento_id'];
+                $os->estabelecimentos()->sync([
+                    $estId => ['processo_id' => $processosEstabelecimentos[$estId] ?? $validated['processo_id'] ?? null]
+                ]);
+            }
+            
+            return $os;
         });
         
         // Envia notificação no chat para os técnicos atribuídos
@@ -319,7 +373,7 @@ class OrdemServicoController extends Controller
                 'lida_em' => now(),
             ]);
         
-        $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
+        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
         
         return view('ordens-servico.show', compact('ordemServico'));
     }
@@ -356,6 +410,9 @@ class OrdemServicoController extends Controller
             $municipios = Municipio::orderBy('nome')->get();
         }
         
+        // Carrega estabelecimentos múltiplos
+        $ordemServico->load('estabelecimentos');
+        
         return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios'));
     }
 
@@ -380,6 +437,8 @@ class OrdemServicoController extends Controller
         // Validação condicional: processo é obrigatório se há estabelecimento
         $rules = [
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
+            'estabelecimentos_ids' => 'nullable|array',
+            'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'required|json',
@@ -388,14 +447,19 @@ class OrdemServicoController extends Controller
             'data_fim' => 'required|date|after_or_equal:data_inicio',
         ];
         
-        // Se tem estabelecimento, processo é obrigatório
-        if (!empty($request->estabelecimento_id)) {
-            $rules['processo_id'] = 'required|exists:processos,id';
-        } else {
-            $rules['processo_id'] = 'nullable|exists:processos,id';
+        // Processo agora é obrigatório por estabelecimento (via processos_estabelecimentos)
+        $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
+        $rules['processo_id'] = 'nullable|exists:processos,id';
+        
+        if (!empty($estabelecimentosIds)) {
+            $rules['processos_estabelecimentos'] = 'required|array';
+            $rules['processos_estabelecimentos.*'] = 'required|exists:processos,id';
         }
         
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'processos_estabelecimentos.required' => 'Selecione um processo para cada estabelecimento.',
+            'processos_estabelecimentos.*.required' => 'Cada estabelecimento deve ter um processo vinculado.',
+        ]);
         
         // Processa e valida a estrutura de atividades com técnicos
         $atividadesTecnicos = json_decode($validated['atividades_tecnicos'], true);
@@ -426,6 +490,19 @@ class OrdemServicoController extends Controller
         $validated['tecnicos_ids'] = $tecnicosIds;
         $validated['atividades_tecnicos'] = $atividadesTecnicos;
         
+        // Coleta IDs de estabelecimentos múltiplos e mapeamento de processos
+        $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
+        $processosEstabelecimentos = $request->input('processos_estabelecimentos', []);
+        
+        // Se tem múltiplos, usa o primeiro como referência
+        if (!empty($estabelecimentosIds)) {
+            $validated['estabelecimento_id'] = $estabelecimentosIds[0];
+            // Processo principal = processo do primeiro estabelecimento (compatibilidade)
+            if (isset($processosEstabelecimentos[$estabelecimentosIds[0]])) {
+                $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
+            }
+        }
+        
         // Valida se o estabelecimento pertence ao município do usuário (se municipal)
         if (!empty($validated['estabelecimento_id']) && $usuario->isMunicipal()) {
             $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
@@ -435,7 +512,7 @@ class OrdemServicoController extends Controller
         }
         
         // Se estabelecimento foi alterado, busca processo ativo para vincular
-        if (!empty($validated['estabelecimento_id']) && $validated['estabelecimento_id'] != $ordemServico->estabelecimento_id) {
+        if (!empty($validated['estabelecimento_id']) && $validated['estabelecimento_id'] != $ordemServico->estabelecimento_id && count($estabelecimentosIds) <= 1) {
             $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
             
             // Busca processo ativo do estabelecimento
@@ -461,9 +538,48 @@ class OrdemServicoController extends Controller
                 $validated['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
                 $validated['municipio_id'] = $estabelecimento->municipio_id;
             }
+        } elseif (count($estabelecimentosIds) > 1) {
+            // Múltiplos estabelecimentos: competência e município do primeiro
+            $estabelecimento = Estabelecimento::find($estabelecimentosIds[0]);
+            if ($estabelecimento) {
+                if ($usuario->isEstadual()) {
+                    $validated['competencia'] = 'estadual';
+                    $validated['municipio_id'] = null;
+                } elseif ($usuario->isMunicipal()) {
+                    $validated['competencia'] = 'municipal';
+                    $validated['municipio_id'] = $usuario->municipio_id;
+                } elseif ($usuario->isAdmin()) {
+                    $validated['competencia'] = $estabelecimento->competencia_manual ?? 'estadual';
+                    $validated['municipio_id'] = $estabelecimento->municipio_id;
+                }
+            }
+            // Processo principal = processo do primeiro estabelecimento (compatibilidade)
+            if (isset($processosEstabelecimentos[$estabelecimentosIds[0]])) {
+                $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
+            } else {
+                $validated['processo_id'] = null;
+            }
         }
         
         $ordemServico->update($validated);
+        
+        // Sincroniza estabelecimentos na tabela pivot com processo_id
+        if (!empty($estabelecimentosIds)) {
+            $syncData = [];
+            foreach ($estabelecimentosIds as $estId) {
+                $syncData[$estId] = [
+                    'processo_id' => $processosEstabelecimentos[$estId] ?? null,
+                ];
+            }
+            $ordemServico->estabelecimentos()->sync($syncData);
+        } elseif (!empty($validated['estabelecimento_id'])) {
+            $estId = $validated['estabelecimento_id'];
+            $ordemServico->estabelecimentos()->sync([
+                $estId => ['processo_id' => $processosEstabelecimentos[$estId] ?? $validated['processo_id'] ?? null]
+            ]);
+        } else {
+            $ordemServico->estabelecimentos()->sync([]);
+        }
         
         return redirect()->route('admin.ordens-servico.index')
             ->with('success', "Ordem de Serviço {$ordemServico->numero} atualizada com sucesso!");
@@ -1475,7 +1591,7 @@ class OrdemServicoController extends Controller
     /**
      * Gerar PDF da Ordem de Serviço
      */
-    public function gerarPdf(OrdemServico $ordemServico)
+    public function gerarPdf(Request $request, OrdemServico $ordemServico)
     {
         $usuario = Auth::guard('interno')->user();
         
@@ -1484,10 +1600,38 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para gerar PDF desta ordem de serviço.');
         }
 
-        $ordemServico->load(['estabelecimento.municipio', 'municipio', 'processo']);
+        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
+
+        $estabelecimentoPdf = $ordemServico->estabelecimento;
+        $processoPdf = $ordemServico->processo;
+
+        $todosEstabelecimentos = $ordemServico->getTodosEstabelecimentos();
+        if ($todosEstabelecimentos->count() > 0) {
+            $estabelecimentoIdSelecionado = $request->input('estabelecimento_id');
+
+            if ($estabelecimentoIdSelecionado) {
+                $estabelecimentoPdf = $todosEstabelecimentos->firstWhere('id', (int) $estabelecimentoIdSelecionado) ?? $todosEstabelecimentos->first();
+            } else {
+                $estabelecimentoPdf = $todosEstabelecimentos->first();
+            }
+
+            $processoIdPivot = $estabelecimentoPdf?->pivot?->processo_id;
+            if ($processoIdPivot) {
+                $processoPdf = Processo::find($processoIdPivot) ?? $processoPdf;
+            }
+        }
+
+        if ($estabelecimentoPdf) {
+            $ordemServico->setRelation('estabelecimento', $estabelecimentoPdf);
+        }
+
+        if ($processoPdf) {
+            $ordemServico->setRelation('processo', $processoPdf);
+            $ordemServico->processo_id = $processoPdf->id;
+        }
 
         // Renderiza a view para PDF
-        $html = view('ordens-servico.pdf', compact('ordemServico'))->render();
+        $html = view('ordens-servico.pdf', compact('ordemServico', 'estabelecimentoPdf', 'processoPdf'))->render();
 
         // Gera PDF usando DomPDF
         $pdf = \PDF::loadHTML($html)

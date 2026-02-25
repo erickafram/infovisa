@@ -177,10 +177,8 @@
                         </h2>
                         @php
                             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
-                            $usuarioLogado = auth('interno')->user();
-                            $isAdmin = $usuarioLogado->isAdmin();
                         @endphp
-                        @if((!$temAssinaturaFeita || $isAdmin) && $documento->status !== 'assinado')
+                        @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
                             <button onclick="abrirModalGerenciarAssinantes()" 
                                     class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +222,7 @@
                                             </svg>
                                             Pendente
                                         </span>
-                                        @if(!$temAssinaturaFeita || $isAdmin)
+                                        @if(!$temAssinaturaFeita)
                                             <button onclick="removerAssinante({{ $assinatura->id }})" 
                                                     class="text-red-600 hover:text-red-800 transition">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,15 +235,11 @@
                             </div>
                         @endforeach
                     </div>
-                    @if((!$temAssinaturaFeita || $isAdmin) && $documento->status !== 'assinado')
+                    @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
                         <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <p class="text-xs text-blue-800">
                                 <strong>💡 Dica:</strong> 
-                                @if($isAdmin)
-                                    Como administrador, você pode adicionar ou remover assinantes a qualquer momento.
-                                @else
-                                    Você pode adicionar ou remover assinantes enquanto nenhuma assinatura foi feita.
-                                @endif
+                                Você pode adicionar ou remover assinantes enquanto nenhuma assinatura foi feita.
                             </p>
                         </div>
                     @endif

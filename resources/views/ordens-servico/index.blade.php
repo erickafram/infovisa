@@ -193,9 +193,21 @@
                             <div class="text-sm font-medium text-blue-600 hover:text-blue-800">{{ $os->numero }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            @if($os->estabelecimento)
-                                <div class="text-sm text-gray-900">{{ $os->estabelecimento->nome_fantasia }}</div>
-                                <div class="text-xs text-gray-500">{{ $os->estabelecimento->razao_social }}</div>
+                            @php($todosEstabsIndex = $os->getTodosEstabelecimentos())
+                            @if($todosEstabsIndex->count() > 0)
+                                <div class="space-y-1.5">
+                                    @foreach($todosEstabsIndex->take(2) as $est)
+                                        <div>
+                                            <div class="text-sm text-gray-900">{{ $est->nome_fantasia ?: $est->razao_social }}</div>
+                                            <div class="text-xs text-gray-500">{{ $est->razao_social }}</div>
+                                        </div>
+                                    @endforeach
+                                    @if($todosEstabsIndex->count() > 2)
+                                        <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                                            +{{ $todosEstabsIndex->count() - 2 }} estabelecimento(s)
+                                        </div>
+                                    @endif
+                                </div>
                             @else
                                 <div class="flex items-center gap-1 text-amber-600">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

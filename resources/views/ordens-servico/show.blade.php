@@ -20,7 +20,12 @@
                 <div class="flex items-center gap-2">
                     {!! $ordemServico->status_badge !!}
                     {!! $ordemServico->competencia_badge !!}
-                    <a href="{{ route('admin.ordens-servico.pdf', $ordemServico) }}" 
+                    @php
+                        $estabPdfInicial = $ordemServico->getTodosEstabelecimentos()->first();
+                        $pdfBaseUrl = route('admin.ordens-servico.pdf', $ordemServico);
+                        $pdfInitialUrl = $estabPdfInicial ? ($pdfBaseUrl . '?estabelecimento_id=' . $estabPdfInicial->id) : $pdfBaseUrl;
+                    @endphp
+                    <a id="btnBaixarPdfOs" href="{{ $pdfInitialUrl }}" data-base-url="{{ $pdfBaseUrl }}"
                        target="_blank"
                        class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,10 +168,11 @@
                         <div class="border-t border-gray-100 pt-2"></div>
                         @endif
                         @php
-                            // Prioriza o município do estabelecimento (via municipio_id), se existir
+                            // Prioriza o município do primeiro estabelecimento (via municipio_id), se existir
                             $municipioExibir = null;
-                            if ($ordemServico->estabelecimento && $ordemServico->estabelecimento->municipio_id) {
-                                $municipioExibir = \App\Models\Municipio::find($ordemServico->estabelecimento->municipio_id);
+                            $primeiroEstab = $ordemServico->getTodosEstabelecimentos()->first();
+                            if ($primeiroEstab && $primeiroEstab->municipio_id) {
+                                $municipioExibir = \App\Models\Municipio::find($primeiroEstab->municipio_id);
                             } elseif ($ordemServico->municipio_id) {
                                 $municipioExibir = $ordemServico->municipio;
                             }
@@ -218,57 +224,99 @@
                 COLUNA DIREITA: Conteúdo Principal (75%)
             ======================================== --}}
             <main class="lg:w-3/4 space-y-6">
-            {{-- Informações do Estabelecimento --}}
-            @if($ordemServico->estabelecimento)
-            <div class="bg-white rounded-lg border border-gray-200">
-                <div class="px-4 py-3 border-b border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-900">Estabelecimento</h2>
+            {{-- Informações dos Estabelecimentos --}}
+            @php
+                $todosEstabelecimentos = $ordemServico->getTodosEstabelecimentos();
+            @endphp
+            @if($todosEstabelecimentos->count() > 0)
+            @foreach($todosEstabelecimentos as $estabIndex => $estabelecimentoItem)
+            <div class="bg-white rounded-lg border border-gray-200 estabelecimento-slide" data-estabelecimento-index="{{ $estabIndex }}" data-estabelecimento-id="{{ $estabelecimentoItem->id }}" @if($estabIndex > 0) style="display:none;" @endif>
+                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-gray-900">
+                        Estabelecimento
+                        @if($todosEstabelecimentos->count() > 1)
+                            <span class="text-xs text-gray-500 ml-1">({{ $estabIndex + 1 }} de {{ $todosEstabelecimentos->count() }})</span>
+                        @endif
+                    </h2>
+                    @if($todosEstabelecimentos->count() > 1)
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="mostrarEstabelecimentoAnterior()" class="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50" title="Estabelecimento anterior">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button type="button" onclick="mostrarProximoEstabelecimento()" class="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50" title="Próximo estabelecimento">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    @endif
                 </div>
                 <div class="p-4 space-y-3">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-xs text-gray-500">Razão Social</label>
-                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                            <a href="{{ route('admin.estabelecimentos.show', $estabelecimentoItem->id) }}" 
                                class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                                {{ $ordemServico->estabelecimento->razao_social }}
+                                {{ $estabelecimentoItem->razao_social }}
                             </a>
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Nome Fantasia</label>
-                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                            <a href="{{ route('admin.estabelecimentos.show', $estabelecimentoItem->id) }}" 
                                class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                                {{ $ordemServico->estabelecimento->nome_fantasia }}
+                                {{ $estabelecimentoItem->nome_fantasia }}
                             </a>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
                         <div>
                             <label class="text-xs text-gray-500">
-                                {{ $ordemServico->estabelecimento->tipo_pessoa === 'fisica' ? 'CPF' : 'CNPJ' }}
+                                {{ $estabelecimentoItem->tipo_pessoa === 'fisica' ? 'CPF' : 'CNPJ' }}
                             </label>
-                            <a href="{{ route('admin.estabelecimentos.show', $ordemServico->estabelecimento->id) }}" 
+                            <a href="{{ route('admin.estabelecimentos.show', $estabelecimentoItem->id) }}" 
                                class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors font-mono">
-                                @if($ordemServico->estabelecimento->tipo_pessoa === 'fisica')
-                                    {{ $ordemServico->estabelecimento->cpf_formatado ?? '-' }}
+                                @if($estabelecimentoItem->tipo_pessoa === 'fisica')
+                                    {{ $estabelecimentoItem->cpf_formatado ?? '-' }}
                                 @else
-                                    {{ $ordemServico->estabelecimento->cnpj_formatado ?? '-' }}
+                                    {{ $estabelecimentoItem->cnpj_formatado ?? '-' }}
                                 @endif
                             </a>
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">CEP</label>
-                            <p class="text-sm font-medium text-gray-900 font-mono">{{ $ordemServico->estabelecimento->cep ?? '-' }}</p>
+                            <p class="text-sm font-medium text-gray-900 font-mono">{{ $estabelecimentoItem->cep ?? '-' }}</p>
                         </div>
                     </div>
                     <div class="pt-2 border-t border-gray-100">
                         <label class="text-xs text-gray-500">Endereço</label>
-                        <p class="text-sm font-medium text-gray-900" id="endereco-completo">
-                            {{ $ordemServico->estabelecimento->logradouro ?? $ordemServico->estabelecimento->endereco ?? '-' }}
-                            @if($ordemServico->estabelecimento->complemento) - {{ $ordemServico->estabelecimento->complemento }}@endif
-                            , {{ $ordemServico->estabelecimento->bairro }}
-                            - {{ $ordemServico->estabelecimento->cidade }}/{{ $ordemServico->estabelecimento->estado }}
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ $estabelecimentoItem->logradouro ?? $estabelecimentoItem->endereco ?? '-' }}
+                            @if($estabelecimentoItem->complemento) - {{ $estabelecimentoItem->complemento }}@endif
+                            , {{ $estabelecimentoItem->bairro }}
+                            - {{ $estabelecimentoItem->cidade }}/{{ $estabelecimentoItem->estado }}
                         </p>
                     </div>
+
+                    {{-- Processo Vinculado ao Estabelecimento --}}
+                    @if($estabelecimentoItem->pivot && $estabelecimentoItem->pivot->processo_id)
+                    @php
+                        $processoEstab = \App\Models\Processo::find($estabelecimentoItem->pivot->processo_id);
+                    @endphp
+                    @if($processoEstab)
+                    <div class="pt-2 border-t border-gray-100">
+                        <label class="text-xs text-gray-500">Processo Vinculado</label>
+                        <a href="{{ route('admin.estabelecimentos.processos.show', [$processoEstab->estabelecimento_id, $processoEstab->id]) }}" 
+                           class="block text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                            {{ $processoEstab->numero_processo }}
+                            @if($processoEstab->tipo_label)
+                                <span class="text-xs text-gray-500">({{ $processoEstab->tipo_label }})</span>
+                            @endif
+                        </a>
+                    </div>
+                    @endif
+                    @endif
 
                     {{-- Status de Equipamentos de Imagem --}}
                     @php
@@ -279,7 +327,7 @@
                             ->filter()
                             ->toArray();
                         
-                        $atividadesEstabelecimento = $ordemServico->estabelecimento->getTodasAtividades();
+                        $atividadesEstabelecimento = $estabelecimentoItem->getTodasAtividades();
                         $exigeEquipamentos = false;
                         foreach ($atividadesEstabelecimento as $codigo) {
                             if (in_array($codigo, $codigosAtividadesRadiacao)) {
@@ -291,7 +339,7 @@
 
                     @if($exigeEquipamentos)
                     <div class="pt-2 border-t border-gray-100">
-                        @if($ordemServico->estabelecimento->equipamentosRadiacao()->count() > 0)
+                        @if($estabelecimentoItem->equipamentosRadiacao()->count() > 0)
                             <div class="bg-green-50 border border-green-200 rounded-lg p-3">
                                 <div class="flex items-start gap-2">
                                     <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,8 +347,8 @@
                                     </svg>
                                     <div>
                                         <p class="text-sm font-semibold text-green-800">Equipamentos Registrados</p>
-                                        <p class="text-xs text-green-700 mt-1">Este estabelecimento possui <strong>{{ $ordemServico->estabelecimento->equipamentosRadiacao()->count() }}</strong> equipamento(s) de imagem cadastrado(s).</p>
-                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $ordemServico->estabelecimento->id) }}" 
+                                        <p class="text-xs text-green-700 mt-1">Este estabelecimento possui <strong>{{ $estabelecimentoItem->equipamentosRadiacao()->count() }}</strong> equipamento(s) de imagem cadastrado(s).</p>
+                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $estabelecimentoItem->id) }}" 
                                            class="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-800 font-medium mt-2">
                                             Ver equipamentos
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,7 +358,7 @@
                                     </div>
                                 </div>
                             </div>
-                        @elseif($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem)
+                        @elseif($estabelecimentoItem->declaracao_sem_equipamentos_imagem)
                             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
                                 <div class="flex items-start gap-2">
                                     <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,12 +368,12 @@
                                         <p class="text-sm font-semibold text-amber-800">Declaração: Não Possui Equipamentos</p>
                                         <p class="text-xs text-amber-700 mt-1">O estabelecimento declarou formalmente que <strong>não possui equipamentos de imagem</strong>, mesmo possuindo atividades que normalmente exigem.</p>
                                         
-                                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes)
+                                        @if($estabelecimentoItem->declaracao_sem_equipamentos_opcoes)
                                         <div class="mt-2 pt-2 border-t border-amber-200">
                                             <p class="text-xs font-medium text-amber-800 mb-1">Confirmações:</p>
                                             <div class="space-y-1">
                                                 @php
-                                                    $opcoes = json_decode($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes, true) ?? [];
+                                                    $opcoes = json_decode($estabelecimentoItem->declaracao_sem_equipamentos_opcoes, true) ?? [];
                                                 @endphp
                                                 @if(in_array('opcao_1', $opcoes))
                                                 <div class="flex items-start gap-1.5">
@@ -355,8 +403,8 @@
                                         </div>
                                         @endif
                                         
-                                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
-                                        <p class="text-xs text-amber-700 mt-2 pt-2 border-t border-amber-200"><strong>Justificativa:</strong> {{ $ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}</p>
+                                        @if($estabelecimentoItem->declaracao_sem_equipamentos_imagem_justificativa)
+                                        <p class="text-xs text-amber-700 mt-2 pt-2 border-t border-amber-200"><strong>Justificativa:</strong> {{ $estabelecimentoItem->declaracao_sem_equipamentos_imagem_justificativa }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -370,7 +418,7 @@
                                     <div>
                                         <p class="text-sm font-semibold text-red-800">Equipamentos Não Registrados</p>
                                         <p class="text-xs text-red-700 mt-1">Este estabelecimento não possui equipamentos de imagem cadastrados e nem declaração formal.</p>
-                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $ordemServico->estabelecimento->id) }}" 
+                                        <a href="{{ route('admin.estabelecimentos.equipamentos-radiacao.index', $estabelecimentoItem->id) }}" 
                                            class="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium mt-2">
                                             Cadastrar equipamentos
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,12 +444,12 @@
                             </label>
                             @php
                                 // Usa logradouro como prioridade (campo da API), senão usa endereco
-                                $logradouro = $ordemServico->estabelecimento->logradouro ?? $ordemServico->estabelecimento->endereco ?? '';
-                                $numero = $ordemServico->estabelecimento->numero ?? '';
-                                $bairro = $ordemServico->estabelecimento->bairro ?? '';
-                                $cidade = $ordemServico->estabelecimento->cidade ?? '';
-                                $estado = $ordemServico->estabelecimento->estado ?? 'TO';
-                                $cep = $ordemServico->estabelecimento->cep ?? '';
+                                $logradouro = $estabelecimentoItem->logradouro ?? $estabelecimentoItem->endereco ?? '';
+                                $numero = $estabelecimentoItem->numero ?? '';
+                                $bairro = $estabelecimentoItem->bairro ?? '';
+                                $cidade = $estabelecimentoItem->cidade ?? '';
+                                $estado = $estabelecimentoItem->estado ?? 'TO';
+                                $cep = $estabelecimentoItem->cep ?? '';
                                 
                                 // Monta o endereço completo para o Google Maps
                                 $partes = [];
@@ -467,6 +515,7 @@
                     </div>
                 </div>
             </div>
+            @endforeach
             @else
             {{-- Aviso quando não há estabelecimento --}}
             <div class="bg-amber-50 rounded-lg shadow border border-amber-200 p-6">
@@ -547,6 +596,17 @@
                                     @endif
                                     <div>
                                         <h4 class="font-semibold text-gray-900">{{ $atividade['nome_atividade'] ?? 'Atividade' }}</h4>
+                                        @if(!empty($atividade['estabelecimento_id']))
+                                            @php
+                                                $estabAtividade = $todosEstabelecimentos->firstWhere('id', $atividade['estabelecimento_id']);
+                                            @endphp
+                                            @if($estabAtividade)
+                                            <p class="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                {{ $estabAtividade->nome_fantasia }}
+                                            </p>
+                                            @endif
+                                        @endif
                                         @if($statusAtividade === 'finalizada')
                                             <p class="text-xs text-green-700">
                                                 @if($finalizadaEm)
@@ -878,6 +938,46 @@
 
 @push('scripts')
 <script>
+    let estabelecimentoAtual = 0;
+
+    function exibirEstabelecimento(indice) {
+        const cards = document.querySelectorAll('.estabelecimento-slide');
+        if (!cards.length) return;
+
+        const total = cards.length;
+        if (indice < 0) {
+            indice = total - 1;
+        } else if (indice >= total) {
+            indice = 0;
+        }
+
+        cards.forEach((card, idx) => {
+            card.style.display = idx === indice ? '' : 'none';
+        });
+
+        estabelecimentoAtual = indice;
+
+        const cardAtual = cards[indice];
+        const estabelecimentoId = cardAtual ? cardAtual.getAttribute('data-estabelecimento-id') : null;
+        const btnPdf = document.getElementById('btnBaixarPdfOs');
+        if (btnPdf) {
+            const baseUrl = btnPdf.getAttribute('data-base-url') || btnPdf.href;
+            btnPdf.href = estabelecimentoId ? `${baseUrl}?estabelecimento_id=${estabelecimentoId}` : baseUrl;
+        }
+    }
+
+    function mostrarProximoEstabelecimento() {
+        exibirEstabelecimento(estabelecimentoAtual + 1);
+    }
+
+    function mostrarEstabelecimentoAnterior() {
+        exibirEstabelecimento(estabelecimentoAtual - 1);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        exibirEstabelecimento(0);
+    });
+
     // ========================================
     // Funções para Cancelar OS
     // ========================================

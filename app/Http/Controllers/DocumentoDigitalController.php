@@ -764,17 +764,15 @@ class DocumentoDigitalController extends Controller
     {
         try {
             $documento = DocumentoDigital::with('assinaturas')->findOrFail($id);
-            $usuarioLogado = auth('interno')->user();
-            $isAdmin = $usuarioLogado->isAdmin();
 
             // Verifica se alguma assinatura já foi feita
             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
             
-            // Apenas administradores podem alterar após assinaturas feitas
-            if ($temAssinaturaFeita && !$isAdmin) {
+            // Não permite alterar assinantes após qualquer assinatura feita
+            if ($temAssinaturaFeita) {
                 return redirect()
                     ->back()
-                    ->with('error', 'Não é possível alterar assinantes após uma assinatura ter sido feita. Apenas administradores podem fazer isso.');
+                    ->with('error', 'Não é possível alterar assinantes após uma assinatura ter sido feita.');
             }
 
             // Verifica se o documento já foi assinado completamente
@@ -841,17 +839,15 @@ class DocumentoDigitalController extends Controller
         try {
             $assinatura = DocumentoAssinatura::with('documentoDigital.assinaturas')->findOrFail($id);
             $documento = $assinatura->documentoDigital;
-            $usuarioLogado = auth('interno')->user();
-            $isAdmin = $usuarioLogado->isAdmin();
 
             // Verifica se alguma assinatura já foi feita
             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
             
-            // Apenas administradores podem remover após assinaturas feitas
-            if ($temAssinaturaFeita && !$isAdmin) {
+            // Não permite remover assinantes após qualquer assinatura feita
+            if ($temAssinaturaFeita) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Não é possível remover assinantes após uma assinatura ter sido feita. Apenas administradores podem fazer isso.'
+                    'message' => 'Não é possível remover assinantes após uma assinatura ter sido feita.'
                 ], 400);
             }
 

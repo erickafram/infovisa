@@ -67,38 +67,34 @@
 
                         <div id="estabelecimento-container" style="display: none;" class="space-y-5 pt-5 border-t border-gray-100">
                             <div>
-                                <label for="estabelecimento_id" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                                <label for="estabelecimento_busca" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
                                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
-                                    Buscar Estabelecimento <span class="text-red-500">*</span>
+                                    Buscar e Adicionar Estabelecimentos <span class="text-red-500">*</span>
                                 </label>
-                                <div class="relative group">
-                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <svg class="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                        </svg>
+                                <div class="flex gap-2">
+                                    <div class="flex-1 relative group">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <svg class="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                            </svg>
+                                        </div>
+                                        <select id="estabelecimento_busca" class="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-300 transition-all appearance-none cursor-pointer">
+                                            <option value="">Digite nome ou CNPJ</option>
+                                        </select>
                                     </div>
-                                    <select name="estabelecimento_id" id="estabelecimento_id" class="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-300 transition-all appearance-none cursor-pointer">
-                                        <option value="">Pesquise por CNPJ ou nome...</option>
-                                        @if(old('estabelecimento_id'))
-                                            @php
-                                                $estabelecimentoSelecionado = $estabelecimentos->firstWhere('id', old('estabelecimento_id'));
-                                            @endphp
-                                            @if($estabelecimentoSelecionado)
-                                            <option value="{{ $estabelecimentoSelecionado->id }}" selected>
-                                                {{ $estabelecimentoSelecionado->cnpj }} - {{ $estabelecimentoSelecionado->nome_fantasia }}
-                                            </option>
-                                            @endif
-                                        @endif
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                        <svg class="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
+                                    <button type="button" onclick="adicionarEstabelecimento()" 
+                                            class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors flex items-center gap-1 whitespace-nowrap">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        Adicionar
+                                    </button>
                                 </div>
-                                @error('estabelecimento_id')
+                                <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Você pode adicionar vários estabelecimentos à mesma OS. Busque e clique em "Adicionar" para cada um.
+                                </p>
+                                @error('estabelecimentos_ids')
                                     <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         {{ $message }}
@@ -106,31 +102,22 @@
                                 @enderror
                             </div>
 
-                            <div id="processo-container">
-                                <label for="processo_id" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Processo Vinculado <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <select name="processo_id" id="processo_id" disabled
-                                            class="w-full pl-3 pr-10 py-2 text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400">
-                                        <option value="">Selecione primeiro um estabelecimento</option>
-                                    </select>
-                                    @error('processo_id')
-                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                
-                                {{-- Feedback Processo --}}
-                                <div id="processo-info" class="hidden mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-center gap-2">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <span id="processo-count" class="font-medium"></span>
-                                </div>
-                                <div id="processo-sem-processo" class="hidden mt-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800 flex items-start gap-2">
-                                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                    <div>
-                                        <p class="font-bold">Atenção</p>
-                                        <p>Este estabelecimento não possui processos ativos. É obrigatório ter um processo para vincular a OS.</p>
-                                    </div>
+                            {{-- Lista de Estabelecimentos Adicionados --}}
+                            <div id="estabelecimentos-adicionados" class="hidden">
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Estabelecimentos Vinculados</label>
+                                <div id="estabelecimentos-lista" class="space-y-2"></div>
+                                <div id="estabelecimentos-hidden-inputs"></div>
+                            </div>
+
+                            {{-- Hidden input para processo_id (compatibilidade - preenchido automaticamente) --}}
+                            <input type="hidden" name="processo_id" id="processo_id" value="">
+
+                            {{-- Aviso múltiplos estabelecimentos --}}
+                            <div id="aviso-multiplos-estabelecimentos" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-start gap-2">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div>
+                                    <p class="font-bold">Múltiplos Estabelecimentos</p>
+                                    <p>Cada estabelecimento deve ter um processo aberto vinculado. Selecione o processo em cada card abaixo.</p>
                                 </div>
                             </div>
                         </div>
@@ -773,17 +760,20 @@
         const comEstabelecimentoRadio = document.getElementById('com_estabelecimento');
         const semEstabelecimentoRadio = document.getElementById('sem_estabelecimento');
         const estabelecimentoContainer = document.getElementById('estabelecimento-container');
-        const estabelecimentoSelect = document.getElementById('estabelecimento_id');
         const documentoInput = document.getElementById('documento_anexo');
+
+        // ==========================================
+        // Múltiplos Estabelecimentos
+        // ==========================================
+        let estabelecimentosSelecionados = []; // [{id, text, cnpj, nome}]
 
         function toggleEstabelecimentoField() {
             if (comEstabelecimentoRadio.checked) {
                 estabelecimentoContainer.style.display = 'block';
-                estabelecimentoSelect.required = true;
             } else {
                 estabelecimentoContainer.style.display = 'none';
-                estabelecimentoSelect.required = false;
-                $(estabelecimentoSelect).val(null).trigger('change');
+                estabelecimentosSelecionados = [];
+                atualizarListaEstabelecimentos();
             }
         }
 
@@ -809,7 +799,8 @@
             document.getElementById('arquivo-selecionado').classList.add('hidden');
         };
 
-        $('#estabelecimento_id').select2({
+        // Select2 para buscar estabelecimentos
+        $('#estabelecimento_busca').select2({
             ajax: {
                 url: '{{ url('/admin/ordens-servico/api/buscar-estabelecimentos') }}',
                 dataType: 'json',
@@ -820,13 +811,13 @@
                         id: item.id,
                         text: item.text,
                         cnpj: item.cnpj,
-                        nome: item.nome_fantasia
+                        nome: item.nome_fantasia || item.text
                     })), 
                     pagination: { more: data.pagination.more } 
                 }),
                 cache: true
             },
-            placeholder: 'Busque por CNPJ ou Nome...',
+            placeholder: 'Digite nome ou CNPJ',
             minimumInputLength: 2,
             width: '100%',
             allowClear: true,
@@ -848,6 +839,220 @@
                     '</div>');
             }
         });
+
+        // UX: ao clicar na área, já abre e foca para digitação
+        const estabelecimentoBuscaSelect = $('#estabelecimento_busca');
+        estabelecimentoBuscaSelect.on('select2:open', function () {
+            const searchField = document.querySelector('.select2-container--open .select2-search__field');
+            if (searchField) {
+                searchField.placeholder = 'Digite nome ou CNPJ';
+                searchField.focus();
+            }
+        });
+
+        const estabelecimentoBuscaWrapper = document.querySelector('#estabelecimento_busca')?.closest('.group');
+        if (estabelecimentoBuscaWrapper) {
+            estabelecimentoBuscaWrapper.addEventListener('click', function () {
+                estabelecimentoBuscaSelect.select2('open');
+            });
+        }
+
+        // Adicionar estabelecimento à lista
+        window.adicionarEstabelecimento = function() {
+            const select = $('#estabelecimento_busca');
+            const data = select.select2('data')[0];
+            if (!data || !data.id) {
+                alert('Selecione um estabelecimento para adicionar.');
+                return;
+            }
+            // Verifica se já está na lista
+            if (estabelecimentosSelecionados.find(e => e.id == data.id)) {
+                alert('Este estabelecimento já foi adicionado.');
+                return;
+            }
+            estabelecimentosSelecionados.push({
+                id: data.id,
+                text: data.text,
+                cnpj: data.cnpj || '',
+                nome: data.nome || data.text
+            });
+            select.val(null).trigger('change');
+            atualizarListaEstabelecimentos();
+        };
+
+        // Remover estabelecimento da lista
+        window.removerEstabelecimentoDaLista = function(id) {
+            estabelecimentosSelecionados = estabelecimentosSelecionados.filter(e => e.id != id);
+            atualizarListaEstabelecimentos();
+            // Atualiza dropdown de estabelecimentos nas atividades
+            if (atividadesSelecionadas.length > 0) {
+                atualizarInterfaceTecnicos();
+            }
+        };
+
+        // Atualizar a lista visual e hidden inputs
+        function atualizarListaEstabelecimentos() {
+            const container = document.getElementById('estabelecimentos-adicionados');
+            const lista = document.getElementById('estabelecimentos-lista');
+            const hiddenContainer = document.getElementById('estabelecimentos-hidden-inputs');
+            const avisoMultiplos = document.getElementById('aviso-multiplos-estabelecimentos');
+            
+            lista.innerHTML = '';
+            hiddenContainer.innerHTML = '';
+
+            if (estabelecimentosSelecionados.length === 0) {
+                container.classList.add('hidden');
+                avisoMultiplos.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            estabelecimentosSelecionados.forEach((est, index) => {
+                // Card visual com processo dropdown
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all duration-200 overflow-hidden';
+                card.style.borderLeft = '4px solid #3b82f6';
+                card.id = `estab-card-${est.id}`;
+                card.innerHTML = `
+                    <div class="flex items-start gap-3 px-4 pt-4 pb-3">
+                        <div class="relative flex-shrink-0">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shadow-sm">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            </div>
+                            <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow">${index + 1}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 leading-snug">${est.nome}</p>
+                            ${est.cnpj ? `<span class="inline-flex items-center mt-1 px-2 py-0.5 rounded-md bg-gray-100 text-xs font-mono text-gray-500">${est.cnpj}</span>` : ''}
+                        </div>
+                        <button type="button" onclick="removerEstabelecimentoDaLista(${est.id})"
+                                title="Remover estabelecimento"
+                                class="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="px-4 pb-4">
+                        <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
+                            <label class="flex items-center gap-1.5 text-xs font-semibold text-blue-700 mb-2">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Processo Vinculado <span class="text-red-500 ml-0.5">*</span>
+                            </label>
+                            <select id="processo-est-${est.id}" onchange="selecionarProcessoEstabelecimento(${est.id}, this.value)"
+                                    class="w-full text-sm border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                                <option value="">Carregando processos...</option>
+                            </select>
+                            <div id="processo-alerta-${est.id}" class="hidden mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                <span>Este estabelecimento não possui processos abertos.</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                lista.appendChild(card);
+
+                // Hidden inputs
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'estabelecimentos_ids[]';
+                input.value = est.id;
+                hiddenContainer.appendChild(input);
+
+                // Hidden input para processo do estabelecimento
+                const inputProcesso = document.createElement('input');
+                inputProcesso.type = 'hidden';
+                inputProcesso.name = `processos_estabelecimentos[${est.id}]`;
+                inputProcesso.id = `processo-hidden-est-${est.id}`;
+                inputProcesso.value = est.processo_id || '';
+                hiddenContainer.appendChild(inputProcesso);
+
+                // Carrega processos para este estabelecimento
+                carregarProcessosEstabelecimento(est.id, est.processo_id || null);
+            });
+
+            // Aviso múltiplos
+            if (estabelecimentosSelecionados.length > 1) {
+                avisoMultiplos.classList.remove('hidden');
+            } else {
+                avisoMultiplos.classList.add('hidden');
+            }
+
+            // Também envia o primeiro como estabelecimento_id para compatibilidade
+            let inputPrincipal = document.getElementById('estabelecimento_id_hidden');
+            if (!inputPrincipal) {
+                inputPrincipal = document.createElement('input');
+                inputPrincipal.type = 'hidden';
+                inputPrincipal.name = 'estabelecimento_id';
+                inputPrincipal.id = 'estabelecimento_id_hidden';
+                hiddenContainer.appendChild(inputPrincipal);
+            }
+            inputPrincipal.value = estabelecimentosSelecionados[0].id;
+        }
+
+        // Selecionar processo para um estabelecimento específico
+        function selecionarProcessoEstabelecimento(estId, processoId) {
+            const hiddenInput = document.getElementById(`processo-hidden-est-${estId}`);
+            if (hiddenInput) {
+                hiddenInput.value = processoId;
+            }
+            // Atualiza no array
+            const est = estabelecimentosSelecionados.find(e => e.id == estId);
+            if (est) {
+                est.processo_id = processoId;
+            }
+            // Atualiza processo_id principal (compatibilidade) = processo do primeiro estabelecimento
+            if (estabelecimentosSelecionados.length > 0 && estabelecimentosSelecionados[0].id == estId) {
+                document.getElementById('processo_id').value = processoId;
+            }
+        }
+
+        // Carregar processos de um estabelecimento específico (por card)
+        function carregarProcessosEstabelecimento(estId, processoIdPreSelecionado) {
+            const processoSelect = document.getElementById(`processo-est-${estId}`);
+            const alertaDiv = document.getElementById(`processo-alerta-${estId}`);
+            
+            if (!processoSelect) return;
+
+            processoSelect.innerHTML = '<option value="">Carregando...</option>';
+            processoSelect.disabled = true;
+            if (alertaDiv) alertaDiv.classList.add('hidden');
+
+            fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/${estId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success && data.processos.length > 0) {
+                        processoSelect.innerHTML = '<option value="">Selecione um processo</option>';
+                        data.processos.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.id;
+                            opt.textContent = `${p.numero_processo} - ${p.tipo_label}`;
+                            if (processoIdPreSelecionado && p.id == processoIdPreSelecionado) {
+                                opt.selected = true;
+                            }
+                            processoSelect.appendChild(opt);
+                        });
+                        processoSelect.disabled = false;
+                        
+                        // Se tinha pré-seleção e deu match, atualiza hidden
+                        if (processoIdPreSelecionado && processoSelect.value) {
+                            selecionarProcessoEstabelecimento(estId, processoSelect.value);
+                        }
+                        // Se só tem 1 processo, auto-seleciona
+                        if (data.processos.length === 1) {
+                            processoSelect.value = data.processos[0].id;
+                            selecionarProcessoEstabelecimento(estId, data.processos[0].id);
+                        }
+                    } else {
+                        processoSelect.innerHTML = '<option value="">Sem processos abertos</option>';
+                        processoSelect.disabled = true;
+                        if (alertaDiv) alertaDiv.classList.remove('hidden');
+                    }
+                })
+                .catch(() => {
+                    processoSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+                    processoSelect.disabled = true;
+                });
+        }
 
         // Variáveis globais para controle
         let atividadesSelecionadas = [];
@@ -972,7 +1177,7 @@
                 const atividadeDiv = document.createElement('div');
                 atividadeDiv.className = 'border border-gray-200 rounded-lg p-4 bg-gray-50';
                 
-                const tecnicosAtribuidos = atividadesTecnicos[atividade.id] || { responsavel: null, tecnicos: [] };
+                const tecnicosAtribuidos = atividadesTecnicos[atividade.id] || { responsavel: null, tecnicos: [], estabelecimento_id: null };
                 const responsavelNome = tecnicosAtribuidos.responsavel ? 
                     (document.querySelector(`.tecnico-checkbox[value="${tecnicosAtribuidos.responsavel}"]`)?.dataset.nome || 'Técnico não encontrado') : 
                     'Não definido';
@@ -994,6 +1199,29 @@
                 } else {
                     tituloAtividade = atividade.nome;
                 }
+
+                // Dropdown de estabelecimento para a atividade (só se tiver múltiplos)
+                let estabelecimentoDropdownHtml = '';
+                if (estabelecimentosSelecionados.length > 1) {
+                    const selectedEstId = tecnicosAtribuidos.estabelecimento_id || '';
+                    let opcoesEst = '<option value="">-- Todos / Geral --</option>';
+                    estabelecimentosSelecionados.forEach(est => {
+                        const sel = (est.id == selectedEstId) ? 'selected' : '';
+                        opcoesEst += `<option value="${est.id}" ${sel}>${est.nome} (${est.cnpj})</option>`;
+                    });
+                    estabelecimentoDropdownHtml = `
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <label class="flex items-center gap-1 text-xs font-semibold text-gray-600 mb-1">
+                                <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                Estabelecimento vinculado a esta ação
+                            </label>
+                            <select onchange="definirEstabelecimentoAtividade('${atividade.id}', this.value)" 
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                ${opcoesEst}
+                            </select>
+                        </div>
+                    `;
+                }
                 
                 atividadeDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
@@ -1007,6 +1235,7 @@
                         <p><span class="font-medium">Responsável:</span> ${responsavelNome}</p>
                         <p><span class="font-medium">Técnicos adicionais:</span> ${tecnicosAdicionais}</p>
                     </div>
+                    ${estabelecimentoDropdownHtml}
                 `;
                 
                 container.appendChild(atividadeDiv);
@@ -1015,6 +1244,15 @@
             // Atualiza os hidden inputs
             atualizarHiddenInputsTecnicos();
         }
+
+        // Define estabelecimento para uma atividade específica
+        window.definirEstabelecimentoAtividade = function(atividadeId, estabelecimentoId) {
+            if (!atividadesTecnicos[atividadeId]) {
+                atividadesTecnicos[atividadeId] = { responsavel: null, tecnicos: [], estabelecimento_id: null };
+            }
+            atividadesTecnicos[atividadeId].estabelecimento_id = estabelecimentoId ? parseInt(estabelecimentoId) : null;
+            atualizarHiddenInputsTecnicos();
+        };
 
         // Funções para Modal de Técnicos por Atividade
         window.abrirModalTecnicosAtividade = function(atividadeId, atividadeNome) {
@@ -1167,10 +1405,12 @@
             
             const tecnicosIds = checkboxesMarcados.map(cb => parseInt(cb.value));
             
-            // Salva na estrutura
+            // Salva na estrutura (preserva estabelecimento_id existente)
+            const existente = atividadesTecnicos[atividadeAtualModal] || {};
             atividadesTecnicos[atividadeAtualModal] = {
                 responsavel: parseInt(responsavelId),
-                tecnicos: tecnicosIds
+                tecnicos: tecnicosIds,
+                estabelecimento_id: existente.estabelecimento_id || null
             };
             
             // Atualiza interface
@@ -1196,6 +1436,7 @@
                     nome_atividade: atividade.nome, // Nome que será exibido para o técnico
                     tecnicos: tecnicosAtribuidos.tecnicos,
                     responsavel_id: tecnicosAtribuidos.responsavel,
+                    estabelecimento_id: tecnicosAtribuidos.estabelecimento_id || null,
                     status: 'pendente'
                 };
             }).filter(item => item !== null);
@@ -1263,58 +1504,28 @@
         // Inicializar com valores old() se existirem
         confirmarTiposAcao();
 
-        // Logic for fetching Processos
-        const processoSelect = document.getElementById('processo_id');
-        const processoInfo = document.getElementById('processo-info');
-        const processoSemProcesso = document.getElementById('processo-sem-processo');
-        const submitButton = document.querySelector('button[type="submit"]');
-
-        $('#estabelecimento_id').on('change', function() {
-            const estId = $(this).val();
-            processoSelect.innerHTML = '<option value="">Carregando...</option>';
-            processoSelect.disabled = true;
-            processoInfo.classList.add('hidden');
-            processoSemProcesso.classList.add('hidden');
-
-            if(!estId) {
-                processoSelect.innerHTML = '<option value="">Selecione um estabelecimento</option>';
-                submitButton.disabled = false; return;
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // Validação: pelo menos 1 estabelecimento selecionado quando "com estabelecimento"
+            if (comEstabelecimentoRadio.checked && estabelecimentosSelecionados.length === 0) {
+                e.preventDefault();
+                alert('Adicione pelo menos um estabelecimento à Ordem de Serviço.');
+                return;
             }
 
-            fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/${estId}`)
-                .then(r => r.json())
-                .then(data => {
-                    if(data.success && data.processos.length > 0) {
-                        processoSelect.innerHTML = '<option value="">Selecione um processo</option>';
-                        data.processos.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p.id;
-                            opt.textContent = `${p.numero_processo} - ${p.tipo_label}`;
-                            processoSelect.appendChild(opt);
-                        });
-                        processoSelect.disabled = false;
-                        document.getElementById('processo-count').textContent = `${data.total} processo(s) encontrado(s)`;
-                        processoInfo.classList.remove('hidden');
-                        submitButton.disabled = false;
-                    } else {
-                        processoSelect.innerHTML = '<option value="">Sem processos</option>';
-                        processoSemProcesso.classList.remove('hidden');
-                        submitButton.disabled = true;
+            // Validação de processo por estabelecimento (obrigatório para todos)
+            if (comEstabelecimentoRadio.checked && estabelecimentosSelecionados.length > 0) {
+                let estabelecimentosSemProcesso = [];
+                estabelecimentosSelecionados.forEach(est => {
+                    const hiddenInput = document.getElementById(`processo-hidden-est-${est.id}`);
+                    if (!hiddenInput || !hiddenInput.value) {
+                        estabelecimentosSemProcesso.push(est.nome);
                     }
-                })
-                .catch(() => {
-                    processoSelect.innerHTML = '<option>Erro ao carregar</option>';
-                    submitButton.disabled = false;
                 });
-        });
-
-        document.querySelector('form').addEventListener('submit', function(e) {
-            // Validação de estabelecimento e processo
-            if(comEstabelecimentoRadio.checked && estabelecimentoSelect.value && !processoSelect.value) {
-                e.preventDefault();
-                alert('Selecione um processo vinculado.');
-                processoSelect.focus();
-                return;
+                if (estabelecimentosSemProcesso.length > 0) {
+                    e.preventDefault();
+                    alert('Os seguintes estabelecimentos não possuem processo selecionado:\n\n' + estabelecimentosSemProcesso.join('\n') + '\n\nÉ obrigatório selecionar um processo para cada estabelecimento.');
+                    return;
+                }
             }
             
             // Validação de técnicos por atividade
@@ -1343,19 +1554,16 @@
             comEstabelecimentoRadio.checked = true;
             toggleEstabelecimentoField();
             
-            // Cria a option do estabelecimento pré-selecionado
-            const estabelecimentoOption = new Option(
-                '{{ $estabelecimentoPreSelecionado->cnpj }} - {{ $estabelecimentoPreSelecionado->nome_fantasia }}',
-                '{{ $estabelecimentoPreSelecionado->id }}',
-                true,
-                true
-            );
-            estabelecimentoOption.dataset.cnpj = '{{ $estabelecimentoPreSelecionado->cnpj }}';
-            estabelecimentoOption.dataset.nome = '{{ $estabelecimentoPreSelecionado->nome_fantasia }}';
+            // Adiciona o estabelecimento pré-selecionado à lista
+            estabelecimentosSelecionados.push({
+                id: {{ $estabelecimentoPreSelecionado->id }},
+                text: '{{ $estabelecimentoPreSelecionado->cnpj }} - {{ $estabelecimentoPreSelecionado->nome_fantasia }}',
+                cnpj: '{{ $estabelecimentoPreSelecionado->cnpj }}',
+                nome: '{{ $estabelecimentoPreSelecionado->nome_fantasia }}'
+            });
+            atualizarListaEstabelecimentos();
             
-            $('#estabelecimento_id').append(estabelecimentoOption).trigger('change');
-            
-            // Carrega os processos do estabelecimento
+            // Carrega os processos do estabelecimento e pré-seleciona o processo
             @if(isset($processoPreSelecionado) && $processoPreSelecionado)
             setTimeout(function() {
                 fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/{{ $estabelecimentoPreSelecionado->id }}`)
@@ -1367,7 +1575,6 @@
                                 const opt = document.createElement('option');
                                 opt.value = p.id;
                                 opt.textContent = `${p.numero_processo} - ${p.tipo_label}`;
-                                // Pré-seleciona o processo
                                 if (p.id == {{ $processoPreSelecionado->id }}) {
                                     opt.selected = true;
                                 }
@@ -1376,7 +1583,6 @@
                             processoSelect.disabled = false;
                             document.getElementById('processo-count').textContent = `${data.total} processo(s) encontrado(s)`;
                             processoInfo.classList.remove('hidden');
-                            submitButton.disabled = false;
                         }
                     });
             }, 100);

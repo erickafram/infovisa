@@ -52,11 +52,36 @@ class OrdemServico extends Model
     ];
 
     /**
-     * Relacionamento com Estabelecimento
+     * Relacionamento com Estabelecimento (legado - único)
      */
     public function estabelecimento()
     {
         return $this->belongsTo(Estabelecimento::class);
+    }
+
+    /**
+     * Relacionamento com Estabelecimentos (múltiplos - via pivot)
+     */
+    public function estabelecimentos()
+    {
+        return $this->belongsToMany(Estabelecimento::class, 'ordem_servico_estabelecimentos', 'ordem_servico_id', 'estabelecimento_id')
+                    ->withPivot('processo_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Retorna todos os estabelecimentos vinculados (pivot + legado)
+     */
+    public function getTodosEstabelecimentos()
+    {
+        $estabelecimentos = $this->estabelecimentos;
+
+        // Se não tem no pivot mas tem no campo legado, inclui
+        if ($estabelecimentos->isEmpty() && $this->estabelecimento_id && $this->estabelecimento) {
+            return collect([$this->estabelecimento]);
+        }
+
+        return $estabelecimentos;
     }
 
     /**

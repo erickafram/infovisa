@@ -192,6 +192,10 @@
     </style>
 </head>
 <body>
+    @php
+        $estabelecimentoPdf = $estabelecimentoPdf ?? $ordemServico->estabelecimento;
+        $processoPdf = $processoPdf ?? $ordemServico->processo;
+    @endphp
     <div class="page">
         {{-- Header --}}
         <div class="header">
@@ -234,27 +238,31 @@
                         <div class="label">Município</div>
                         <div class="value">{{ $ordemServico->municipio?->nome ?? '-' }}</div>
                     </div>
+                    <div class="info-item">
+                        <div class="label">Processo Vinculado</div>
+                        <div class="value">{{ $processoPdf?->numero_processo ?? '-' }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- Informações do Estabelecimento --}}
-        @if($ordemServico->estabelecimento)
+        @if($estabelecimentoPdf)
         <div class="section">
             <div class="section-title">DADOS DO ESTABELECIMENTO</div>
             <div class="section-content">
                 <div class="info-row">
                     <div class="info-item">
                         <div class="label">Razão Social / Nome</div>
-                        <div class="value">{{ $ordemServico->estabelecimento->razao_social ?? $ordemServico->estabelecimento->nome_fantasia }}</div>
+                        <div class="value">{{ $estabelecimentoPdf->razao_social ?? $estabelecimentoPdf->nome_fantasia }}</div>
                     </div>
                     <div class="info-item">
                         <div class="label">CNPJ / CPF</div>
                         <div class="value">
-                            @if($ordemServico->estabelecimento->tipo_pessoa === 'fisica')
-                                {{ $ordemServico->estabelecimento->cpf_formatado ?? '-' }}
+                            @if($estabelecimentoPdf->tipo_pessoa === 'fisica')
+                                {{ $estabelecimentoPdf->cpf_formatado ?? '-' }}
                             @else
-                                {{ $ordemServico->estabelecimento->cnpj_formatado ?? '-' }}
+                                {{ $estabelecimentoPdf->cnpj_formatado ?? '-' }}
                             @endif
                         </div>
                     </div>
@@ -263,11 +271,11 @@
                     <div class="info-item">
                         <div class="label">Endereço</div>
                         <div class="value">
-                            {{ $ordemServico->estabelecimento->logradouro }}
-                            @if($ordemServico->estabelecimento->numero), {{ $ordemServico->estabelecimento->numero }}@endif
-                            @if($ordemServico->estabelecimento->complemento) - {{ $ordemServico->estabelecimento->complemento }}@endif
-                            , {{ $ordemServico->estabelecimento->bairro }}
-                            @if(is_object($ordemServico->estabelecimento->municipio)) - {{ $ordemServico->estabelecimento->municipio->nome }}/{{ $ordemServico->estabelecimento->municipio->uf }}@endif
+                            {{ $estabelecimentoPdf->logradouro }}
+                            @if($estabelecimentoPdf->numero), {{ $estabelecimentoPdf->numero }}@endif
+                            @if($estabelecimentoPdf->complemento) - {{ $estabelecimentoPdf->complemento }}@endif
+                            , {{ $estabelecimentoPdf->bairro }}
+                            @if(is_object($estabelecimentoPdf->municipio)) - {{ $estabelecimentoPdf->municipio->nome }}/{{ $estabelecimentoPdf->municipio->uf }}@endif
                         </div>
                     </div>
                 </div>
@@ -285,8 +293,8 @@
                 ->toArray();
             
             $exigeEquipamentos = false;
-            if ($ordemServico->estabelecimento) {
-                $atividadesEstabelecimento = $ordemServico->estabelecimento->getTodasAtividades();
+            if ($estabelecimentoPdf) {
+                $atividadesEstabelecimento = $estabelecimentoPdf->getTodasAtividades();
                 foreach ($atividadesEstabelecimento as $codigo) {
                     if (in_array($codigo, $codigosAtividadesRadiacao)) {
                         $exigeEquipamentos = true;
@@ -296,14 +304,14 @@
             }
         @endphp
 
-        @if($exigeEquipamentos && $ordemServico->estabelecimento)
+        @if($exigeEquipamentos && $estabelecimentoPdf)
         <div class="section">
             <div class="section-title">EQUIPAMENTOS DE IMAGEM</div>
             <div class="section-content">
-                @if($ordemServico->estabelecimento->equipamentosRadiacao()->count() > 0)
+                @if($estabelecimentoPdf->equipamentosRadiacao()->count() > 0)
                     <div class="alert alert-green">
                         <strong>✓ Equipamentos Registrados</strong><br>
-                        Este estabelecimento possui {{ $ordemServico->estabelecimento->equipamentosRadiacao()->count() }} equipamento(s) de imagem cadastrado(s).
+                        Este estabelecimento possui {{ $estabelecimentoPdf->equipamentosRadiacao()->count() }} equipamento(s) de imagem cadastrado(s).
                     </div>
                     <table class="equipment-table">
                         <thead>
@@ -316,7 +324,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($ordemServico->estabelecimento->equipamentosRadiacao()->get() as $equipamento)
+                            @foreach($estabelecimentoPdf->equipamentosRadiacao()->get() as $equipamento)
                             <tr>
                                 <td>{{ $equipamento->tipo_equipamento }}</td>
                                 <td>{{ $equipamento->fabricante }}</td>
@@ -327,14 +335,14 @@
                             @endforeach
                         </tbody>
                     </table>
-                @elseif($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem)
+                @elseif($estabelecimentoPdf->declaracao_sem_equipamentos_imagem)
                     <div class="alert alert-amber">
                         <strong>⚠ Declaração: Não Possui Equipamentos</strong><br>
                         O estabelecimento declarou formalmente que NÃO POSSUI equipamentos de imagem.
                         
-                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes)
+                        @if($estabelecimentoPdf->declaracao_sem_equipamentos_opcoes)
                         @php
-                            $opcoes = json_decode($ordemServico->estabelecimento->declaracao_sem_equipamentos_opcoes, true) ?? [];
+                            $opcoes = json_decode($estabelecimentoPdf->declaracao_sem_equipamentos_opcoes, true) ?? [];
                         @endphp
                         @if(count($opcoes) > 0)
                         <br><br><strong>Confirmações:</strong><br>
@@ -350,8 +358,8 @@
                         @endif
                         @endif
                         
-                        @if($ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa)
-                        <br><strong>Justificativa:</strong> {{ $ordemServico->estabelecimento->declaracao_sem_equipamentos_imagem_justificativa }}
+                        @if($estabelecimentoPdf->declaracao_sem_equipamentos_imagem_justificativa)
+                        <br><strong>Justificativa:</strong> {{ $estabelecimentoPdf->declaracao_sem_equipamentos_imagem_justificativa }}
                         @endif
                     </div>
                 @else
