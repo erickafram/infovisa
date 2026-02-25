@@ -521,6 +521,117 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Exibe a listagem geral de alertas vinculados aos processos
+     */
+    public function alertasProcessosIndex(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        $query = ProcessoAlerta::with([
+            'processo.estabelecimento.municipioRelacionado',
+            'processo.tipoProcesso',
+            'usuarioCriador'
+        ]);
+
+        if ($request->filled('busca')) {
+            $busca = trim($request->busca);
+            $query->where(function ($q) use ($busca) {
+                $q->where('descricao', 'ilike', '%' . $busca . '%')
+                  ->orWhereHas('processo', function ($qp) use ($busca) {
+                      $qp->where('numero_processo', 'ilike', '%' . $busca . '%')
+                         ->orWhereHas('estabelecimento', function ($qe) use ($busca) {
+                             $qe->where('nome_fantasia', 'ilike', '%' . $busca . '%')
+                                ->orWhere('razao_social', 'ilike', '%' . $busca . '%')
+                                ->orWhere('nome_completo', 'ilike', '%' . $busca . '%')
+                                ->orWhere('cnpj', 'ilike', '%' . $busca . '%');
+                         });
+                  });
+            });
+        }
+
+        if ($request->filled('estabelecimento_id')) {
+            $query->whereHas('processo', function ($q) use ($request) {
+                $q->where('estabelecimento_id', $request->estabelecimento_id);
+            });
+        }
+
+        $alertasCollection = $query
+            ->orderByRaw("CASE WHEN status != 'concluido' AND data_alerta < CURRENT_DATE THEN 0 ELSE 1 END")
+            ->orderBy('data_alerta', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if (!$usuario->isAdmin()) {
+            $alertasCollection = $alertasCollection->filter(function ($alerta) use ($usuario) {
+                $estabelecimento = $alerta->processo?->estabelecimento;
+
+                if (!$estabelecimento) {
+                    return false;
+                }
+
+                if ($usuario->isEstadual()) {
+                    return $estabelecimento->isCompetenciaEstadual();
+                }
+
+                if ($usuario->isMunicipal()) {
+                    if (!$usuario->municipio_id || $estabelecimento->municipio_id != $usuario->municipio_id) {
+                        return false;
+                    }
+
+                    return !$estabelecimento->isCompetenciaEstadual();
+                }
+
+                return false;
+            })->values();
+        }
+
+        $estatisticas = [
+            'total' => $alertasCollection->count(),
+            'pendentes' => $alertasCollection->where('status', '!=', 'concluido')->count(),
+            'vencidos' => $alertasCollection->filter(function ($alerta) {
+                return $alerta->status !== 'concluido' && $alerta->data_alerta && $alerta->data_alerta->isPast();
+            })->count(),
+            'concluidos' => $alertasCollection->where('status', 'concluido')->count(),
+        ];
+
+        if ($request->filled('status')) {
+            if ($request->status === 'pendente') {
+                $alertasCollection = $alertasCollection->where('status', '!=', 'concluido')->values();
+            } elseif ($request->status === 'concluido') {
+                $alertasCollection = $alertasCollection->where('status', 'concluido')->values();
+            }
+        }
+
+        $estabelecimentos = $alertasCollection
+            ->map(function ($alerta) {
+                return $alerta->processo?->estabelecimento;
+            })
+            ->filter()
+            ->unique('id')
+            ->sortBy(function ($est) {
+                return $est->nome_fantasia ?: $est->razao_social ?: $est->nome_completo;
+            })
+            ->values();
+
+        $perPage = 15;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $itensPagina = $alertasCollection->forPage($currentPage, $perPage)->values();
+
+        $alertas = new LengthAwarePaginator(
+            $itensPagina,
+            $alertasCollection->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => route('admin.alertas-processos.index', [], false),
+                'query' => $request->query(),
+            ]
+        );
+
+        return view('processos.alertas', compact('alertas', 'estatisticas', 'estabelecimentos'));
+    }
+
+    /**
      * Exibe lista de documentos pendentes de aprovação
      */
     public function documentosPendentes(Request $request)

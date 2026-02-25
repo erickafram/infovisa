@@ -284,6 +284,7 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     
     // Processos - Listagem Geral
     Route::get('/processos', [\App\Http\Controllers\ProcessoController::class, 'indexGeral'])->name('processos.index-geral');
+    Route::get('/alertas-processos', [\App\Http\Controllers\ProcessoController::class, 'alertasProcessosIndex'])->name('alertas-processos.index');
     
     // Documentos Pendentes de Aprovação
     Route::get('/documentos-pendentes', [\App\Http\Controllers\ProcessoController::class, 'documentosPendentes'])->name('documentos-pendentes.index');
