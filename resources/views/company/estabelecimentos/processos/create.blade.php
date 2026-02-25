@@ -62,6 +62,33 @@
                 </div>
                 @endif
 
+                {{-- Aviso de responsável técnico obrigatório --}}
+                @if(isset($precisaCadastrarResponsavelTecnico) && $precisaCadastrarResponsavelTecnico)
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium text-red-800">Responsável Técnico Obrigatório</h4>
+                            <p class="mt-1 text-sm text-red-700">
+                                Este estabelecimento possui atividade que exige cadastro de responsável técnico.
+                                Cadastre pelo menos um responsável técnico para abrir ou continuar processos.
+                            </p>
+                            <a href="{{ route('company.estabelecimentos.responsaveis.index', $estabelecimento->id) }}"
+                               class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Cadastrar Responsável Técnico
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 @if($tiposProcesso->count() > 0)
                     <label class="block text-sm font-medium text-gray-700 mb-4">Selecione o tipo de processo</label>
                     
@@ -69,15 +96,17 @@
                         @foreach($tiposProcesso as $tipo)
                         @php
                             $bloqueadoPorEquipamento = isset($tiposBloqueadosPorEquipamentos) && in_array($tipo->codigo, $tiposBloqueadosPorEquipamentos);
+                            $bloqueadoPorResponsavelTecnico = isset($precisaCadastrarResponsavelTecnico) && $precisaCadastrarResponsavelTecnico;
+                            $tipoBloqueado = $bloqueadoPorEquipamento || $bloqueadoPorResponsavelTecnico;
                         @endphp
-                        <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg transition-all {{ $bloqueadoPorEquipamento ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50' }}">
+                        <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg transition-all {{ $tipoBloqueado ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50' }}">
                             <input type="radio" name="tipo_processo_id" value="{{ $tipo->id }}" 
                                    {{ old('tipo_processo_id') == $tipo->id ? 'checked' : '' }}
-                                   {{ $bloqueadoPorEquipamento ? 'disabled' : '' }}
-                                   class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 {{ $bloqueadoPorEquipamento ? 'cursor-not-allowed' : '' }}" {{ !$bloqueadoPorEquipamento ? 'required' : '' }}>
+                                   {{ $tipoBloqueado ? 'disabled' : '' }}
+                                   class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 {{ $tipoBloqueado ? 'cursor-not-allowed' : '' }}" {{ !$tipoBloqueado ? 'required' : '' }}>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-sm font-medium {{ $bloqueadoPorEquipamento ? 'text-gray-500' : 'text-gray-900' }}">{{ $tipo->nome }}</span>
+                                    <span class="text-sm font-medium {{ $tipoBloqueado ? 'text-gray-500' : 'text-gray-900' }}">{{ $tipo->nome }}</span>
                                     @if($tipo->anual)
                                         <span class="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">Anual</span>
                                     @endif
@@ -95,12 +124,23 @@
                                             Requer equipamentos de imagem
                                         </span>
                                     @endif
+                                    @if($bloqueadoPorResponsavelTecnico)
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            Requer responsável técnico
+                                        </span>
+                                    @endif
                                 </div>
                                 @if($tipo->descricao)
                                     <p class="text-xs text-gray-500 mt-1">{{ $tipo->descricao }}</p>
                                 @endif
                                 @if($bloqueadoPorEquipamento)
                                     <p class="text-xs text-orange-600 mt-1">Cadastre os equipamentos de imagem antes de abrir este tipo de processo.</p>
+                                @endif
+                                @if($bloqueadoPorResponsavelTecnico)
+                                    <p class="text-xs text-red-600 mt-1">Cadastre um responsável técnico antes de abrir este tipo de processo.</p>
                                 @endif
                             </div>
                         </label>
@@ -132,9 +172,16 @@
                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Cancelar
                 </a>
-                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    Abrir Processo
-                </button>
+                @if(isset($precisaCadastrarResponsavelTecnico) && $precisaCadastrarResponsavelTecnico)
+                    <a href="{{ route('company.estabelecimentos.responsaveis.index', $estabelecimento->id) }}"
+                       class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                        Cadastrar Responsável Técnico
+                    </a>
+                @else
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        Abrir Processo
+                    </button>
+                @endif
             </div>
             @endif
         </div>

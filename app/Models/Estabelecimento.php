@@ -244,6 +244,49 @@ class Estabelecimento extends Model
     }
 
     /**
+     * Verifica se precisa cadastrar responsável técnico por regra de atividade
+     */
+    public function precisaCadastrarResponsavelTecnicoPorAtividade(): bool
+    {
+        if (!AtividadeResponsavelTecnico::estabelecimentoExigeResponsavelTecnico($this)) {
+            return false;
+        }
+
+        if ($this->responsaveisTecnicos()->count() > 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Retorna as atividades exercidas do estabelecimento que exigem responsável técnico
+     */
+    public function getAtividadesQueExigemResponsavelTecnico(): array
+    {
+        if (empty($this->atividades_exercidas)) {
+            return [];
+        }
+
+        $atividadesObrigatoriasNormalizadas = AtividadeResponsavelTecnico::where('ativo', true)
+            ->get()
+            ->map(fn($atividade) => AtividadeResponsavelTecnico::normalizarCodigo($atividade->codigo_atividade))
+            ->toArray();
+
+        return collect($this->atividades_exercidas)
+            ->filter(function ($atividade) use ($atividadesObrigatoriasNormalizadas) {
+                $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+                if (!$codigo) {
+                    return false;
+                }
+
+                return in_array(AtividadeResponsavelTecnico::normalizarCodigo((string) $codigo), $atividadesObrigatoriasNormalizadas);
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
      * Relacionamento com histórico
      */
     public function historicos()

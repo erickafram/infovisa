@@ -551,6 +551,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::delete('{equipamentos_radiacao}', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'destroy'])->name('destroy');
             Route::post('{equipamentos_radiacao}/toggle', [\App\Http\Controllers\Admin\AtividadeEquipamentoRadiacaoController::class, 'toggleStatus'])->name('toggle');
         });
+
+        // Responsável Técnico por Atividade - Admin e Gestor Estadual
+        Route::prefix('responsaveis-tecnicos')->name('responsaveis-tecnicos.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'index'])->name('index');
+            Route::get('create', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'store'])->name('store');
+            Route::get('{responsavel_tecnico}/edit', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'edit'])->name('edit');
+            Route::put('{responsavel_tecnico}', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'update'])->name('update');
+            Route::delete('{responsavel_tecnico}', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'destroy'])->name('destroy');
+            Route::post('{responsavel_tecnico}/toggle', [\App\Http\Controllers\Admin\AtividadeResponsavelTecnicoController::class, 'toggleStatus'])->name('toggle');
+        });
     });
     
     // Configurações - RESTRITO APENAS A ADMINISTRADORES

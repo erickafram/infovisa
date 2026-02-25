@@ -68,6 +68,31 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Bloqueia ações de continuidade quando o estabelecimento exige responsável técnico
+     */
+    private function bloquearSeFaltarResponsavelTecnico(Processo $processo, bool $isAjax = false)
+    {
+        $estabelecimento = $processo->estabelecimento;
+
+        if ($estabelecimento && $estabelecimento->precisaCadastrarResponsavelTecnicoPorAtividade()) {
+            $mensagem = 'Este estabelecimento precisa ter ao menos um Responsável Técnico cadastrado para continuar o processo.';
+
+            if ($isAjax) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $mensagem,
+                ], 422);
+            }
+
+            return redirect()
+                ->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', $mensagem);
+        }
+
+        return null;
+    }
+
+    /**
      * Busca documentos obrigatórios para um processo baseado nas atividades exercidas do estabelecimento
      * ou diretamente pelo tipo de processo (para processos especiais como Projeto Arquitetônico e Análise de Rotulagem)
      */
@@ -485,6 +510,7 @@ class ProcessoController extends Controller
         
         // Verifica se o estabelecimento precisa cadastrar equipamentos de imagem para este tipo de processo
         $precisaCadastrarEquipamentos = $processo->estabelecimento->precisaCadastrarEquipamentosImagemParaProcesso($processo->tipo);
+        $precisaCadastrarResponsavelTecnico = $processo->estabelecimento->precisaCadastrarResponsavelTecnicoPorAtividade();
         
         return view('company.processos.show', compact(
             'processo',
@@ -497,7 +523,8 @@ class ProcessoController extends Controller
             'documentosObrigatorios',
             'pastas',
             'documentosAjuda',
-            'precisaCadastrarEquipamentos'
+            'precisaCadastrarEquipamentos',
+            'precisaCadastrarResponsavelTecnico'
         ));
     }
 
@@ -512,6 +539,10 @@ class ProcessoController extends Controller
 
         // Verifica se o usuário tem permissão de edição
         if ($redirect = $this->verificarAcessoGestorProcesso($processo, $request->ajax())) {
+            return $redirect;
+        }
+
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo, $request->ajax())) {
             return $redirect;
         }
 
@@ -710,6 +741,10 @@ class ProcessoController extends Controller
             return $redirect;
         }
 
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo)) {
+            return $redirect;
+        }
+
         // Só pode excluir documentos pendentes que foram enviados pelo próprio usuário
         $documento = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
             ->where('usuario_externo_id', $usuarioId)
@@ -744,6 +779,10 @@ class ProcessoController extends Controller
 
         // Verifica se o usuário tem permissão de edição
         if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
+
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo)) {
             return $redirect;
         }
 
@@ -904,6 +943,10 @@ class ProcessoController extends Controller
             return $redirect;
         }
 
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo)) {
+            return $redirect;
+        }
+
         $alerta = ProcessoAlerta::where('processo_id', $processo->id)
             ->where('status', '!=', 'concluido')
             ->findOrFail($alertaId);
@@ -929,6 +972,10 @@ class ProcessoController extends Controller
 
         // Verifica se o usuário tem permissão de edição
         if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
+
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo)) {
             return $redirect;
         }
 
@@ -1086,6 +1133,10 @@ class ProcessoController extends Controller
 
         // Verifica se o usuário tem permissão de edição
         if ($redirect = $this->verificarAcessoGestorProcesso($processo)) {
+            return $redirect;
+        }
+
+        if ($redirect = $this->bloquearSeFaltarResponsavelTecnico($processo)) {
             return $redirect;
         }
 

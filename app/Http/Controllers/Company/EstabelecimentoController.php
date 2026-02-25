@@ -575,6 +575,11 @@ class EstabelecimentoController extends Controller
             return $redirect;
         }
 
+        $cpfInformado = preg_replace('/\D/', '', (string) $request->input('cpf'));
+        $responsavelExistente = $cpfInformado
+            ? \App\Models\Responsavel::where('cpf', $cpfInformado)->first()
+            : null;
+
         $rules = [
             'nome' => 'required|string|max:255',
             'cpf' => 'required|string',
@@ -587,11 +592,13 @@ class EstabelecimentoController extends Controller
         if ($request->tipo_vinculo === 'tecnico') {
             $rules['conselho'] = 'required|string|max:100';
             $rules['numero_registro'] = 'required|string|max:50';
-            $rules['carteirinha_conselho'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $carteirinhaJaCadastrada = !empty($responsavelExistente?->carteirinha_conselho);
+            $rules['carteirinha_conselho'] = ($carteirinhaJaCadastrada ? 'nullable' : 'required') . '|file|mimes:pdf,jpg,jpeg,png|max:5120';
         } else {
             $rules['conselho'] = 'nullable|string|max:100';
             $rules['numero_registro'] = 'nullable|string|max:50';
-            $rules['documento_identificacao'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $documentoJaCadastrado = !empty($responsavelExistente?->documento_identificacao);
+            $rules['documento_identificacao'] = ($documentoJaCadastrado ? 'nullable' : 'required') . '|file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
 
         $validated = $request->validate($rules);
@@ -758,9 +765,9 @@ class EstabelecimentoController extends Controller
         if ($tipo === 'tecnico') {
             $rules['conselho'] = 'required|string|max:100';
             $rules['numero_registro'] = 'required|string|max:50';
-            $rules['carteirinha_conselho'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $rules['carteirinha_conselho'] = (empty($responsavel->carteirinha_conselho) ? 'required' : 'nullable') . '|file|mimes:pdf,jpg,jpeg,png|max:5120';
         } else {
-            $rules['documento_identificacao'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $rules['documento_identificacao'] = (empty($responsavel->documento_identificacao) ? 'required' : 'nullable') . '|file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
 
         $validated = $request->validate($rules);
@@ -959,7 +966,7 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
-            ->with(['responsaveisLegais'])
+            ->with(['responsaveisLegais', 'responsaveisTecnicos'])
             ->findOrFail($id);
 
         // Verifica se o usuário tem permissão de edição
@@ -1005,6 +1012,11 @@ class EstabelecimentoController extends Controller
         // ========================================
 
         // ========================================
+        // VERIFICAÇÃO: Responsável Técnico Obrigatório por Atividade
+        // ========================================
+        $precisaCadastrarResponsavelTecnico = $estabelecimento->precisaCadastrarResponsavelTecnicoPorAtividade();
+        // ========================================
+
         // VERIFICA SE TEM APENAS ATIVIDADES ESPECIAIS
         // ========================================
         $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
@@ -1135,7 +1147,8 @@ class EstabelecimentoController extends Controller
             'tiposProcesso', 
             'documentosObrigatorios', 
             'tiposBloqueados',
-            'tiposBloqueadosPorEquipamentos'
+            'tiposBloqueadosPorEquipamentos',
+            'precisaCadastrarResponsavelTecnico'
         ));
     }
 
@@ -1348,7 +1361,7 @@ class EstabelecimentoController extends Controller
     {
         $estabelecimento = $this->estabelecimentosDoUsuario()
             ->where('status', 'aprovado')
-            ->with(['responsaveisLegais'])
+            ->with(['responsaveisLegais', 'responsaveisTecnicos'])
             ->findOrFail($id);
 
         // Verifica se o usuário tem permissão de edição
@@ -1372,6 +1385,12 @@ class EstabelecimentoController extends Controller
                 $responsavelLegalSemDocumento->id, 
                 'legal'
             ])->with('error', 'Para abrir um processo, é obrigatório que o Responsável Legal tenha o documento de identificação cadastrado.');
+        }
+
+        // Validação de responsável técnico obrigatório por atividade
+        if ($estabelecimento->precisaCadastrarResponsavelTecnicoPorAtividade()) {
+            return redirect()->route('company.estabelecimentos.responsaveis.index', $estabelecimento->id)
+                ->with('error', 'Para abrir processo, este estabelecimento precisa ter pelo menos um Responsável Técnico cadastrado.');
         }
 
         $validated = $request->validate([

@@ -148,9 +148,10 @@
                     {{-- Campo de upload - escondido quando já tem documento --}}
                     <div class="md:col-span-2" id="secaoCarteirinha">
                         <label for="carteirinha_conselho" class="block text-sm font-medium text-gray-700 mb-2">
-                            Carteirinha do Conselho (PDF ou Imagem)
+                            Carteirinha do Conselho (PDF ou Imagem) <span class="text-red-500">*</span>
                         </label>
                         <input type="file" name="carteirinha_conselho" id="carteirinha_conselho"
+                               required
                                accept=".pdf,.jpg,.jpeg,.png"
                                class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                         <p class="mt-1 text-xs text-gray-500">Formatos aceitos: PDF, JPG, PNG. Tamanho máximo: 5MB</p>
@@ -183,9 +184,10 @@
                 {{-- Campo de upload - escondido quando já tem documento --}}
                 <div id="secaoDocumento">
                     <label for="documento_identificacao" class="block text-sm font-medium text-gray-700 mb-2">
-                        RG ou CNH (PDF ou Imagem)
+                        RG ou CNH (PDF ou Imagem) <span class="text-red-500">*</span>
                     </label>
                     <input type="file" name="documento_identificacao" id="documento_identificacao"
+                           required
                            accept=".pdf,.jpg,.jpeg,.png"
                            class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     <p class="mt-1 text-xs text-gray-500">Formatos aceitos: PDF, JPG, PNG. Tamanho máximo: 5MB</p>
@@ -426,6 +428,7 @@ function controlarCamposDocumento(dados) {
             if (inputCarteirinha) {
                 inputCarteirinha.disabled = true;
                 inputCarteirinha.value = '';
+                inputCarteirinha.removeAttribute('required');
                 inputCarteirinha.removeAttribute('name');
             }
         } else {
@@ -434,6 +437,7 @@ function controlarCamposDocumento(dados) {
             if (avisoCarteirinha) avisoCarteirinha.classList.add('hidden');
             if (inputCarteirinha) {
                 inputCarteirinha.disabled = false;
+                inputCarteirinha.setAttribute('required', 'required');
                 inputCarteirinha.setAttribute('name', 'carteirinha_conselho');
             }
         }
@@ -449,6 +453,7 @@ function controlarCamposDocumento(dados) {
             if (inputDocumento) {
                 inputDocumento.disabled = true;
                 inputDocumento.value = '';
+                inputDocumento.removeAttribute('required');
                 inputDocumento.removeAttribute('name');
             }
         } else {
@@ -457,6 +462,7 @@ function controlarCamposDocumento(dados) {
             if (avisoDocumento) avisoDocumento.classList.add('hidden');
             if (inputDocumento) {
                 inputDocumento.disabled = false;
+                inputDocumento.setAttribute('required', 'required');
                 inputDocumento.setAttribute('name', 'documento_identificacao');
             }
         }
@@ -476,6 +482,7 @@ function mostrarCamposUpload() {
         if (avisoCarteirinha) avisoCarteirinha.classList.add('hidden');
         if (inputCarteirinha) {
             inputCarteirinha.disabled = false;
+            inputCarteirinha.setAttribute('required', 'required');
             inputCarteirinha.setAttribute('name', 'carteirinha_conselho');
         }
     } else {
@@ -487,6 +494,7 @@ function mostrarCamposUpload() {
         if (avisoDocumento) avisoDocumento.classList.add('hidden');
         if (inputDocumento) {
             inputDocumento.disabled = false;
+            inputDocumento.setAttribute('required', 'required');
             inputDocumento.setAttribute('name', 'documento_identificacao');
         }
     }

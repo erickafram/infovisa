@@ -4562,6 +4562,12 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     <form method="POST" action="{{ route('admin.estabelecimentos.processos.alertas.criar', [$estabelecimento->id, $processo->id]) }}" class="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
                         @csrf
                         <h4 class="text-sm font-semibold text-gray-900 mb-3">Criar Novo Alerta</h4>
+
+                        <div class="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p class="text-sm text-yellow-800">
+                                Este alerta é destinado à empresa (usuários externos vinculados ao estabelecimento deste processo) e não aos usuários internos da Vigilância Sanitária.
+                            </p>
+                        </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="md:col-span-2">
