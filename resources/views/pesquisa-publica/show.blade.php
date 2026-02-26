@@ -74,30 +74,34 @@
             </div>
             @endif
 
-            {{-- Dados do respondente --}}
+            @php
+                $usuarioLogadoPesquisa = !empty($usuarioInternoId) || !empty($usuarioExternoId);
+            @endphp
+
+            {{-- Dados do respondente (somente quando não estiver logado) --}}
+            @if(!$usuarioLogadoPesquisa)
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                    Seus dados {{ (isset($usuarioInternoId) || isset($usuarioExternoId)) ? '' : '(opcional)' }}
+                    Seus dados (opcional)
                 </h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Nome</label>
                         <input type="text" name="respondente_nome"
                                value="{{ old('respondente_nome', $respondente['nome'] ?? '') }}"
-                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors {{ (isset($usuarioInternoId) || isset($usuarioExternoId)) ? 'bg-gray-50' : '' }}"
-                               placeholder="Seu nome (opcional)"
-                               {{ (isset($usuarioInternoId) || isset($usuarioExternoId)) ? 'readonly' : '' }}>
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                               placeholder="Seu nome (opcional)">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
                         <input type="email" name="respondente_email"
                                value="{{ old('respondente_email', $respondente['email'] ?? '') }}"
-                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors {{ (isset($usuarioInternoId) || isset($usuarioExternoId)) ? 'bg-gray-50' : '' }}"
-                               placeholder="seu@email.com (opcional)"
-                               {{ (isset($usuarioInternoId) || isset($usuarioExternoId)) ? 'readonly' : '' }}>
+                               class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                               placeholder="seu@email.com (opcional)">
                     </div>
                 </div>
             </div>
+            @endif
 
             {{-- Perguntas --}}
             @foreach($pesquisa->perguntas as $i => $pergunta)

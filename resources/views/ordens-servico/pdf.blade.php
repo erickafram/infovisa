@@ -29,6 +29,19 @@
             border-bottom: 2px solid #333;
             padding-bottom: 6px;
             margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo-container img {
+            max-height: 100px;
+            max-width: 400px;
+            height: auto;
+            width: auto;
         }
         
         .header-title {
@@ -182,12 +195,39 @@
         }
         
         .footer {
-            border-top: 1px solid #ddd;
-            margin-top: 8px;
-            padding-top: 5px;
-            font-size: 8px;
-            color: #999;
-            text-align: center;
+            margin-top: 20px;
+            padding: 15px 0;
+            border-top: 2px solid #333;
+            font-size: 7.5pt;
+            color: #000;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .footer-content {
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .footer-logo {
+            float: left;
+            width: 70px;
+            padding-right: 12px;
+        }
+
+        .footer-logo img {
+            max-height: 50px;
+            max-width: 70px;
+            height: auto;
+            width: auto;
+            display: block;
+        }
+
+        .footer-text {
+            overflow: hidden;
+            text-align: justify;
+            line-height: 1.5;
+            word-wrap: break-word;
         }
 
         .qrcode-section {
@@ -225,6 +265,31 @@
         $processoPdf = $processoPdf ?? $ordemServico->processo;
     @endphp
     <div class="page">
+        {{-- Logomarca --}}
+        @if(isset($logomarca) && $logomarca)
+            <div class="logo-container">
+                @php
+                    $logoPathRelativo = str_replace('storage/', '', $logomarca);
+                    $logoPath = public_path('storage/' . $logoPathRelativo);
+
+                    if (file_exists($logoPath)) {
+                        try {
+                            $imageData = file_get_contents($logoPath);
+                            $imageInfo = getimagesize($logoPath);
+
+                            if ($imageInfo && $imageData) {
+                                $mimeType = $imageInfo['mime'];
+                                $base64 = base64_encode($imageData);
+                                echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Logomarca" style="max-width: 100%; height: auto;">';
+                            }
+                        } catch (\Exception $e) {
+                            // Ignora erros
+                        }
+                    }
+                @endphp
+            </div>
+        @endif
+
         {{-- Header --}}
         <div class="header">
             <div class="header-title">Ordem de Serviço #{{ str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) }}</div>
@@ -490,8 +555,31 @@
 
         {{-- Footer --}}
         <div class="footer">
-            <p>Documento gerado automaticamente em {{ now()->format('d/m/Y H:i:s') }}</p>
-            <p>Sistema de Gestão de Ordens de Serviço - INFOVISA</p>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    @php
+                        try {
+                            $rodapeImagePath = public_path('img/rodape.jpeg');
+                            if (file_exists($rodapeImagePath)) {
+                                $imageData = file_get_contents($rodapeImagePath);
+                                $imageInfo = getimagesize($rodapeImagePath);
+
+                                if ($imageInfo && $imageData) {
+                                    $mimeType = $imageInfo['mime'];
+                                    $base64 = base64_encode($imageData);
+                                    echo '<img src="data:' . $mimeType . ';base64,' . $base64 . '" alt="Rodapé" style="max-width: 100%; height: auto;">';
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // Ignora erros
+                        }
+                    @endphp
+                </div>
+                <div class="footer-text">
+                    Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
+                    Contatos: (63) 3027-4486 - (63) 3027-4475 - (63) 3027-4432 – tocantins.visa@gmail.com
+                </div>
+            </div>
         </div>
     </div>
 </body>

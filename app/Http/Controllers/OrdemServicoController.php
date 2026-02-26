@@ -1824,6 +1824,21 @@ class OrdemServicoController extends Controller
             $ordemServico->processo_id = $processoPdf->id;
         }
 
+        // Determina logomarca para o PDF da OS (mesma regra dos documentos)
+        $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+        if ($estabelecimentoPdf) {
+            if ($estabelecimentoPdf->isCompetenciaEstadual()) {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            } else {
+                $municipio = $estabelecimentoPdf->municipio ?? null;
+                if ($municipio && !empty($municipio->logomarca)) {
+                    $logomarca = $municipio->logomarca;
+                } else {
+                    $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+                }
+            }
+        }
+
         // Pesquisa de satisfação externa: gerar QR Code para o PDF
         // Somente se a OS tem técnicos vinculados ao setor da pesquisa
         $qrCodePesquisaBase64 = null;
@@ -1903,7 +1918,7 @@ class OrdemServicoController extends Controller
         // Renderiza a view para PDF
         $html = view('ordens-servico.pdf', compact(
             'ordemServico', 'estabelecimentoPdf', 'processoPdf',
-            'qrCodePesquisaBase64', 'linkPesquisaExterna'
+            'qrCodePesquisaBase64', 'linkPesquisaExterna', 'logomarca'
         ))->render();
 
         // Gera PDF usando DomPDF
