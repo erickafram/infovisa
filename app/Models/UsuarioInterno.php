@@ -52,6 +52,7 @@ class UsuarioInterno extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'ultimo_login_em' => 'datetime',
         'password' => 'hashed',
         'senha_assinatura_digital' => 'hashed',
         'nivel_acesso' => NivelAcesso::class,
