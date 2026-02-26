@@ -29,6 +29,12 @@
                 </div>
             </div>
         </div>
+        {{-- Botão Editar no cabeçalho --}}
+        <a href="{{ route('admin.responsaveis.edit', $responsavel->id) }}"
+           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar
+        </a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -37,11 +43,16 @@
             
             {{-- Cartão de Contato --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+                <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                     <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 uppercase tracking-wide">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         Contato
                     </h3>
+                    <a href="{{ route('admin.responsaveis.edit', $responsavel->id) }}"
+                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Editar
+                    </a>
                 </div>
                 <div class="p-5 space-y-4">
                     <div>
@@ -72,11 +83,16 @@
                 @foreach($responsavel->registros as $registro)
                     @if($registro->tipo === 'tecnico' && $registro->conselho)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="px-5 py-4 border-b border-gray-100 bg-emerald-50/40">
+                        <div class="px-5 py-4 border-b border-gray-100 bg-emerald-50/40 flex items-center justify-between">
                             <h3 class="font-bold text-emerald-800 text-sm flex items-center gap-2 uppercase tracking-wide">
                                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Registro Profissional
                             </h3>
+                            <a href="{{ route('admin.responsaveis.edit', $registro->id) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Editar
+                            </a>
                         </div>
                         <div class="p-5 space-y-4">
                             <div class="grid grid-cols-2 gap-4">
@@ -106,11 +122,16 @@
 
                     @if($registro->tipo === 'legal' && $registro->tipo_documento)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="px-5 py-4 border-b border-gray-100 bg-blue-50/40">
+                        <div class="px-5 py-4 border-b border-gray-100 bg-blue-50/40 flex items-center justify-between">
                             <h3 class="font-bold text-blue-800 text-sm flex items-center gap-2 uppercase tracking-wide">
                                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
                                 Dados Legais
                             </h3>
+                            <a href="{{ route('admin.responsaveis.edit', $registro->id) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Editar
+                            </a>
                         </div>
                         <div class="p-5 space-y-4">
                             <div>
