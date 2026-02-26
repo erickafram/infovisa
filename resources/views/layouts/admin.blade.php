@@ -280,7 +280,7 @@
                     </a>
                     @endif
 
-                    @if(auth('interno')->user()->isAdmin())
+                          @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->nivel_acesso->value === 'gestor_estadual')
                     {{-- Usuários Externos --}}
                     <a href="{{ route('admin.usuarios-externos.index') }}" 
                        title="Usuários Externos"

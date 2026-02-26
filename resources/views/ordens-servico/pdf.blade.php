@@ -293,49 +293,60 @@
         {{-- Header --}}
         <div class="header">
             <div class="header-title">Ordem de Serviço #{{ str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) }}</div>
-            <div class="header-subtitle">
-                @php
-                    $statusMap = [
-                        'em_andamento' => 'EM ANDAMENTO',
-                        'finalizada' => 'FINALIZADA',
-                        'cancelada' => 'CANCELADA'
-                    ];
-                @endphp
-                Status: <span class="status-badge status-{{ $ordemServico->status }}">{{ $statusMap[$ordemServico->status] ?? 'DESCONHECIDO' }}</span>
-                | Data: {{ now()->format('d/m/Y H:i') }}
-            </div>
         </div>
 
         {{-- Informações da OS --}}
         <div class="section">
             <div class="section-title">INFORMAÇÕES DA ORDEM DE SERVIÇO</div>
             <div class="section-content">
+                @php
+                    $dataInicioOs = $ordemServico->data_inicio
+                        ? $ordemServico->data_inicio->format('d/m/Y')
+                        : '-';
+
+                    $dataTerminoOs = $ordemServico->data_fim
+                        ? $ordemServico->data_fim->format('d/m/Y')
+                        : ($ordemServico->data_conclusao
+                            ? $ordemServico->data_conclusao->format('d/m/Y')
+                            : ($ordemServico->finalizada_em
+                                ? $ordemServico->finalizada_em->format('d/m/Y')
+                                : '-'));
+                @endphp
+
                 <div class="info-row">
-                    <div class="info-item">
+                    <div class="info-item" style="width: 25%;">
                         <div class="label">Número</div>
                         <div class="value">{{ str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) }}</div>
                     </div>
-                    <div class="info-item">
+                    <div class="info-item" style="width: 25%;">
                         <div class="label">Competência</div>
                         <div class="value">{{ ucfirst($ordemServico->competencia) }}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="label">Status</div>
-                        <div class="value">{{ $statusMap[$ordemServico->status] ?? 'DESCONHECIDO' }}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="label">Data de Criação</div>
-                        <div class="value">{{ $ordemServico->created_at->format('d/m/Y H:i') }}</div>
-                    </div>
-                    <div class="info-item">
+                    <div class="info-item" style="width: 25%; padding-right: 0;">
                         <div class="label">Município</div>
                         <div class="value">{{ $ordemServico->municipio?->nome ?? '-' }}</div>
                     </div>
-                    <div class="info-item">
+                </div>
+
+                <div class="info-row">
+                    <div class="info-item" style="width: 25%;">
+                        <div class="label">Data de Emissão</div>
+                        <div class="value">{{ $ordemServico->created_at->format('d/m/Y H:i') }}</div>
+                    </div>
+                    <div class="info-item" style="width: 25%;">
+                        <div class="label">Início da OS</div>
+                        <div class="value">{{ $dataInicioOs }}</div>
+                    </div>
+                    <div class="info-item" style="width: 25%;">
+                        <div class="label">Término da OS</div>
+                        <div class="value">{{ $dataTerminoOs }}</div>
+                    </div>
+                    <div class="info-item" style="width: 25%; padding-right: 0;">
                         <div class="label">Processo Vinculado</div>
                         <div class="value">{{ $processoPdf?->numero_processo ?? '-' }}</div>
                     </div>
                 </div>
+
                 <div class="info-row">
                     <div class="info-item" style="width: 100%;">
                         <div class="label">Descrição da OS</div>

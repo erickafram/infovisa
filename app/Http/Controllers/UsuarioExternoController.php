@@ -9,11 +9,31 @@ use Illuminate\Http\Request;
 
 class UsuarioExternoController extends Controller
 {
+    private function podeVisualizarEditar(): bool
+    {
+        $usuario = auth('interno')->user();
+
+        return $usuario && (
+            $usuario->isAdmin() || $usuario->nivel_acesso->value === 'gestor_estadual'
+        );
+    }
+
+    private function somenteAdmin(): void
+    {
+        if (!auth('interno')->user()?->isAdmin()) {
+            abort(403, 'Você não tem permissão para executar esta ação.');
+        }
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        if (!$this->podeVisualizarEditar()) {
+            abort(403, 'Você não tem permissão para acessar esta área.');
+        }
+
         $query = UsuarioExterno::query();
 
         // Filtro por nome (case-insensitive usando ILIKE)
@@ -67,6 +87,8 @@ class UsuarioExternoController extends Controller
      */
     public function create()
     {
+        $this->somenteAdmin();
+
         return view('admin.usuarios-externos.create');
     }
 
@@ -75,6 +97,8 @@ class UsuarioExternoController extends Controller
      */
     public function store(Request $request)
     {
+        $this->somenteAdmin();
+
         // Remove máscara do CPF antes de validar
         $request->merge([
             'cpf' => preg_replace('/[^0-9]/', '', $request->cpf)
@@ -104,6 +128,10 @@ class UsuarioExternoController extends Controller
      */
     public function show(UsuarioExterno $usuarioExterno)
     {
+        if (!$this->podeVisualizarEditar()) {
+            abort(403, 'Você não tem permissão para visualizar usuários externos.');
+        }
+
         $usuarioExterno->load([
             'estabelecimentosVinculados' => fn ($query) => $query
                 ->orderBy('estabelecimento_usuario_externo.created_at', 'desc')
@@ -125,6 +153,10 @@ class UsuarioExternoController extends Controller
      */
     public function edit(UsuarioExterno $usuarioExterno)
     {
+        if (!$this->podeVisualizarEditar()) {
+            abort(403, 'Você não tem permissão para editar usuários externos.');
+        }
+
         return view('admin.usuarios-externos.edit', compact('usuarioExterno'));
     }
 
@@ -133,6 +165,10 @@ class UsuarioExternoController extends Controller
      */
     public function update(Request $request, UsuarioExterno $usuarioExterno)
     {
+        if (!$this->podeVisualizarEditar()) {
+            abort(403, 'Você não tem permissão para editar usuários externos.');
+        }
+
         // Remove máscara do CPF antes de validar
         $request->merge([
             'cpf' => preg_replace('/[^0-9]/', '', $request->cpf)
@@ -167,6 +203,8 @@ class UsuarioExternoController extends Controller
      */
     public function destroy(UsuarioExterno $usuarioExterno)
     {
+        $this->somenteAdmin();
+
         $usuarioExterno->delete();
 
         return redirect()->route('admin.usuarios-externos.index')

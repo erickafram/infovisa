@@ -227,6 +227,7 @@
                         </svg>
                         Editar Usuário
                     </a>
+                    @if(auth('interno')->user()->isAdmin())
                     <form action="{{ route('admin.usuarios-externos.destroy', $usuarioExterno) }}" method="POST" 
                           onsubmit="return confirm('Tem certeza que deseja excluir este usuário?')">
                         @csrf
@@ -239,6 +240,7 @@
                             Excluir Usuário
                         </button>
                     </form>
+                    @endif
                 </div>
             </div>
         </div>
