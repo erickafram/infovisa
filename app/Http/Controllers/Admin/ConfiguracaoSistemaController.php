@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConfiguracaoSistema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ConfiguracaoSistemaController extends Controller
@@ -224,42 +225,56 @@ class ConfiguracaoSistemaController extends Controller
 
     private function garantirArquivoPublicoAcessivel(?string $valor): void
     {
-        $relativo = $this->caminhoRelativoDiscoPublico($valor);
-        if (!$relativo) {
-            return;
-        }
-
-        if (!Storage::disk('public')->exists($relativo)) {
-            return;
-        }
-
-        $publicStorage = public_path('storage');
-
-        // Se public/storage for diretório real (não link), cria espelho do arquivo para evitar 404.
-        if (is_dir($publicStorage) && !is_link($publicStorage)) {
-            $destino = public_path('storage/' . $relativo);
-            $destinoDir = dirname($destino);
-
-            if (!is_dir($destinoDir)) {
-                File::makeDirectory($destinoDir, 0755, true);
+        try {
+            $relativo = $this->caminhoRelativoDiscoPublico($valor);
+            if (!$relativo) {
+                return;
             }
 
-            File::copy(Storage::disk('public')->path($relativo), $destino);
+            if (!Storage::disk('public')->exists($relativo)) {
+                return;
+            }
+
+            $publicStorage = public_path('storage');
+
+            // Se public/storage for diretório real (não link), cria espelho do arquivo para evitar 404.
+            if (is_dir($publicStorage) && !is_link($publicStorage)) {
+                $destino = public_path('storage/' . $relativo);
+                $destinoDir = dirname($destino);
+
+                if (!is_dir($destinoDir)) {
+                    File::makeDirectory($destinoDir, 0755, true);
+                }
+
+                File::copy(Storage::disk('public')->path($relativo), $destino);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Não foi possível espelhar logomarca em public/storage', [
+                'valor' => $valor,
+                'erro' => $e->getMessage(),
+            ]);
         }
     }
 
     private function removerArquivoLogomarca(?string $valor): void
     {
-        $relativo = $this->caminhoRelativoDiscoPublico($valor);
-        if (!$relativo) {
-            return;
-        }
+        try {
+            $relativo = $this->caminhoRelativoDiscoPublico($valor);
+            if (!$relativo) {
+                return;
+            }
 
-        Storage::disk('public')->delete($relativo);
+            Storage::disk('public')->delete($relativo);
 
-        $espelhoPublico = public_path('storage/' . $relativo);
-        if (File::exists($espelhoPublico)) {
-            File::delete($espelhoPublico);
+            $espelhoPublico = public_path('storage/' . $relativo);
+            if (File::exists($espelhoPublico)) {
+                File::delete($espelhoPublico);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Não foi possível remover arquivos de logomarca', [
+                'valor' => $valor,
+                'erro' => $e->getMessage(),
+            ]);
         }
     }
 }
