@@ -189,6 +189,34 @@
             color: #999;
             text-align: center;
         }
+
+        .qrcode-section {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            text-align: center;
+            background-color: #f9fafb;
+        }
+
+        .qrcode-section h4 {
+            font-size: 10px;
+            font-weight: bold;
+            color: #374151;
+            margin: 0 0 6px 0;
+        }
+
+        .qrcode-section img {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        .qrcode-section p {
+            font-size: 8px;
+            color: #6b7280;
+            margin: 5px 0 0 0;
+        }
     </style>
 </head>
 <body>
@@ -243,6 +271,12 @@
                         <div class="value">{{ $processoPdf?->numero_processo ?? '-' }}</div>
                     </div>
                 </div>
+                <div class="info-row">
+                    <div class="info-item" style="width: 100%;">
+                        <div class="label">Descrição da OS</div>
+                        <div class="value">{{ $ordemServico->observacoes ?? $ordemServico->descricao ?? '-' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -255,6 +289,10 @@
                     <div class="info-item">
                         <div class="label">Razão Social / Nome</div>
                         <div class="value">{{ $estabelecimentoPdf->razao_social ?? $estabelecimentoPdf->nome_fantasia }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Nome Fantasia</div>
+                        <div class="value">{{ $estabelecimentoPdf->nome_fantasia ?? '-' }}</div>
                     </div>
                     <div class="info-item">
                         <div class="label">CNPJ / CPF</div>
@@ -437,6 +475,18 @@
         @endif
 
         {{-- Ações Executadas (Compatibilidade com formato antigo) --}}
+
+        {{-- QR Code Pesquisa de Satisfação --}}
+        @if(!empty($qrCodePesquisaBase64))
+        <div class="qrcode-section">
+            <h4>Pesquisa de Satisfação</h4>
+            <img src="data:image/png;base64,{{ $qrCodePesquisaBase64 }}" alt="QR Code Pesquisa">
+            <p>Escaneie o QR Code acima para avaliar o atendimento desta Ordem de Serviço.</p>
+            @if(!empty($linkPesquisaExterna))
+            <p style="font-size: 7px; color: #9ca3af; margin-top: 2px;">{{ $linkPesquisaExterna }}</p>
+            @endif
+        </div>
+        @endif
 
         {{-- Footer --}}
         <div class="footer">

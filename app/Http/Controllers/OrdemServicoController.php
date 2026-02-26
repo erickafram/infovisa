@@ -385,8 +385,16 @@ class OrdemServicoController extends Controller
             ]);
         
         $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
-        
-        return view('ordens-servico.show', compact('ordemServico'));
+
+        $pesquisaInterna = $this->buscarPesquisaInternaPendente($ordemServico, $usuario);
+
+        if ($pesquisaInterna) {
+            $pesquisaInterna->load('perguntas.opcoes');
+        }
+
+        return view('ordens-servico.show', compact(
+            'ordemServico', 'pesquisaInterna'
+        ));
     }
 
     /**
@@ -860,6 +868,50 @@ class OrdemServicoController extends Controller
         
         // Gestores podem excluir se tiverem acesso à OS
         return $this->podeVisualizarOS($usuario, $ordemServico);
+    }
+
+    /**
+     * Retorna pesquisa interna pendente para o técnico na OS.
+     */
+    private function buscarPesquisaInternaPendente(OrdemServico $ordemServico, $usuario)
+    {
+        $tecnicoJaRespondeu = \App\Models\PesquisaSatisfacaoResposta::where('ordem_servico_id', $ordemServico->id)
+            ->where('usuario_interno_id', $usuario->id)
+            ->where('tipo_respondente', 'interno')
+            ->exists();
+
+        if ($tecnicoJaRespondeu) {
+            return null;
+        }
+
+        $setorUsuario = mb_strtolower(trim($usuario->setor ?? ''));
+
+        $pesquisasInternas = \App\Models\PesquisaSatisfacao::where('ativo', true)
+            ->where('tipo_publico', 'interno')
+            ->get();
+
+        foreach ($pesquisasInternas as $pesquisaInterna) {
+            $setoresIds = $pesquisaInterna->tipo_setores_ids;
+
+            if (empty($setoresIds)) {
+                return $pesquisaInterna;
+            }
+
+            if (!$setorUsuario) {
+                continue;
+            }
+
+            $codigosSetores = \App\Models\TipoSetor::whereIn('id', $setoresIds)
+                ->pluck('codigo')
+                ->map(fn($s) => mb_strtolower(trim($s)))
+                ->toArray();
+
+            if (in_array($setorUsuario, $codigosSetores, true)) {
+                return $pesquisaInterna;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1477,6 +1529,15 @@ class OrdemServicoController extends Controller
             ], 400);
         }
 
+        $pesquisaInternaPendente = $this->buscarPesquisaInternaPendente($ordemServico, $usuario);
+        if ($pesquisaInternaPendente) {
+            return response()->json([
+                'success' => false,
+                'survey_required' => true,
+                'message' => 'Para finalizar a atividade, é obrigatório responder a pesquisa de satisfação.'
+            ], 422);
+        }
+
         // Determina os estabelecimentos afetados pela atividade
         $todosEstabelecimentosOs = $ordemServico->getTodosEstabelecimentos();
         $atividadeEstabelecimentoId = $atividade['estabelecimento_id'] ?? null;
@@ -1763,8 +1824,87 @@ class OrdemServicoController extends Controller
             $ordemServico->processo_id = $processoPdf->id;
         }
 
+        // Pesquisa de satisfação externa: gerar QR Code para o PDF
+        // Somente se a OS tem técnicos vinculados ao setor da pesquisa
+        $qrCodePesquisaBase64 = null;
+        $linkPesquisaExterna  = null;
+
+        $pesquisasExternas = \App\Models\PesquisaSatisfacao::where('ativo', true)
+            ->where('tipo_publico', 'externo')
+            ->get();
+
+        if ($pesquisasExternas->isNotEmpty()) {
+            // Buscar setores dos técnicos vinculados à OS
+            $tecnicosIds = [];
+            $atividadesTecnicos = $ordemServico->atividades_tecnicos ?? [];
+            foreach ($atividadesTecnicos as $atividade) {
+                foreach (($atividade['tecnicos'] ?? []) as $tid) {
+                    $tecnicosIds[] = (int) $tid;
+                }
+            }
+            // Fallback para campo legado
+            if (empty($tecnicosIds) && !empty($ordemServico->tecnicos_ids)) {
+                $tecnicosIds = array_map('intval', $ordemServico->tecnicos_ids);
+            }
+            $tecnicosIds = array_unique($tecnicosIds);
+
+            $setoresTecnicos = [];
+            if (!empty($tecnicosIds)) {
+                $setoresTecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosIds)
+                    ->whereNotNull('setor')
+                    ->pluck('setor')
+                    ->map(fn($s) => mb_strtolower(trim($s)))
+                    ->unique()
+                    ->toArray();
+            }
+
+            // Encontrar pesquisa externa compatível com os setores dos técnicos
+            $pesquisaExterna = null;
+            foreach ($pesquisasExternas as $pe) {
+                $setoresIds = $pe->tipo_setores_ids;
+                if (empty($setoresIds)) {
+                    // Sem filtro de setor = aplica para todas as gerências
+                    $pesquisaExterna = $pe;
+                    break;
+                }
+                // Buscar codigos dos setores vinculados à pesquisa
+                $codigosSetoresPesquisa = \App\Models\TipoSetor::whereIn('id', $setoresIds)
+                    ->pluck('codigo')
+                    ->map(fn($s) => mb_strtolower(trim($s)))
+                    ->toArray();
+
+                // Verificar se algum técnico da OS pertence a um desses setores
+                foreach ($setoresTecnicos as $setorTecnico) {
+                    if (in_array($setorTecnico, $codigosSetoresPesquisa)) {
+                        $pesquisaExterna = $pe;
+                        break 2;
+                    }
+                }
+            }
+
+            if ($pesquisaExterna) {
+                $estabQr = $estabelecimentoPdf ?? $ordemServico->getTodosEstabelecimentos()->first();
+
+                $linkPesquisaExterna = url('/pesquisa/' . $pesquisaExterna->slug)
+                    . '?os=' . $ordemServico->id
+                    . ($estabQr ? '&est=' . $estabQr->id : '');
+
+                try {
+                    $qr     = new \Endroid\QrCode\QrCode($linkPesquisaExterna);
+                    $writer = new \Endroid\QrCode\Writer\PngWriter();
+                    $result = $writer->write($qr);
+                    $qrCodePesquisaBase64 = base64_encode($result->getString());
+                } catch (\Throwable $e) {
+                    \Log::warning('Erro ao gerar QR da pesquisa no PDF da OS: ' . $e->getMessage());
+                }
+            }
+        }
+
         // Renderiza a view para PDF
-        $html = view('ordens-servico.pdf', compact('ordemServico', 'estabelecimentoPdf', 'processoPdf'))->render();
+        $html = view('ordens-servico.pdf', compact(
+            'ordemServico', 'estabelecimentoPdf', 'processoPdf',
+            'qrCodePesquisaBase64', 'linkPesquisaExterna'
+        ))->render();
 
         // Gera PDF usando DomPDF
         $pdf = \PDF::loadHTML($html)

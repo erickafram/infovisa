@@ -31,6 +31,16 @@ Route::post('/verificar-autenticidade', [\App\Http\Controllers\AutenticidadeCont
 Route::get('/verificar-autenticidade/{codigo}', [\App\Http\Controllers\AutenticidadeController::class, 'verificar'])->name('verificar.autenticidade');
 Route::get('/documento-autenticado/{codigo}/pdf', [\App\Http\Controllers\AutenticidadeController::class, 'visualizarPdf'])->name('documento.autenticado.pdf');
 
+// Pesquisa de Satisfação - Acesso público via link/slug
+Route::get('/pesquisa/{slug}', [\App\Http\Controllers\PesquisaPublicaController::class, 'show'])->name('pesquisa.show');
+Route::post('/pesquisa/{slug}', [\App\Http\Controllers\PesquisaPublicaController::class, 'responder'])->name('pesquisa.responder');
+Route::get('/pesquisa/{slug}/obrigado', [\App\Http\Controllers\PesquisaPublicaController::class, 'obrigado'])->name('pesquisa.obrigado');
+
+// Pesquisa de Satisfação Interna - Resposta via AJAX (autenticado)
+Route::post('/pesquisa-interna/responder', [\App\Http\Controllers\PesquisaPublicaController::class, 'responderInterno'])
+    ->name('pesquisa.responder.interno')
+    ->middleware('auth:interno');
+
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação - Login Unificado
@@ -435,6 +445,13 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
         [\App\Http\Controllers\OrdemServicoController::class, 'reativar']
     )->name('ordens-servico.reativar');
 
+    // Pesquisas de Satisfação - Respostas (módulo do menu lateral)
+    Route::prefix('pesquisas-satisfacao/respostas')->name('pesquisas-satisfacao.respostas.')->middleware('admin')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\PesquisaSatisfacaoRespostaController::class, 'index'])->name('index');
+        Route::get('/{resposta}', [\App\Http\Controllers\Admin\PesquisaSatisfacaoRespostaController::class, 'show'])->name('show');
+        Route::delete('/{resposta}', [\App\Http\Controllers\Admin\PesquisaSatisfacaoRespostaController::class, 'destroy'])->name('destroy');
+    });
+
     // Notificações
     Route::get('notificacoes', [\App\Http\Controllers\NotificacaoController::class, 'index'])->name('notificacoes.index');
     Route::get('notificacoes/nao-lidas', [\App\Http\Controllers\NotificacaoController::class, 'naoLidas'])->name('notificacoes.nao-lidas');
@@ -641,6 +658,17 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
             Route::post('/', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'store'])->name('store');
             Route::delete('/{chatBroadcast}', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'destroy'])->name('destroy');
             Route::get('/{chatBroadcast}/estatisticas', [\App\Http\Controllers\Admin\ChatBroadcastController::class, 'estatisticas'])->name('estatisticas');
+        });
+
+        // Pesquisas de Satisfação - Apenas Admin
+        Route::prefix('pesquisas-satisfacao')->name('pesquisas-satisfacao.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'store'])->name('store');
+            Route::get('/{pesquisasSatisfacao}/edit', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'edit'])->name('edit');
+            Route::put('/{pesquisasSatisfacao}', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'update'])->name('update');
+            Route::delete('/{pesquisasSatisfacao}', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'destroy'])->name('destroy');
+            Route::post('/{pesquisasSatisfacao}/toggle', [\App\Http\Controllers\Admin\PesquisaSatisfacaoController::class, 'toggleAtivo'])->name('toggle');
         });
     });
     

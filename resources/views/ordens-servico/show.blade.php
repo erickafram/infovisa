@@ -1093,6 +1093,7 @@
     // ========================================
     // Funções para Finalizar Atividade Individual
     // ========================================
+    let payloadFinalizacaoPendente = null;
     
     // Função para abrir modal de finalizar atividade
     function abrirModalFinalizarAtividade(index, nomeAtividade) {
@@ -1279,6 +1280,15 @@
         btnFinalizar.disabled = true;
         btnFinalizar.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Finalizando...';
 
+        const payloadFinalizacao = {
+            atividade_index: index,
+            status_execucao: isMulti ? null : statusSelecionado.value,
+            observacoes: isMulti ? null : observacoes,
+            estabelecimento_id: estabelecimentoId,
+            confirmou_documentos: document.getElementById('checkConfirmaDocumentos')?.checked || false,
+            execucao_estabelecimentos: execucaoEstabelecimentosPayload
+        };
+
         try {
             const response = await fetch('{{ route("admin.ordens-servico.finalizar-atividade", $ordemServico) }}', {
                 method: 'POST',
@@ -1287,14 +1297,7 @@
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    atividade_index: index,
-                    status_execucao: isMulti ? null : statusSelecionado.value,
-                    observacoes: isMulti ? null : observacoes,
-                    estabelecimento_id: estabelecimentoId,
-                    confirmou_documentos: document.getElementById('checkConfirmaDocumentos')?.checked || false,
-                    execucao_estabelecimentos: execucaoEstabelecimentosPayload
-                })
+                body: JSON.stringify(payloadFinalizacao)
             });
 
             const data = await response.json();
@@ -1302,15 +1305,26 @@
             if (response.ok) {
                 // Sucesso
                 fecharModalFinalizarAtividade();
-                
-                // Mostra mensagem de sucesso
+
                 if (data.os_finalizada) {
                     abrirModalOsFinalizada();
                 } else {
                     alert('✅ ' + data.message);
-                    // Recarrega a página para atualizar o status
                     window.location.reload();
                 }
+            } else if (data.survey_required) {
+                payloadFinalizacaoPendente = payloadFinalizacao;
+                const modalPesquisa = document.getElementById('modalPesquisaInterna');
+
+                if (modalPesquisa) {
+                    fecharModalFinalizarAtividade();
+                    abrirModalPesquisaInterna();
+                    alert('⚠️ Para finalizar a atividade, responda a pesquisa de satisfação obrigatória.');
+                } else {
+                    alert('❌ A pesquisa obrigatória não foi carregada na tela. Recarregue a página e tente novamente.');
+                }
+
+                resetarBotaoFinalizarAtividade();
             } else {
                 // Erro
                 alert('❌ ' + (data.message || 'Erro ao finalizar atividade'));
@@ -1712,4 +1726,213 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Pesquisa de Satisfação Interna --}}
+@if(isset($pesquisaInterna) && $pesquisaInterna && $pesquisaInterna->perguntas->count() > 0)
+<div id="modalPesquisaInterna" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-full">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ $pesquisaInterna->titulo }}</h3>
+                    @if($pesquisaInterna->descricao)
+                        <p class="text-sm text-gray-500">{{ $pesquisaInterna->descricao }}</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <form id="formPesquisaInterna" class="px-6 py-4 space-y-5">
+            <input type="hidden" name="pesquisa_id" value="{{ $pesquisaInterna->id }}">
+            <input type="hidden" name="ordem_servico_id" value="{{ $ordemServico->id }}">
+
+            @foreach($pesquisaInterna->perguntas as $pi => $pergunta)
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">
+                    {{ $pi + 1 }}. {{ $pergunta->texto }}
+                    @if($pergunta->obrigatoria)
+                        <span class="text-red-500">*</span>
+                    @endif
+                </label>
+
+                @if($pergunta->tipo === 'escala_1_5')
+                <div class="flex items-center gap-2 flex-wrap">
+                    @php
+                        $labels = [1 => 'Muito ruim', 2 => 'Ruim', 3 => 'Regular', 4 => 'Bom', 5 => 'Ótimo'];
+                        $cores = [1 => '#ef4444', 2 => '#f97316', 3 => '#eab308', 4 => '#3b82f6', 5 => '#22c55e'];
+                    @endphp
+                    @foreach($labels as $nota => $label)
+                    <label class="cursor-pointer text-center" onclick="selecionarNotaInterna(this, {{ $pergunta->id }}, {{ $nota }}, '{{ $cores[$nota] }}')">
+                        <input type="radio" name="respostas[{{ $pergunta->id }}]" value="{{ $nota }}" class="hidden pergunta-interna-{{ $pergunta->id }}">
+                        <div class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm font-bold text-gray-500 transition-all nota-circulo-interna">
+                            {{ $nota }}
+                        </div>
+                        <span class="text-[9px] text-gray-500 mt-0.5 block">{{ $label }}</span>
+                    </label>
+                    @endforeach
+                </div>
+
+                @elseif($pergunta->tipo === 'multipla_escolha')
+                <div class="space-y-1.5">
+                    @foreach($pergunta->opcoes as $opcao)
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="respostas[{{ $pergunta->id }}]" value="{{ $opcao->texto }}" class="h-4 w-4 text-indigo-600">
+                        <span class="text-sm text-gray-700">{{ $opcao->texto }}</span>
+                    </label>
+                    @endforeach
+                </div>
+
+                @elseif($pergunta->tipo === 'texto_livre')
+                <textarea name="respostas[{{ $pergunta->id }}]" rows="2" 
+                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Digite sua resposta..."></textarea>
+                @endif
+            </div>
+            @endforeach
+
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="fecharModalPesquisaInterna()"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="enviarPesquisaInterna()"
+                        id="btnEnviarPesquisaInterna"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Enviar Pesquisa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirModalPesquisaInterna() {
+        document.getElementById('modalPesquisaInterna').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalPesquisaInterna() {
+        document.getElementById('modalPesquisaInterna').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function selecionarNotaInterna(el, perguntaId, nota, cor) {
+        // Reseta todos da mesma pergunta
+        el.closest('.flex').querySelectorAll('.nota-circulo-interna').forEach(c => {
+            c.style.backgroundColor = '';
+            c.style.borderColor = '#d1d5db';
+            c.style.color = '#6b7280';
+        });
+        // Ativa o selecionado
+        const circulo = el.querySelector('.nota-circulo-interna');
+        circulo.style.backgroundColor = cor;
+        circulo.style.borderColor = cor;
+        circulo.style.color = 'white';
+        // Marca o radio
+        el.querySelector('input[type=radio]').checked = true;
+    }
+
+    async function enviarPesquisaInterna() {
+        const form = document.getElementById('formPesquisaInterna');
+        const formData = new FormData(form);
+        const btn = document.getElementById('btnEnviarPesquisaInterna');
+
+        // Validar perguntas obrigatórias
+        @foreach($pesquisaInterna->perguntas as $pergunta)
+            @if($pergunta->obrigatoria)
+            {
+                const val = formData.get('respostas[{{ $pergunta->id }}]');
+                if (!val || val.trim() === '') {
+                    alert('⚠️ Por favor, responda a pergunta: "{{ addslashes($pergunta->texto) }}"');
+                    return;
+                }
+            }
+            @endif
+        @endforeach
+
+        // Montar payload
+        const respostas = {};
+        for (const [key, value] of formData.entries()) {
+            const match = key.match(/respostas\[(\d+)\]/);
+            if (match) {
+                respostas[match[1]] = value;
+            }
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...';
+
+        try {
+            const response = await fetch('{{ route("pesquisa.responder.interno") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pesquisa_id: formData.get('pesquisa_id'),
+                    ordem_servico_id: formData.get('ordem_servico_id'),
+                    respostas: respostas,
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                fecharModalPesquisaInterna();
+                alert('✅ Pesquisa enviada com sucesso!');
+
+                if (payloadFinalizacaoPendente) {
+                    const payload = payloadFinalizacaoPendente;
+                    payloadFinalizacaoPendente = null;
+
+                    const responseFinalizar = await fetch('{{ route("admin.ordens-servico.finalizar-atividade", $ordemServico) }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const dataFinalizar = await responseFinalizar.json();
+
+                    if (responseFinalizar.ok) {
+                        if (dataFinalizar.os_finalizada) {
+                            abrirModalOsFinalizada();
+                        } else {
+                            alert('✅ ' + dataFinalizar.message);
+                            window.location.reload();
+                        }
+                    } else {
+                        alert('❌ ' + (dataFinalizar.message || 'Erro ao finalizar atividade após responder a pesquisa.'));
+                        window.location.reload();
+                    }
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert('❌ ' + (data.message || 'Erro ao enviar pesquisa.'));
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Pesquisa';
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('❌ Erro ao enviar pesquisa. Tente novamente.');
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Pesquisa';
+        }
+    }
+</script>
+@endif
 @endpush
