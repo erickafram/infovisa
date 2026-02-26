@@ -115,7 +115,7 @@
                                 <span class="text-sm text-green-800">Carteirinha cadastrada</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="{{ asset('storage/' . $responsavel->carteirinha_conselho) }}" target="_blank"
+                                <a href="{{ route('admin.responsaveis.carteirinha-conselho', $responsavel->id) }}" target="_blank"
                                    class="text-sm text-blue-600 hover:text-blue-800">Ver</a>
                                 <form method="POST" action="{{ route('admin.responsaveis.remover-carteirinha', $responsavel->id) }}" 
                                       onsubmit="return confirm('Remover carteirinha?')" class="inline">
@@ -146,7 +146,7 @@
                         <span class="text-sm text-green-800">Documento cadastrado</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ asset('storage/' . $responsavel->documento_identificacao) }}" target="_blank"
+                        <a href="{{ route('admin.responsaveis.documento-identificacao', $responsavel->id) }}" target="_blank"
                            class="text-sm text-blue-600 hover:text-blue-800">Ver</a>
                         <form method="POST" action="{{ route('admin.responsaveis.remover-documento', $responsavel->id) }}" 
                               onsubmit="return confirm('Remover documento?')" class="inline">
