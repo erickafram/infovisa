@@ -260,7 +260,43 @@ class ResponsavelGlobalController extends Controller
             $validated['documento_identificacao'] = $request->file('documento_identificacao')->store('responsaveis/legal', 'public');
         }
 
-        $responsavel->update($validated);
+        // Sincroniza dados básicos em todos os registros do mesmo CPF
+        // (cenários legados podem ter mais de um registro por CPF)
+        $dadosBasicos = [
+            'nome' => $validated['nome'],
+            'email' => $validated['email'] ?? null,
+            'telefone' => $validated['telefone'] ?? null,
+        ];
+
+        Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+
+        // Campos específicos por tipo
+        if ($responsavel->tipo === 'tecnico') {
+            $dadosTecnico = [];
+            if (array_key_exists('conselho', $validated)) {
+                $dadosTecnico['conselho'] = $validated['conselho'];
+            }
+            if (array_key_exists('numero_registro_conselho', $validated)) {
+                $dadosTecnico['numero_registro_conselho'] = $validated['numero_registro_conselho'];
+            }
+            if (array_key_exists('carteirinha_conselho', $validated)) {
+                $dadosTecnico['carteirinha_conselho'] = $validated['carteirinha_conselho'];
+            }
+
+            if (!empty($dadosTecnico)) {
+                Responsavel::where('cpf', $responsavel->cpf)
+                    ->where('tipo', 'tecnico')
+                    ->update($dadosTecnico);
+            }
+        } else {
+            if (array_key_exists('documento_identificacao', $validated)) {
+                Responsavel::where('cpf', $responsavel->cpf)
+                    ->where('tipo', 'legal')
+                    ->update(['documento_identificacao' => $validated['documento_identificacao']]);
+            }
+        }
+
+        $responsavel->refresh();
 
         return redirect()->route('admin.responsaveis.show', $responsavel->id)
             ->with('success', 'Responsável atualizado com sucesso!');

@@ -810,8 +810,45 @@ class EstabelecimentoController extends Controller
         if (isset($validated['documento_identificacao'])) {
             $updateData['documento_identificacao'] = $validated['documento_identificacao'];
         }
-        
-        $responsavel->update($updateData);
+
+        // Sincroniza dados básicos em todos os registros do mesmo CPF
+        // (cenários legados podem ter mais de um registro por CPF)
+        $dadosBasicos = [
+            'nome' => $updateData['nome'],
+            'email' => $updateData['email'],
+            'telefone' => $updateData['telefone'],
+        ];
+
+        \App\Models\Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+
+        // Campos específicos de tipo/documento: atualiza apenas o tipo correspondente
+        if ($tipo === 'tecnico') {
+            $dadosTecnico = [];
+            if (isset($updateData['conselho'])) {
+                $dadosTecnico['conselho'] = $updateData['conselho'];
+            }
+            if (isset($updateData['numero_registro_conselho'])) {
+                $dadosTecnico['numero_registro_conselho'] = $updateData['numero_registro_conselho'];
+            }
+            if (isset($updateData['carteirinha_conselho'])) {
+                $dadosTecnico['carteirinha_conselho'] = $updateData['carteirinha_conselho'];
+            }
+
+            if (!empty($dadosTecnico)) {
+                \App\Models\Responsavel::where('cpf', $responsavel->cpf)
+                    ->where('tipo', 'tecnico')
+                    ->update($dadosTecnico);
+            }
+        } else {
+            if (isset($updateData['documento_identificacao'])) {
+                \App\Models\Responsavel::where('cpf', $responsavel->cpf)
+                    ->where('tipo', 'legal')
+                    ->update(['documento_identificacao' => $updateData['documento_identificacao']]);
+            }
+        }
+
+        // Recarrega para manter fluxo atual consistente
+        $responsavel->refresh();
 
         // Se o documento estava pendente e foi enviado agora, redireciona para criação de processo
         if ($documentoEstaPendente && $documentoFoiEnviado && $tipo === 'legal') {
