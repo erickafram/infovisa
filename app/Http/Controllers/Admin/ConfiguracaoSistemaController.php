@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracaoSistema;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 class ConfiguracaoSistemaController extends Controller
@@ -17,6 +18,11 @@ class ConfiguracaoSistemaController extends Controller
         $logomarcaEstadual = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         if ($logomarcaEstadual && $logomarcaEstadual->valor) {
             $logomarcaEstadual->valor = ConfiguracaoSistema::normalizarCaminhoLogomarca($logomarcaEstadual->valor);
+            $relativo = $this->caminhoRelativoDiscoPublico($logomarcaEstadual->valor);
+            if ($relativo && !Storage::disk('public')->exists($relativo)) {
+                $logomarcaEstadual->valor = null;
+            }
+            $this->garantirArquivoPublicoAcessivel($logomarcaEstadual->valor);
         }
         
         // Configurações da IA
@@ -148,7 +154,7 @@ class ConfiguracaoSistemaController extends Controller
         
         // Remove logomarca se solicitado
         if ($request->has('remover_logomarca_estadual') && $config && $config->valor) {
-            Storage::disk('public')->delete('sistema/logomarcas/' . basename($config->valor));
+            $this->removerArquivoLogomarca($config->valor);
             $config->update(['valor' => null]);
             
             return redirect()
@@ -160,7 +166,7 @@ class ConfiguracaoSistemaController extends Controller
         if ($request->hasFile('logomarca_estadual')) {
             // Remove logomarca antiga se existir
             if ($config && $config->valor) {
-                Storage::disk('public')->delete('sistema/logomarcas/' . basename($config->valor));
+                $this->removerArquivoLogomarca($config->valor);
             }
             
             $arquivo = $request->file('logomarca_estadual');
@@ -176,6 +182,7 @@ class ConfiguracaoSistemaController extends Controller
             }
             
             $caminhoPublico = 'storage/' . $caminho;
+            $this->garantirArquivoPublicoAcessivel($caminhoPublico);
             
             ConfiguracaoSistema::definir(
                 'logomarca_estadual',
@@ -199,5 +206,60 @@ class ConfiguracaoSistemaController extends Controller
         return redirect()
             ->route('admin.configuracoes.sistema.index')
             ->with('info', 'Nenhuma alteração foi realizada.');
+    }
+
+    private function caminhoRelativoDiscoPublico(?string $valor): ?string
+    {
+        $normalizado = ConfiguracaoSistema::normalizarCaminhoLogomarca($valor);
+        if (!$normalizado) {
+            return null;
+        }
+
+        if (str_starts_with($normalizado, 'storage/')) {
+            return substr($normalizado, strlen('storage/'));
+        }
+
+        return ltrim($normalizado, '/');
+    }
+
+    private function garantirArquivoPublicoAcessivel(?string $valor): void
+    {
+        $relativo = $this->caminhoRelativoDiscoPublico($valor);
+        if (!$relativo) {
+            return;
+        }
+
+        if (!Storage::disk('public')->exists($relativo)) {
+            return;
+        }
+
+        $publicStorage = public_path('storage');
+
+        // Se public/storage for diretório real (não link), cria espelho do arquivo para evitar 404.
+        if (is_dir($publicStorage) && !is_link($publicStorage)) {
+            $destino = public_path('storage/' . $relativo);
+            $destinoDir = dirname($destino);
+
+            if (!is_dir($destinoDir)) {
+                File::makeDirectory($destinoDir, 0755, true);
+            }
+
+            File::copy(Storage::disk('public')->path($relativo), $destino);
+        }
+    }
+
+    private function removerArquivoLogomarca(?string $valor): void
+    {
+        $relativo = $this->caminhoRelativoDiscoPublico($valor);
+        if (!$relativo) {
+            return;
+        }
+
+        Storage::disk('public')->delete($relativo);
+
+        $espelhoPublico = public_path('storage/' . $relativo);
+        if (File::exists($espelhoPublico)) {
+            File::delete($espelhoPublico);
+        }
     }
 }
