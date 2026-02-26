@@ -811,18 +811,23 @@ class EstabelecimentoController extends Controller
             $updateData['documento_identificacao'] = $validated['documento_identificacao'];
         }
 
+        // Sempre atualiza o registro atual primeiro
+        $responsavel->update($updateData);
+
         // Sincroniza dados básicos em todos os registros do mesmo CPF
         // (cenários legados podem ter mais de um registro por CPF)
-        $dadosBasicos = [
-            'nome' => $updateData['nome'],
-            'email' => $updateData['email'],
-            'telefone' => $updateData['telefone'],
-        ];
+        if (!empty($responsavel->cpf)) {
+            $dadosBasicos = [
+                'nome' => $updateData['nome'],
+                'email' => $updateData['email'],
+                'telefone' => $updateData['telefone'],
+            ];
 
-        \App\Models\Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+            \App\Models\Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+        }
 
         // Campos específicos de tipo/documento: atualiza apenas o tipo correspondente
-        if ($tipo === 'tecnico') {
+        if ($tipo === 'tecnico' && !empty($responsavel->cpf)) {
             $dadosTecnico = [];
             if (isset($updateData['conselho'])) {
                 $dadosTecnico['conselho'] = $updateData['conselho'];
@@ -839,7 +844,7 @@ class EstabelecimentoController extends Controller
                     ->where('tipo', 'tecnico')
                     ->update($dadosTecnico);
             }
-        } else {
+        } elseif (!empty($responsavel->cpf)) {
             if (isset($updateData['documento_identificacao'])) {
                 \App\Models\Responsavel::where('cpf', $responsavel->cpf)
                     ->where('tipo', 'legal')

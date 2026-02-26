@@ -260,18 +260,23 @@ class ResponsavelGlobalController extends Controller
             $validated['documento_identificacao'] = $request->file('documento_identificacao')->store('responsaveis/legal', 'public');
         }
 
+        // Sempre atualiza o registro atual primeiro
+        $responsavel->update($validated);
+
         // Sincroniza dados básicos em todos os registros do mesmo CPF
         // (cenários legados podem ter mais de um registro por CPF)
-        $dadosBasicos = [
-            'nome' => $validated['nome'],
-            'email' => $validated['email'] ?? null,
-            'telefone' => $validated['telefone'] ?? null,
-        ];
+        if (!empty($responsavel->cpf)) {
+            $dadosBasicos = [
+                'nome' => $validated['nome'],
+                'email' => $validated['email'] ?? null,
+                'telefone' => $validated['telefone'] ?? null,
+            ];
 
-        Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+            Responsavel::where('cpf', $responsavel->cpf)->update($dadosBasicos);
+        }
 
         // Campos específicos por tipo
-        if ($responsavel->tipo === 'tecnico') {
+        if ($responsavel->tipo === 'tecnico' && !empty($responsavel->cpf)) {
             $dadosTecnico = [];
             if (array_key_exists('conselho', $validated)) {
                 $dadosTecnico['conselho'] = $validated['conselho'];
@@ -288,7 +293,7 @@ class ResponsavelGlobalController extends Controller
                     ->where('tipo', 'tecnico')
                     ->update($dadosTecnico);
             }
-        } else {
+        } elseif (!empty($responsavel->cpf)) {
             if (array_key_exists('documento_identificacao', $validated)) {
                 Responsavel::where('cpf', $responsavel->cpf)
                     ->where('tipo', 'legal')

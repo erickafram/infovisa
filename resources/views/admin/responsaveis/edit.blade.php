@@ -117,12 +117,9 @@
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('admin.responsaveis.carteirinha-conselho', $responsavel->id) }}" target="_blank"
                                    class="text-sm text-blue-600 hover:text-blue-800">Ver</a>
-                                <form method="POST" action="{{ route('admin.responsaveis.remover-carteirinha', $responsavel->id) }}" 
-                                      onsubmit="return confirm('Remover carteirinha?')" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-sm text-red-600 hover:text-red-800">Remover</button>
-                                </form>
+                                <button type="submit" form="form-remover-carteirinha"
+                                        onclick="return confirm('Remover carteirinha?')"
+                                        class="text-sm text-red-600 hover:text-red-800">Remover</button>
                             </div>
                         </div>
                         @endif
@@ -148,12 +145,9 @@
                     <div class="flex items-center gap-2">
                         <a href="{{ route('admin.responsaveis.documento-identificacao', $responsavel->id) }}" target="_blank"
                            class="text-sm text-blue-600 hover:text-blue-800">Ver</a>
-                        <form method="POST" action="{{ route('admin.responsaveis.remover-documento', $responsavel->id) }}" 
-                              onsubmit="return confirm('Remover documento?')" class="inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-sm text-red-600 hover:text-red-800">Remover</button>
-                        </form>
+                        <button type="submit" form="form-remover-documento"
+                                onclick="return confirm('Remover documento?')"
+                                class="text-sm text-red-600 hover:text-red-800">Remover</button>
                     </div>
                 </div>
                 @endif
@@ -176,6 +170,20 @@
             </button>
         </div>
     </form>
+
+    {{-- Formulários de remoção fora do form principal (HTML não permite formulários aninhados) --}}
+    @if($responsavel->carteirinha_conselho)
+    <form id="form-remover-carteirinha" method="POST" action="{{ route('admin.responsaveis.remover-carteirinha', $responsavel->id) }}" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+    @endif
+    @if($responsavel->documento_identificacao)
+    <form id="form-remover-documento" method="POST" action="{{ route('admin.responsaveis.remover-documento', $responsavel->id) }}" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+    @endif
 </div>
 
 <script>
