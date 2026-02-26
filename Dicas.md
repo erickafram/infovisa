@@ -145,3 +145,8 @@ composer install --no-dev --optimize-autoloader
 
 NOTEBOOK
 $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User'); php -v | Select-Object -First 1 | Out-String; php artisan serve
+
+
+git pull origin main
+php artisan migrate
+php artisan db:seed

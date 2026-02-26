@@ -76,7 +76,7 @@
                                 {{-- Documento --}}
                                 <div class="mt-3 flex items-center gap-3">
                                     @if($responsavel->documento_identificacao)
-                                        <a href="{{ asset('storage/' . $responsavel->documento_identificacao) }}" 
+                                        <a href="{{ route('admin.responsaveis.documento-identificacao', $responsavel->id) }}" 
                                            target="_blank"
                                            class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@
                                 {{-- Carteirinha --}}
                                 <div class="mt-3 flex items-center gap-3">
                                     @if($responsavel->carteirinha_conselho)
-                                        <a href="{{ asset('storage/' . $responsavel->carteirinha_conselho) }}" 
+                                        <a href="{{ route('admin.responsaveis.carteirinha-conselho', $responsavel->id) }}" 
                                            target="_blank"
                                            class="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -242,7 +242,7 @@
                                         <span x-text="dados.tipo_documento ? dados.tipo_documento.toUpperCase() : 'N/A'"></span>
                                     </p>
                                     <a x-show="dados.documento_identificacao" 
-                                       :href="'/storage/' + dados.documento_identificacao" 
+                                                    :href="getDocumentoUrl()" 
                                        target="_blank"
                                        class="inline-flex items-center gap-2 mt-2 text-sm font-medium text-blue-600 hover:text-blue-800">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +356,7 @@
                                         </p>
                                     </div>
                                     <a x-show="dados.carteirinha_conselho" 
-                                       :href="'/storage/' + dados.carteirinha_conselho" 
+                                                    :href="getCarteirinhaUrl()" 
                                        target="_blank"
                                        class="inline-flex items-center gap-2 mt-3 text-sm font-medium text-blue-600 hover:text-blue-800">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,6 +391,9 @@
 </div>
 
 <script>
+const documentoUrlTemplate = @json(route('admin.responsaveis.documento-identificacao', ['responsavel' => '__ID__']));
+const carteirinhaUrlTemplate = @json(route('admin.responsaveis.carteirinha-conselho', ['responsavel' => '__ID__']));
+
 function responsavelForm(tipo) {
     return {
         tipo: tipo,
@@ -402,6 +405,7 @@ function responsavelForm(tipo) {
         fonteEncontrada: '', // 'responsavel' ou 'usuario_externo'
         mostrarFormulario: false,
         dados: {
+            responsavel_id: null,
             cpf: '',
             nome: '',
             email: '',
@@ -411,6 +415,18 @@ function responsavelForm(tipo) {
             conselho: '',
             numero_registro_conselho: '',
             carteirinha_conselho: ''
+        },
+
+        getDocumentoUrl() {
+            return this.dados.responsavel_id
+                ? documentoUrlTemplate.replace('__ID__', this.dados.responsavel_id)
+                : '#';
+        },
+
+        getCarteirinhaUrl() {
+            return this.dados.responsavel_id
+                ? carteirinhaUrlTemplate.replace('__ID__', this.dados.responsavel_id)
+                : '#';
         },
 
         formatarCpf(valor) {
@@ -475,6 +491,7 @@ function responsavelForm(tipo) {
                 if (data.encontrado) {
                     // Guarda a fonte dos dados
                     this.fonteEncontrada = data.fonte || 'responsavel';
+                    this.dados.responsavel_id = data.responsavel.id || null;
                     
                     // Marca que CPF foi encontrado (para readonly dos dados básicos)
                     this.cpfJaCadastrado = true;
@@ -518,6 +535,7 @@ function responsavelForm(tipo) {
                     this.responsavelEncontrado = false;
                     this.cpfJaCadastrado = false;
                     this.fonteEncontrada = '';
+                    this.dados.responsavel_id = null;
                     this.dados.cpf = this.cpfBusca;
                     this.mensagemBusca = 'CPF não encontrado. Preencha todos os dados abaixo para cadastrar.';
                 }

@@ -233,6 +233,8 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::post('/estabelecimentos/{id}/responsaveis', [\App\Http\Controllers\ResponsavelController::class, 'store'])->name('estabelecimentos.responsaveis.store');
     Route::delete('/estabelecimentos/{estabelecimento}/responsaveis/{responsavel}', [\App\Http\Controllers\ResponsavelController::class, 'destroy'])->name('estabelecimentos.responsaveis.destroy');
     Route::post('/responsaveis/buscar-cpf', [\App\Http\Controllers\ResponsavelController::class, 'buscarPorCpf'])->name('responsaveis.buscar-cpf');
+    Route::get('/responsaveis/{responsavel}/documento-identificacao', [\App\Http\Controllers\ResponsavelController::class, 'visualizarDocumentoIdentificacao'])->name('responsaveis.documento-identificacao');
+    Route::get('/responsaveis/{responsavel}/carteirinha-conselho', [\App\Http\Controllers\ResponsavelController::class, 'visualizarCarteirinhaConselho'])->name('responsaveis.carteirinha-conselho');
     
     // Rotas de Responsáveis Globais
     Route::get('/responsaveis', [\App\Http\Controllers\Admin\ResponsavelGlobalController::class, 'index'])->name('responsaveis.index');

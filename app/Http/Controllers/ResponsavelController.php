@@ -10,6 +10,28 @@ use Illuminate\Support\Facades\Storage;
 
 class ResponsavelController extends Controller
 {
+    public function visualizarDocumentoIdentificacao($responsavelId)
+    {
+        return $this->visualizarArquivoResponsavel($responsavelId, 'documento_identificacao');
+    }
+
+    public function visualizarCarteirinhaConselho($responsavelId)
+    {
+        return $this->visualizarArquivoResponsavel($responsavelId, 'carteirinha_conselho');
+    }
+
+    protected function visualizarArquivoResponsavel($responsavelId, $campo)
+    {
+        $responsavel = Responsavel::findOrFail($responsavelId);
+        $caminhoArquivo = $responsavel->{$campo};
+
+        if (empty($caminhoArquivo) || !Storage::disk('public')->exists($caminhoArquivo)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        return response()->file(Storage::disk('public')->path($caminhoArquivo));
+    }
+
     /**
      * Exibe a página de gerenciamento de responsáveis do estabelecimento
      */
