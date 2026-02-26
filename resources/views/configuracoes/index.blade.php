@@ -267,6 +267,7 @@
         </a>
 
         {{-- Pesquisa de Satisfação - Apenas Admin --}}
+        @if(Route::has('admin.configuracoes.pesquisas-satisfacao.index'))
         <a href="{{ route('admin.configuracoes.pesquisas-satisfacao.index') }}"
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -283,6 +284,7 @@
                 </div>
             </div>
         </a>
+        @endif
 
         {{-- Chat Broadcast (Suporte InfoVISA) - Apenas Admin --}}
         <a href="{{ route('admin.configuracoes.chat-broadcast.index') }}" 

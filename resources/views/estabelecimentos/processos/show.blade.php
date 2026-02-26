@@ -3641,22 +3641,36 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     const url = this.pastaEditando 
                         ? '{{ route('admin.estabelecimentos.processos.pastas.update', [$estabelecimento->id, $processo->id, ':id']) }}'.replace(':id', this.pastaEditando.id)
                         : '{{ route('admin.estabelecimentos.processos.pastas.store', [$estabelecimento->id, $processo->id]) }}';
-                    
-                    const method = this.pastaEditando ? 'PUT' : 'POST';
+
+                    const formData = new FormData();
+                    formData.append('nome', this.nomePasta);
+                    formData.append('descricao', this.descricaoPasta || '');
+                    formData.append('cor', this.corPasta || '#3B82F6');
+
+                    if (this.pastaEditando) {
+                        formData.append('_method', 'PUT');
+                    }
 
                     fetch(url, {
-                        method: method,
+                        method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
                         },
-                        body: JSON.stringify({
-                            nome: this.nomePasta,
-                            descricao: this.descricaoPasta,
-                            cor: this.corPasta
-                        })
+                        body: formData
                     })
-                    .then(response => response.json())
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            const text = await response.text();
+                            throw new Error(`Resposta inesperada do servidor (${response.status}).`);
+                        }
+                        const json = await response.json();
+                        if (!response.ok) {
+                            throw new Error(json?.message || 'Erro ao salvar pasta.');
+                        }
+                        return json;
+                    })
                     .then(result => {
                         if (result.success) {
                             this.cancelarEdicao();
@@ -3667,7 +3681,10 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             }, 100);
                         }
                     })
-                    .catch(error => console.error('Erro ao salvar pasta:', error));
+                    .catch(error => {
+                        console.error('Erro ao salvar pasta:', error);
+                        alert(error.message || 'Erro ao salvar pasta.');
+                    });
                 },
 
                 editarPasta(pasta) {
@@ -3689,20 +3706,39 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                         return;
                     }
 
+                    const formData = new FormData();
+                    formData.append('_method', 'DELETE');
+
                     fetch('{{ route('admin.estabelecimentos.processos.pastas.destroy', [$estabelecimento->id, $processo->id, ':id']) }}'.replace(':id', pastaId), {
-                        method: 'DELETE',
+                        method: 'POST',
                         headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        }
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: formData
                     })
-                    .then(response => response.json())
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            const text = await response.text();
+                            throw new Error(`Resposta inesperada do servidor (${response.status}).`);
+                        }
+                        const json = await response.json();
+                        if (!response.ok) {
+                            throw new Error(json?.message || 'Erro ao excluir pasta.');
+                        }
+                        return json;
+                    })
                     .then(result => {
                         if (result.success) {
                             this.carregarPastas();
                             alert(result.message);
                         }
                     })
-                    .catch(error => console.error('Erro ao excluir pasta:', error));
+                    .catch(error => {
+                        console.error('Erro ao excluir pasta:', error);
+                        alert(error.message || 'Erro ao excluir pasta.');
+                    });
                 },
 
                 moverParaPasta(itemId, tipo, pastaId, element) {
