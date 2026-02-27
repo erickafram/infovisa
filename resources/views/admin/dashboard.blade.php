@@ -200,87 +200,36 @@
     </div>
     @endif
 
-    {{-- Stats Cards --}}
-    <div id="tour-stats-cards" class="grid grid-cols-3 gap-2">
-        {{-- Para Mim --}}
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div class="flex items-center gap-2 px-3 py-2">
-                <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Minhas demandas</p>
-                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ $stats['para_mim_total'] ?? 0 }}</p>
-                </div>
-            </div>
-            <div class="px-3 py-1 bg-blue-50/80 border-t border-blue-100/60 flex items-center gap-2 text-[10px]">
-                <span class="flex items-center gap-1 text-blue-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <span class="font-semibold">{{ $stats['ordens_servico_andamento'] ?? 0 }}</span> OS
-                </span>
-                <span class="text-gray-300">|</span>
-                <span class="flex items-center gap-1 text-amber-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    <span class="font-semibold">{{ $stats['documentos_pendentes_assinatura'] ?? 0 }}</span> assinaturas
-                </span>
-            </div>
+    {{-- Cadastros Pendentes --}}
+    @if(($stats['estabelecimentos_pendentes'] ?? 0) > 0)
+    <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition group">
+        <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         </div>
-
-        {{-- Meu Setor --}}
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div class="flex items-center gap-2 px-3 py-2">
-                <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Meu Setor</p>
-                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ ($stats['total_pendentes_aprovacao'] ?? 0) + ($stats['processos_do_setor'] ?? 0) }}</p>
-                </div>
-            </div>
-            <div class="px-3 py-1 bg-purple-50/80 border-t border-purple-100/60 flex items-center gap-2 text-[10px]">
-                <span class="flex items-center gap-1 text-purple-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span class="font-semibold">{{ $stats['total_pendentes_aprovacao'] ?? 0 }}</span> aprovações
-                </span>
-                <span class="text-gray-300">|</span>
-                <span class="flex items-center gap-1 text-teal-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span class="font-semibold">{{ $stats['processos_do_setor'] ?? 0 }}</span> processos
-                </span>
-            </div>
+        <div class="flex-1">
+            <span class="text-sm font-semibold text-amber-800">{{ $stats['estabelecimentos_pendentes'] }} cadastro(s) aguardando aprovação</span>
         </div>
-
-        {{-- Cadastros Pendentes --}}
-        <a href="{{ route('admin.estabelecimentos.pendentes') }}" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md hover:border-amber-200 transition-all group">
-            <div class="flex items-center gap-2 px-3 py-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-600 transition">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Cadastros Pendentes</p>
-                    <p class="text-xl font-bold text-gray-900 leading-tight">{{ $stats['estabelecimentos_pendentes'] ?? 0 }}</p>
-                </div>
-            </div>
-            <div class="px-3 py-1 bg-amber-50/80 border-t border-amber-100/60 flex items-center gap-1 text-[10px] text-amber-600">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Aguardando aprovação
-                <svg class="w-3 h-3 ml-auto text-gray-300 group-hover:text-amber-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </div>
-        </a>
-    </div>
+        <svg class="w-4 h-4 text-amber-400 group-hover:text-amber-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
+    @endif
 
     {{-- Layout Principal --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
         {{-- Coluna 1: PARA MIM --}}
-        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-gray-200" x-data="tarefasPaginadas()">
-            <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <h3 class="text-sm font-semibold text-gray-800">Minhas demandas</h3>
+        <div id="tour-minhas-tarefas" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="tarefasPaginadas()">
+            <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">Minhas demandas</h3>
+                        <p class="text-[10px] text-gray-400">Tarefas atribuídas a você</p>
+                    </div>
                     <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'rascunho_lote').length || '0'"></span>
                 </div>
-                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-gray-400 hover:text-blue-600 transition">ver todos</a>
+                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-blue-500 hover:text-blue-700 font-medium transition">ver todos →</a>
             </div>
             <div class="divide-y divide-gray-50 min-h-[120px] max-h-[350px] overflow-y-auto">
                 <template x-if="loading">
@@ -375,9 +324,12 @@
                     </div>
                 </template>
                 <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || t.tipo === 'assinatura' || t.tipo === 'rascunho_lote').length === 0">
-                    <div class="p-6 text-center">
-                        <svg class="w-8 h-8 text-green-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        <p class="text-xs text-gray-400">Tudo em dia!</p>
+                    <div class="p-8 text-center">
+                        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <p class="text-sm font-medium text-gray-500">Tudo em dia</p>
+                        <p class="text-xs text-gray-300 mt-1">Nenhuma demanda pendente</p>
                     </div>
                 </template>
             </div>
@@ -430,13 +382,18 @@
         </div>
 
         {{-- Coluna 2: DEMANDAS DO SETOR --}}
-        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <h3 class="text-sm font-semibold text-gray-800">Demandas do Setor</h3>
+        <div id="tour-processos-setor" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">Demandas do Setor</h3>
+                        <p class="text-[10px] text-gray-400">Pendências da sua gerência</p>
+                    </div>
                 </div>
-                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-gray-400 hover:text-purple-600 transition">ver todos</a>
+                <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-purple-500 hover:text-purple-700 font-medium transition">ver todos →</a>
             </div>
             
             {{-- Documentos do setor --}}
@@ -574,14 +531,19 @@
         {{-- Coluna 3: ACOMPANHAMENTO --}}
         <div class="space-y-4">
             {{-- Monitorando --}}
-            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        <h3 class="text-sm font-semibold text-gray-800">Monitorando</h3>
+            <div id="tour-monitorando" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-white flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900">Monitorando</h3>
+                            <p class="text-[10px] text-gray-400">Processos que você acompanha</p>
+                        </div>
                         <span class="text-[10px] px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-bold">{{ count($processos_acompanhados ?? []) }}</span>
                     </div>
-                    <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-[11px] text-gray-400 hover:text-indigo-600 transition">ver todos</a>
+                    <a href="{{ route('admin.processos.index-geral', ['monitorando' => 1]) }}" class="text-[11px] text-indigo-500 hover:text-indigo-700 font-medium transition">ver todos →</a>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[160px] overflow-y-auto">
                     @forelse(($processos_acompanhados ?? collect())->take(5) as $proc)
@@ -603,9 +565,12 @@
                         </span>
                     </a>
                     @empty
-                    <div class="p-5 text-center">
-                        <svg class="w-7 h-7 text-gray-200 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        <p class="text-[11px] text-gray-300">Nenhum processo monitorado</p>
+                    <div class="p-6 text-center">
+                        <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-2">
+                            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </div>
+                        <p class="text-xs text-gray-400">Nenhum processo monitorado</p>
+                        <p class="text-[10px] text-gray-300 mt-0.5">Acompanhe processos para vê-los aqui</p>
                     </div>
                     @endforelse
                 </div>

@@ -997,7 +997,23 @@ class EstabelecimentoController extends Controller
         $totalRejeitados = Estabelecimento::rejeitados()->count();
         $totalDesativados = Estabelecimento::where('ativo', false)->count();
 
-        return view('estabelecimentos.pendentes', compact('estabelecimentos', 'totalPendentes', 'totalRejeitados', 'totalDesativados'));
+        // Carrega atividades exercidas (marcadas pelo usuário) direto do campo JSON
+        $atividadesPorEstabelecimento = [];
+        foreach ($estabelecimentos as $estab) {
+            $lista = collect();
+            if ($estab->atividades_exercidas && is_array($estab->atividades_exercidas)) {
+                foreach ($estab->atividades_exercidas as $ativ) {
+                    $codigo = is_array($ativ) ? ($ativ['codigo'] ?? '') : (string) $ativ;
+                    $descricao = is_array($ativ) ? ($ativ['descricao'] ?? '') : '';
+                    if (!empty($codigo)) {
+                        $lista->push((object) ['codigo' => $codigo, 'descricao' => $descricao]);
+                    }
+                }
+            }
+            $atividadesPorEstabelecimento[$estab->id] = $lista;
+        }
+
+        return view('estabelecimentos.pendentes', compact('estabelecimentos', 'totalPendentes', 'totalRejeitados', 'totalDesativados', 'atividadesPorEstabelecimento'));
     }
 
     /**
@@ -1118,7 +1134,7 @@ class EstabelecimentoController extends Controller
         $estabelecimento->aprovar($validated['observacao'] ?? null);
 
         return redirect()
-            ->route('admin.estabelecimentos.show', $estabelecimento->id)
+            ->route('admin.estabelecimentos.pendentes')
             ->with('success', 'Estabelecimento aprovado com sucesso!');
     }
 
@@ -1145,7 +1161,7 @@ class EstabelecimentoController extends Controller
         );
 
         return redirect()
-            ->route('admin.estabelecimentos.show', $estabelecimento->id)
+            ->route('admin.estabelecimentos.pendentes')
             ->with('success', 'Estabelecimento rejeitado.');
     }
 
