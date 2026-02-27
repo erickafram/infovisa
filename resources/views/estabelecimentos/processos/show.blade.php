@@ -718,6 +718,7 @@
                         Ordem de Serviço
                     </a>
                     @endif
+                    @endif
                     <button @click="modalAlertas = true" 
                             class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -730,7 +731,6 @@
                         </span>
                         @endif
                     </button>
-                    @endif
                 </div>
             </div>
 
