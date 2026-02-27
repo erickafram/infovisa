@@ -311,6 +311,16 @@
                             : ($ordemServico->finalizada_em
                                 ? $ordemServico->finalizada_em->format('d/m/Y')
                                 : '-'));
+
+                    $municipioOs = $ordemServico->municipio?->nome
+                        ?? $estabelecimentoPdf?->municipio?->nome
+                        ?? $estabelecimentoPdf?->municipioRelacionado?->nome
+                        ?? ((is_object($estabelecimentoPdf?->municipio) && !empty($estabelecimentoPdf->municipio->nome))
+                            ? $estabelecimentoPdf->municipio->nome
+                            : null)
+                        ?? (is_string($estabelecimentoPdf?->municipio) ? $estabelecimentoPdf->municipio : null)
+                        ?? $estabelecimentoPdf?->cidade
+                        ?? '-';
                 @endphp
 
                 <div class="info-row">
@@ -324,7 +334,7 @@
                     </div>
                     <div class="info-item" style="width: 25%; padding-right: 0;">
                         <div class="label">Município</div>
-                        <div class="value">{{ $ordemServico->municipio?->nome ?? '-' }}</div>
+                        <div class="value">{{ $municipioOs }}</div>
                     </div>
                 </div>
 
@@ -587,7 +597,7 @@
                     @endphp
                 </div>
                 <div class="footer-text">
-                    Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Luaro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
+                    Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Lauro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
                     Contatos: (63) 3027-4486 - (63) 3027-4475 - (63) 3027-4432 – tocantins.visa@gmail.com
                 </div>
             </div>
