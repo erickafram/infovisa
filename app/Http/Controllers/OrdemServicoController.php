@@ -1931,6 +1931,171 @@ class OrdemServicoController extends Controller
 
         return $pdf->download('OS-' . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . '.pdf');
     }
+
+    /**
+     * Gerar PDF consolidado com TODOS os estabelecimentos (cada um em uma página)
+     */
+    public function gerarPdfTodos(Request $request, OrdemServico $ordemServico)
+    {
+        $usuario = Auth::guard('interno')->user();
+
+        if (!$this->podeVisualizarOS($usuario, $ordemServico)) {
+            abort(403, 'Você não tem permissão para gerar PDF desta ordem de serviço.');
+        }
+
+        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
+
+        $todosEstabelecimentos = $ordemServico->getTodosEstabelecimentos();
+
+        if ($todosEstabelecimentos->isEmpty()) {
+            return redirect()->back()->with('error', 'Nenhum estabelecimento vinculado a esta OS.');
+        }
+
+        $htmlPages = [];
+
+        foreach ($todosEstabelecimentos as $index => $estabelecimentoPdf) {
+            $processoPdf = $ordemServico->processo;
+
+            $processoIdPivot = $estabelecimentoPdf?->pivot?->processo_id;
+            if ($processoIdPivot) {
+                $processoPdf = Processo::find($processoIdPivot) ?? $processoPdf;
+            }
+
+            // Clona a OS para não afetar as iterações seguintes
+            $osClone = clone $ordemServico;
+            $osClone->setRelation('estabelecimento', $estabelecimentoPdf);
+            if ($processoPdf) {
+                $osClone->setRelation('processo', $processoPdf);
+                $osClone->processo_id = $processoPdf->id;
+            }
+
+            // Logomarca
+            $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            if ($estabelecimentoPdf->isCompetenciaEstadual()) {
+                $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
+            } else {
+                $municipio = $estabelecimentoPdf->municipio ?? null;
+                if ($municipio && !empty($municipio->logomarca)) {
+                    $logomarca = $municipio->logomarca;
+                }
+            }
+
+            // QR Code pesquisa
+            $qrCodePesquisaBase64 = null;
+            $linkPesquisaExterna = null;
+
+            $pesquisasExternas = \App\Models\PesquisaSatisfacao::where('ativo', true)
+                ->where('tipo_publico', 'externo')
+                ->get();
+
+            if ($pesquisasExternas->isNotEmpty()) {
+                $tecnicosIds = [];
+                $atividadesTecnicos = $ordemServico->atividades_tecnicos ?? [];
+                foreach ($atividadesTecnicos as $atividade) {
+                    foreach (($atividade['tecnicos'] ?? []) as $tid) {
+                        $tecnicosIds[] = (int) $tid;
+                    }
+                }
+                if (empty($tecnicosIds) && !empty($ordemServico->tecnicos_ids)) {
+                    $tecnicosIds = array_map('intval', $ordemServico->tecnicos_ids);
+                }
+                $tecnicosIds = array_unique($tecnicosIds);
+
+                $setoresTecnicos = [];
+                if (!empty($tecnicosIds)) {
+                    $setoresTecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosIds)
+                        ->whereNotNull('setor')
+                        ->pluck('setor')
+                        ->map(fn($s) => mb_strtolower(trim($s)))
+                        ->unique()
+                        ->toArray();
+                }
+
+                $pesquisaExterna = null;
+                foreach ($pesquisasExternas as $pe) {
+                    $setoresIds = $pe->tipo_setores_ids;
+                    if (empty($setoresIds)) {
+                        $pesquisaExterna = $pe;
+                        break;
+                    }
+                    $codigosSetoresPesquisa = \App\Models\TipoSetor::whereIn('id', $setoresIds)
+                        ->pluck('codigo')
+                        ->map(fn($s) => mb_strtolower(trim($s)))
+                        ->toArray();
+                    foreach ($setoresTecnicos as $setorTecnico) {
+                        if (in_array($setorTecnico, $codigosSetoresPesquisa)) {
+                            $pesquisaExterna = $pe;
+                            break 2;
+                        }
+                    }
+                }
+
+                if ($pesquisaExterna) {
+                    $linkPesquisaExterna = url('/pesquisa/' . $pesquisaExterna->slug)
+                        . '?os=' . $ordemServico->id
+                        . '&est=' . $estabelecimentoPdf->id;
+
+                    try {
+                        $qr = new \Endroid\QrCode\QrCode($linkPesquisaExterna);
+                        $writer = new \Endroid\QrCode\Writer\PngWriter();
+                        $result = $writer->write($qr);
+                        $qrCodePesquisaBase64 = base64_encode($result->getString());
+                    } catch (\Throwable $e) {
+                        \Log::warning('Erro ao gerar QR da pesquisa no PDF consolidado: ' . $e->getMessage());
+                    }
+                }
+            }
+
+            $ordemServicoView = $osClone;
+            $htmlPages[] = view('ordens-servico.pdf', [
+                'ordemServico' => $ordemServicoView,
+                'estabelecimentoPdf' => $estabelecimentoPdf,
+                'processoPdf' => $processoPdf,
+                'qrCodePesquisaBase64' => $qrCodePesquisaBase64,
+                'linkPesquisaExterna' => $linkPesquisaExterna,
+                'logomarca' => $logomarca,
+            ])->render();
+        }
+
+        // Extrai o conteúdo do <body> de cada página e junta com page-break
+        $bodyContents = [];
+        $styleBlock = '';
+        foreach ($htmlPages as $i => $fullHtml) {
+            // Extrai o style da primeira página
+            if ($i === 0 && preg_match('/<style[^>]*>(.*?)<\/style>/s', $fullHtml, $styleMatch)) {
+                $styleBlock = $styleMatch[0];
+            }
+            // Extrai o body
+            if (preg_match('/<body[^>]*>(.*)<\/body>/s', $fullHtml, $bodyMatch)) {
+                $bodyContents[] = $bodyMatch[1];
+            } else {
+                $bodyContents[] = $fullHtml;
+            }
+        }
+
+        // Monta HTML consolidado
+        $htmlConsolidado = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' . $styleBlock . '
+            <style>.page-break { page-break-before: always; }</style>
+        </head><body>';
+
+        foreach ($bodyContents as $i => $body) {
+            if ($i > 0) {
+                $htmlConsolidado .= '<div class="page-break"></div>';
+            }
+            $htmlConsolidado .= $body;
+        }
+
+        $htmlConsolidado .= '</body></html>';
+
+        $pdf = \PDF::loadHTML($htmlConsolidado)
+            ->setPaper('a4')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
+
+        return $pdf->download('OS-' . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . '-TODOS.pdf');
+    }
     
     /**
      * Envia notificação no chat interno para os técnicos atribuídos

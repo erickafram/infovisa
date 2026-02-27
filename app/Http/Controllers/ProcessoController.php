@@ -908,10 +908,15 @@ class ProcessoController extends Controller
         }
         
         // Adiciona Ordens de Serviço vinculadas ao processo
+        // Busca tanto pelo campo processo_id (legado) quanto pela tabela pivot
         $ordensServico = \App\Models\OrdemServico::where('processo_id', $processoId)
+            ->orWhereHas('estabelecimentos', function ($query) use ($processoId) {
+                $query->where('ordem_servico_estabelecimentos.processo_id', $processoId);
+            })
             ->with(['estabelecimento', 'municipio'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->unique('id'); // Evita duplicatas
         
         foreach ($ordensServico as $os) {
             $todosDocumentos->push([
@@ -1030,12 +1035,18 @@ class ProcessoController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
         
-        // Busca ordens de serviço vinculadas ao processo
+        // Busca ordens de serviço vinculadas ao processo (campo legado + tabela pivot)
         $ordensServico = \App\Models\OrdemServico::with(['estabelecimento.municipio', 'municipio', 'processo'])
-            ->where('processo_id', $processoId)
+            ->where(function ($query) use ($processoId) {
+                $query->where('processo_id', $processoId)
+                    ->orWhereHas('estabelecimentos', function ($q) use ($processoId) {
+                        $q->where('ordem_servico_estabelecimentos.processo_id', $processoId);
+                    });
+            })
             ->where('status', '!=', 'cancelada')
             ->orderBy('created_at', 'asc')
-            ->get();
+            ->get()
+            ->unique('id');
         
         // Determina qual logomarca usar (mesma lógica dos PDFs)
         $logomarca = null;

@@ -21,10 +21,44 @@
                     {!! $ordemServico->status_badge !!}
                     {!! $ordemServico->competencia_badge !!}
                     @php
-                        $estabPdfInicial = $ordemServico->getTodosEstabelecimentos()->first();
+                        $todosEstabPdf = $ordemServico->getTodosEstabelecimentos();
+                        $estabPdfInicial = $todosEstabPdf->first();
                         $pdfBaseUrl = route('admin.ordens-servico.pdf', $ordemServico);
                         $pdfInitialUrl = $estabPdfInicial ? ($pdfBaseUrl . '?estabelecimento_id=' . $estabPdfInicial->id) : $pdfBaseUrl;
                     @endphp
+                    @if($todosEstabPdf->count() > 1)
+                    <div class="relative" id="dropdownPdfContainer">
+                        <div class="inline-flex rounded-lg overflow-hidden border border-red-200">
+                            <a id="btnBaixarPdfOs" href="{{ $pdfInitialUrl }}" data-base-url="{{ $pdfBaseUrl }}"
+                               target="_blank"
+                               class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                Baixar PDF
+                            </a>
+                            <button type="button" onclick="toggleDropdownPdf()" 
+                                    class="inline-flex items-center px-2 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 border-l border-red-200 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="dropdownPdfMenu" class="hidden absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                            <div class="py-1">
+                                <a href="{{ route('admin.ordens-servico.pdf-todos', $ordemServico) }}" 
+                                   target="_blank"
+                                   onclick="document.getElementById('dropdownPdfMenu').classList.add('hidden')"
+                                   class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Baixar PDF de Todos ({{ $todosEstabPdf->count() }})
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    @else
                     <a id="btnBaixarPdfOs" href="{{ $pdfInitialUrl }}" data-base-url="{{ $pdfBaseUrl }}"
                        target="_blank"
                        class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors">
@@ -33,6 +67,7 @@
                         </svg>
                         Baixar PDF
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1021,6 +1056,23 @@
     function mostrarEstabelecimentoAnterior() {
         exibirEstabelecimento(estabelecimentoAtual - 1);
     }
+
+    // ========================================
+    // Dropdown PDF - Baixar de Todos
+    // ========================================
+    function toggleDropdownPdf() {
+        const menu = document.getElementById('dropdownPdfMenu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('dropdownPdfContainer');
+        const menu = document.getElementById('dropdownPdfMenu');
+        if (container && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', function () {
         exibirEstabelecimento(0);

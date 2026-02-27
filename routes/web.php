@@ -427,6 +427,11 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('ordens-servico/{ordemServico}/pdf', 
         [\App\Http\Controllers\OrdemServicoController::class, 'gerarPdf']
     )->name('ordens-servico.pdf');
+
+    // Gerar PDF consolidado (todos estabelecimentos)
+    Route::get('ordens-servico/{ordemServico}/pdf-todos', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'gerarPdfTodos']
+    )->name('ordens-servico.pdf-todos');
     
     // Reiniciar OS
     Route::post('ordens-servico/{ordemServico}/reiniciar', 
