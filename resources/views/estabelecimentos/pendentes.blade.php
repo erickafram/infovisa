@@ -4,7 +4,7 @@
 @section('page-title', 'Estabelecimentos Pendentes de Aprovação')
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-4">
+<div class="max-w-8xl mx-auto space-y-4">
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
