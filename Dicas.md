@@ -99,7 +99,7 @@ git push -u origin main
 
 
 ESSE É FUNCIONANDO (SEM SOBRESCREVER .env)
-cd /var/www/html/infovisa @@2025@@Ekb
+cd /var/www/html/infovisa
 
 # backup rápido do .env antes do pull
 cp .env /tmp/infovisa.env.bak
