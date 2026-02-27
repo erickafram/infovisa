@@ -854,7 +854,8 @@ class ProcessoController extends Controller
                     $query->with(['documentoSubstituido'])->orderBy('created_at', 'desc');
                 },
                 'documentos.usuario', 
-                'usuariosAcompanhando'
+                'usuariosAcompanhando',
+                'acompanhamentos'
             ])
             ->where('estabelecimento_id', $estabelecimentoId)
             ->findOrFail($processoId);
@@ -1223,7 +1224,7 @@ class ProcessoController extends Controller
     /**
      * Adiciona/Remove acompanhamento do processo
      */
-    public function toggleAcompanhamento($estabelecimentoId, $processoId)
+    public function toggleAcompanhamento(Request $request, $estabelecimentoId, $processoId)
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
@@ -1242,15 +1243,39 @@ class ProcessoController extends Controller
             $acompanhamento->delete();
             $mensagem = 'Você parou de acompanhar este processo.';
         } else {
-            // Adiciona acompanhamento
+            // Adiciona acompanhamento com descrição opcional
             ProcessoAcompanhamento::create([
                 'processo_id' => $processoId,
                 'usuario_interno_id' => $usuarioId,
+                'descricao' => $request->input('descricao'),
             ]);
             $mensagem = 'Você está acompanhando este processo.';
         }
         
-        return redirect()->back()->with('success', $mensagem);
+        return redirect()->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', $mensagem);
+    }
+
+    /**
+     * Atualiza a descrição do acompanhamento
+     */
+    public function atualizarDescricaoAcompanhamento(Request $request, $estabelecimentoId, $processoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        $usuarioId = Auth::guard('interno')->user()->id;
+
+        $acompanhamento = ProcessoAcompanhamento::where('processo_id', $processoId)
+            ->where('usuario_interno_id', $usuarioId)
+            ->firstOrFail();
+
+        $acompanhamento->update([
+            'descricao' => $request->input('descricao'),
+        ]);
+
+        return redirect()->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Descrição do acompanhamento atualizada.');
     }
 
     /**

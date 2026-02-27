@@ -559,6 +559,12 @@
                                 @endif
                             </p>
                             <p class="text-[11px] text-gray-400 truncate">{{ $proc->estabelecimento->nome_fantasia ?? $proc->estabelecimento->razao_social ?? '-' }}</p>
+                            @php
+                                $meuAcompanhamento = $proc->acompanhamentos->first();
+                            @endphp
+                            @if($meuAcompanhamento && $meuAcompanhamento->descricao)
+                                <p class="text-[10px] text-indigo-500 truncate mt-0.5">📝 {{ $meuAcompanhamento->descricao }}</p>
+                            @endif
                         </div>
                         <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full {{ $proc->status === 'aberto' ? 'bg-blue-100 text-blue-600' : ($proc->status === 'arquivado' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-600') }}">
                             {{ ucfirst($proc->status) }}

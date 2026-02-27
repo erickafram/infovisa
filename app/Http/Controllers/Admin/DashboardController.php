@@ -298,10 +298,13 @@ class DashboardController extends Controller
         $estabelecimentos_pendentes = $estabelecimentosPendentes->sortByDesc('created_at')->take(5);
 
         // Buscar processos que o usuário está acompanhando
-        $processos_acompanhados = Processo::whereHas('acompanhamentos', function($query) {
-                $query->where('usuario_interno_id', Auth::guard('interno')->user()->id);
+        $usuarioId = Auth::guard('interno')->user()->id;
+        $processos_acompanhados = Processo::whereHas('acompanhamentos', function($query) use ($usuarioId) {
+                $query->where('usuario_interno_id', $usuarioId);
             })
-            ->with(['estabelecimento', 'usuario'])
+            ->with(['estabelecimento', 'usuario', 'tipoProcesso', 'acompanhamentos' => function($query) use ($usuarioId) {
+                $query->where('usuario_interno_id', $usuarioId);
+            }])
             ->orderBy('updated_at', 'desc')
             ->take(10)
             ->get();

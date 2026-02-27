@@ -296,26 +296,59 @@
         </div>
 
         {{-- Botão Acompanhar --}}
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <form action="{{ route('admin.estabelecimentos.processos.toggleAcompanhamento', [$estabelecimento->id, $processo->id]) }}" method="POST" class="inline-block">
-                @csrf
-                @if($processo->estaAcompanhadoPor(Auth::guard('interno')->user()->id))
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                        </svg>
-                        Parar de Acompanhar
-                    </button>
-                @else
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        Acompanhar Processo
-                    </button>
-                @endif
-            </form>
+        <div class="mt-6 pt-6 border-t border-gray-200" x-data="{ showModal: false }">
+            @php
+                $acompanhamentoAtual = $processo->acompanhamentos->where('usuario_interno_id', Auth::guard('interno')->user()->id)->first();
+            @endphp
+            @if($acompanhamentoAtual)
+                {{-- Já acompanhando --}}
+                <div class="space-y-2">
+                    <form action="{{ route('admin.estabelecimentos.processos.toggleAcompanhamento', [$estabelecimento->id, $processo->id]) }}" method="POST" class="inline-block">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                            </svg>
+                            Parar de Acompanhar
+                        </button>
+                    </form>
+                    @if($acompanhamentoAtual->descricao)
+                        <div class="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                            <p class="text-xs text-indigo-700"><span class="font-semibold">Nota:</span> {{ $acompanhamentoAtual->descricao }}</p>
+                        </div>
+                    @endif
+                </div>
+            @else
+                {{-- Não acompanhando --}}
+                <button @click="showModal = true" type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    Acompanhar Processo
+                </button>
+
+                {{-- Modal --}}
+                <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="showModal = false">
+                    <div class="fixed inset-0 bg-black/40" @click="showModal = false"></div>
+                    <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" @click.stop>
+                        <h3 class="text-base font-semibold text-gray-900">Acompanhar Processo</h3>
+                        <p class="text-sm text-gray-500">Adicione uma nota para lembrar o motivo do acompanhamento.</p>
+                        <form action="{{ route('admin.estabelecimentos.processos.toggleAcompanhamento', [$estabelecimento->id, $processo->id]) }}" method="POST" class="space-y-3">
+                            @csrf
+                            <div>
+                                <label class="text-xs font-medium text-gray-600">Nota (opcional)</label>
+                                <input type="text" name="descricao" placeholder="Ex: Fazer Notificação..."
+                                       class="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" maxlength="255">
+                            </div>
+                            <div class="flex gap-2 justify-end">
+                                <button type="button" @click="showModal = false" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition">Confirmar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

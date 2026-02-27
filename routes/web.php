@@ -309,6 +309,9 @@ Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(functi
     Route::get('/estabelecimentos/{id}/processos/{processo}/integra', [\App\Http\Controllers\ProcessoController::class, 'integra'])->name('estabelecimentos.processos.integra');
     Route::patch('/estabelecimentos/{id}/processos/{processo}/status', [\App\Http\Controllers\ProcessoController::class, 'updateStatus'])->name('estabelecimentos.processos.updateStatus');
     Route::post('/estabelecimentos/{id}/processos/{processo}/acompanhar', [\App\Http\Controllers\ProcessoController::class, 'toggleAcompanhamento'])->name('estabelecimentos.processos.toggleAcompanhamento');
+    Route::get('/estabelecimentos/{id}/processos/{processo}/acompanhar', function ($id, $processo) {
+        return redirect()->route('admin.estabelecimentos.processos.show', [$id, $processo]);
+    });
     Route::post('/estabelecimentos/{id}/processos/{processo}/arquivar', [\App\Http\Controllers\ProcessoController::class, 'arquivar'])->name('estabelecimentos.processos.arquivar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/desarquivar', [\App\Http\Controllers\ProcessoController::class, 'desarquivar'])->name('estabelecimentos.processos.desarquivar');
     Route::post('/estabelecimentos/{id}/processos/{processo}/parar', [\App\Http\Controllers\ProcessoController::class, 'parar'])->name('estabelecimentos.processos.parar');

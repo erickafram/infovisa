@@ -10,6 +10,7 @@ class ProcessoAcompanhamento extends Model
     protected $fillable = [
         'processo_id',
         'usuario_interno_id',
+        'descricao',
     ];
 
     protected $casts = [
