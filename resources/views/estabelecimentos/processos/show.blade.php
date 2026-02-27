@@ -378,7 +378,7 @@
                     </svg>
                     Histórico
                 </button>
-                @if($processo->status !== 'arquivado')
+                @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
                 <button @click="modalAtribuir = true" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -675,6 +675,7 @@
                         Criar Documento Digital
                     </a>
                     @endif
+                    @if($processo->status !== 'parado')
                     @if(auth('interno')->user()->isAdmin() || auth('interno')->user()->isGestor())
                     <a href="{{ route('admin.ordens-servico.create', ['estabelecimento_id' => $estabelecimento->id, 'processo_id' => $processo->id]) }}" 
                        class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
@@ -696,6 +697,7 @@
                         </span>
                         @endif
                     </button>
+                    @endif
                 </div>
             </div>
 
@@ -716,7 +718,7 @@
                         Processo na Íntegra
                     </a>
                     
-                    @if($processo->status !== 'arquivado')
+                    @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
                     <button @click="modalAtribuir = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -731,18 +733,6 @@
                         Pastas Processo
                     </button>
                     
-                    @if($processo->status === 'parado')
-                    <form action="{{ route('admin.estabelecimentos.processos.reiniciar', [$estabelecimento->id, $processo->id]) }}" method="POST" class="w-full">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Reiniciar Processo
-                        </button>
-                    </form>
-                    @else
                     <button @click="modalParar = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -750,7 +740,26 @@
                         Parar Processo
                     </button>
                     @endif
+
+                    @if($processo->status === 'parado')
+                    <form action="{{ route('admin.estabelecimentos.processos.reiniciar', [$estabelecimento->id, $processo->id]) }}" method="POST" class="w-full">
+                        @csrf
+                        <button type="submit" style="animation: reiniciarPulse 1.6s ease-in-out infinite;" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg shadow-md shadow-green-300 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Reiniciar Processo
+                        </button>
+                        <style>
+                            @keyframes reiniciarPulse {
+                                0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+                                50% { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+                            }
+                        </style>
+                    </form>
                     @endif
+
                     @if($processo->status === 'arquivado')
                     <form action="{{ route('admin.estabelecimentos.processos.desarquivar', [$estabelecimento->id, $processo->id]) }}" method="POST" class="w-full">
                         @csrf
@@ -761,7 +770,7 @@
                             Desarquivar Processo
                         </button>
                     </form>
-                    @else
+                    @elseif($processo->status !== 'parado')
                     <button @click="modalArquivar = true" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
