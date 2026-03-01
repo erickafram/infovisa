@@ -5,242 +5,187 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto" x-data="todasTarefas()" x-init="init()">
-    
+
     {{-- Header --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                    <div class="p-2 bg-purple-100 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                        </svg>
-                    </div>
-                    Todas as Tarefas
-                </h1>
-                <p class="mt-1 text-gray-600">Tarefas pessoais e demandas do setor em um só lugar</p>
-            </div>
-            <a href="{{ route('admin.dashboard') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                Voltar ao Dashboard
-            </a>
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-lg font-bold text-gray-900">Todas as Tarefas</h1>
+            <p class="text-[11px] text-gray-400">Tarefas pessoais e demandas do setor</p>
+        </div>
+        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Voltar
+        </a>
+    </div>
+
+    {{-- Filtros --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+        <div class="px-4 py-2.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Filtrar por</span>
+            <span class="text-[10px] text-gray-400" x-text="totalFiltrado + ' tarefa(s)'"></span>
+        </div>
+        <div class="px-4 py-3 flex flex-wrap gap-2">
+            <button @click="setFilter('todos')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'todos' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                Todas <span class="ml-0.5 opacity-70" x-text="contadores.total"></span>
+            </button>
+            <span class="w-px h-6 bg-gray-200 self-center"></span>
+            <button @click="setFilter('para_mim')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'para_mim' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'">
+                Para Mim <span class="ml-0.5 opacity-70" x-text="contadores.para_mim"></span>
+            </button>
+            <button @click="setFilter('os')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'os' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'">
+                OS <span class="ml-0.5 opacity-70" x-text="contadores.os"></span>
+            </button>
+            <button @click="setFilter('assinatura')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'assinatura' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'">
+                Assinaturas <span class="ml-0.5 opacity-70" x-text="contadores.assinatura"></span>
+            </button>
+            <span class="w-px h-6 bg-gray-200 self-center"></span>
+            <button @click="setFilter('setor')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'setor' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'">
+                Meu Setor <span class="ml-0.5 opacity-70" x-text="contadores.setor"></span>
+            </button>
+            <button @click="setFilter('aprovacao')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'aprovacao' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50'">
+                Aprovações <span class="ml-0.5 opacity-70" x-text="contadores.aprovacao"></span>
+            </button>
+            <button @click="setFilter('resposta')"
+                    class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border"
+                    :class="filtro === 'resposta' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-green-700 border-green-200 hover:bg-green-50'">
+                Respostas <span class="ml-0.5 opacity-70" x-text="contadores.resposta"></span>
+            </button>
         </div>
     </div>
 
-    {{-- Painel de organização das tarefas --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 space-y-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-            <div class="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
-                <p class="text-[11px] text-gray-500 uppercase tracking-wide">Total</p>
-                <p class="text-base font-bold text-gray-800" x-text="contadores.total || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
-                <p class="text-[11px] text-blue-600 uppercase tracking-wide">Para Mim</p>
-                <p class="text-base font-bold text-blue-700" x-text="contadores.para_mim || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-purple-50 border border-purple-100">
-                <p class="text-[11px] text-purple-600 uppercase tracking-wide">Meu Setor</p>
-                <p class="text-base font-bold text-purple-700" x-text="contadores.setor || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
-                <p class="text-[11px] text-blue-600 uppercase tracking-wide">OS</p>
-                <p class="text-base font-bold text-blue-700" x-text="contadores.os || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                <p class="text-[11px] text-amber-600 uppercase tracking-wide">Assinaturas</p>
-                <p class="text-base font-bold text-amber-700" x-text="contadores.assinatura || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-purple-50 border border-purple-100">
-                <p class="text-[11px] text-purple-600 uppercase tracking-wide">Aprovações</p>
-                <p class="text-base font-bold text-purple-700" x-text="contadores.aprovacao || 0"></p>
-            </div>
-            <div class="px-3 py-2 rounded-lg bg-green-50 border border-green-100">
-                <p class="text-[11px] text-green-600 uppercase tracking-wide">Respostas</p>
-                <p class="text-base font-bold text-green-700" x-text="contadores.resposta || 0"></p>
-            </div>
-        </div>
+    {{-- Lista --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide mr-1">Visão:</span>
-            <button @click="setScope('todos')"
-                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
-                    :class="scope === 'todos' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
-                Todos
-            </button>
-            <button @click="setScope('para_mim')"
-                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
-                    :class="scope === 'para_mim' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'">
-                Para Mim
-            </button>
-            <button @click="setScope('setor')"
-                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
-                    :class="scope === 'setor' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'">
-                Meu Setor
-            </button>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide mr-1">Tipo:</span>
-            <template x-for="item in availableTypeFilters()" :key="item.value">
-                <button @click="setFilter(item.value)"
-                        class="px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5"
-                        :class="typeButtonClass(item.value)">
-                    <span x-text="item.label"></span>
-                    <span class="px-1.5 py-0.5 rounded-full text-xs"
-                          :class="filtro === item.value ? 'bg-white/20' : item.badgeClass"
-                          x-text="item.count"></span>
-                </button>
-            </template>
-        </div>
-
-        <div class="text-xs text-gray-500 border-t border-gray-100 pt-3">
-            Exibindo: <span class="font-semibold text-gray-700" x-text="activeFilterLabel()"></span>
-        </div>
-    </div>
-
-    {{-- Lista de Tarefas --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {{-- Loading --}}
         <template x-if="loading">
-            <div class="p-12 text-center">
-                <svg class="animate-spin h-8 w-8 text-purple-600 mx-auto" fill="none" viewBox="0 0 24 24">
+            <div class="p-8 text-center">
+                <svg class="animate-spin h-5 w-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <p class="mt-3 text-gray-500">Carregando tarefas...</p>
             </div>
         </template>
 
-        {{-- Lista Vazia --}}
+        {{-- Vazio --}}
         <template x-if="!loading && tarefas.length === 0">
-            <div class="p-12 text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
+            <div class="p-10 text-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">
-                    <template x-if="filtro === 'para_mim'"><span>Nenhuma tarefa pessoal pendente</span></template>
-                    <template x-if="filtro === 'setor'"><span>Nenhuma demanda do setor pendente</span></template>
-                    <template x-if="filtro !== 'para_mim' && filtro !== 'setor'"><span>Nenhuma tarefa pendente</span></template>
-                </h3>
-                <p class="text-gray-500">Tudo em dia! Bom trabalho.</p>
+                <p class="text-sm font-medium text-gray-700">Nenhuma tarefa pendente</p>
+                <p class="text-[11px] text-gray-400 mt-0.5">Tudo em dia!</p>
             </div>
         </template>
 
-        {{-- Lista de Tarefas com separadores de grupo --}}
+        {{-- Itens --}}
         <template x-if="!loading && tarefas.length > 0">
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-50">
                 <template x-for="(t, index) in tarefas" :key="t.tipo + (t.id || t.processo_id) + index">
                     <div>
-                        {{-- Separador de grupo (apenas no filtro "todos") --}}
+                        {{-- Separador de grupo --}}
                         <template x-if="filtro === 'todos' && showGroupHeader(t, index)">
-                            <div class="px-6 py-2.5 flex items-center gap-2"
-                                 :class="t.grupo === 'para_mim' ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-purple-50 border-l-4 border-purple-400'">
-                                <template x-if="t.grupo === 'para_mim'">
-                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                </template>
-                                <template x-if="t.grupo !== 'para_mim'">
-                                    <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-                                </template>
-                                <span class="text-xs font-semibold uppercase tracking-wider"
-                                      :class="t.grupo === 'para_mim' ? 'text-blue-600' : 'text-purple-600'"
-                                      x-text="t.grupo === 'para_mim' ? 'Para Mim — Tarefas pessoais' : 'Demandas do Setor — Qualquer técnico pode resolver'"></span>
+                            <div class="px-4 py-1.5 border-b"
+                                 :class="t.grupo === 'para_mim' ? 'bg-blue-50/60 border-blue-100/60' : 'bg-purple-50/60 border-purple-100/60'">
+                                <span class="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
+                                      :class="t.grupo === 'para_mim' ? 'text-blue-600' : 'text-purple-600'">
+                                    <template x-if="t.grupo === 'para_mim'">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    </template>
+                                    <template x-if="t.grupo !== 'para_mim'">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    </template>
+                                    <span x-text="t.grupo === 'para_mim' ? 'Para Mim' : 'Demandas do Setor'"></span>
+                                </span>
                             </div>
                         </template>
 
-                        {{-- Item da tarefa --}}
-                        <a :href="t.url" 
-                           class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition"
-                           :class="t.atrasado ? 'bg-red-50/50' : ''">
-                            
-                            {{-- Indicador lateral de grupo --}}
-                            <div class="w-1 h-10 rounded-full flex-shrink-0"
-                                 :class="t.grupo === 'para_mim' ? 'bg-blue-400' : 'bg-purple-400'"></div>
+                        {{-- Item --}}
+                        <a :href="t.url"
+                           class="flex items-center gap-2.5 px-4 py-2.5 transition"
+                           :class="t.atrasado ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-gray-50/80'">
 
                             {{-- Ícone --}}
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                 :class="getIconBgClass(t)">
-                                <template x-if="t.tipo === 'assinatura'">
-                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                    </svg>
-                                </template>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                 :class="{
+                                     'bg-red-100': t.atrasado,
+                                     'bg-blue-100': !t.atrasado && t.tipo === 'os',
+                                     'bg-amber-100': !t.atrasado && t.tipo === 'assinatura',
+                                     'bg-purple-100': !t.atrasado && (t.tipo === 'aprovacao' || t.tipo === 'rascunho_lote'),
+                                     'bg-green-100': !t.atrasado && t.tipo === 'resposta'
+                                 }">
                                 <template x-if="t.tipo === 'os'">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                    </svg>
+                                    <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-blue-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                 </template>
-                                <template x-if="t.tipo === 'resposta'">
-                                    <svg class="w-5 h-5" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                                    </svg>
+                                <template x-if="t.tipo === 'assinatura'">
+                                    <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-amber-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </template>
                                 <template x-if="t.tipo === 'aprovacao'">
-                                    <svg class="w-5 h-5" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                                    <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-purple-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </template>
+                                <template x-if="t.tipo === 'resposta'">
+                                    <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                 </template>
                                 <template x-if="t.tipo === 'rascunho_lote'">
-                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                    </svg>
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </template>
                             </div>
 
                             {{-- Conteúdo --}}
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-1">
-                                    {{-- Badge tipo --}}
-                                    <span class="text-[10px] px-2 py-0.5 rounded font-semibold"
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
                                           :class="{
                                               'bg-blue-100 text-blue-700': t.tipo === 'os',
                                               'bg-amber-100 text-amber-700': t.tipo === 'assinatura',
                                               'bg-purple-100 text-purple-700': t.tipo === 'aprovacao' || t.tipo === 'rascunho_lote',
                                               'bg-green-100 text-green-700': t.tipo === 'resposta'
                                           }"
-                                          x-text="{'os': 'Ordem de Serviço', 'assinatura': 'Assinatura', 'aprovacao': 'Aprovação', 'resposta': 'Resposta', 'rascunho_lote': 'Rascunho Lote'}[t.tipo]"></span>
-                                    <template x-if="t.tipo_processo">
-                                        <span class="text-[10px] px-2 py-0.5 rounded font-medium"
-                                              :class="t.is_licenciamento ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'"
-                                              x-text="t.tipo_processo"></span>
-                                    </template>
+                                          x-text="{'os':'OS','assinatura':'Assinatura','aprovacao':'Aprovação','resposta':'Resposta','rascunho_lote':'Rascunho'}[t.tipo]"></span>
                                     <template x-if="t.numero_processo">
-                                        <span class="text-xs text-gray-500" x-text="t.numero_processo"></span>
+                                        <span class="text-[10px] text-gray-400" x-text="t.numero_processo"></span>
+                                    </template>
+                                    <template x-if="t.tipo_processo">
+                                        <span class="text-[10px] text-gray-300" x-text="t.tipo_processo"></span>
                                     </template>
                                     <template x-if="t.is_lote">
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Lote</span>
+                                        <span class="text-[10px] px-1 py-0.5 rounded bg-purple-50 text-purple-600 font-medium">Lote</span>
                                     </template>
                                 </div>
-                                <p class="text-sm font-medium text-gray-900" x-text="t.titulo"></p>
-                                <p class="text-xs text-gray-500 mt-0.5" x-text="t.subtitulo"></p>
+                                <p class="text-[13px] font-medium text-gray-800 truncate mt-0.5" x-text="t.titulo"></p>
+                                <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
+                                <template x-if="t.tipo === 'os' && t.tipo_acao">
+                                    <p class="text-[10px] text-blue-500 truncate" x-text="t.tipo_acao"></p>
+                                </template>
                                 <template x-if="t.tipo === 'os' && (t.em_finalizacao || t.atrasado)">
-                                    <p class="text-[11px] font-medium mt-1 flex items-center gap-1" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'">
-                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        <span x-text="t.atrasado ? 'Prazo de finalização expirado!' : 'Prazo p/ finalizar até ' + t.prazo_finalizacao_formatado"></span>
+                                    <p class="text-[10px] font-medium mt-0.5 flex items-center gap-0.5"
+                                       :class="t.atrasado ? 'text-red-500' : 'text-amber-600'">
+                                        <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span x-text="t.atrasado ? 'Prazo de finalização expirado!' : 'Finalizar até ' + t.prazo_finalizacao_formatado"></span>
                                     </p>
                                 </template>
                                 <template x-if="t.tipo === 'os' && !t.em_finalizacao && !t.atrasado && t.data_fim_formatada">
-                                    <p class="text-[11px] text-gray-400 mt-1">Encerramento: <span x-text="t.data_fim_formatada"></span> • Finalizar em até 15 dias após</p>
-                                </template>
-                                <template x-if="t.tipo_acao">
-                                    <p class="text-xs text-blue-600 mt-0.5" x-text="t.tipo_acao"></p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">Encerramento: <span x-text="t.data_fim_formatada"></span></p>
                                 </template>
                             </div>
 
-                            {{-- Info adicional --}}
-                            <div class="text-right flex-shrink-0">
-                                <span class="text-xs font-medium px-3 py-1.5 rounded-full" 
-                                      :class="getBadgeClass(t)" 
+                            {{-- Badge + Data --}}
+                            <div class="flex-shrink-0 text-right">
+                                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                                      :class="getBadgeClass(t)"
                                       x-text="getBadgeText(t)"></span>
-                                <p class="text-xs text-gray-400 mt-2" x-text="t.data"></p>
+                                <p class="text-[10px] text-gray-300 mt-1" x-text="t.data"></p>
                             </div>
                         </a>
                     </div>
@@ -250,29 +195,19 @@
 
         {{-- Paginação --}}
         <template x-if="!loading && lastPage > 1">
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
-                <span class="text-sm text-gray-600">
-                    Mostrando <span x-text="((currentPage - 1) * perPage) + 1"></span> a 
-                    <span x-text="Math.min(currentPage * perPage, totalFiltrado)"></span> de 
-                    <span x-text="totalFiltrado"></span> tarefas
+            <div class="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <span class="text-[11px] text-gray-400">
+                    <span x-text="((currentPage - 1) * perPage) + 1"></span>–<span x-text="Math.min(currentPage * perPage, totalFiltrado)"></span> de <span x-text="totalFiltrado"></span>
                 </span>
-                <div class="flex items-center gap-2">
-                    <button @click="prevPage()" 
-                            :disabled="currentPage <= 1" 
-                            class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
+                <div class="flex items-center gap-1">
+                    <button @click="prevPage()" :disabled="currentPage <= 1"
+                            class="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-gray-600 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <span class="text-sm text-gray-600">
-                        Página <span x-text="currentPage"></span> de <span x-text="lastPage"></span>
-                    </span>
-                    <button @click="nextPage()" 
-                            :disabled="currentPage >= lastPage" 
-                            class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
+                    <span class="text-[11px] text-gray-500 px-1.5" x-text="currentPage + '/' + lastPage"></span>
+                    <button @click="nextPage()" :disabled="currentPage >= lastPage"
+                            class="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-gray-600 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
@@ -280,22 +215,10 @@
     </div>
 
     {{-- Legenda --}}
-    <div class="mt-4 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-            <span class="font-medium text-gray-700">Legenda:</span>
-            <span class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-blue-400"></span>
-                Para Mim — Só eu posso resolver
-            </span>
-            <span class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-purple-400"></span>
-                Meu Setor — Qualquer técnico do setor pode resolver
-            </span>
-            <span class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-red-400"></span>
-                Atrasado — Prazo excedido
-            </span>
-        </div>
+    <div class="flex flex-wrap items-center gap-3 mt-3 text-[10px] text-gray-400 px-1">
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Para mim</span>
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> Setor</span>
+        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> Atrasado</span>
     </div>
 </div>
 
@@ -309,21 +232,14 @@ function todasTarefas() {
         totalFiltrado: 0,
         perPage: 20,
         filtro: 'todos',
-        scope: 'todos',
         contadores: { total: 0, aprovacao: 0, resposta: 0, assinatura: 0, os: 0, para_mim: 0, setor: 0 },
 
-        init() {
-            this.load();
-        },
+        init() { this.load(); },
 
         async load() {
             this.loading = true;
             try {
-                const params = new URLSearchParams({
-                    page: this.currentPage,
-                    per_page: this.perPage,
-                    filtro: this.filtro
-                });
+                const params = new URLSearchParams({ page: this.currentPage, per_page: this.perPage, filtro: this.filtro });
                 const r = await fetch(`{{ route('admin.dashboard.todas-tarefas-paginadas') }}?${params}`);
                 const d = await r.json();
                 this.tarefas = d.data;
@@ -331,110 +247,24 @@ function todasTarefas() {
                 this.lastPage = d.last_page;
                 this.totalFiltrado = d.total;
                 this.contadores = d.contadores;
-            } catch(e) {
-                console.error(e);
-            }
+            } catch(e) { console.error(e); }
             this.loading = false;
         },
 
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-                this.load();
-            }
-        },
-
-        nextPage() {
-            if (this.currentPage < this.lastPage) {
-                this.currentPage++;
-                this.load();
-            }
-        },
+        prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
+        nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
 
         setFilter(value) {
             this.filtro = value;
             this.currentPage = 1;
-
-            if (['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(value)) {
-                this.scope = 'para_mim';
-            } else if (['setor', 'aprovacao', 'resposta'].includes(value)) {
-                this.scope = 'setor';
-            } else {
-                this.scope = 'todos';
-            }
-
             this.load();
         },
 
-        setScope(value) {
-            this.scope = value;
-
-            if (value === 'todos') {
-                this.filtro = 'todos';
-            } else if (value === 'para_mim' && !['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(this.filtro)) {
-                this.filtro = 'para_mim';
-            } else if (value === 'setor' && !['setor', 'aprovacao', 'resposta'].includes(this.filtro)) {
-                this.filtro = 'setor';
-            }
-
-            this.currentPage = 1;
-            this.load();
-        },
-
-        availableTypeFilters() {
-            const base = [
-                { value: 'todos', label: 'Todos', count: this.contadores.total || 0, badgeClass: 'bg-gray-200' },
-                { value: 'para_mim', label: 'Pessoais', count: this.contadores.para_mim || 0, badgeClass: 'bg-blue-100' },
-                { value: 'setor', label: 'Setor', count: this.contadores.setor || 0, badgeClass: 'bg-purple-100' },
-                { value: 'os', label: 'OS', count: this.contadores.os || 0, badgeClass: 'bg-blue-100' },
-                { value: 'assinatura', label: 'Assinaturas', count: this.contadores.assinatura || 0, badgeClass: 'bg-amber-100' },
-                { value: 'aprovacao', label: 'Aprovações', count: this.contadores.aprovacao || 0, badgeClass: 'bg-purple-100' },
-                { value: 'resposta', label: 'Respostas', count: this.contadores.resposta || 0, badgeClass: 'bg-green-100' },
-            ];
-
-            if (this.scope === 'todos') return base;
-            if (this.scope === 'para_mim') return base.filter(i => ['para_mim', 'os', 'assinatura', 'rascunho_lote'].includes(i.value));
-            return base.filter(i => ['setor', 'aprovacao', 'resposta'].includes(i.value));
-        },
-
-        typeButtonClass(value) {
-            if (value === 'os') return this.filtro === value ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100';
-            if (value === 'assinatura') return this.filtro === value ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100';
-            if (value === 'rascunho_lote') return this.filtro === value ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100';
-            if (value === 'aprovacao') return this.filtro === value ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100';
-            if (value === 'resposta') return this.filtro === value ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100';
-            if (value === 'para_mim') return this.filtro === value ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100';
-            if (value === 'setor') return this.filtro === value ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100';
-            return this.filtro === value ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-        },
-
-        activeFilterLabel() {
-            const labels = {
-                'todos': 'Todas as tarefas',
-                'para_mim': 'Demandas pessoais (Para Mim)',
-                'setor': 'Demandas do setor',
-                'os': 'Ordens de Serviço',
-                'assinatura': 'Assinaturas pendentes',
-                'aprovacao': 'Documentos para aprovação',
-                'resposta': 'Respostas para análise'
-            };
-            return labels[this.filtro] || 'Todas as tarefas';
-        },
-
-        // Mostrar cabeçalho de grupo quando muda de "para_mim" para "setor" na lista "todos"
         showGroupHeader(t, index) {
             if (!t.grupo) return false;
             if (index === 0) return true;
             const prev = this.tarefas[index - 1];
             return prev && prev.grupo !== t.grupo;
-        },
-
-        getIconBgClass(t) {
-            if (t.tipo === 'assinatura') return 'bg-amber-100';
-            if (t.tipo === 'os') return t.atrasado ? 'bg-red-100' : (t.em_finalizacao ? 'bg-amber-100' : 'bg-blue-100');
-            if (t.tipo === 'resposta') return t.atrasado ? 'bg-red-100' : 'bg-green-100';
-            if (t.tipo === 'rascunho_lote') return 'bg-purple-100';
-            return t.atrasado ? 'bg-red-100' : 'bg-purple-100';
         },
 
         getBadgeClass(t) {
@@ -448,24 +278,24 @@ function todasTarefas() {
                 }
                 if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
                 if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
-                if (t.dias_restantes === null) return 'bg-gray-100 text-gray-600';
+                if (t.dias_restantes === null) return 'bg-gray-100 text-gray-500';
                 return 'bg-green-100 text-green-700';
             }
-            if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
+            if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-500';
             if (t.atrasado) return 'bg-red-100 text-red-700';
             if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
             if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
-            if (t.dias_restantes === null) return 'bg-gray-100 text-gray-600';
+            if (t.dias_restantes === null) return 'bg-gray-100 text-gray-500';
             return 'bg-green-100 text-green-700';
         },
 
         getBadgeText(t) {
-            if (t.tipo === 'assinatura') return 'Assinar';
+            if (t.tipo === 'assinatura') return t.is_lote ? 'Lote' : 'Assinar';
             if (t.tipo === 'os') {
                 if (t.atrasado) return 'Atrasado';
                 if (t.em_finalizacao) {
                     if (t.dias_para_finalizar === 0) return 'Último dia';
-                    return 'Finalizar ' + t.dias_para_finalizar + 'd';
+                    return t.dias_para_finalizar + 'd p/ finalizar';
                 }
                 if (t.dias_restantes === 0) return 'Encerra hoje';
                 if (t.dias_restantes === null) return 'Sem prazo';

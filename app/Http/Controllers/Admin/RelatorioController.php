@@ -15,6 +15,8 @@ use App\Models\AtividadeEquipamentoRadiacao;
 use App\Models\EquipamentoRadiacao;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\PesquisaSatisfacao;
+use App\Models\PesquisaSatisfacaoResposta;
 
 class RelatorioController extends Controller
 {
@@ -367,5 +369,153 @@ class RelatorioController extends Controller
 
         return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais', 'tiposDocumento'));
     }
+
+    /**
+     * Relatório de Pesquisa de Satisfação com gráficos
+     * Suporta seleção de múltiplas pesquisas (pesquisa_ids[])
+     */
+    public function pesquisaSatisfacao(Request $request)
+    {
+        $pesquisas = PesquisaSatisfacao::withCount('respostas')->orderBy('titulo')->get();
+
+        // Suporta array de IDs (múltiplas) ou ID único (retrocompatível)
+        $pesquisaIds = $request->input('pesquisa_ids', []);
+        if (empty($pesquisaIds) && $request->filled('pesquisa_id')) {
+            $pesquisaIds = [$request->input('pesquisa_id')];
+        }
+        $pesquisaIds = array_filter(array_map('intval', (array) $pesquisaIds));
+
+        $pesquisasSelecionadas = collect();
+        $dados = null;
+
+        if (!empty($pesquisaIds)) {
+            $pesquisasSelecionadas = PesquisaSatisfacao::with('perguntas.opcoes')
+                ->whereIn('id', $pesquisaIds)
+                ->get();
+
+            if ($pesquisasSelecionadas->isEmpty()) {
+                abort(404);
+            }
+
+            // Buscar respostas de TODAS as pesquisas selecionadas
+            $queryRespostas = PesquisaSatisfacaoResposta::whereIn('pesquisa_id', $pesquisaIds);
+
+            if ($request->filled('data_inicio')) {
+                $queryRespostas->whereDate('created_at', '>=', $request->data_inicio);
+            }
+            if ($request->filled('data_fim')) {
+                $queryRespostas->whereDate('created_at', '<=', $request->data_fim);
+            }
+
+            $respostas = $queryRespostas->orderByDesc('created_at')->get();
+
+            $dados = [
+                'total_respostas' => $respostas->count(),
+                'por_tipo_respondente' => [
+                    'interno' => $respostas->where('tipo_respondente', 'interno')->count(),
+                    'externo' => $respostas->where('tipo_respondente', 'externo')->count(),
+                    'anonimo' => $respostas->whereNull('tipo_respondente')->count(),
+                ],
+                'por_mes' => [],
+                'por_pesquisa' => [],
+                'perguntas' => [],
+            ];
+
+            // Respostas por mês (últimos 6 meses)
+            for ($i = 5; $i >= 0; $i--) {
+                $mes = now()->subMonths($i);
+                $count = $respostas->filter(function ($r) use ($mes) {
+                    return $r->created_at->format('Y-m') === $mes->format('Y-m');
+                })->count();
+                $dados['por_mes'][] = [
+                    'label' => $mes->translatedFormat('M/Y'),
+                    'count' => $count,
+                ];
+            }
+
+            // Respostas por pesquisa (para gráfico comparativo)
+            foreach ($pesquisasSelecionadas as $ps) {
+                $dados['por_pesquisa'][] = [
+                    'titulo' => \Str::limit($ps->titulo, 30),
+                    'count' => $respostas->where('pesquisa_id', $ps->id)->count(),
+                ];
+            }
+
+            // Análise por pergunta (de todas as pesquisas selecionadas)
+            foreach ($pesquisasSelecionadas as $ps) {
+                $respostasDaPesquisa = $respostas->where('pesquisa_id', $ps->id);
+                $prefixo = count($pesquisaIds) > 1 ? '[' . \Str::limit($ps->titulo, 25) . '] ' : '';
+
+                foreach ($ps->perguntas as $pergunta) {
+                    $perguntaDados = [
+                        'id' => $pergunta->id,
+                        'texto' => $prefixo . $pergunta->texto,
+                        'tipo' => $pergunta->tipo,
+                        'pesquisa' => $ps->titulo,
+                        'distribuicao' => [],
+                        'media' => null,
+                        'textos_livres' => [],
+                    ];
+
+                    if ($pergunta->tipo === 'escala_1_5') {
+                        $contagem = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
+                        $soma = 0;
+                        $total = 0;
+                        foreach ($respostasDaPesquisa as $resp) {
+                            $respostasJson = is_array($resp->respostas) ? $resp->respostas : [];
+                            foreach ($respostasJson as $r) {
+                                if (($r['pergunta_id'] ?? null) == $pergunta->id && isset($r['valor'])) {
+                                    $val = (int) $r['valor'];
+                                    if ($val >= 1 && $val <= 5) {
+                                        $contagem[$val]++;
+                                        $soma += $val;
+                                        $total++;
+                                    }
+                                }
+                            }
+                        }
+                        $perguntaDados['distribuicao'] = $contagem;
+                        $perguntaDados['media'] = $total > 0 ? round($soma / $total, 1) : 0;
+                        $perguntaDados['total'] = $total;
+                    } elseif ($pergunta->tipo === 'multipla_escolha') {
+                        $contagem = [];
+                        foreach ($pergunta->opcoes as $opcao) {
+                            $contagem[$opcao->id] = ['texto' => $opcao->texto, 'count' => 0];
+                        }
+                        foreach ($respostasDaPesquisa as $resp) {
+                            $respostasJson = is_array($resp->respostas) ? $resp->respostas : [];
+                            foreach ($respostasJson as $r) {
+                                if (($r['pergunta_id'] ?? null) == $pergunta->id && isset($r['opcao_id'])) {
+                                    $opcaoId = $r['opcao_id'];
+                                    if (isset($contagem[$opcaoId])) {
+                                        $contagem[$opcaoId]['count']++;
+                                    }
+                                }
+                            }
+                        }
+                        $perguntaDados['distribuicao'] = array_values($contagem);
+                    } elseif ($pergunta->tipo === 'texto_livre') {
+                        foreach ($respostasDaPesquisa as $resp) {
+                            $respostasJson = is_array($resp->respostas) ? $resp->respostas : [];
+                            foreach ($respostasJson as $r) {
+                                if (($r['pergunta_id'] ?? null) == $pergunta->id && !empty($r['valor'])) {
+                                    $perguntaDados['textos_livres'][] = [
+                                        'texto' => $r['valor'],
+                                        'respondente' => $resp->nome_respondente,
+                                        'data' => $resp->created_at->format('d/m/Y'),
+                                    ];
+                                }
+                            }
+                        }
+                    }
+
+                    $dados['perguntas'][] = $perguntaDados;
+                }
+            }
+        }
+
+        return view('admin.relatorios.pesquisa-satisfacao', compact('pesquisas', 'pesquisasSelecionadas', 'dados'));
+    }
+
 }
 
