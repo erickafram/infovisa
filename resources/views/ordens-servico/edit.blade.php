@@ -34,6 +34,19 @@
             @csrf
             @method('PUT')
 
+        @if($somentVincularEstabelecimento)
+        {{-- Aviso para Técnico Estadual --}}
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="text-sm text-blue-800">
+                <p class="font-semibold">Acesso restrito — Vincular Estabelecimento</p>
+                <p class="mt-1">Como Técnico Estadual, você pode apenas vincular ou alterar o estabelecimento desta Ordem de Serviço. Os demais campos são gerenciados pelo gestor responsável.</p>
+            </div>
+        </div>
+        @endif
+
         {{-- Card: Dados Principais --}}
         <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3.5 border-b border-gray-200">
@@ -113,6 +126,7 @@
                     {{-- Hidden input para processo_id (compatibilidade) --}}
                     <input type="hidden" name="processo_id" id="processo_id" value="{{ $ordemServico->processo_id }}">
 
+                    @if(!$somentVincularEstabelecimento)
                     {{-- Tipos de Ação (Múltiplos) --}}
                     <div class="md:col-span-2">
                         <label for="tipos_acao_ids" class="block text-sm font-medium text-gray-700 mb-1">
@@ -223,18 +237,19 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+                    @endif {{-- fim @if(!$somentVincularEstabelecimento) --}}
                 </div>
             </div>
 
             {{-- Botões --}}
             <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
-                <a href="{{ route('admin.ordens-servico.index') }}" 
+                <a href="{{ route('admin.ordens-servico.show', $ordemServico) }}" 
                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
                     Voltar
                 </a>
                 <button type="submit" 
                         class="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition">
-                    Atualizar Ordem de Serviço
+                    {{ $somentVincularEstabelecimento ? 'Vincular Estabelecimento' : 'Atualizar Ordem de Serviço' }}
                 </button>
             </div>
         </div>

@@ -418,6 +418,9 @@ class OrdemServicoController extends Controller
         // Busca tipos de ação ativos com subações
         $tiposAcao = TipoAcao::ativo()->with('subAcoesAtivas')->orderBy('descricao')->get();
         
+        // Flag: TecnicoEstadual edita somente o vínculo de estabelecimento
+        $somentVincularEstabelecimento = $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual;
+
         // Busca técnicos conforme competência
         $tecnicos = $this->getTecnicosPorCompetencia($usuario);
         
@@ -432,7 +435,7 @@ class OrdemServicoController extends Controller
         // Carrega estabelecimentos múltiplos
         $ordemServico->load('estabelecimentos');
         
-        return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios'));
+        return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios', 'somentVincularEstabelecimento'));
     }
 
     /**
@@ -451,6 +454,11 @@ class OrdemServicoController extends Controller
         // Verifica permissão
         if (!$this->podeEditarOS($usuario, $ordemServico)) {
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
+        }
+
+        // TecnicoEstadual: somente vinculação de estabelecimento permitida
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual) {
+            return $this->updateVincularEstabelecimento($request, $ordemServico);
         }
         
         // Validação condicional: processo é obrigatório se há estabelecimento
@@ -688,6 +696,11 @@ class OrdemServicoController extends Controller
     public function cancelar(Request $request, OrdemServico $ordemServico)
     {
         $usuario = Auth::guard('interno')->user();
+
+        // TecnicoEstadual pode apenas vincular estabelecimento, não cancelar OS
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual) {
+            abort(403, 'Técnicos estaduais não têm permissão para cancelar ordens de serviço.');
+        }
         
         // Verifica permissão
         if (!$this->podeEditarOS($usuario, $ordemServico)) {
@@ -835,15 +848,76 @@ class OrdemServicoController extends Controller
     }
 
     /**
-     * Verifica se usuário pode editar a OS
-     * Técnicos não podem editar
+     * Atualiza APENAS o vínculo de estabelecimento da OS.
+     * Exclusivo para TecnicoEstadual — todos os outros campos permanecem inalterados.
+     */
+    private function updateVincularEstabelecimento(Request $request, OrdemServico $ordemServico)
+    {
+        $request->validate([
+            'estabelecimento_id'       => 'nullable|exists:estabelecimentos,id',
+            'estabelecimentos_ids'     => 'nullable|array',
+            'estabelecimentos_ids.*'   => 'exists:estabelecimentos,id',
+        ]);
+
+        $estabelecimentosIds     = $request->input('estabelecimentos_ids', []);
+        $processosEstabelecimentos = $request->input('processos_estabelecimentos', []);
+
+        if (!empty($estabelecimentosIds)) {
+            // Primeiro estabelecimento como referência principal
+            $ordemServico->estabelecimento_id = $estabelecimentosIds[0];
+
+            // Busca processo ativo do primeiro estabelecimento
+            $processo = \App\Models\Processo::where('estabelecimento_id', $estabelecimentosIds[0])
+                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $ordemServico->processo_id = $processo?->id;
+            $ordemServico->save();
+
+            // Sincroniza pivot com processo por estabelecimento
+            $syncData = [];
+            foreach ($estabelecimentosIds as $estId) {
+                $syncData[$estId] = [
+                    'processo_id' => $processosEstabelecimentos[$estId] ?? null,
+                ];
+            }
+            $ordemServico->estabelecimentos()->sync($syncData);
+        } elseif ($request->filled('estabelecimento_id')) {
+            $estId = $request->input('estabelecimento_id');
+            $ordemServico->estabelecimento_id = $estId;
+
+            $processo = \App\Models\Processo::where('estabelecimento_id', $estId)
+                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $ordemServico->processo_id = $processo?->id;
+            $ordemServico->save();
+
+            $ordemServico->estabelecimentos()->sync([
+                $estId => ['processo_id' => $processosEstabelecimentos[$estId] ?? $ordemServico->processo_id]
+            ]);
+        }
+        // Se nenhum estabelecimento enviado, não altera nada
+
+        return redirect()->route('admin.ordens-servico.show', $ordemServico)
+            ->with('success', "Estabelecimento vinculado à Ordem de Serviço {$ordemServico->numero} com sucesso!");
+    }
+
+    /**
+     * Verifica se usuário pode editar a OS.
+     * TecnicoEstadual pode editar apenas para vincular estabelecimento.
+     * TecnicoMunicipal não pode editar.
      */
     private function podeEditarOS($usuario, $ordemServico)
     {
-        // Técnicos não podem editar OS
-        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual ||
-            $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
+        // TecnicoMunicipal não pode editar OS
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
             return false;
+        }
+
+        // TecnicoEstadual pode editar SOMENTE para vincular estabelecimento em OSs estaduais
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual) {
+            return $ordemServico->competencia === 'estadual';
         }
         
         return $this->podeVisualizarOS($usuario, $ordemServico);
