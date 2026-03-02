@@ -460,6 +460,18 @@ class ProcessoController extends Controller
                 return $doc->todasAssinaturasCompletas();
             });
 
+        // Anexos PDF inseridos pela Vigilância no processo
+        // (não inclui documentos digitais/ordens de serviço e mantém regra de mostrar apenas PDF)
+        $anexosInternosPdf = $processo->documentos
+            ->filter(function ($doc) {
+                $extensao = strtolower($doc->extensao ?? pathinfo($doc->nome_arquivo ?? '', PATHINFO_EXTENSION));
+
+                return $doc->tipo_usuario === 'interno'
+                    && $extensao === 'pdf'
+                    && $doc->tipo_documento !== 'documento_digital'
+                    && $doc->tipo_documento !== 'ordem_servico';
+            });
+
         // Verifica se algum documento de notificação precisa ter o prazo iniciado automaticamente (§1º - 5 dias úteis)
         foreach ($documentosVigilancia as $doc) {
             if ($doc->prazo_notificacao && !$doc->prazo_iniciado_em) {
@@ -484,6 +496,16 @@ class ProcessoController extends Controller
         foreach ($documentosAprovados as $doc) {
             $todosDocumentos->push([
                 'tipo' => 'aprovado',
+                'documento' => $doc,
+                'data' => $doc->created_at,
+                'pasta_id' => $doc->pasta_id,
+            ]);
+        }
+
+        // Adiciona anexos internos em PDF com tipo identificador
+        foreach ($anexosInternosPdf as $doc) {
+            $todosDocumentos->push([
+                'tipo' => 'anexo_interno',
                 'documento' => $doc,
                 'data' => $doc->created_at,
                 'pasta_id' => $doc->pasta_id,
@@ -694,7 +716,7 @@ class ProcessoController extends Controller
         $documento = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
             ->findOrFail($documentoId);
 
-        $path = storage_path('app/public/' . $documento->caminho);
+        $path = $this->resolverCaminhoDocumentoProcesso($documento);
         
         if (!file_exists($path)) {
             return back()->with('error', 'Arquivo não encontrado.');
@@ -713,7 +735,7 @@ class ProcessoController extends Controller
         $documento = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
             ->findOrFail($documentoId);
 
-        $path = storage_path('app/public/' . $documento->caminho);
+        $path = $this->resolverCaminhoDocumentoProcesso($documento);
         
         if (!file_exists($path)) {
             abort(404, 'Arquivo não encontrado.');
@@ -725,6 +747,25 @@ class ProcessoController extends Controller
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"'
         ]);
+    }
+
+    private function resolverCaminhoDocumentoProcesso($documento)
+    {
+        $caminho = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, (string) $documento->caminho);
+
+        if ($documento->tipo_usuario === 'interno') {
+            $pathInterno = storage_path('app' . DIRECTORY_SEPARATOR . $caminho);
+            if (file_exists($pathInterno)) {
+                return $pathInterno;
+            }
+        }
+
+        $pathPublico = storage_path('app' . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $caminho);
+        if (file_exists($pathPublico)) {
+            return $pathPublico;
+        }
+
+        return storage_path('app' . DIRECTORY_SEPARATOR . $caminho);
     }
 
     public function deleteDocumento($processoId, $documentoId)
