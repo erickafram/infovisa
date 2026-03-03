@@ -517,5 +517,220 @@ class RelatorioController extends Controller
         return view('admin.relatorios.pesquisa-satisfacao', compact('pesquisas', 'pesquisasSelecionadas', 'dados'));
     }
 
+    /**
+     * Relatório de Documentos por Servidor
+     * Agrupa documentos por criador (servidor/técnico) com métricas de prazo
+     */
+    public function documentosPorServidor(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        // Apenas Administrador e Gestores podem acessar este relatório
+        if (!$usuario->isAdmin() && !$usuario->isGestor()) {
+            abort(403, 'Você não tem permissão para acessar este relatório.');
+        }
+
+        $tiposDocumento = TipoDocumento::orderBy('nome')->get(['id', 'nome']);
+
+        // Buscar todos os servidores que criaram documentos
+        $servidoresQuery = UsuarioInterno::whereHas('documentosCriados')
+            ->orderBy('nome');
+
+        // Regra de visibilidade por perfil
+        // - Admin: vê tudo
+        // - Gestor Estadual: vê usuários do próprio setor
+        // - Gestor Municipal: vê usuários do próprio município e setor
+        if (!$usuario->isAdmin()) {
+            $servidoresQuery->where('setor', $usuario->setor);
+
+            if ($usuario->isMunicipal()) {
+                $servidoresQuery->where('municipio_id', $usuario->municipio_id);
+            }
+        }
+
+        $servidores = $servidoresQuery->get(['id', 'nome', 'nivel_acesso', 'setor']);
+
+        // Filtros
+        $servidorId     = $request->input('servidor_id');
+        $tipoDocId      = $request->input('tipo_documento_id');
+        $statusPrazo    = $request->input('status_prazo'); // atrasado, em_dia, vencendo, sem_prazo
+        $dataInicio     = $request->input('data_inicio');
+        $dataFim        = $request->input('data_fim');
+        $statusDoc      = $request->input('status');
+
+        // ── Query base para os cards de totais ──
+        $baseQuery = DocumentoDigital::query()
+            ->whereNotNull('numero_documento');
+
+        if (!$usuario->isAdmin()) {
+            $baseQuery->whereHas('usuarioCriador', function ($q) use ($usuario) {
+                $q->where('setor', $usuario->setor);
+
+                if ($usuario->isMunicipal()) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                }
+            });
+        }
+
+        // ── Totais globais (sem filtro de servidor) ──
+        $totalGeral         = (clone $baseQuery)->count();
+        $totalComPrazo      = (clone $baseQuery)->whereNotNull('data_vencimento')->count();
+        $totalAtrasados     = (clone $baseQuery)->whereNotNull('data_vencimento')
+                                ->whereNull('prazo_finalizado_em')
+                                ->where('data_vencimento', '<', now()->toDateString())
+                                ->count();
+        $totalVencendo      = (clone $baseQuery)->whereNotNull('data_vencimento')
+                                ->whereNull('prazo_finalizado_em')
+                                ->where('data_vencimento', '>=', now()->toDateString())
+                                ->where('data_vencimento', '<=', now()->addDays(5)->toDateString())
+                                ->count();
+
+        $totais = [
+            'total'         => $totalGeral,
+            'com_prazo'     => $totalComPrazo,
+            'atrasados'     => $totalAtrasados,
+            'vencendo'      => $totalVencendo,
+        ];
+
+        // ── Dados agrupados por servidor ──
+        $dadosPorServidor = [];
+
+        foreach ($servidores as $servidor) {
+            $sq = DocumentoDigital::query()
+                ->whereNotNull('numero_documento')
+                ->where('usuario_criador_id', $servidor->id);
+
+            if (!$usuario->isAdmin()) {
+                $sq->whereHas('usuarioCriador', function ($q) use ($usuario) {
+                    $q->where('setor', $usuario->setor);
+
+                    if ($usuario->isMunicipal()) {
+                        $q->where('municipio_id', $usuario->municipio_id);
+                    }
+                });
+            }
+
+            if ($tipoDocId) {
+                $sq->where('tipo_documento_id', $tipoDocId);
+            }
+            if ($dataInicio) {
+                $sq->whereDate('created_at', '>=', $dataInicio);
+            }
+            if ($dataFim) {
+                $sq->whereDate('created_at', '<=', $dataFim);
+            }
+            if ($statusDoc) {
+                $sq->where('status', $statusDoc);
+            }
+
+            $totalServidor      = (clone $sq)->count();
+            $atrasadosServidor  = (clone $sq)->whereNotNull('data_vencimento')
+                                    ->whereNull('prazo_finalizado_em')
+                                    ->where('data_vencimento', '<', now()->toDateString())
+                                    ->count();
+            $vencendoServidor   = (clone $sq)->whereNotNull('data_vencimento')
+                                    ->whereNull('prazo_finalizado_em')
+                                    ->where('data_vencimento', '>=', now()->toDateString())
+                                    ->where('data_vencimento', '<=', now()->addDays(5)->toDateString())
+                                    ->count();
+            $emDiaServidor      = (clone $sq)->whereNotNull('data_vencimento')
+                                    ->whereNull('prazo_finalizado_em')
+                                    ->where('data_vencimento', '>', now()->addDays(5)->toDateString())
+                                    ->count();
+            $finalizadosServidor = (clone $sq)->whereNotNull('prazo_finalizado_em')->count();
+
+            // Aplica filtro de status_prazo (filtra servidores que não têm dados no filtro escolhido)
+            if ($statusPrazo === 'atrasado' && $atrasadosServidor === 0) continue;
+            if ($statusPrazo === 'vencendo' && $vencendoServidor === 0) continue;
+            if ($statusPrazo === 'em_dia' && $emDiaServidor === 0) continue;
+
+            // Pula servidores sem documentos nos filtros
+            if ($totalServidor === 0) continue;
+
+            // Se filtrou por servidor específico
+            if ($servidorId && $servidor->id != $servidorId) continue;
+
+            $dadosPorServidor[] = [
+                'servidor'      => $servidor,
+                'total'         => $totalServidor,
+                'atrasados'     => $atrasadosServidor,
+                'vencendo'      => $vencendoServidor,
+                'em_dia'        => $emDiaServidor,
+                'finalizados'   => $finalizadosServidor,
+            ];
+        }
+
+        // Ordena por atrasados desc
+        usort($dadosPorServidor, fn($a, $b) => $b['atrasados'] <=> $a['atrasados']);
+
+        // ── Documentos detalhados (com paginação) — filtrado ──
+        $docQuery = DocumentoDigital::query()
+            ->whereNotNull('numero_documento')
+            ->with([
+                'tipoDocumento:id,nome',
+                'usuarioCriador:id,nome,nivel_acesso,setor',
+                'processo:id,numero_processo,estabelecimento_id',
+                'processo.estabelecimento:id,nome_fantasia,razao_social,municipio_id',
+                'processo.estabelecimento.municipio:id,nome',
+                'ordemServico:id,numero,status',
+            ]);
+
+        if (!$usuario->isAdmin()) {
+            $docQuery->whereHas('usuarioCriador', function ($q) use ($usuario) {
+                $q->where('setor', $usuario->setor);
+
+                if ($usuario->isMunicipal()) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                }
+            });
+        }
+
+        if ($servidorId) {
+            $docQuery->where('usuario_criador_id', $servidorId);
+        }
+        if ($tipoDocId) {
+            $docQuery->where('tipo_documento_id', $tipoDocId);
+        }
+        if ($dataInicio) {
+            $docQuery->whereDate('created_at', '>=', $dataInicio);
+        }
+        if ($dataFim) {
+            $docQuery->whereDate('created_at', '<=', $dataFim);
+        }
+        if ($statusDoc) {
+            $docQuery->where('status', $statusDoc);
+        }
+
+        // Filtro por status de prazo
+        if ($statusPrazo === 'atrasado') {
+            $docQuery->whereNotNull('data_vencimento')
+                     ->whereNull('prazo_finalizado_em')
+                     ->where('data_vencimento', '<', now()->toDateString());
+        } elseif ($statusPrazo === 'vencendo') {
+            $docQuery->whereNotNull('data_vencimento')
+                     ->whereNull('prazo_finalizado_em')
+                     ->where('data_vencimento', '>=', now()->toDateString())
+                     ->where('data_vencimento', '<=', now()->addDays(5)->toDateString());
+        } elseif ($statusPrazo === 'em_dia') {
+            $docQuery->whereNotNull('data_vencimento')
+                     ->whereNull('prazo_finalizado_em')
+                     ->where('data_vencimento', '>', now()->addDays(5)->toDateString());
+        } elseif ($statusPrazo === 'sem_prazo') {
+            $docQuery->whereNull('data_vencimento');
+        }
+
+        $documentos = $docQuery->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.relatorios.documentos-por-servidor', compact(
+            'totais',
+            'dadosPorServidor',
+            'documentos',
+            'tiposDocumento',
+            'servidores',
+        ));
+    }
+
 }
 
