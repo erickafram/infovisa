@@ -66,7 +66,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:externo')->prefix('company')->name('company.')->group(function () {
+Route::middleware(['auth:externo', 'no-cache-auth'])->prefix('company')->name('company.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Company\DashboardController::class, 'index'])->name('dashboard');
     
@@ -169,7 +169,7 @@ Route::middleware('auth:externo')->prefix('company')->name('company.')->group(fu
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:interno')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/tarefas', [DashboardController::class, 'tarefasPaginadas'])->name('dashboard.tarefas');

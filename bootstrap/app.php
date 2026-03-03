@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'admin.gestor.estadual' => \App\Http\Middleware\EnsureUserIsAdminOrGestorEstadual::class,
+            'no-cache-auth' => \App\Http\Middleware\PreventAuthenticatedPageCaching::class,
         ]);
         
         // Configurar redirect para usuários não autenticados
