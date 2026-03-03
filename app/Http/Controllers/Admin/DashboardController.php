@@ -950,6 +950,7 @@ class DashboardController extends Controller
         $usuario = Auth::guard('interno')->user();
         $page = $request->get('page', 1);
         $perPage = 8;
+        $escopo = $request->get('escopo', 'todos');
 
         // REGRA: Processos diretamente atribuídos ao usuário (responsavel_atual_id) SEMPRE aparecem,
         // independentemente da competência do estabelecimento. Se alguém tramitou para o usuário, ele deve ver.
@@ -1000,6 +1001,16 @@ class DashboardController extends Controller
                 if ($p->responsavel_atual_id == $usuario->id) return true;
                 try { return $p->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
             });
+        }
+
+        if ($escopo === 'meu_direto') {
+            $processos = $processos->filter(fn($p) => $p->responsavel_atual_id == $usuario->id)->values();
+        } elseif ($escopo === 'setor') {
+            if ($usuario->setor) {
+                $processos = $processos->filter(fn($p) => $p->setor_atual === $usuario->setor)->values();
+            } else {
+                $processos = collect();
+            }
         }
 
         $total = $processos->count();
@@ -1057,6 +1068,7 @@ class DashboardController extends Controller
             'current_page' => (int) $page,
             'last_page' => $lastPage,
             'total' => $total,
+            'escopo' => $escopo,
             'total_meu_direto' => $totalMeuDireto,
             'total_do_setor' => $totalDoSetor,
             'per_page' => $perPage,

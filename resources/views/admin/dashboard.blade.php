@@ -335,7 +335,7 @@
             </div>
 
             {{-- Processos atribuídos a mim --}}
-            <div class="border-t border-gray-100" x-data="processosAtribuidos()">
+            <div class="border-t border-gray-100" x-data="processosAtribuidos('meu_direto')">
                 <div class="px-3 py-1.5 bg-indigo-50/60 border-b border-indigo-100/60">
                     <span class="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -347,9 +347,9 @@
                     <template x-if="loading">
                         <div class="p-3 text-center"><svg class="animate-spin h-4 w-4 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                     </template>
-                    <template x-if="!loading && processos.filter(p => p.is_meu_direto).length > 0">
+                    <template x-if="!loading && processos.length > 0">
                         <div>
-                            <template x-for="p in processos.filter(p => p.is_meu_direto)" :key="'meu-proc-' + p.id">
+                            <template x-for="p in processos" :key="'meu-proc-' + p.id">
                                 <a :href="p.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50/50 transition" :class="p.prazo && p.prazo.vencido ? 'bg-red-50/50' : (p.prazo && p.prazo.proximo ? 'bg-amber-50/30' : '')">
                                     <div class="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
                                         <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -374,10 +374,19 @@
                             </template>
                         </div>
                     </template>
-                    <template x-if="!loading && processos.filter(p => p.is_meu_direto).length === 0">
+                    <template x-if="!loading && processos.length === 0">
                         <div class="p-3 text-center text-[11px] text-gray-300">Nenhum processo atribuído</div>
                     </template>
                 </div>
+                <template x-if="lastPage > 1">
+                    <div class="px-3 py-1.5 border-t border-gray-100 flex items-center justify-between">
+                        <span class="text-[10px] text-gray-400">Pg <span x-text="currentPage"></span>/<span x-text="lastPage"></span></span>
+                        <div class="flex gap-1">
+                            <button @click="prevPage()" :disabled="currentPage <= 1" class="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+                            <button @click="nextPage()" :disabled="currentPage >= lastPage" class="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
 
@@ -466,7 +475,7 @@
             </div>
 
             {{-- Processos do Setor --}}
-            <div class="border-t border-gray-100" x-data="processosAtribuidos()">
+            <div class="border-t border-gray-100" x-data="processosAtribuidos('setor')">
                 <div class="px-3 py-1.5 bg-teal-50/60 border-b border-teal-100/60 flex items-center justify-between gap-2">
                     <span class="text-[11px] font-semibold text-teal-600 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
@@ -484,9 +493,9 @@
                     <template x-if="loading">
                         <div class="p-3 text-center"><svg class="animate-spin h-4 w-4 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
                     </template>
-                    <template x-if="!loading && processos.filter(p => p.is_do_setor).length > 0">
+                    <template x-if="!loading && processos.length > 0">
                         <div>
-                            <template x-for="p in processos.filter(p => p.is_do_setor)" :key="'setor-proc-' + p.id">
+                            <template x-for="p in processos" :key="'setor-proc-' + p.id">
                                 <a :href="p.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50/50 transition">
                                     <div class="w-6 h-6 rounded-md bg-teal-100 flex items-center justify-center flex-shrink-0">
                                         <svg class="w-3 h-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -512,7 +521,7 @@
                             </template>
                         </div>
                     </template>
-                    <template x-if="!loading && processos.filter(p => p.is_do_setor).length === 0">
+                    <template x-if="!loading && processos.length === 0">
                         <div class="p-3 text-center text-[11px] text-gray-300">Nenhum processo no setor</div>
                     </template>
                 </div>
@@ -655,21 +664,21 @@ function tarefasPaginadas() {
 function tarefasPaginadasRef() { return {}; }
 function processosAtribuidosRef() { return {}; }
 
-function processosAtribuidos() {
+function processosAtribuidos(escopo = 'todos') {
     return {
         processos: [], loading: true, currentPage: 1, lastPage: 1, total: 0, totalMeuDireto: 0, totalDoSetor: 0,
         init() { this.load(); },
         async load() {
             this.loading = true;
             try {
-                const r = await fetch(`{{ route('admin.dashboard.processos-atribuidos') }}?page=${this.currentPage}`);
+                const r = await fetch(`{{ route('admin.dashboard.processos-atribuidos') }}?page=${this.currentPage}&escopo=${escopo}`);
                 const d = await r.json();
                 this.processos = d.data;
                 this.currentPage = d.current_page;
                 this.lastPage = d.last_page;
                 this.total = d.total;
-                this.totalMeuDireto = d.total_meu_direto ?? this.processos.filter(p => p.is_meu_direto).length;
-                this.totalDoSetor = d.total_do_setor ?? this.processos.filter(p => p.is_do_setor).length;
+                this.totalMeuDireto = d.total_meu_direto ?? (escopo === 'meu_direto' ? d.total : this.processos.filter(p => p.is_meu_direto).length);
+                this.totalDoSetor = d.total_do_setor ?? (escopo === 'setor' ? d.total : this.processos.filter(p => p.is_do_setor).length);
             } catch(e) { console.error(e); }
             this.loading = false;
         },
