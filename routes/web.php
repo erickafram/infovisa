@@ -715,7 +715,6 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         Route::get('/equipamentos-radiacao/export', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacaoExport'])->name('equipamentos-radiacao.export');
         Route::get('/equipamentos-radiacao/declaracoes', [\App\Http\Controllers\Admin\RelatorioController::class, 'declaracoesSemEquipamentos'])->name('equipamentos-radiacao.declaracoes');
         Route::get('/pesquisa-satisfacao', [\App\Http\Controllers\Admin\RelatorioController::class, 'pesquisaSatisfacao'])->name('pesquisa-satisfacao')->middleware('admin');
-        Route::get('/documentos-por-servidor', [\App\Http\Controllers\Admin\RelatorioController::class, 'documentosPorServidor'])->name('documentos-por-servidor');
     });
     
     // Sugestões do Sistema

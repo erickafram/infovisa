@@ -93,14 +93,6 @@ class UsuarioInterno extends Authenticatable
     }
 
     /**
-     * Documentos digitais criados por este usuário
-     */
-    public function documentosCriados()
-    {
-        return $this->hasMany(\App\Models\DocumentoDigital::class, 'usuario_criador_id');
-    }
-
-    /**
      * Accessor para nome do município
      * Se o campo municipio estiver vazio, busca do relacionamento
      */
