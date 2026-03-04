@@ -407,11 +407,11 @@ function fecharModalGerenciarAssinantes() {
 
 function removerAssinante(assinaturaId) {
     if (confirm('Tem certeza que deseja remover este assinante?')) {
-        const endpointTemplate = @json(route('admin.documentos.remover-assinante', ['id' => '__ASSINATURA_ID__']));
+        const endpointTemplate = @json(route('admin.documentos.remover-assinante-post', ['id' => '__ASSINATURA_ID__']));
         const endpoint = endpointTemplate.replace('__ASSINATURA_ID__', assinaturaId);
 
         fetch(endpoint, {
-            method: 'DELETE',
+            method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'X-Requested-With': 'XMLHttpRequest',
