@@ -433,6 +433,32 @@ class AssinaturaDigitalController extends Controller
         $documento->arquivo_pdf = $nomeArquivo;
         $documento->save();
 
+        // Garante vínculo/atualização do PDF assinado no processo
+        if ($documento->processo_id) {
+            $processoDocumento = \App\Models\ProcessoDocumento::where('processo_id', $documento->processo_id)
+                ->where('observacoes', 'Documento Digital: ' . $documento->numero_documento)
+                ->first();
+
+            $dadosProcessoDocumento = [
+                'processo_id' => $documento->processo_id,
+                'usuario_id' => $documento->usuario_criador_id,
+                'tipo_usuario' => 'interno',
+                'nome_arquivo' => basename($nomeArquivo),
+                'nome_original' => $documento->numero_documento . '.pdf',
+                'caminho' => $nomeArquivo,
+                'extensao' => 'pdf',
+                'tamanho' => Storage::disk('public')->size($nomeArquivo),
+                'tipo_documento' => 'documento_digital',
+                'observacoes' => 'Documento Digital: ' . $documento->numero_documento,
+            ];
+
+            if ($processoDocumento) {
+                $processoDocumento->update($dadosProcessoDocumento);
+            } else {
+                \App\Models\ProcessoDocumento::create($dadosProcessoDocumento);
+            }
+        }
+
         return $nomeArquivo;
     }
 

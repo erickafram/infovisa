@@ -1164,13 +1164,19 @@ class DocumentoDigitalController extends Controller
             'finalizado_em' => now(),
         ]);
 
+        if (!$documento->codigo_autenticidade) {
+            $documento->codigo_autenticidade = DocumentoDigital::gerarCodigoAutenticidade();
+            $documento->save();
+        }
+
         if ($documento->isLote()) {
             $this->executarDistribuicaoLote($documento);
             return;
         }
 
         if ($documento->processo_id) {
-            $this->gerarESalvarPDF($documento, $documento->processo_id);
+            $assinaturaController = app(\App\Http\Controllers\AssinaturaDigitalController::class);
+            $assinaturaController->gerarPdfAssinado($documento);
         }
     }
 
