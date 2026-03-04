@@ -28,6 +28,11 @@
     .tox .tox-edit-area__iframe {
         background: #fff !important;
     }
+
+    /* Evita conflito visual de rolagem entre área do editor e página */
+    .tox .tox-edit-area {
+        overflow: hidden !important;
+    }
 </style>
 @endpush
 
@@ -921,12 +926,13 @@ function documentoEditor() {
                 selector: '#editor-tinymce',
                 language: 'pt_BR',
                 language_url: 'https://cdn.tiny.cloud/1/jr5azrsekth852dmtlbhhpicv6uzvkqn76qvngomcu1rsayk/tinymce/6/langs/pt_BR.js',
-                height: 500,
-                min_height: 400,
-                max_height: 800,
-                resize: true,
+                min_height: 500,
+                autoresize_min_height: 500,
+                autoresize_max_height: 2200,
+                resize: false,
                 menubar: 'file edit view insert format table',
                 plugins: [
+                    'autoresize',
                     'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
                     'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
                     'insertdatetime', 'media', 'table', 'help', 'wordcount', 'pagebreak',

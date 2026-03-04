@@ -224,6 +224,7 @@
                         </h2>
                         @php
                             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
+                            $usuarioEhAdmin = auth('interno')->user()?->isAdmin() ?? false;
                         @endphp
                         @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
                             <button onclick="abrirModalGerenciarAssinantes()" 
@@ -269,7 +270,7 @@
                                             </svg>
                                             Pendente
                                         </span>
-                                        @if(!$temAssinaturaFeita)
+                                        @if((!$temAssinaturaFeita || $usuarioEhAdmin) && $documento->status !== 'assinado')
                                             <button onclick="removerAssinante({{ $assinatura->id }})" 
                                                     class="text-red-600 hover:text-red-800 transition">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,6 +288,13 @@
                             <p class="text-xs text-blue-800">
                                 <strong>💡 Dica:</strong> 
                                 Você pode adicionar ou remover assinantes enquanto nenhuma assinatura foi feita.
+                            </p>
+                        </div>
+                    @elseif($usuarioEhAdmin && $documento->status !== 'assinado')
+                        <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p class="text-xs text-amber-800">
+                                <strong>⚠️ Administração:</strong>
+                                Administradores podem remover assinaturas pendentes mesmo após assinaturas já realizadas.
                             </p>
                         </div>
                     @endif

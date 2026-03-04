@@ -785,23 +785,7 @@ class DocumentoDigitalController extends Controller
             'hash_assinatura' => hash('sha256', $documento->id . $usuarioId . now()),
         ]);
 
-        // Verifica se todas assinaturas foram feitas
-        if ($documento->todasAssinaturasCompletas()) {
-            $documento->update([
-                'status' => 'assinado',
-                'finalizado_em' => now(),
-            ]);
-
-            // Fan-out: se é documento em lote, distribui para todos os processos
-            if ($documento->isLote()) {
-                $this->executarDistribuicaoLote($documento);
-            } else {
-                // Documento único: gera PDF no processo vinculado
-                if ($documento->processo_id) {
-                    $this->gerarESalvarPDF($documento, $documento->processo_id);
-                }
-            }
-        }
+        $this->concluirDocumentoSeAssinaturasCompletas($documento);
 
         return back()->with('success', 'Documento assinado com sucesso!' .
             ($documento->isLote() && $documento->status === 'assinado'
@@ -1082,14 +1066,19 @@ class DocumentoDigitalController extends Controller
     public function removerAssinante($id)
     {
         try {
+            DB::beginTransaction();
+
             $assinatura = DocumentoAssinatura::with('documentoDigital.assinaturas')->findOrFail($id);
             $documento = $assinatura->documentoDigital;
+            $usuario = Auth::guard('interno')->user();
+            $usuarioEhAdmin = $usuario && $usuario->isAdmin();
 
             // Verifica se alguma assinatura já foi feita
             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
             
-            // Não permite remover assinantes após qualquer assinatura feita
-            if ($temAssinaturaFeita) {
+            // Não permite remover assinantes após qualquer assinatura feita para usuários não-admin
+            if (!$usuarioEhAdmin && $temAssinaturaFeita) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Não é possível remover assinantes após uma assinatura ter sido feita.'
@@ -1098,6 +1087,7 @@ class DocumentoDigitalController extends Controller
 
             // Verifica se o documento já foi assinado completamente
             if ($documento->status === 'assinado') {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Não é possível remover assinantes de um documento já assinado completamente.'
@@ -1106,6 +1096,7 @@ class DocumentoDigitalController extends Controller
 
             // Verifica se a assinatura já foi feita
             if ($assinatura->status === 'assinado') {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Não é possível remover um assinante que já assinou o documento.'
@@ -1125,17 +1116,61 @@ class DocumentoDigitalController extends Controller
                 $ass->save();
             }
 
+            // Se, após remover pendência, todas assinaturas obrigatórias estiverem completas,
+            // finaliza o documento e segue o fluxo normal de geração/distribuição de PDF.
+            $documento->refresh();
+            $documento->load('assinaturas');
+            $statusAnterior = $documento->status;
+            $this->concluirDocumentoSeAssinaturasCompletas($documento);
+
+            DB::commit();
+
+            $mensagem = 'Assinante removido com sucesso!';
+            if ($statusAnterior !== 'assinado' && $documento->status === 'assinado') {
+                $mensagem .= ' Como não há mais pendências obrigatórias, o documento foi finalizado e o PDF foi gerado no fluxo normal.';
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Assinante removido com sucesso!'
+                'message' => $mensagem
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Erro ao remover assinante: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao remover assinante: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Finaliza o documento quando todas assinaturas obrigatórias estiverem completas
+     * e executa o fluxo padrão de PDF/distribuição.
+     */
+    private function concluirDocumentoSeAssinaturasCompletas(DocumentoDigital $documento): void
+    {
+        if ($documento->status === 'assinado') {
+            return;
+        }
+
+        if (!$documento->todasAssinaturasCompletas()) {
+            return;
+        }
+
+        $documento->update([
+            'status' => 'assinado',
+            'finalizado_em' => now(),
+        ]);
+
+        if ($documento->isLote()) {
+            $this->executarDistribuicaoLote($documento);
+            return;
+        }
+
+        if ($documento->processo_id) {
+            $this->gerarESalvarPDF($documento, $documento->processo_id);
         }
     }
 
