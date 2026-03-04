@@ -407,15 +407,43 @@ function fecharModalGerenciarAssinantes() {
 
 function removerAssinante(assinaturaId) {
     if (confirm('Tem certeza que deseja remover este assinante?')) {
-        fetch(`${window.APP_URL}/admin/documentos/assinaturas/${assinaturaId}`, {
+        const endpointTemplate = @json(route('admin.documentos.remover-assinante', ['id' => '__ASSINATURA_ID__']));
+        const endpoint = endpointTemplate.replace('__ASSINATURA_ID__', assinaturaId);
+
+        fetch(endpoint, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            let data = null;
+
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                data = {
+                    success: false,
+                    message: response.status === 404
+                        ? 'Rota de remoção não encontrada (404). Verifique se as rotas foram atualizadas em produção.'
+                        : `Resposta inesperada do servidor (${response.status}).`,
+                    raw: text
+                };
+            }
+
+            if (!response.ok && (!data || data.success !== false)) {
+                data = {
+                    success: false,
+                    message: `Erro ao remover assinante (${response.status}).`
+                };
+            }
+
+            return data;
+        })
         .then(data => {
             if (data.success) {
                 window.location.reload();
