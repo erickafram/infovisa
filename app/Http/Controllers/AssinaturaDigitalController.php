@@ -445,6 +445,12 @@ class AssinaturaDigitalController extends Controller
                 ->where('observacoes', 'Documento Digital: ' . $documento->numero_documento)
                 ->first();
 
+            try {
+                $tamanhoArquivo = Storage::disk('public')->size($nomeArquivo);
+            } catch (\Throwable $e) {
+                $tamanhoArquivo = 0;
+            }
+
             $dadosProcessoDocumento = [
                 'processo_id' => $documento->processo_id,
                 'usuario_id' => $documento->usuario_criador_id,
@@ -453,7 +459,7 @@ class AssinaturaDigitalController extends Controller
                 'nome_original' => $documento->numero_documento . '.pdf',
                 'caminho' => $nomeArquivo,
                 'extensao' => 'pdf',
-                'tamanho' => Storage::disk('public')->size($nomeArquivo),
+                'tamanho' => $tamanhoArquivo,
                 'tipo_documento' => 'documento_digital',
                 'observacoes' => 'Documento Digital: ' . $documento->numero_documento,
             ];
