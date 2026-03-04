@@ -326,6 +326,12 @@ class AssinaturaDigitalController extends Controller
             'assinaturas.usuarioInterno'
         ])->findOrFail($documento->id);
 
+        // Garante código de autenticidade antes de gerar URL/QR
+        if (empty($documento->codigo_autenticidade)) {
+            $documento->codigo_autenticidade = DocumentoDigital::gerarCodigoAutenticidade();
+            $documento->save();
+        }
+
         // Gera URL de autenticidade
         $urlAutenticidade = route('verificar.autenticidade', ['codigo' => $documento->codigo_autenticidade]);
 
