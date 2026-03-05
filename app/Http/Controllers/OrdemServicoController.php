@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OrdemServico;
 use App\Models\Estabelecimento;
 use App\Models\Processo;
+use App\Models\ProcessoPasta;
 use App\Models\TipoAcao;
 use App\Models\UsuarioInterno;
 use App\Models\Municipio;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class OrdemServicoController extends Controller
 {
@@ -146,8 +148,16 @@ class OrdemServicoController extends Controller
         if ($request->filled('processo_id')) {
             $processoPreSelecionado = Processo::find($request->processo_id);
         }
+
+        $pastasProcesso = collect();
+        if ($processoPreSelecionado) {
+            $pastasProcesso = $processoPreSelecionado->pastas()
+                ->orderBy('ordem')
+                ->orderBy('nome')
+                ->get();
+        }
         
-        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios', 'estabelecimentoPreSelecionado', 'processoPreSelecionado', 'permiteDatasRetroativas'));
+        return view('ordens-servico.create', compact('estabelecimentos', 'tiposAcao', 'tecnicos', 'municipios', 'estabelecimentoPreSelecionado', 'processoPreSelecionado', 'permiteDatasRetroativas', 'pastasProcesso'));
     }
 
     /**
@@ -171,6 +181,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'estabelecimentos_ids' => 'nullable|array',
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
+            'pasta_id' => 'nullable|integer',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'nullable|json',
@@ -320,6 +331,11 @@ class OrdemServicoController extends Controller
                 $validated['municipio_id'] = null;
             }
         }
+
+        $validated['pasta_id'] = $this->resolverPastaIdValida(
+            $request->filled('pasta_id') ? (int) $request->input('pasta_id') : null,
+            isset($validated['processo_id']) ? (int) $validated['processo_id'] : null
+        );
         
         // Gera número da OS e define data de abertura automática
         // Usa transação para garantir atomicidade na geração do número
@@ -434,8 +450,16 @@ class OrdemServicoController extends Controller
         
         // Carrega estabelecimentos múltiplos
         $ordemServico->load('estabelecimentos');
+
+        $pastasProcesso = collect();
+        if ($ordemServico->processo_id) {
+            $pastasProcesso = ProcessoPasta::where('processo_id', $ordemServico->processo_id)
+                ->orderBy('ordem')
+                ->orderBy('nome')
+                ->get();
+        }
         
-        return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios', 'somentVincularEstabelecimento'));
+        return view('ordens-servico.edit', compact('ordemServico', 'tiposAcao', 'tecnicos', 'municipios', 'somentVincularEstabelecimento', 'pastasProcesso'));
     }
 
     /**
@@ -466,6 +490,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'estabelecimentos_ids' => 'nullable|array',
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
+            'pasta_id' => 'nullable|integer',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
             'atividades_tecnicos' => 'nullable|json',
@@ -596,6 +621,25 @@ class OrdemServicoController extends Controller
                 $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
             } else {
                 $validated['processo_id'] = null;
+            }
+        }
+
+        $processoIdValidacaoPasta = isset($validated['processo_id'])
+            ? (int) $validated['processo_id']
+            : ($ordemServico->processo_id ? (int) $ordemServico->processo_id : null);
+
+        if ($request->has('pasta_id')) {
+            $validated['pasta_id'] = $this->resolverPastaIdValida(
+                $request->filled('pasta_id') ? (int) $request->input('pasta_id') : null,
+                $processoIdValidacaoPasta
+            );
+        } elseif ($ordemServico->pasta_id) {
+            $pastaAtualValida = ProcessoPasta::where('id', $ordemServico->pasta_id)
+                ->where('processo_id', $processoIdValidacaoPasta)
+                ->exists();
+
+            if (!$pastaAtualValida) {
+                $validated['pasta_id'] = null;
             }
         }
         
@@ -896,6 +940,17 @@ class OrdemServicoController extends Controller
             $ordemServico->estabelecimentos()->sync([
                 $estId => ['processo_id' => $processosEstabelecimentos[$estId] ?? $ordemServico->processo_id]
             ]);
+        }
+
+        if ($ordemServico->pasta_id) {
+            $pastaValida = ProcessoPasta::where('id', $ordemServico->pasta_id)
+                ->where('processo_id', $ordemServico->processo_id)
+                ->exists();
+
+            if (!$pastaValida) {
+                $ordemServico->pasta_id = null;
+                $ordemServico->save();
+            }
         }
         // Se nenhum estabelecimento enviado, não altera nada
 
@@ -1536,6 +1591,31 @@ class OrdemServicoController extends Controller
                 'error' => 'Erro ao buscar processos'
             ], 500);
         }
+    }
+
+    private function resolverPastaIdValida(?int $pastaId, ?int $processoId): ?int
+    {
+        if (!$pastaId) {
+            return null;
+        }
+
+        if (!$processoId) {
+            throw ValidationException::withMessages([
+                'pasta_id' => 'Selecione um processo antes de escolher a pasta da OS.',
+            ]);
+        }
+
+        $pastaValida = ProcessoPasta::where('id', $pastaId)
+            ->where('processo_id', $processoId)
+            ->exists();
+
+        if (!$pastaValida) {
+            throw ValidationException::withMessages([
+                'pasta_id' => 'A pasta selecionada não pertence ao processo informado.',
+            ]);
+        }
+
+        return $pastaId;
     }
 
     /**

@@ -215,6 +215,23 @@
                     </svg>
                     Ao selecionar um tipo, o modelo predefinido será carregado automaticamente
                 </p>
+
+                @if(isset($pastasProcesso) && $pastasProcesso->isNotEmpty())
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <label for="pasta_id" class="block text-sm font-medium text-gray-700 mb-2">Pasta do Processo</label>
+                        <select name="pasta_id"
+                                id="pasta_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option value="">Todos (sem pasta)</option>
+                            @foreach($pastasProcesso as $pasta)
+                                <option value="{{ $pasta->id }}" {{ (string) old('pasta_id') === (string) $pasta->id ? 'selected' : '' }}>
+                                    {{ $pasta->nome }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Opcional: selecione a pasta para o documento já ser criado no agrupamento correto.</p>
+                    </div>
+                @endif
             </div>
         </div>
 

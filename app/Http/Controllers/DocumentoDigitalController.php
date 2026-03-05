@@ -6,11 +6,13 @@ use App\Models\DocumentoDigital;
 use App\Models\DocumentoAssinatura;
 use App\Models\TipoDocumento;
 use App\Models\ModeloDocumento;
+use App\Models\ProcessoPasta;
 use App\Models\UsuarioInterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentoDigitalController extends Controller
@@ -165,12 +167,20 @@ class DocumentoDigitalController extends Controller
             }
         }
 
+        $pastasProcesso = collect();
+        if ($processo && $processosSelecionados->count() === 1) {
+            $pastasProcesso = $processo->pastas()
+                ->orderBy('ordem')
+                ->orderBy('nome')
+                ->get();
+        }
+
         // Determina qual logomarca usar
         $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
 
         $osId = $request->get('os_id');
 
-        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId'));
+        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId', 'pastasProcesso'));
     }
 
     /**
@@ -253,24 +263,47 @@ class DocumentoDigitalController extends Controller
             'processo_id' => 'nullable|exists:processos,id',
             'processos_ids' => 'nullable|array',
             'processos_ids.*' => 'exists:processos,id',
+            'pasta_id' => 'nullable|integer',
             'os_id' => 'nullable|exists:ordens_servico,id',
         ]);
+
+        $processosIds = collect($request->input('processos_ids', []))
+            ->map(fn($id) => (int) $id)
+            ->filter(fn($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($processosIds->isEmpty() && $request->processo_id) {
+            $processosIds = collect([(int) $request->processo_id]);
+        }
+
+        $pastaId = null;
+        if ($request->filled('pasta_id')) {
+            if ($processosIds->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'pasta_id' => 'Selecione uma pasta apenas em criação para um único processo.',
+                ]);
+            }
+
+            $processoPastaId = (int) $processosIds->first();
+            $pasta = ProcessoPasta::where('id', (int) $request->pasta_id)
+                ->where('processo_id', $processoPastaId)
+                ->first();
+
+            if (!$pasta) {
+                throw ValidationException::withMessages([
+                    'pasta_id' => 'A pasta selecionada não pertence ao processo informado.',
+                ]);
+            }
+
+            $pastaId = $pasta->id;
+        }
 
         try {
             DB::beginTransaction();
 
             // Busca o tipo de documento para pegar o nome
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
-            
-            $processosIds = collect($request->input('processos_ids', []))
-                ->map(fn($id) => (int) $id)
-                ->filter(fn($id) => $id > 0)
-                ->unique()
-                ->values();
-
-            if ($processosIds->isEmpty() && $request->processo_id) {
-                $processosIds = collect([(int) $request->processo_id]);
-            }
 
             $processosDestino = $processosIds->isNotEmpty()
                 ? \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])
@@ -318,6 +351,7 @@ class DocumentoDigitalController extends Controller
                 $documento = DocumentoDigital::create([
                     'tipo_documento_id' => $request->tipo_documento_id,
                     'processo_id'       => $primeiroProcesso?->id,
+                    'pasta_id'          => $pastaId,
                     'processos_ids'     => $processosIds->all(),
                     'os_id'             => $request->os_id,
                     'usuario_criador_id' => Auth::guard('interno')->user()->id,
@@ -381,6 +415,7 @@ class DocumentoDigitalController extends Controller
                 $documento = DocumentoDigital::create([
                     'tipo_documento_id' => $request->tipo_documento_id,
                     'processo_id' => $processoDestino?->id,
+                    'pasta_id' => $pastaId,
                     'os_id' => $request->os_id,
                     'usuario_criador_id' => Auth::guard('interno')->user()->id,
                     'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
@@ -510,7 +545,15 @@ class DocumentoDigitalController extends Controller
         $usuariosInternos = $usuariosInternosQuery->ordenado()->get();
         $processo = $documento->processo;
 
-        return view('documentos.edit', compact('documento', 'tiposDocumento', 'usuariosInternos', 'processo'));
+        $pastasProcesso = collect();
+        if ($processo && !$documento->isLote()) {
+            $pastasProcesso = $processo->pastas()
+                ->orderBy('ordem')
+                ->orderBy('nome')
+                ->get();
+        }
+
+        return view('documentos.edit', compact('documento', 'tiposDocumento', 'usuariosInternos', 'processo', 'pastasProcesso'));
     }
 
     /**
@@ -531,7 +574,37 @@ class DocumentoDigitalController extends Controller
             'sigiloso' => 'boolean',
             'assinaturas' => 'required|array|min:1',
             'assinaturas.*' => 'exists:usuarios_internos,id',
+            'pasta_id' => 'nullable|integer',
         ]);
+
+        $pastaId = null;
+        if ($request->has('pasta_id')) {
+            if ($documento->isLote()) {
+                throw ValidationException::withMessages([
+                    'pasta_id' => 'Documento em lote não permite definição de pasta.',
+                ]);
+            }
+
+            if ($request->filled('pasta_id')) {
+                if (!$documento->processo_id) {
+                    throw ValidationException::withMessages([
+                        'pasta_id' => 'Este documento não está vinculado a um processo para definir pasta.',
+                    ]);
+                }
+
+                $pastaValida = ProcessoPasta::where('id', (int) $request->pasta_id)
+                    ->where('processo_id', $documento->processo_id)
+                    ->exists();
+
+                if (!$pastaValida) {
+                    throw ValidationException::withMessages([
+                        'pasta_id' => 'A pasta selecionada não pertence ao processo deste documento.',
+                    ]);
+                }
+
+                $pastaId = (int) $request->pasta_id;
+            }
+        }
 
         try {
             DB::beginTransaction();
@@ -539,13 +612,19 @@ class DocumentoDigitalController extends Controller
             // Busca o tipo de documento para pegar prazo_notificacao
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
 
-            $documento->update([
+            $dadosAtualizacao = [
                 'tipo_documento_id' => $request->tipo_documento_id,
                 'conteudo' => $request->conteudo,
                 'sigiloso' => $request->sigiloso ?? false,
                 'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
                 'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false, // Herda do tipo de documento
-            ]);
+            ];
+
+            if ($request->has('pasta_id')) {
+                $dadosAtualizacao['pasta_id'] = $pastaId;
+            }
+
+            $documento->update($dadosAtualizacao);
 
             // Atualiza assinaturas
             $documento->assinaturas()->delete();

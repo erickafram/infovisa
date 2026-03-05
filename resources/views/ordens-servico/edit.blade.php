@@ -126,6 +126,24 @@
                     {{-- Hidden input para processo_id (compatibilidade) --}}
                     <input type="hidden" name="processo_id" id="processo_id" value="{{ $ordemServico->processo_id }}">
 
+                    @if(!$somentVincularEstabelecimento && isset($pastasProcesso) && $pastasProcesso->isNotEmpty())
+                    <div class="md:col-span-2">
+                        <label for="pasta_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            Pasta do Processo <span class="text-gray-500">(Opcional)</span>
+                        </label>
+                        <select name="pasta_id" id="pasta_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Todos (sem pasta)</option>
+                            @foreach($pastasProcesso as $pasta)
+                                <option value="{{ $pasta->id }}" {{ (string) old('pasta_id', $ordemServico->pasta_id) === (string) $pasta->id ? 'selected' : '' }}>
+                                    {{ $pasta->nome }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-600">Use esta opção para mover a OS para uma pasta específica do processo.</p>
+                    </div>
+                    @endif
+
                     @if(!$somentVincularEstabelecimento)
                     {{-- Tipos de Ação (Múltiplos) --}}
                     <div class="md:col-span-2">

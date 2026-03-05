@@ -84,6 +84,14 @@ class ProcessoPastaController extends Controller
         // Move todos os documentos e arquivos para "Todos" (pasta_id = null)
         $pasta->documentos()->update(['pasta_id' => null]);
         $pasta->documentosDigitais()->update(['pasta_id' => null]);
+        \App\Models\OrdemServico::where('pasta_id', $pasta->id)
+            ->where(function ($query) use ($processoId) {
+                $query->where('processo_id', $processoId)
+                    ->orWhereHas('estabelecimentos', function ($subQuery) use ($processoId) {
+                        $subQuery->where('ordem_servico_estabelecimentos.processo_id', $processoId);
+                    });
+            })
+            ->update(['pasta_id' => null]);
 
         $pasta->delete();
 
@@ -99,17 +107,39 @@ class ProcessoPastaController extends Controller
     public function moverItem(Request $request, $estabelecimentoId, $processoId)
     {
         $validated = $request->validate([
-            'tipo' => 'required|in:documento,arquivo',
+            'tipo' => 'required|in:documento,arquivo,ordem_servico',
             'item_id' => 'required|integer',
             'pasta_id' => 'nullable|integer',
         ]);
 
+        if (!empty($validated['pasta_id'])) {
+            $pastaValida = ProcessoPasta::where('processo_id', $processoId)
+                ->where('id', $validated['pasta_id'])
+                ->exists();
+
+            if (!$pastaValida) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A pasta selecionada não pertence a este processo.',
+                ], 422);
+            }
+        }
+
         if ($validated['tipo'] === 'documento') {
             $item = \App\Models\DocumentoDigital::where('processo_id', $processoId)
                 ->findOrFail($validated['item_id']);
-        } else {
+        } elseif ($validated['tipo'] === 'arquivo') {
             $item = \App\Models\ProcessoDocumento::where('processo_id', $processoId)
                 ->findOrFail($validated['item_id']);
+        } else {
+            $item = \App\Models\OrdemServico::where('id', $validated['item_id'])
+                ->where(function ($query) use ($processoId) {
+                    $query->where('processo_id', $processoId)
+                        ->orWhereHas('estabelecimentos', function ($subQuery) use ($processoId) {
+                            $subQuery->where('ordem_servico_estabelecimentos.processo_id', $processoId);
+                        });
+                })
+                ->firstOrFail();
         }
 
         $item->update(['pasta_id' => $validated['pasta_id']]);

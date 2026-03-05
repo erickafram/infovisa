@@ -877,7 +877,7 @@
                             Todos
                             <span class="ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full"
                                   :class="pastaAtiva === null ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'">
-                                {{ $documentosDigitais->count() + $processo->documentos->where('tipo_documento', '!=', 'documento_digital')->count() }}
+                                {{ $todosDocumentos->count() }}
                             </span>
                         </button>
                         
@@ -1397,7 +1397,8 @@
                                     @php
                                         $os = $item['documento'];
                                     @endphp
-                                  <div x-show="statusFiltro === null"
+                                  <div x-data="{ pastaDocumento: {{ $os->pasta_id ?? 'null' }} }"
+                                      x-show="(pastaAtiva === null || pastaAtiva === pastaDocumento) && statusFiltro === null"
                                       class="p-3 bg-white rounded-lg border border-gray-200 border-l-4 border-l-blue-500 hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
@@ -1430,6 +1431,36 @@
                                                title="Ver OS">
                                                 <i class="far fa-eye fa-fw text-gray-500" style="font-size: 15px;"></i>
                                             </a>
+
+                                            <div class="relative" x-data="{ menuAberto: false }">
+                                                <button @click.stop="menuAberto = !menuAberto"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                        title="Mais opções">
+                                                    <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                                </button>
+                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
+                                                     class="absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-xl border z-[9999] py-1"
+                                                     style="display: none;">
+                                                    <button @click="moverParaPasta({{ $os->id }}, 'ordem_servico', null, $el); menuAberto = false"
+                                                            class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                        <i class="far fa-times-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                        Remover da pasta
+                                                    </button>
+                                                    <template x-for="pasta in pastas" :key="pasta.id">
+                                                        <button @click="moverParaPasta({{ $os->id }}, 'ordem_servico', pasta.id, $el); menuAberto = false"
+                                                                class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                            <span class="w-2 h-2 rounded-full" :style="`background-color: ${pasta.cor}`"></span>
+                                                            <span x-text="pasta.nome"></span>
+                                                        </button>
+                                                    </template>
+                                                    <hr class="my-1">
+                                                    <a href="{{ route('admin.ordens-servico.edit', $os) }}"
+                                                       class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                        <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                        Editar OS
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -3625,6 +3656,9 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     @endforeach
                     @foreach($processo->documentos->where('tipo_documento', '!=', 'documento_digital') as $documento)
                         { id: {{ $documento->id }}, pasta_id: {{ $documento->pasta_id ?? 'null' }}, tipo: 'arquivo' },
+                    @endforeach
+                    @foreach($todosDocumentos->where('tipo', 'ordem_servico') as $itemOrdemServico)
+                        { id: {{ $itemOrdemServico['documento']->id }}, pasta_id: {{ $itemOrdemServico['documento']->pasta_id ?? 'null' }}, tipo: 'ordem_servico' },
                     @endforeach
                 ],
 

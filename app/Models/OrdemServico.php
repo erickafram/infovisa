@@ -15,6 +15,7 @@ class OrdemServico extends Model
         'numero',
         'estabelecimento_id',
         'processo_id',
+        'pasta_id',
         'tipos_acao_ids',
         'atividades_tecnicos', // Nova estrutura
         'acoes_executadas_ids',
@@ -90,6 +91,14 @@ class OrdemServico extends Model
     public function processo()
     {
         return $this->belongsTo(Processo::class);
+    }
+
+    /**
+     * Relacionamento com pasta do processo
+     */
+    public function pasta()
+    {
+        return $this->belongsTo(ProcessoPasta::class, 'pasta_id');
     }
 
     /**

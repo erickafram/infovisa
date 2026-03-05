@@ -112,6 +112,25 @@
                             {{-- Hidden input para processo_id (compatibilidade - preenchido automaticamente) --}}
                             <input type="hidden" name="processo_id" id="processo_id" value="">
 
+                            @if(isset($pastasProcesso) && $pastasProcesso->isNotEmpty())
+                            <div class="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                <label for="pasta_id" class="flex items-center gap-1.5 text-xs font-semibold text-purple-700 mb-2">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                    Pasta do Processo (Opcional)
+                                </label>
+                                <select name="pasta_id" id="pasta_id"
+                                        class="w-full text-sm border-purple-200 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm">
+                                    <option value="">Todos (sem pasta)</option>
+                                    @foreach($pastasProcesso as $pasta)
+                                        <option value="{{ $pasta->id }}" {{ (string) old('pasta_id') === (string) $pasta->id ? 'selected' : '' }}>
+                                            {{ $pasta->nome }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-2 text-xs text-purple-700">Se selecionada, a OS será criada diretamente nesta pasta do processo.</p>
+                            </div>
+                            @endif
+
                             {{-- Aviso múltiplos estabelecimentos --}}
                             <div id="aviso-multiplos-estabelecimentos" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-start gap-2">
                                 <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
