@@ -652,8 +652,46 @@
                 @endif
                 
                 @if($totalDocumentos > 0)
+                @php
+                    $pastasPorId = $pastas->keyBy('id');
+                    $contagemPorGrupoPasta = $todosDocumentos
+                        ->groupBy(fn($item) => $item['pasta_id'] ?? 'sem_pasta')
+                        ->map(fn($itens) => $itens->count());
+                @endphp
                 <div class="divide-y divide-gray-100">
-                    @foreach($todosDocumentos as $item)
+                    @foreach($todosDocumentos as $indice => $item)
+                        @php
+                            $pastaAtualId = $item['pasta_id'] ?? null;
+                            $chaveGrupoAtual = $pastaAtualId ?? 'sem_pasta';
+
+                            $itemAnterior = $indice > 0 ? $todosDocumentos[$indice - 1] : null;
+                            $pastaAnteriorId = $itemAnterior ? ($itemAnterior['pasta_id'] ?? null) : '__inicio__';
+                            $chaveGrupoAnterior = $pastaAnteriorId ?? 'sem_pasta';
+
+                            $mostrarCabecalhoGrupo = $indice === 0 || $chaveGrupoAtual !== $chaveGrupoAnterior;
+
+                            $pastaAtual = $pastaAtualId ? $pastasPorId->get($pastaAtualId) : null;
+                            $nomeGrupo = $pastaAtual ? $pastaAtual->nome : 'Sem pasta';
+                            $corGrupo = $pastaAtual ? $pastaAtual->cor : '#9CA3AF';
+                            $contagemGrupo = $contagemPorGrupoPasta[$chaveGrupoAtual] ?? 0;
+                        @endphp
+
+                        @if($mostrarCabecalhoGrupo)
+                        <div x-show="pastaAtiva === null"
+                             class="px-4 py-2.5 bg-gray-50 border-l-4"
+                             style="display: none; border-left-color: {{ $corGrupo }};">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ $corGrupo }}"></span>
+                                    <span class="text-xs font-semibold text-gray-700">{{ $nomeGrupo }}</span>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] font-semibold bg-white border border-gray-200 text-gray-600 rounded-full">
+                                    {{ $contagemGrupo }}
+                                </span>
+                            </div>
+                        </div>
+                        @endif
+
                         @if($item['tipo'] === 'vigilancia')
                             @php 
                                 $docDigital = $item['documento'];

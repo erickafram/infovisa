@@ -926,8 +926,30 @@ class ProcessoController extends Controller
             ]);
         }
         
-        // Ordena todos os documentos por data (mais recente primeiro)
-        $todosDocumentos = $todosDocumentos->sortByDesc('created_at')->values();
+        // Ordena por pasta (agrupado) e por data (mais recente primeiro)
+        // Itens sem pasta ficam no topo, seguidos das pastas ordenadas
+        $ordemPastas = $processo->pastas()
+            ->orderBy('ordem')
+            ->orderBy('nome')
+            ->pluck('id')
+            ->values()
+            ->flip();
+
+        $todosDocumentos = $todosDocumentos
+            ->sort(function ($itemA, $itemB) use ($ordemPastas) {
+                $pastaIdA = $itemA['documento']->pasta_id ?? null;
+                $pastaIdB = $itemB['documento']->pasta_id ?? null;
+
+                $ordemA = $pastaIdA ? ($ordemPastas[$pastaIdA] ?? 999999) : -1;
+                $ordemB = $pastaIdB ? ($ordemPastas[$pastaIdB] ?? 999999) : -1;
+
+                if ($ordemA !== $ordemB) {
+                    return $ordemA <=> $ordemB;
+                }
+
+                return $itemB['created_at'] <=> $itemA['created_at'];
+            })
+            ->values();
         
         // Busca designações do processo
         $designacoes = ProcessoDesignacao::where('processo_id', $processoId)

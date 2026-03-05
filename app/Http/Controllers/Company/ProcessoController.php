@@ -512,8 +512,30 @@ class ProcessoController extends Controller
             ]);
         }
         
-        // Ordena por data decrescente (mais recente primeiro)
-        $todosDocumentos = $todosDocumentos->sortByDesc('data')->values();
+        // Ordena por pasta (agrupado) e por data decrescente (mais recente primeiro)
+        // Itens sem pasta ficam no topo, seguidos das pastas na ordem configurada
+        $ordemPastas = $processo->pastas()
+            ->orderBy('ordem')
+            ->orderBy('nome')
+            ->pluck('id')
+            ->values()
+            ->flip();
+
+        $todosDocumentos = $todosDocumentos
+            ->sort(function ($itemA, $itemB) use ($ordemPastas) {
+                $pastaIdA = $itemA['pasta_id'] ?? null;
+                $pastaIdB = $itemB['pasta_id'] ?? null;
+
+                $ordemA = $pastaIdA ? ($ordemPastas[$pastaIdA] ?? 999999) : -1;
+                $ordemB = $pastaIdB ? ($ordemPastas[$pastaIdB] ?? 999999) : -1;
+
+                if ($ordemA !== $ordemB) {
+                    return $ordemA <=> $ordemB;
+                }
+
+                return $itemB['data'] <=> $itemA['data'];
+            })
+            ->values();
         
         // Alertas do processo
         $alertas = $processo->alertas()->orderBy('data_alerta', 'asc')->get();
