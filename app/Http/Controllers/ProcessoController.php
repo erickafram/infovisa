@@ -867,7 +867,7 @@ class ProcessoController extends Controller
             ->get();
         
         // Busca documentos digitais do processo (incluindo rascunhos)
-        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas.usuarioInterno', 'primeiraVisualizacao.usuarioExterno', 'respostas.usuarioExterno', 'respostas.avaliadoPor'])
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas.usuarioInterno', 'primeiraVisualizacao.usuarioExterno', 'respostas.usuarioExterno', 'respostas.avaliadoPor', 'ordemServico'])
             ->where('processo_id', $processoId)
             ->orderBy('created_at', 'desc')
             ->get();

@@ -1095,6 +1095,17 @@
                                                         </span>
                                                     @endif
                                                     
+                                                    {{-- Badge de OS vinculada --}}
+                                                    @if($docDigital->os_id && $docDigital->ordemServico)
+                                                        <a href="{{ route('admin.ordens-servico.show', $docDigital->ordemServico) }}"
+                                                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold hover:bg-blue-100 transition-colors"
+                                                           title="Vinculado à OS #{{ $docDigital->ordemServico->numero }}"
+                                                           @click.stop>
+                                                            <i class="fas fa-clipboard-check" style="font-size: 10px;"></i>
+                                                            OS #{{ $docDigital->ordemServico->numero }}
+                                                        </a>
+                                                    @endif
+
                                                     {{-- Indicador de visualização --}}
                                                     @if($docDigital->primeiraVisualizacao && $statusGeral !== 'rascunho' && $statusGeral !== 'aguardando_assinatura')
                                                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold" title="Visto por {{ $docDigital->primeiraVisualizacao->usuarioExterno->nome ?? 'N/D' }}">

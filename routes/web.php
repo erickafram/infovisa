@@ -415,6 +415,10 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     )->name('ordens-servico.finalizar');
     
     // Finalizar Atividade Individual (técnico finaliza apenas sua atividade)
+    Route::get('ordens-servico/{ordemServico}/finalizar-atividade/{atividadeIndex}', 
+        [\App\Http\Controllers\OrdemServicoController::class, 'showFinalizarAtividade']
+    )->name('ordens-servico.show-finalizar-atividade');
+    
     Route::post('ordens-servico/{ordemServico}/finalizar-atividade', 
         [\App\Http\Controllers\OrdemServicoController::class, 'finalizarAtividade']
     )->name('ordens-servico.finalizar-atividade');

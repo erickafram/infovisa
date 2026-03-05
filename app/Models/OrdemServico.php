@@ -102,6 +102,14 @@ class OrdemServico extends Model
     }
 
     /**
+     * Documentos digitais vinculados a esta OS
+     */
+    public function documentosDigitais()
+    {
+        return $this->hasMany(DocumentoDigital::class, 'os_id');
+    }
+
+    /**
      * Relacionamento com Tipos de Ação (múltiplos)
      */
     public function tiposAcao()

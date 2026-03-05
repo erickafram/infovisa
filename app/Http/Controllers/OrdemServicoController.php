@@ -400,7 +400,7 @@ class OrdemServicoController extends Controller
                 'lida_em' => now(),
             ]);
         
-        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
+        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo', 'documentosDigitais.tipoDocumento', 'documentosDigitais.assinaturas', 'documentosDigitais.usuarioCriador']);
 
         $pesquisaInterna = $this->buscarPesquisaInternaPendente($ordemServico, $usuario);
 
@@ -1619,6 +1619,131 @@ class OrdemServicoController extends Controller
     }
 
     /**
+     * Exibe a página de finalização de atividade
+     */
+    public function showFinalizarAtividade(OrdemServico $ordemServico, int $atividadeIndex)
+    {
+        $usuario = Auth::guard('interno')->user();
+
+        if (!$this->podeVisualizarOS($usuario, $ordemServico)) {
+            abort(403, 'Você não tem permissão para visualizar esta ordem de serviço.');
+        }
+
+        if ($ordemServico->status !== 'em_andamento') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Esta OS não está em andamento.');
+        }
+
+        $atividades = $ordemServico->atividades_tecnicos ?? [];
+        if (!isset($atividades[$atividadeIndex])) {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Atividade não encontrada.');
+        }
+
+        $atividade = $atividades[$atividadeIndex];
+
+        // Verifica se a atividade já foi finalizada
+        if (($atividade['status'] ?? 'pendente') === 'finalizada') {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Esta atividade já foi finalizada.');
+        }
+
+        // Verifica se o técnico está atribuído
+        $tecnicosAtividade = $atividade['tecnicos'] ?? [];
+        if (!in_array($usuario->id, $tecnicosAtividade)) {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Você não está atribuído a esta atividade.');
+        }
+
+        // Se houver mais de um técnico e existir responsável, só o responsável pode finalizar
+        $responsavelId = $atividade['responsavel_id'] ?? null;
+        if (count($tecnicosAtividade) > 1 && $responsavelId && $usuario->id !== $responsavelId) {
+            return redirect()->route('admin.ordens-servico.show', $ordemServico)
+                ->with('error', 'Somente o técnico responsável pode finalizar esta atividade.');
+        }
+
+        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo', 'documentosDigitais.tipoDocumento', 'documentosDigitais.assinaturas', 'documentosDigitais.usuarioCriador']);
+
+        // Estabelecimentos da atividade
+        $todosEstabelecimentosOs = $ordemServico->getTodosEstabelecimentos();
+        $atividadeEstabelecimentoId = $atividade['estabelecimento_id'] ?? null;
+
+        if (!empty($atividadeEstabelecimentoId)) {
+            $estabelecimentosAtividade = $todosEstabelecimentosOs->where('id', (int) $atividadeEstabelecimentoId)->values();
+        } else {
+            $estabelecimentosAtividade = $todosEstabelecimentosOs->values();
+        }
+
+        $isMultiEstabelecimento = $estabelecimentosAtividade->count() > 1;
+
+        // Processos vinculados para criação de documentos
+        $processosVinculadosOs = $todosEstabelecimentosOs
+            ->map(function ($est) use ($ordemServico) {
+                $processoId = $est->pivot->processo_id ?? null;
+                if (!$processoId && $ordemServico->estabelecimento_id == $est->id) {
+                    $processoId = $ordemServico->processo_id;
+                }
+                return $processoId ? (int) $processoId : null;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($processosVinculadosOs->isEmpty() && $ordemServico->processo_id) {
+            $processosVinculadosOs = collect([(int) $ordemServico->processo_id]);
+        }
+
+        $documentosOs = $ordemServico->documentosDigitais->sortByDesc('created_at');
+
+        // Tecnicos
+        $tecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosAtividade)->get();
+        $responsavel = $responsavelId ? \App\Models\UsuarioInterno::find($responsavelId) : null;
+
+        // Pesquisa interna pendente
+        $pesquisaInterna = $this->buscarPesquisaInternaPendente($ordemServico, $usuario);
+        if ($pesquisaInterna) {
+            $pesquisaInterna->load('perguntas.opcoes');
+        }
+
+        // Estabelecimentos como array para JS
+        $estabelecimentosJs = $estabelecimentosAtividade->map(function ($est) use ($ordemServico) {
+            $processoId = $est->pivot->processo_id ?? null;
+            if (!$processoId && $ordemServico->estabelecimento_id == $est->id) {
+                $processoId = $ordemServico->processo_id;
+            }
+
+            return [
+                'id' => (int) $est->id,
+                'nome' => $est->nome_fantasia ?? $est->nome_razao_social,
+                'cnpj' => $est->cnpj_formatado ?? $est->cnpj ?? $est->cpf_cnpj ?? null,
+                'processo_id' => $processoId ? (int) $processoId : null,
+            ];
+        })->values()->all();
+
+        // Busca info dos processos vinculados para exibir na sidebar
+        $processosInfo = $processosVinculadosOs->isNotEmpty()
+            ? \App\Models\Processo::with('estabelecimento')
+                ->whereIn('id', $processosVinculadosOs)
+                ->get()
+            : collect();
+
+        return view('ordens-servico.finalizar-atividade', compact(
+            'ordemServico',
+            'atividade',
+            'atividadeIndex',
+            'estabelecimentosAtividade',
+            'isMultiEstabelecimento',
+            'processosVinculadosOs',
+            'documentosOs',
+            'tecnicos',
+            'responsavel',
+            'pesquisaInterna',
+            'estabelecimentosJs',
+            'processosInfo'
+        ));
+    }
+
+    /**
      * Finalizar uma atividade específica do técnico
      * A OS só será finalizada quando TODAS as atividades forem concluídas
      */
@@ -1806,12 +1931,16 @@ class OrdemServicoController extends Controller
             $atividades[$atividadeIndex]['execucao_estabelecimentos'] = $execucaoEstabelecimentos;
         }
 
-        // Registra confirmação de documentos no processo (se a OS tem processo vinculado)
-        if ($ordemServico->processo_id && $request->boolean('confirmou_documentos')) {
-            $atividades[$atividadeIndex]['confirmou_documentos'] = true;
-            $atividades[$atividadeIndex]['confirmou_documentos_por'] = $usuario->id;
-            $atividades[$atividadeIndex]['confirmou_documentos_nome'] = $usuario->nome;
-            $atividades[$atividadeIndex]['confirmou_documentos_em'] = now()->toISOString();
+        // Registra informação sobre documentos da OS
+        $temDocumentosOs = $ordemServico->documentosDigitais()->exists();
+        if ($temDocumentosOs) {
+            $atividades[$atividadeIndex]['tem_documentos_os'] = true;
+            $atividades[$atividadeIndex]['qtd_documentos_os'] = $ordemServico->documentosDigitais()->count();
+        } elseif ($request->boolean('confirmou_sem_documentos')) {
+            $atividades[$atividadeIndex]['confirmou_sem_documentos'] = true;
+            $atividades[$atividadeIndex]['confirmou_sem_documentos_por'] = $usuario->id;
+            $atividades[$atividadeIndex]['confirmou_sem_documentos_nome'] = $usuario->nome;
+            $atividades[$atividadeIndex]['confirmou_sem_documentos_em'] = now()->toISOString();
         }
         
         // Dados para atualizar na OS
