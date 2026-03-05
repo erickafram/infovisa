@@ -314,11 +314,23 @@
 
                             {{-- Linha 2: Estabelecimento + Docs + Gerência/Técnico --}}
                             <div class="flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <div class="flex items-start gap-3 min-w-0 flex-1">
                                     {{-- Estabelecimento --}}
-                                    <span class="text-xs text-gray-600 truncate" title="{{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}">
-                                        {{ $processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->razao_social }}
-                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-medium text-gray-700 truncate" title="{{ $processo->estabelecimento->razao_social }}">
+                                            {{ $processo->estabelecimento->razao_social }}
+                                        </p>
+                                        @if(!empty($processo->estabelecimento->nome_fantasia) && $processo->estabelecimento->nome_fantasia !== $processo->estabelecimento->razao_social)
+                                            <p class="text-[11px] text-gray-500 truncate" title="{{ $processo->estabelecimento->nome_fantasia }}">
+                                                {{ $processo->estabelecimento->nome_fantasia }}
+                                            </p>
+                                        @endif
+                                        @if(!empty($processo->estabelecimento->municipio))
+                                            <p class="text-[10px] text-gray-400 truncate" title="{{ $processo->estabelecimento->municipio }}">
+                                                {{ $processo->estabelecimento->municipio }}
+                                            </p>
+                                        @endif
+                                    </div>
 
                                     {{-- Documentação --}}
                                     @if($docs)
