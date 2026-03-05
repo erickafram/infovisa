@@ -394,7 +394,7 @@ function documentoEditor() {
                 ],
                 toolbar: [
                     'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor removeformat',
-                    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | pagebreak | fullscreen code help'
+                    'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | pagebreak | spellcheck_btn | fullscreen code help'
                 ],
                 font_size_formats: '8pt 10pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 36pt',
                 block_formats: 'Parágrafo=p; Título 1=h1; Título 2=h2; Título 3=h3; Título 4=h4; Título 5=h5; Título 6=h6; Pré-formatado=pre',
@@ -429,9 +429,17 @@ function documentoEditor() {
                 automatic_uploads: true,
                 branding: false,
                 promotion: false,
+                browser_spellcheck: true,
+                contextmenu: false,
                 statusbar: true,
                 elementpath: true,
                 setup: (editor) => {
+                    // Botão de Correção Ortográfica na toolbar
+                    editor.ui.registry.addButton('spellcheck_btn', {
+                        icon: 'spell-check',
+                        tooltip: 'Verificar Ortografia (PT-BR)',
+                        onAction: () => self.verificarOrtografia()
+                    });
                     editor.on('init', () => {
                         editor.setContent(self.conteudo || '');
                     });
@@ -604,7 +612,7 @@ function documentoEditor() {
             }, 2000);
         },
 
-        async verificarOrtografia() {
+        async verificarOrtografia(event = null) {
             const tmceEditor = tinymce.get('editor-tinymce');
             if (!tmceEditor) return;
             const texto = tmceEditor.getContent({ format: 'text' });
@@ -614,10 +622,12 @@ function documentoEditor() {
                 return;
             }
 
-            const btnVerificar = event.target.closest('button');
-            const originalHTML = btnVerificar.innerHTML;
-            btnVerificar.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-            btnVerificar.disabled = true;
+            const btnVerificar = event?.target?.closest?.('button') || null;
+            const originalHTML = btnVerificar ? btnVerificar.innerHTML : '';
+            if (btnVerificar) {
+                btnVerificar.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                btnVerificar.disabled = true;
+            }
 
             try {
                 const response = await fetch('https://api.languagetool.org/v2/check', {
@@ -743,8 +753,10 @@ function documentoEditor() {
                 console.error('Erro ao verificar ortografia:', error);
                 alert('Erro ao verificar ortografia. Verifique sua conexão com a internet.');
             } finally {
-                btnVerificar.innerHTML = originalHTML;
-                btnVerificar.disabled = false;
+                if (btnVerificar) {
+                    btnVerificar.innerHTML = originalHTML;
+                    btnVerificar.disabled = false;
+                }
             }
         },
 
