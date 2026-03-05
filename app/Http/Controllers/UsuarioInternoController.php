@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\UsuarioInterno;
 use App\Enums\NivelAcesso;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UsuarioInternoController extends Controller
 {
@@ -60,18 +61,9 @@ class UsuarioInternoController extends Controller
         }
 
         $usuarioLogado = auth('interno')->user();
-        $query = UsuarioInterno::query();
-
-        // Filtro por escopo do usuário logado
-        if (!$usuarioLogado->isAdmin()) {
-            $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
-            $query->whereIn('nivel_acesso', $niveisPermitidos);
-            
-            // Gestor Municipal só vê usuários do seu município
-            if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
-                $query->where('municipio_id', $usuarioLogado->municipio_id);
-            }
-        }
+        $aba = $request->get('aba', 'usuarios');
+        $query = $this->aplicarEscopoUsuarioLogado(UsuarioInterno::query(), $usuarioLogado);
+        $queryEscopoRanking = $this->aplicarEscopoUsuarioLogado(UsuarioInterno::query(), $usuarioLogado);
 
         // Filtro por nome (case-insensitive usando ILIKE)
         if ($request->filled('nome')) {
@@ -111,11 +103,118 @@ class UsuarioInternoController extends Controller
 
         // Paginação com relacionamento
         $usuarios = $query->with('municipioRelacionado')->paginate(15)->withQueryString();
+        $resumoAtividadeUsuarios = $this->montarRankingAtividadeUsuarios($queryEscopoRanking);
+        $rankingAtividadeUsuarios = $resumoAtividadeUsuarios
+            ->filter(fn($usuario) => $usuario->total_acoes > 0)
+            ->sortByDesc('total_acoes')
+            ->take(10)
+            ->values();
+
+        $usuariosSemAtividadeSemLogin = $resumoAtividadeUsuarios
+            ->filter(fn($usuario) => $usuario->total_acoes === 0 && empty($usuario->ultimo_login_em))
+            ->values();
         
         // Níveis permitidos para filtro
         $niveisPermitidos = $this->getNiveisPermitidos();
 
-        return view('admin.usuarios-internos.index', compact('usuarios', 'niveisPermitidos'));
+        return view('admin.usuarios-internos.index', compact(
+            'usuarios',
+            'niveisPermitidos',
+            'rankingAtividadeUsuarios',
+            'usuariosSemAtividadeSemLogin',
+            'aba'
+        ));
+    }
+
+    /**
+     * Aplica escopo de visibilidade de usuários conforme o perfil do usuário logado.
+     */
+    private function aplicarEscopoUsuarioLogado($query, UsuarioInterno $usuarioLogado)
+    {
+        if ($usuarioLogado->isAdmin()) {
+            return $query;
+        }
+
+        $niveisPermitidos = array_map(fn($n) => $n->value, $this->getNiveisPermitidos());
+        $query->whereIn('nivel_acesso', $niveisPermitidos);
+
+        if ($usuarioLogado->nivel_acesso === NivelAcesso::GestorMunicipal && $usuarioLogado->municipio_id) {
+            $query->where('municipio_id', $usuarioLogado->municipio_id);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Monta ranking de usuários que mais realizaram ações no sistema.
+     */
+    private function montarRankingAtividadeUsuarios($queryEscopo)
+    {
+        $usuariosEscopo = (clone $queryEscopo)
+            ->select('id', 'nome', 'nivel_acesso', 'ativo', 'ultimo_login_em')
+            ->get();
+
+        if ($usuariosEscopo->isEmpty()) {
+            return collect();
+        }
+
+        $idsUsuarios = $usuariosEscopo->pluck('id')->all();
+
+        $documentosCriados = DB::table('documentos_digitais')
+            ->select('usuario_criador_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('usuario_criador_id')
+            ->whereIn('usuario_criador_id', $idsUsuarios)
+            ->groupBy('usuario_criador_id')
+            ->pluck('total', 'usuario_criador_id');
+
+        $documentosAprovados = DB::table('processo_documentos')
+            ->select('aprovado_por', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('aprovado_por')
+            ->where('status_aprovacao', 'aprovado')
+            ->whereIn('aprovado_por', $idsUsuarios)
+            ->groupBy('aprovado_por')
+            ->pluck('total', 'aprovado_por');
+
+        $uploadsDocumentos = DB::table('processo_documentos')
+            ->select('usuario_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('usuario_id')
+            ->where('tipo_usuario', 'interno')
+            ->whereIn('usuario_id', $idsUsuarios)
+            ->groupBy('usuario_id')
+            ->pluck('total', 'usuario_id');
+
+        $acoesProcessos = DB::table('processo_eventos')
+            ->select('usuario_interno_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('usuario_interno_id')
+            ->whereIn('usuario_interno_id', $idsUsuarios)
+            ->groupBy('usuario_interno_id')
+            ->pluck('total', 'usuario_interno_id');
+
+        $acoesEstabelecimentos = DB::table('estabelecimento_historicos')
+            ->select('usuario_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('usuario_id')
+            ->whereIn('usuario_id', $idsUsuarios)
+            ->groupBy('usuario_id')
+            ->pluck('total', 'usuario_id');
+
+        return $usuariosEscopo
+            ->map(function ($usuario) use ($documentosCriados, $documentosAprovados, $uploadsDocumentos, $acoesProcessos, $acoesEstabelecimentos) {
+                $documentosCriadosCount = (int) ($documentosCriados[$usuario->id] ?? 0);
+                $documentosAprovadosCount = (int) ($documentosAprovados[$usuario->id] ?? 0);
+                $uploadsDocumentosCount = (int) ($uploadsDocumentos[$usuario->id] ?? 0);
+                $acoesProcessosCount = (int) ($acoesProcessos[$usuario->id] ?? 0);
+                $acoesEstabelecimentosCount = (int) ($acoesEstabelecimentos[$usuario->id] ?? 0);
+
+                $usuario->documentos_criados_count = $documentosCriadosCount;
+                $usuario->documentos_aprovados_count = $documentosAprovadosCount;
+                $usuario->uploads_documentos_count = $uploadsDocumentosCount;
+                $usuario->acoes_processos_count = $acoesProcessosCount;
+                $usuario->acoes_estabelecimentos_count = $acoesEstabelecimentosCount;
+                $usuario->total_acoes = $documentosCriadosCount + $documentosAprovadosCount + $uploadsDocumentosCount + $acoesProcessosCount + $acoesEstabelecimentosCount;
+
+                return $usuario;
+            })
+            ->values();
     }
 
     /**

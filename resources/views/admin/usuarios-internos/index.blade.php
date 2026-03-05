@@ -19,9 +19,135 @@
         </a>
     </div>
 
+    {{-- Abas --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-4">
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.usuarios-internos.index', array_merge(request()->except('page'), ['aba' => 'usuarios'])) }}"
+               class="px-4 py-2 text-sm font-medium rounded-lg transition {{ $aba === 'usuarios' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100' }}">
+                Lista de usuários
+            </a>
+            <a href="{{ route('admin.usuarios-internos.index', ['aba' => 'atividade']) }}"
+               class="px-4 py-2 text-sm font-medium rounded-lg transition {{ $aba === 'atividade' ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100' }}">
+                Atividade no sistema
+            </a>
+        </div>
+    </div>
+
+    @if($aba === 'atividade')
+    {{-- Ranking de Atividade no Sistema --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-900">Usuários que mais fizeram ações no sistema</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Métricas: aprovou documentos, criou documentos, upload de documentos e ações em processos/estabelecimentos.</p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold">Top {{ $rankingAtividadeUsuarios->count() }}</span>
+        </div>
+
+        @if($rankingAtividadeUsuarios->isNotEmpty())
+            <div class="space-y-2">
+                @foreach($rankingAtividadeUsuarios as $index => $usuarioAtivo)
+                    <div class="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                    #{{ $index + 1 }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <a href="{{ route('admin.usuarios-internos.show', $usuarioAtivo->id) }}" class="text-sm font-semibold text-gray-900 hover:text-indigo-600 truncate">
+                                            {{ $usuarioAtivo->nome }}
+                                        </a>
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full {{ $usuarioAtivo->nivel_acesso->color() }}">
+                                            {{ $usuarioAtivo->nivel_acesso->label() }}
+                                        </span>
+                                        @if(!$usuarioAtivo->ativo)
+                                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-red-100 text-red-700">Inativo</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-1 flex flex-wrap gap-1.5">
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded">Criou docs: {{ $usuarioAtivo->documentos_criados_count }}</span>
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded">Aprovou docs: {{ $usuarioAtivo->documentos_aprovados_count }}</span>
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded">Uploads: {{ $usuarioAtivo->uploads_documentos_count }}</span>
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded">Ações processo: {{ $usuarioAtivo->acoes_processos_count }}</span>
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-pink-50 text-pink-700 rounded">Ações estabelecimento: {{ $usuarioAtivo->acoes_estabelecimentos_count }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <p class="text-[11px] text-gray-500">Total de ações</p>
+                                <p class="text-lg font-bold text-indigo-700">{{ $usuarioAtivo->total_acoes }}</p>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-6">
+                <p class="text-sm text-gray-500">Nenhuma ação registrada para os usuários dentro do seu escopo.</p>
+            </div>
+        @endif
+    </div>
+
+    {{-- Usuários sem atividade e sem login --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-900">Usuários sem nenhuma ação e sem login</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Usuários que nunca logaram e não possuem ações registradas.</p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">{{ $usuariosSemAtividadeSemLogin->count() }}</span>
+        </div>
+
+        @if($usuariosSemAtividadeSemLogin->isNotEmpty())
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nome</th>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nível</th>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($usuariosSemAtividadeSemLogin as $usuarioSemAtividade)
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-3 py-2 text-sm font-medium text-gray-900">{{ $usuarioSemAtividade->nome }}</td>
+                                <td class="px-3 py-2">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full {{ $usuarioSemAtividade->nivel_acesso->color() }}">
+                                        {{ $usuarioSemAtividade->nivel_acesso->label() }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2">
+                                    @if($usuarioSemAtividade->ativo)
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Ativo</span>
+                                    @else
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inativo</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    <a href="{{ route('admin.usuarios-internos.show', $usuarioSemAtividade->id) }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Visualizar</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="text-center py-6">
+                <p class="text-sm text-gray-500">Nenhum usuário sem ação e sem login no escopo atual.</p>
+            </div>
+        @endif
+    </div>
+    @endif
+
+    @if($aba === 'usuarios')
+
     {{-- Filtros --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
         <form method="GET" action="{{ route('admin.usuarios-internos.index') }}" class="space-y-4">
+            <input type="hidden" name="aba" value="usuarios">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {{-- Nome --}}
                 <div>
@@ -222,5 +348,6 @@
     <div class="mt-4 text-sm text-gray-600">
         Mostrando {{ $usuarios->firstItem() ?? 0 }} a {{ $usuarios->lastItem() ?? 0 }} de {{ $usuarios->total() }} usuários
     </div>
+    @endif
 </div>
 @endsection
