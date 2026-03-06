@@ -41,6 +41,13 @@ Route::post('/pesquisa-interna/responder', [\App\Http\Controllers\PesquisaPublic
     ->name('pesquisa.responder.interno')
     ->middleware('auth:interno');
 
+// Treinamentos - acesso público
+Route::get('/treinamentos/inscricao/{token}', [\App\Http\Controllers\TreinamentoPublicoController::class, 'inscricao'])->name('treinamentos.public.inscricao');
+Route::post('/treinamentos/inscricao/{token}', [\App\Http\Controllers\TreinamentoPublicoController::class, 'salvarInscricao'])->name('treinamentos.public.inscricao.salvar');
+Route::get('/treinamentos/pergunta/{token}', [\App\Http\Controllers\TreinamentoPublicoController::class, 'pergunta'])->name('treinamentos.public.pergunta');
+Route::post('/treinamentos/pergunta/{token}', [\App\Http\Controllers\TreinamentoPublicoController::class, 'responderPergunta'])->name('treinamentos.public.pergunta.responder');
+Route::get('/treinamentos/pergunta/{token}/obrigado', [\App\Http\Controllers\TreinamentoPublicoController::class, 'obrigado'])->name('treinamentos.public.pergunta.obrigado');
+
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação - Login Unificado
@@ -177,6 +184,33 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     Route::get('/dashboard/ordens-servico-vencidas', [DashboardController::class, 'ordensServicoVencidas'])->name('dashboard.ordens-servico-vencidas');
     Route::get('/dashboard/todas-tarefas', [DashboardController::class, 'todasTarefas'])->name('dashboard.todas-tarefas');
     Route::get('/dashboard/todas-tarefas-paginadas', [DashboardController::class, 'todasTarefasPaginadas'])->name('dashboard.todas-tarefas-paginadas');
+
+    // Treinamentos
+    Route::get('/treinamentos', [\App\Http\Controllers\Admin\TreinamentoController::class, 'index'])->name('treinamentos.index');
+    Route::get('/treinamentos/create', [\App\Http\Controllers\Admin\TreinamentoController::class, 'create'])->name('treinamentos.create');
+    Route::post('/treinamentos', [\App\Http\Controllers\Admin\TreinamentoController::class, 'store'])->name('treinamentos.store');
+    Route::get('/treinamentos/{evento}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'show'])->name('treinamentos.show');
+    Route::get('/treinamentos/{evento}/edit', [\App\Http\Controllers\Admin\TreinamentoController::class, 'edit'])->name('treinamentos.edit');
+    Route::put('/treinamentos/{evento}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'update'])->name('treinamentos.update');
+    Route::delete('/treinamentos/{evento}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'destroy'])->name('treinamentos.destroy');
+    Route::post('/treinamentos/{evento}/apresentacoes', [\App\Http\Controllers\Admin\TreinamentoController::class, 'storeApresentacao'])->name('treinamentos.apresentacoes.store');
+    Route::get('/treinamentos/apresentacoes/{apresentacao}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'showApresentacao'])->name('treinamentos.apresentacoes.show');
+    Route::put('/treinamentos/apresentacoes/{apresentacao}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'updateApresentacao'])->name('treinamentos.apresentacoes.update');
+    Route::delete('/treinamentos/apresentacoes/{apresentacao}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'destroyApresentacao'])->name('treinamentos.apresentacoes.destroy');
+    Route::get('/treinamentos/apresentacoes/{apresentacao}/slides/create', [\App\Http\Controllers\Admin\TreinamentoController::class, 'createSlide'])->name('treinamentos.slides.create');
+    Route::post('/treinamentos/apresentacoes/{apresentacao}/slides', [\App\Http\Controllers\Admin\TreinamentoController::class, 'storeSlide'])->name('treinamentos.slides.store');
+    Route::get('/treinamentos/slides/{slide}/edit', [\App\Http\Controllers\Admin\TreinamentoController::class, 'editSlide'])->name('treinamentos.slides.edit');
+    Route::put('/treinamentos/slides/{slide}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'updateSlide'])->name('treinamentos.slides.update');
+    Route::delete('/treinamentos/slides/{slide}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'destroySlide'])->name('treinamentos.slides.destroy');
+    Route::get('/treinamentos/slides/{slide}/perguntas/create', [\App\Http\Controllers\Admin\TreinamentoController::class, 'createPergunta'])->name('treinamentos.perguntas.create');
+    Route::post('/treinamentos/slides/{slide}/perguntas', [\App\Http\Controllers\Admin\TreinamentoController::class, 'storePergunta'])->name('treinamentos.perguntas.store');
+    Route::get('/treinamentos/perguntas/{pergunta}/edit', [\App\Http\Controllers\Admin\TreinamentoController::class, 'editPergunta'])->name('treinamentos.perguntas.edit');
+    Route::put('/treinamentos/perguntas/{pergunta}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'updatePergunta'])->name('treinamentos.perguntas.update');
+    Route::delete('/treinamentos/perguntas/{pergunta}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'destroyPergunta'])->name('treinamentos.perguntas.destroy');
+    Route::get('/treinamentos/apresentacoes/{apresentacao}/apresentar', [\App\Http\Controllers\Admin\TreinamentoController::class, 'apresentar'])->name('treinamentos.apresentacoes.apresentar');
+    Route::get('/treinamentos/perguntas/{pergunta}/resultados', [\App\Http\Controllers\Admin\TreinamentoController::class, 'resultadosPergunta'])->name('treinamentos.perguntas.resultados');
+    Route::get('/treinamentos/{evento}/relatorios/inscritos', [\App\Http\Controllers\Admin\TreinamentoController::class, 'relatorioInscritos'])->name('treinamentos.relatorios.inscritos');
+    Route::get('/treinamentos/{evento}/relatorios/respostas', [\App\Http\Controllers\Admin\TreinamentoController::class, 'relatorioRespostas'])->name('treinamentos.relatorios.respostas');
 
     // Meu Perfil
     Route::get('/perfil', [\App\Http\Controllers\PerfilController::class, 'index'])->name('perfil.index');
