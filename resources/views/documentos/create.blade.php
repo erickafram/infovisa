@@ -183,6 +183,10 @@
         @if(isset($osId) && $osId)
             <input type="hidden" name="os_id" value="{{ $osId }}">
         @endif
+
+        @if(isset($atividadeIndex) && $atividadeIndex !== null)
+            <input type="hidden" name="atividade_index" value="{{ $atividadeIndex }}">
+        @endif
         
         {{-- Campo hidden para a ação (rascunho ou finalizar) --}}
         <input type="hidden" name="acao" id="inputAcao" value="rascunho">
@@ -826,7 +830,7 @@ const tiposDocumentoData = {
 function buscaTecnicos() {
     return {
         busca: '',
-        assinaturasSelecionadas: [],
+        assinaturasSelecionadas: @json(collect(old('assinaturas', $assinaturasPreSelecionadas ?? []))->map(fn ($id) => (int) $id)->values()->all()),
         usuariosFiltrados: [
             @foreach($usuariosInternos as $usuario)
                 {

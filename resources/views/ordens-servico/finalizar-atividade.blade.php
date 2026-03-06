@@ -29,7 +29,7 @@
     </div>
 
     <div class="container-fluid px-4 py-6">
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-8xl mx-auto">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {{-- ========================================
@@ -84,12 +84,12 @@
                     </div>
 
                     {{-- Card: Execução --}}
-                    <form id="formFinalizarAtividade" method="POST" action="{{ route('admin.ordens-servico.finalizar-atividade', $ordemServico) }}">
+                    <form id="formFinalizarAtividade" method="POST" action="{{ route('admin.ordens-servico.finalizar-atividade', $ordemServico) }}" class="flex flex-col gap-6">
                         @csrf
                         <input type="hidden" name="atividade_index" value="{{ $atividadeIndex }}">
                         <input type="hidden" name="_from_page" value="1">
 
-                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden order-2">
                             <div class="px-6 py-4 border-b border-gray-100">
                                 <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +211,7 @@
 
                         {{-- Card: Documentos da OS --}}
                         @if($processosVinculadosOs->isNotEmpty())
-                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6">
+                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden order-1">
                             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                                 <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +222,7 @@
                                     <span class="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-700 rounded-full">{{ $documentosOs->count() }}</span>
                                     @endif
                                 </h3>
-                                <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}"
+                                          <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
                                    target="_blank"
                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,6 +237,15 @@
                                     @foreach($documentosOs as $docOs)
                                     @php
                                         $statusDocOs = $docOs->status;
+                                        $assinaturasObrigatoriasDocOs = $docOs->assinaturas->where('obrigatoria', true)->values();
+                                        $assinantesConcluidosDocOs = $assinaturasObrigatoriasDocOs->where('status', 'assinado');
+                                        $assinantesPendentesDocOs = $assinaturasObrigatoriasDocOs->where('status', '!=', 'assinado');
+                                        $docOsPossuiAssinaturaRealizada = $docOs->assinaturas->contains(fn($assinatura) => $assinatura->status === 'assinado');
+                                        $docOsAssinaturasTotais = $assinaturasObrigatoriasDocOs->count();
+                                        $docOsAssinaturasConcluidas = $assinantesConcluidosDocOs->count();
+                                        $docOsAssinaturasCompletas = $docOs->todasAssinaturasCompletas();
+                                        $docOsPodeEditar = $statusDocOs === 'rascunho'
+                                            || ($statusDocOs === 'aguardando_assinatura' && !$docOsPossuiAssinaturaRealizada);
                                         $statusDocOsBadge = match($statusDocOs) {
                                             'rascunho' => '<span class="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-600 rounded">Rascunho</span>',
                                             'aguardando_assinatura' => '<span class="px-2 py-0.5 text-[10px] font-semibold bg-yellow-100 text-yellow-700 rounded">Aguardando assinatura</span>',
@@ -264,6 +273,37 @@
                                                     <span class="text-xs text-gray-400">por {{ $docOs->usuarioCriador->nome }}</span>
                                                     @endif
                                                 </div>
+                                                <div class="mt-1">
+                                                    @if($docOsAssinaturasCompletas && $statusDocOs === 'assinado')
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 rounded px-2 py-0.5">
+                                                        Assinaturas concluídas: {{ $docOsAssinaturasConcluidas }}/{{ $docOsAssinaturasTotais }}
+                                                    </span>
+                                                    @elseif($docOsPodeEditar)
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                                                        Pendente de assinatura: {{ $docOsAssinaturasConcluidas }}/{{ $docOsAssinaturasTotais }} concluídas
+                                                    </span>
+                                                    @else
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                                                        Aguardando assinaturas finais: {{ $docOsAssinaturasConcluidas }}/{{ $docOsAssinaturasTotais }}
+                                                    </span>
+                                                    @endif
+                                                </div>
+                                                @if($assinaturasObrigatoriasDocOs->isNotEmpty())
+                                                <div class="mt-2 space-y-1">
+                                                    @if($assinantesConcluidosDocOs->isNotEmpty())
+                                                    <p class="text-[11px] text-green-700 leading-relaxed">
+                                                        <span class="font-semibold">Assinaram:</span>
+                                                        {{ $assinantesConcluidosDocOs->map(fn($assinatura) => $assinatura->usuarioInterno?->nome ?? 'Usuário removido')->implode(', ') }}
+                                                    </p>
+                                                    @endif
+                                                    @if($assinantesPendentesDocOs->isNotEmpty())
+                                                    <p class="text-[11px] text-amber-700 leading-relaxed">
+                                                        <span class="font-semibold">Faltam assinar:</span>
+                                                        {{ $assinantesPendentesDocOs->map(fn($assinatura) => $assinatura->usuarioInterno?->nome ?? 'Usuário removido')->implode(', ') }}
+                                                    </p>
+                                                    @endif
+                                                </div>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2 flex-shrink-0 ml-3">
@@ -276,14 +316,27 @@
                                     @endforeach
                                 </div>
 
+                                @if($documentosOsAssinadosCompletos->isNotEmpty())
                                 <div class="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
                                     <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                     </svg>
                                     <p class="text-sm font-medium text-green-800">
-                                        {{ $documentosOs->count() }} {{ $documentosOs->count() === 1 ? 'documento vinculado' : 'documentos vinculados' }} à OS. Pode finalizar a atividade.
+                                        {{ $documentosOsAssinadosCompletos->count() }} {{ $documentosOsAssinadosCompletos->count() === 1 ? 'documento já está totalmente assinado' : 'documentos já estão totalmente assinados' }}.
                                     </p>
                                 </div>
+                                @endif
+
+                                @if($documentosOsPendentesAssinatura->isNotEmpty())
+                                <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.591c.75 1.334-.213 2.99-1.742 2.99H3.48c-1.53 0-2.492-1.656-1.743-2.99L8.257 3.1zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-6a1 1 0 00-1 1v3a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <p class="text-sm font-medium text-amber-800">
+                                        {{ $documentosOsPendentesAssinatura->count() }} {{ $documentosOsPendentesAssinatura->count() === 1 ? 'documento ainda está pendente de assinatura' : 'documentos ainda estão pendentes de assinatura' }}. A atividade só será finalizada quando todos os assinantes concluírem.
+                                    </p>
+                                </div>
+                                @endif
                                 @else
                                 {{-- Sem documentos --}}
                                 <div class="text-center py-6">
@@ -296,7 +349,7 @@
                                     <p class="text-xs text-gray-500 mb-4 max-w-sm mx-auto">
                                         Nenhum documento foi criado para esta OS. Crie um documento ou confirme abaixo que não há documentos a serem criados.
                                     </p>
-                                    <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}"
+                                                <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
                                        target="_blank"
                                        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl hover:bg-indigo-100 transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +377,7 @@
                         @endif
 
                         {{-- Botões de ação --}}
-                        <div class="flex items-center justify-between gap-4 mt-6">
+                        <div class="flex items-center justify-between gap-4 order-3">
                             <a href="{{ route('admin.ordens-servico.show', $ordemServico) }}"
                                class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,10 +480,98 @@
         </div>
     </div>
 </div>
+
+@if(isset($pesquisaInterna) && $pesquisaInterna && $pesquisaInterna->perguntas->count() > 0)
+<div id="modalPesquisaInterna" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-full">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ $pesquisaInterna->titulo }}</h3>
+                    @if($pesquisaInterna->descricao)
+                        <p class="text-sm text-gray-500">{{ $pesquisaInterna->descricao }}</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <form id="formPesquisaInterna" class="px-6 py-4 space-y-5">
+            <input type="hidden" name="pesquisa_id" value="{{ $pesquisaInterna->id }}">
+            <input type="hidden" name="ordem_servico_id" value="{{ $ordemServico->id }}">
+
+            @foreach($pesquisaInterna->perguntas as $pi => $pergunta)
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">
+                    {{ $pi + 1 }}. {{ $pergunta->texto }}
+                    @if($pergunta->obrigatoria)
+                        <span class="text-red-500">*</span>
+                    @endif
+                </label>
+
+                @if($pergunta->tipo === 'escala_1_5')
+                <div class="flex items-center gap-2 flex-wrap">
+                    @php
+                        $labels = [1 => 'Muito ruim', 2 => 'Ruim', 3 => 'Regular', 4 => 'Bom', 5 => 'Ótimo'];
+                        $cores = [1 => '#ef4444', 2 => '#f97316', 3 => '#eab308', 4 => '#3b82f6', 5 => '#22c55e'];
+                    @endphp
+                    @foreach($labels as $nota => $label)
+                    <label class="cursor-pointer text-center" onclick="selecionarNotaInterna(this, {{ $pergunta->id }}, {{ $nota }}, '{{ $cores[$nota] }}')">
+                        <input type="radio" name="respostas[{{ $pergunta->id }}]" value="{{ $nota }}" class="hidden pergunta-interna-{{ $pergunta->id }}">
+                        <div class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm font-bold text-gray-500 transition-all nota-circulo-interna">
+                            {{ $nota }}
+                        </div>
+                        <span class="text-[9px] text-gray-500 mt-0.5 block">{{ $label }}</span>
+                    </label>
+                    @endforeach
+                </div>
+
+                @elseif($pergunta->tipo === 'multipla_escolha')
+                <div class="space-y-1.5">
+                    @foreach($pergunta->opcoes as $opcao)
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="respostas[{{ $pergunta->id }}]" value="{{ $opcao->texto }}" class="h-4 w-4 text-indigo-600">
+                        <span class="text-sm text-gray-700">{{ $opcao->texto }}</span>
+                    </label>
+                    @endforeach
+                </div>
+
+                @elseif($pergunta->tipo === 'texto_livre')
+                <textarea name="respostas[{{ $pergunta->id }}]" rows="2"
+                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Digite sua resposta..."></textarea>
+                @endif
+            </div>
+            @endforeach
+
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="fecharModalPesquisaInterna()"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="enviarPesquisaInterna()"
+                        id="btnEnviarPesquisaInterna"
+                        class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Enviar Pesquisa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
 <script>
+    let payloadFinalizacaoPendente = null;
+
     function aplicarPreset(texto) {
         const campo = document.getElementById('observacoes');
         if (!campo) return;
@@ -447,6 +588,139 @@
                 const textarea = wrap.querySelector('textarea');
                 if (textarea) textarea.value = '';
             }
+        }
+    }
+
+    function resetarBotaoFinalizarAtividade() {
+        const btnFinalizar = document.getElementById('btnFinalizar');
+        if (!btnFinalizar) return;
+
+        btnFinalizar.disabled = false;
+        btnFinalizar.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar Atividade';
+    }
+
+    function abrirModalPesquisaInterna() {
+        const modal = document.getElementById('modalPesquisaInterna');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalPesquisaInterna() {
+        const modal = document.getElementById('modalPesquisaInterna');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function selecionarNotaInterna(el, perguntaId, nota, cor) {
+        el.closest('.flex').querySelectorAll('.nota-circulo-interna').forEach(circulo => {
+            circulo.style.backgroundColor = '';
+            circulo.style.borderColor = '#d1d5db';
+            circulo.style.color = '#6b7280';
+        });
+
+        const circulo = el.querySelector('.nota-circulo-interna');
+        circulo.style.backgroundColor = cor;
+        circulo.style.borderColor = cor;
+        circulo.style.color = 'white';
+        el.querySelector('input[type=radio]').checked = true;
+    }
+
+    async function enviarPesquisaInterna() {
+        const form = document.getElementById('formPesquisaInterna');
+        const btn = document.getElementById('btnEnviarPesquisaInterna');
+
+        if (!form || !btn) {
+            return;
+        }
+
+        const formData = new FormData(form);
+
+        @if(isset($pesquisaInterna) && $pesquisaInterna)
+            @foreach($pesquisaInterna->perguntas as $pergunta)
+                @if($pergunta->obrigatoria)
+                {
+                    const val = formData.get('respostas[{{ $pergunta->id }}]');
+                    if (!val || val.trim() === '') {
+                        alert('Por favor, responda a pergunta: "{{ addslashes($pergunta->texto) }}"');
+                        return;
+                    }
+                }
+                @endif
+            @endforeach
+        @endif
+
+        const respostas = {};
+        for (const [key, value] of formData.entries()) {
+            const match = key.match(/respostas\[(\d+)\]/);
+            if (match) {
+                respostas[match[1]] = value;
+            }
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...';
+
+        try {
+            const response = await fetch('{{ route("pesquisa.responder.interno") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pesquisa_id: formData.get('pesquisa_id'),
+                    ordem_servico_id: formData.get('ordem_servico_id'),
+                    respostas: respostas,
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao enviar pesquisa.');
+            }
+
+            fecharModalPesquisaInterna();
+
+            if (!payloadFinalizacaoPendente) {
+                window.location.reload();
+                return;
+            }
+
+            const payload = payloadFinalizacaoPendente;
+            payloadFinalizacaoPendente = null;
+
+            const responseFinalizar = await fetch('{{ route("admin.ordens-servico.finalizar-atividade", $ordemServico) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const dataFinalizar = await responseFinalizar.json();
+
+            if (responseFinalizar.ok) {
+                if (dataFinalizar.os_finalizada) {
+                    alert('A Ordem de Serviço foi encerrada automaticamente pois todas as atividades foram concluídas!');
+                } else {
+                    alert('Atividade finalizada com sucesso!');
+                }
+                window.location.href = '{{ route("admin.ordens-servico.show", $ordemServico) }}';
+                return;
+            }
+
+            throw new Error(dataFinalizar.message || 'Erro ao finalizar atividade após responder a pesquisa.');
+        } catch (error) {
+            alert(error.message || 'Erro ao enviar pesquisa. Tente novamente.');
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Enviar Pesquisa';
+            resetarBotaoFinalizarAtividade();
         }
     }
 
@@ -501,6 +775,14 @@
             return;
         }
 
+        const documentosPendentesAssinatura = {{ $documentosOsPendentesAssinatura->count() ?? 0 }};
+        if (documentosPendentesAssinatura > 0) {
+            alert(documentosPendentesAssinatura === 1
+                ? 'A atividade só pode ser finalizada quando o documento da OS estiver com todas as assinaturas concluídas.'
+                : 'A atividade só pode ser finalizada quando todos os documentos da OS estiverem com todas as assinaturas concluídas.');
+            return;
+        }
+
         // Bloqueia botão
         btnFinalizar.disabled = true;
         btnFinalizar.innerHTML = '<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Finalizando...';
@@ -551,19 +833,25 @@
                 }
                 window.location.href = '{{ route("admin.ordens-servico.show", $ordemServico) }}';
             } else if (data.survey_required) {
-                alert('Para finalizar a atividade, é obrigatório responder a pesquisa de satisfação. Acesse a OS para respondê-la.');
-                window.location.href = '{{ route("admin.ordens-servico.show", $ordemServico) }}';
+                payloadFinalizacaoPendente = payload;
+                const modalPesquisa = document.getElementById('modalPesquisaInterna');
+
+                if (modalPesquisa) {
+                    abrirModalPesquisaInterna();
+                } else {
+                    alert('A pesquisa obrigatória não foi carregada na tela. Recarregue a página e tente novamente.');
+                }
+
+                resetarBotaoFinalizarAtividade();
             } else {
                 alert(data.message || 'Erro ao finalizar atividade.');
-                btnFinalizar.disabled = false;
-                btnFinalizar.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar Atividade';
+                resetarBotaoFinalizarAtividade();
             }
         })
         .catch((error) => {
             console.error('Erro:', error);
             alert('Erro ao finalizar atividade. Tente novamente.');
-            btnFinalizar.disabled = false;
-            btnFinalizar.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Finalizar Atividade';
+            resetarBotaoFinalizarAtividade();
         });
     });
 
@@ -579,5 +867,12 @@
             }
         });
     }
+
+    document.getElementById('modalPesquisaInterna')?.addEventListener('click', function (e) {
+        if (e.target === this) {
+            fecharModalPesquisaInterna();
+            resetarBotaoFinalizarAtividade();
+        }
+    });
 </script>
 @endpush

@@ -38,6 +38,7 @@ class DocumentoDigital extends Model
         'prazo_finalizado_motivo',
         'processos_ids',
         'os_id',
+        'atividade_index',
     ];
 
     protected $casts = [
@@ -50,6 +51,7 @@ class DocumentoDigital extends Model
         'prazo_iniciado_em' => 'datetime',
         'prazo_finalizado_em' => 'datetime',
         'processos_ids' => 'array',
+        'atividade_index' => 'integer',
     ];
 
     /**

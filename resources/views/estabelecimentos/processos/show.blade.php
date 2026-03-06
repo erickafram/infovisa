@@ -1113,6 +1113,24 @@
                                                             Visto
                                                         </span>
                                                     @endif
+
+                                                    @if($docDigital->primeiraVisualizacao && $docDigital->temPrazo() && !$docDigital->isPrazoFinalizado())
+                                                        @php
+                                                            $classesCorPrazo = [
+                                                                'red' => 'bg-red-100 text-red-700',
+                                                                'yellow' => 'bg-amber-100 text-amber-700',
+                                                                'green' => 'bg-green-100 text-green-700',
+                                                                'blue' => 'bg-blue-100 text-blue-700',
+                                                                'gray' => 'bg-gray-100 text-gray-600',
+                                                            ];
+                                                            $classePrazoDocumento = $classesCorPrazo[$docDigital->cor_status_prazo] ?? $classesCorPrazo['gray'];
+                                                        @endphp
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold {{ $classePrazoDocumento }}"
+                                                              title="Prazo do documento{{ $docDigital->data_vencimento ? ' até ' . $docDigital->data_vencimento->format('d/m/Y') : '' }}">
+                                                            <i class="far fa-clock" style="font-size: 10px;"></i>
+                                                            {{ $docDigital->texto_status_prazo }}
+                                                        </span>
+                                                    @endif
                                                 </div>
 
                                                 @if($statusGeral === 'aguardando_assinatura')
@@ -1140,6 +1158,20 @@
                                         
                                         {{-- DIREITA: Opções --}}
                                         <div class="flex items-center gap-0.5 flex-shrink-0">
+                                            @php
+                                                $visualizarPrimeiro = in_array($docDigital->status, ['rascunho', 'aguardando_assinatura'], true);
+                                            @endphp
+
+                                            @if($visualizarPrimeiro)
+                                                {{-- Botão Visualizar Documento (disponível em qualquer status, inclusive rascunho) --}}
+                                                <button type="button"
+                                                        @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                        title="Visualizar documento">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                </button>
+                                            @endif
+
                                             {{-- Botão Editar (se pode editar) --}}
                                             @if($docDigital->podeEditar())
                                                 <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" 
@@ -1149,13 +1181,15 @@
                                                 </a>
                                             @endif
 
-                                            {{-- Botão Visualizar Documento (disponível em qualquer status, inclusive rascunho) --}}
-                                            <button type="button"
-                                                    @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true"
-                                                    class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                                    title="Visualizar documento">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                            </button>
+                                            @if(!$visualizarPrimeiro)
+                                                {{-- Botão Visualizar Documento (disponível em qualquer status, inclusive rascunho) --}}
+                                                <button type="button"
+                                                        @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                                        title="Visualizar documento">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                </button>
+                                            @endif
 
                                             {{-- Botão Assinar --}}
                                             @if($usuarioPrecisaAssinar)
@@ -1163,7 +1197,12 @@
                                                    @click="abrirModalAssinar({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ $assinaturaUsuario->ordem }}', {{ json_encode($docDigital->assinaturas->map(fn($a) => ['nome' => $a->usuarioInterno->nome ?? 'Usuário', 'status' => $a->status, 'ordem' => $a->ordem, 'isCurrentUser' => $a->usuario_interno_id === auth('interno')->id()])->sortBy('ordem')->values()) }})"
                                                    class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                    title="Assinar documento">
-                                                    <i class="fas fa-file-signature fa-fw text-gray-500" style="font-size: 15px;"></i>
+                                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 3v5h5"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 16c1.2-1.6 2.4-2.4 3.7-2.4.8 0 1.2.4 1.8 1 .6.6 1 .9 1.7.9.6 0 1.1-.2 1.8-.7"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 19h8"/>
+                                                    </svg>
                                                 </button>
                                             @endif
                                             

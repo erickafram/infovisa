@@ -1693,7 +1693,34 @@ class OrdemServicoController extends Controller
             $processosVinculadosOs = collect([(int) $ordemServico->processo_id]);
         }
 
-        $documentosOs = $ordemServico->documentosDigitais->sortByDesc('created_at');
+        $documentosOs = $ordemServico->documentosDigitais
+            ->where('atividade_index', $atividadeIndex)
+            ->sortByDesc('created_at')
+            ->values();
+        $documentosOsComAssinatura = $documentosOs->filter(function ($documento) {
+            return $documento->assinaturas->contains(function ($assinatura) {
+                return $assinatura->status === 'assinado';
+            });
+        });
+        $documentosOsAssinadosCompletos = $documentosOs->filter(function ($documento) {
+            return $documento->status === 'assinado' && $documento->todasAssinaturasCompletas();
+        });
+        $documentosOsPendentesAssinatura = $documentosOs->filter(function ($documento) {
+            return $documento->status !== 'assinado' || !$documento->todasAssinaturasCompletas();
+        });
+        $documentosOsEditaveis = $documentosOs->filter(function ($documento) {
+            if ($documento->status === 'rascunho') {
+                return true;
+            }
+
+            if ($documento->status !== 'aguardando_assinatura') {
+                return false;
+            }
+
+            return !$documento->assinaturas->contains(function ($assinatura) {
+                return $assinatura->status === 'assinado';
+            });
+        });
 
         // Tecnicos
         $tecnicos = \App\Models\UsuarioInterno::whereIn('id', $tecnicosAtividade)->get();
@@ -1735,6 +1762,10 @@ class OrdemServicoController extends Controller
             'isMultiEstabelecimento',
             'processosVinculadosOs',
             'documentosOs',
+            'documentosOsComAssinatura',
+            'documentosOsAssinadosCompletos',
+            'documentosOsPendentesAssinatura',
+            'documentosOsEditaveis',
             'tecnicos',
             'responsavel',
             'pesquisaInterna',
@@ -1815,6 +1846,28 @@ class OrdemServicoController extends Controller
                 'survey_required' => true,
                 'message' => 'Para finalizar a atividade, é obrigatório responder a pesquisa de satisfação.'
             ], 422);
+        }
+
+        $documentosOs = $ordemServico->documentosDigitais()
+            ->where('atividade_index', $atividadeIndex)
+            ->with('assinaturas')
+            ->get();
+
+        if ($documentosOs->isNotEmpty()) {
+            $documentosPendentesAssinatura = $documentosOs->filter(function ($documento) {
+                return $documento->status !== 'assinado' || !$documento->todasAssinaturasCompletas();
+            });
+
+            if ($documentosPendentesAssinatura->isNotEmpty()) {
+                $quantidadePendentes = $documentosPendentesAssinatura->count();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $quantidadePendentes === 1
+                        ? 'A atividade só pode ser finalizada quando o documento vinculado à OS estiver com todas as assinaturas concluídas.'
+                        : 'A atividade só pode ser finalizada quando todos os documentos vinculados à OS estiverem com todas as assinaturas concluídas.'
+                ], 422);
+            }
         }
 
         // Determina os estabelecimentos afetados pela atividade
@@ -1932,10 +1985,14 @@ class OrdemServicoController extends Controller
         }
 
         // Registra informação sobre documentos da OS
-        $temDocumentosOs = $ordemServico->documentosDigitais()->exists();
+        $temDocumentosOs = $ordemServico->documentosDigitais()
+            ->where('atividade_index', $atividadeIndex)
+            ->exists();
         if ($temDocumentosOs) {
             $atividades[$atividadeIndex]['tem_documentos_os'] = true;
-            $atividades[$atividadeIndex]['qtd_documentos_os'] = $ordemServico->documentosDigitais()->count();
+            $atividades[$atividadeIndex]['qtd_documentos_os'] = $ordemServico->documentosDigitais()
+                ->where('atividade_index', $atividadeIndex)
+                ->count();
         } elseif ($request->boolean('confirmou_sem_documentos')) {
             $atividades[$atividadeIndex]['confirmou_sem_documentos'] = true;
             $atividades[$atividadeIndex]['confirmou_sem_documentos_por'] = $usuario->id;

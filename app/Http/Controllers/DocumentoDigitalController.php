@@ -179,8 +179,24 @@ class DocumentoDigitalController extends Controller
         $logomarca = $this->determinarLogomarca($processo, $usuarioLogado);
 
         $osId = $request->get('os_id');
+        $atividadeIndex = $request->get('atividade_index');
+        $assinaturasPreSelecionadas = [];
 
-        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId', 'pastasProcesso'));
+        if ($osId && $atividadeIndex !== null) {
+            $ordemServico = \App\Models\OrdemServico::select(['id', 'atividades_tecnicos'])->find($osId);
+            $atividades = $ordemServico?->atividades_tecnicos ?? [];
+
+            if (isset($atividades[$atividadeIndex]) && is_array($atividades[$atividadeIndex])) {
+                $assinaturasPreSelecionadas = collect($atividades[$atividadeIndex]['tecnicos'] ?? [])
+                    ->map(fn ($id) => (int) $id)
+                    ->filter(fn ($id) => $id > 0)
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId', 'atividadeIndex', 'assinaturasPreSelecionadas', 'pastasProcesso'));
     }
 
     /**
@@ -265,7 +281,10 @@ class DocumentoDigitalController extends Controller
             'processos_ids.*' => 'exists:processos,id',
             'pasta_id' => 'nullable|integer',
             'os_id' => 'nullable|exists:ordens_servico,id',
+            'atividade_index' => 'nullable|integer|min:0',
         ]);
+
+        $retornoParaFinalizacaoAtividade = $request->filled('os_id') && $request->filled('atividade_index');
 
         $processosIds = collect($request->input('processos_ids', []))
             ->map(fn($id) => (int) $id)
@@ -354,6 +373,7 @@ class DocumentoDigitalController extends Controller
                     'pasta_id'          => $pastaId,
                     'processos_ids'     => $processosIds->all(),
                     'os_id'             => $request->os_id,
+                    'atividade_index'   => $request->atividade_index,
                     'usuario_criador_id' => Auth::guard('interno')->user()->id,
                     'numero_documento'  => DocumentoDigital::gerarNumeroDocumento(),
                     'nome'              => $tipoDocumento->nome,
@@ -386,6 +406,16 @@ class DocumentoDigitalController extends Controller
 
                 $msgProcessos = $processosDestino->pluck('numero_processo')->implode(', ');
 
+                if ($retornoParaFinalizacaoAtividade) {
+                    return redirect()->route('admin.ordens-servico.show-finalizar-atividade', [
+                        'ordemServico' => $request->os_id,
+                        'atividadeIndex' => $request->atividade_index,
+                    ])->with('success', "Documento criado para {$processosDestino->count()} processos ({$msgProcessos}). " .
+                        ($documento->status === 'rascunho'
+                            ? 'Está como rascunho e você voltou para a finalização da atividade.'
+                            : 'Documento finalizado e você voltou para a finalização da atividade.'));
+                }
+
                 if ($request->os_id) {
                     return redirect()->route('admin.ordens-servico.show', $request->os_id)
                         ->with('success', "Documento criado para {$processosDestino->count()} processos ({$msgProcessos}). " .
@@ -417,6 +447,7 @@ class DocumentoDigitalController extends Controller
                     'processo_id' => $processoDestino?->id,
                     'pasta_id' => $pastaId,
                     'os_id' => $request->os_id,
+                    'atividade_index' => $request->atividade_index,
                     'usuario_criador_id' => Auth::guard('interno')->user()->id,
                     'numero_documento' => DocumentoDigital::gerarNumeroDocumento(),
                     'nome' => $tipoDocumento->nome,
@@ -457,6 +488,15 @@ class DocumentoDigitalController extends Controller
             }
 
             DB::commit();
+
+            if ($retornoParaFinalizacaoAtividade) {
+                return redirect()->route('admin.ordens-servico.show-finalizar-atividade', [
+                    'ordemServico' => $request->os_id,
+                    'atividadeIndex' => $request->atividade_index,
+                ])->with('success', $documentosCriados->count() > 1
+                    ? "{$documentosCriados->count()} documentos criados com sucesso para os processos selecionados!"
+                    : 'Documento criado com sucesso!');
+            }
 
             if ($request->os_id) {
                 return redirect()->route('admin.ordens-servico.show', $request->os_id)

@@ -5,6 +5,13 @@
 @section('content')
 <div class="min-h-screen bg-gray-50">
     <div class="max-w-8xl mx-auto px-4 py-6">
+        @php
+            $documentoPodeEditar = $documento->podeEditar();
+            $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
+            $totalAssinaturas = $documento->assinaturas->count();
+            $totalAssinaturasFeitas = $documento->assinaturas->where('status', 'assinado')->count();
+        @endphp
+
         {{-- Header --}}
         <div class="mb-4">
             <div class="flex items-center gap-2 text-xs text-gray-600 mb-2">
@@ -49,6 +56,63 @@
 
             {{-- Informações do Documento --}}
             <div class="p-5 border-b border-gray-200 bg-gray-50">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Situação</p>
+                        <p class="mt-1 text-sm font-semibold text-gray-900">
+                            @if($documento->status === 'rascunho')
+                                Rascunho em edição
+                            @elseif($documento->status === 'aguardando_assinatura')
+                                Aguardando assinaturas
+                            @else
+                                Documento finalizado
+                            @endif
+                        </p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            {{ $documentoPodeEditar ? 'Ainda pode ser editado.' : 'Edição bloqueada.' }}
+                        </p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Assinaturas</p>
+                        <p class="mt-1 text-sm font-semibold text-gray-900">{{ $totalAssinaturasFeitas }}/{{ $totalAssinaturas }} concluídas</p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            {{ $temAssinaturaFeita ? 'Já existe assinatura realizada.' : 'Ninguém assinou ainda.' }}
+                        </p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Ações</p>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <button type="button"
+                                    onclick="abrirModalVisualizacao()"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                Visualizar
+                            </button>
+                            @if($documentoPodeEditar)
+                                <a href="{{ route('admin.documentos.edit', $documento->id) }}"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    Editar Documento
+                                </a>
+                            @endif
+                            @if($documento->status !== 'rascunho' && $documento->arquivo_pdf)
+                                <a href="{{ route('admin.documentos.pdf', $documento->id) }}"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Baixar PDF
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {{-- Processo --}}
                     @if($documento->processo)
@@ -174,43 +238,25 @@
                 </div>
                 @endif
             </div>
-            @if($documento->status === 'rascunho')
-            <div class="p-5">
-                <h2 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Conteúdo (Rascunho)
-                </h2>
-                <div class="prose prose-sm max-w-none border p-4 rounded bg-white shadow-sm">
-                    {!! $documento->conteudo !!}
-                </div>
-            </div>
-            @else
-            <div class="p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-5 border-t border-gray-100 bg-white">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h2 class="text-base font-semibold text-gray-900">Documento resumido</h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Use os botões acima para visualizar em popup ou editar diretamente quando ainda não houver assinatura realizada.
+                        </p>
+                    </div>
+                    <button type="button"
+                            onclick="abrirModalVisualizacao()"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
-                        Visualização do Documento
-                    </h2>
-                    <a href="{{ route('admin.documentos.pdf', $documento->id) }}" target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                        </svg>
-                        Abrir em nova aba
-                    </a>
-                </div>
-                <div class="border border-gray-300 rounded-lg overflow-hidden bg-gray-100 shadow-inner">
-                    <iframe src="{{ route('admin.documentos.visualizar-pdf', $documento->id) }}" 
-                            class="w-full h-[800px]" 
-                            frameborder="0">
-                    </iframe>
+                        Visualizar Documento
+                    </button>
                 </div>
             </div>
-            @endif
 
             {{-- Assinaturas --}}
             @if($documento->assinaturas->count() > 0)
@@ -223,7 +269,6 @@
                             Assinaturas Digitais
                         </h2>
                         @php
-                            $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
                             $usuarioEhAdmin = auth('interno')->user()?->isAdmin() ?? false;
                         @endphp
                         @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
@@ -318,12 +363,51 @@
                 </a>
             @endif
 
-            {{-- Botão Editar Rascunho (se for rascunho) --}}
-            @if($documento->status === 'rascunho' && $documento->usuario_criador_id === auth('interno')->id())
+            {{-- Botão Editar Documento --}}
+            @if($documentoPodeEditar)
                 <a href="{{ route('admin.documentos.edit', $documento->id) }}" 
                    class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md">
-                    Editar Rascunho
+                    Editar Documento
                 </a>
+            @endif
+
+            <button type="button"
+                    onclick="abrirModalVisualizacao()"
+                    class="px-5 py-2.5 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                Visualizar
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal para Visualização do Documento --}}
+<div id="modalVisualizacaoDocumento" class="hidden fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50">
+    <div class="relative mx-auto my-6 w-11/12 max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">{{ $documento->nome ?? $documento->tipoDocumento->nome }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ $documento->numero_documento }}</p>
+            </div>
+            <button type="button" onclick="fecharModalVisualizacao()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="bg-white max-h-[82vh] overflow-y-auto">
+            @if($documento->status === 'rascunho')
+                <div class="p-6">
+                    <div class="prose prose-sm max-w-none border border-gray-200 p-4 rounded-xl bg-white shadow-sm">
+                        {!! $documento->conteudo !!}
+                    </div>
+                </div>
+            @else
+                <div class="border-t border-gray-100 bg-gray-100">
+                    <iframe src="{{ route('admin.documentos.visualizar-pdf', $documento->id) }}"
+                            class="w-full h-[82vh]"
+                            frameborder="0"></iframe>
+                </div>
             @endif
         </div>
     </div>
@@ -397,6 +481,16 @@
 </div>
 
 <script>
+function abrirModalVisualizacao() {
+    document.getElementById('modalVisualizacaoDocumento').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function fecharModalVisualizacao() {
+    document.getElementById('modalVisualizacaoDocumento').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
 function abrirModalGerenciarAssinantes() {
     document.getElementById('modalGerenciarAssinantes').classList.remove('hidden');
 }
@@ -461,6 +555,19 @@ function removerAssinante(assinaturaId) {
 // Fechar modal ao clicar fora
 document.getElementById('modalGerenciarAssinantes')?.addEventListener('click', function(e) {
     if (e.target === this) {
+        fecharModalGerenciarAssinantes();
+    }
+});
+
+document.getElementById('modalVisualizacaoDocumento')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalVisualizacao();
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fecharModalVisualizacao();
         fecharModalGerenciarAssinantes();
     }
 });
