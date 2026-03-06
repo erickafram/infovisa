@@ -565,12 +565,6 @@ class DocumentoDigitalController extends Controller
                 ->with('error', 'Este documento já possui assinaturas e não pode mais ser editado.');
         }
 
-        // Se o documento estava finalizado (aguardando_assinatura) e ninguém assinou,
-        // reverte para rascunho para permitir a edição
-        if ($documento->status === 'aguardando_assinatura') {
-            $documento->update(['status' => 'rascunho']);
-        }
-
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
         
         // Busca usuários internos do mesmo município do usuário logado
@@ -644,6 +638,12 @@ class DocumentoDigitalController extends Controller
 
                 $pastaId = (int) $request->pasta_id;
             }
+        }
+
+        if ($documento->status !== 'rascunho' && $request->acao !== 'finalizar') {
+            return back()->withErrors([
+                'acao' => 'Este documento já foi finalizado para assinatura. Ao editar, ele só pode ser salvo mantendo o fluxo de assinatura.',
+            ])->withInput();
         }
 
         try {

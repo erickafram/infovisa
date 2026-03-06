@@ -1135,18 +1135,18 @@
 
                                                 @if($statusGeral === 'aguardando_assinatura')
                                                     <div class="mt-1 space-y-1">
-                                                        <p class="text-[11px] text-gray-600">
+                                                        <p class="text-[10px] text-gray-600 leading-tight">
                                                             <span class="font-semibold text-green-700">Assinaram:</span>
                                                             @if($assinaturasRealizadasLista->count() > 0)
-                                                                {{ $assinaturasRealizadasLista->map(fn($ass) => Str::words($ass->usuarioInterno->nome ?? 'Usuário', 2, ''))->implode(', ') }}
+                                                                {{ $assinaturasRealizadasLista->map(fn($ass) => Str::upper($ass->usuarioInterno->nome ?? 'Usuário'))->implode(', ') }}
                                                             @else
                                                                 <span class="text-gray-400">ninguém ainda</span>
                                                             @endif
                                                         </p>
-                                                        <p class="text-[11px] text-orange-700">
+                                                        <p class="text-[10px] text-orange-700 leading-tight">
                                                             <span class="font-semibold">Faltam assinar:</span>
                                                             @if($assinaturasPendentesLista->count() > 0)
-                                                                {{ $assinaturasPendentesLista->map(fn($ass) => Str::words($ass->usuarioInterno->nome ?? 'Usuário', 2, ''))->implode(', ') }}
+                                                                {{ $assinaturasPendentesLista->map(fn($ass) => Str::upper($ass->usuarioInterno->nome ?? 'Usuário'))->implode(', ') }}
                                                             @else
                                                                 <span class="text-gray-400">nenhum</span>
                                                             @endif
