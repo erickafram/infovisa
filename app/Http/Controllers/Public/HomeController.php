@@ -47,8 +47,8 @@ class HomeController extends Controller
                 $statusDocs = $this->verificarDocumentosObrigatorios($processo, $tipo);
                 
                 if ($statusDocs['completo']) {
-                    $dataReferencia = $statusDocs['data_ultimo_aprovado'] ?? $processo->created_at;
-                    $dataRef = Carbon::parse($dataReferencia);
+                    $dataDocumentosCompletos = $statusDocs['data_ultimo_aprovado'] ?? $processo->created_at;
+                    $dataRef = $processo->getDataReferenciaFilaPublica($dataDocumentosCompletos);
                     $hoje = Carbon::now();
                     $tempoTotalSegundos = max(0, $dataRef->diffInSeconds($hoje) - $processo->getTempoTotalParadoConsiderandoParadaAtual());
                     
@@ -72,7 +72,8 @@ class HomeController extends Controller
                             'Não vinculado',
                         'status' => $processo->status,
                         'data_abertura' => Carbon::parse($processo->created_at)->format('d/m/Y H:i'),
-                        'data_documentos_completos' => $dataRef->format('d/m/Y H:i'),
+                        'data_documentos_completos' => Carbon::parse($dataDocumentosCompletos)->format('d/m/Y H:i'),
+                        'data_referencia_prazo' => $dataRef->format('d/m/Y H:i'),
                         'dias_decorridos' => $dias,
                         'horas_decorridas' => $horas,
                         'tempo_formatado' => $dias > 0 ? "{$dias}d {$horas}h" : "{$horas}h",
@@ -80,13 +81,15 @@ class HomeController extends Controller
                         'dias_restantes' => $diasRestantes,
                         'atrasado' => $prazo ? $diasRestantes < 0 : false,
                         'pausado' => $processo->status === 'parado',
+                        'prazo_reiniciado' => $processo->prazoFilaPublicaFoiReiniciado($dataDocumentosCompletos),
+                        'data_referencia_prazo_sort' => $dataRef->timestamp,
                     ];
                 }
             }
 
-            // Ordena por data de documentos completos (mais antigo primeiro) e adiciona posição
+            // Ordena pela referência atual do prazo (mais antiga primeiro) e adiciona posição
             usort($processosAptos, function($a, $b) {
-                return strcmp($a['data_documentos_completos'], $b['data_documentos_completos']);
+                return $a['data_referencia_prazo_sort'] <=> $b['data_referencia_prazo_sort'];
             });
             
             foreach ($processosAptos as $index => &$proc) {

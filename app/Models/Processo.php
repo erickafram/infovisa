@@ -39,6 +39,7 @@ class Processo extends Model
         'data_parada',
         'usuario_parada_id',
         'tempo_total_parado_segundos',
+        'prazo_fila_publica_reiniciado_em',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class Processo extends Model
         'data_arquivamento' => 'datetime',
         'data_parada' => 'datetime',
         'tempo_total_parado_segundos' => 'integer',
+        'prazo_fila_publica_reiniciado_em' => 'datetime',
         'responsavel_desde' => 'datetime',
         'prazo_atribuicao' => 'date',
         'responsavel_ciente_em' => 'datetime',
@@ -87,9 +89,53 @@ class Processo extends Model
         return max(0, now()->getTimestamp() - $this->data_parada->getTimestamp());
     }
 
+    public function getPrazoFilaPublicaReiniciadoEmEfetivo(): ?Carbon
+    {
+        if ($this->prazo_fila_publica_reiniciado_em) {
+            return $this->prazo_fila_publica_reiniciado_em->copy();
+        }
+
+        $ultimoReinicio = $this->eventos()
+            ->where('tipo_evento', 'processo_reiniciado')
+            ->latest('created_at')
+            ->value('created_at');
+
+        return $ultimoReinicio ? Carbon::parse($ultimoReinicio) : null;
+    }
+
+    public function getDataReferenciaFilaPublica($dataReferencia): Carbon
+    {
+        $dataBase = $dataReferencia instanceof Carbon
+            ? $dataReferencia->copy()
+            : Carbon::parse($dataReferencia);
+
+        $dataReinicio = $this->getPrazoFilaPublicaReiniciadoEmEfetivo();
+
+        if ($dataReinicio && $dataReinicio->greaterThan($dataBase)) {
+            return $dataReinicio;
+        }
+
+        return $dataBase;
+    }
+
+    public function prazoFilaPublicaFoiReiniciado($dataReferencia): bool
+    {
+        $dataBase = $dataReferencia instanceof Carbon
+            ? $dataReferencia->copy()
+            : Carbon::parse($dataReferencia);
+
+        $dataReinicio = $this->getPrazoFilaPublicaReiniciadoEmEfetivo();
+
+        return $dataReinicio !== null && $dataReinicio->greaterThan($dataBase);
+    }
+
     public function getTempoTotalParadoConsiderandoParadaAtual(): int
     {
         $tempoTotal = (int) ($this->tempo_total_parado_segundos ?? 0);
+
+        if (!$this->prazo_fila_publica_reiniciado_em && $this->getPrazoFilaPublicaReiniciadoEmEfetivo()) {
+            $tempoTotal = 0;
+        }
 
         if ($this->status === 'parado' && $this->data_parada) {
             $tempoTotal += $this->getSegundosParadaAtual();
@@ -100,7 +146,7 @@ class Processo extends Model
 
     public function calcularDataLimiteFilaPublica($dataReferencia, int $prazoDias): Carbon
     {
-        return Carbon::parse($dataReferencia)
+        return $this->getDataReferenciaFilaPublica($dataReferencia)
             ->addDays($prazoDias)
             ->addSeconds($this->getTempoTotalParadoConsiderandoParadaAtual());
     }

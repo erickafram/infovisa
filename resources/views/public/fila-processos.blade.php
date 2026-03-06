@@ -213,7 +213,7 @@
                         <h4 class="text-sm font-bold text-gray-900 mb-1">Como funciona a fila?</h4>
                         <p class="text-xs text-gray-700 leading-relaxed">
                             O processo entra na fila <strong>após todos os documentos obrigatórios serem enviados e aprovados</strong>. 
-                            A contagem do prazo inicia a partir da aprovação do último documento obrigatório.
+                            A contagem do prazo inicia a partir da aprovação do último documento obrigatório ou do reinício do processo, quando houver.
                         </p>
                     </div>
                 </div>
@@ -262,8 +262,8 @@
                                         Status
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        <div class="flex items-center gap-1" title="Data em que todos os documentos obrigatórios foram aprovados">
-                                            Docs Completos
+                                        <div class="flex items-center gap-1" title="Data usada atualmente para a contagem do prazo">
+                                            Referência do Prazo
                                             <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
@@ -322,7 +322,10 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                                        {{ $processo['data_documentos_completos'] }}
+                                        {{ $processo['data_referencia_prazo'] }}
+                                        @if($processo['prazo_reiniciado'])
+                                            <div class="text-[11px] text-blue-600 mt-1">Prazo reiniciado</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="text-xs font-medium {{ $processo['pausado'] ? 'text-amber-700' : ($processo['atrasado'] ? 'text-red-600' : 'text-gray-900') }}">

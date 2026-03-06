@@ -434,6 +434,7 @@ class ProcessoController extends Controller
                     
                     if ($dataDocumentosCompletos) {
                         $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                        $dataReferenciaPrazo = $processo->getDataReferenciaFilaPublica($dataDocumentosCompletos);
                         $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocumentosCompletos, $prazo);
                         $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
                         
@@ -442,6 +443,8 @@ class ProcessoController extends Controller
                             'dias_restantes' => $diasRestantes,
                             'atrasado' => $diasRestantes < 0,
                             'pausado' => $processo->status === 'parado',
+                            'prazo_reiniciado' => $processo->prazoFilaPublicaFoiReiniciado($dataDocumentosCompletos),
+                            'data_referencia_prazo' => $dataReferenciaPrazo,
                         ];
                     }
                 }
@@ -1013,6 +1016,7 @@ class ProcessoController extends Controller
             
             if ($todosAprovados && $dataDocumentosCompletos) {
                 $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                $dataReferenciaPrazo = $processo->getDataReferenciaFilaPublica($dataDocumentosCompletos);
                 $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocumentosCompletos, $prazo);
                 $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
                 $atrasado = $diasRestantes < 0;
@@ -1020,10 +1024,12 @@ class ProcessoController extends Controller
                 $avisoFilaPublica = [
                     'prazo' => $prazo,
                     'data_documentos_completos' => $dataDocumentosCompletos,
+                    'data_referencia_prazo' => $dataReferenciaPrazo,
                     'data_limite' => $dataLimite,
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $atrasado,
                     'pausado' => $processo->status === 'parado',
+                    'prazo_reiniciado' => $processo->prazoFilaPublicaFoiReiniciado($dataDocumentosCompletos),
                 ];
             }
         }
@@ -2440,15 +2446,11 @@ class ProcessoController extends Controller
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
 
-            $tempoTotalParadoSegundos = (int) ($processo->tempo_total_parado_segundos ?? 0);
-            if ($processo->data_parada) {
-                $tempoTotalParadoSegundos += $processo->getSegundosParadaAtual();
-            }
-
             // Atualizar processo
             $processo->update([
                 'status' => 'aberto',
-                'tempo_total_parado_segundos' => $tempoTotalParadoSegundos,
+                'tempo_total_parado_segundos' => 0,
+                'prazo_fila_publica_reiniciado_em' => now(),
                 'motivo_parada' => null,
                 'data_parada' => null,
                 'usuario_parada_id' => null,

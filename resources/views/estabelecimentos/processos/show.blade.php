@@ -193,6 +193,8 @@
         @php
             $dias = $avisoFilaPublica['dias_restantes'];
             $prazoPausado = $avisoFilaPublica['pausado'] ?? false;
+            $prazoReiniciado = $avisoFilaPublica['prazo_reiniciado'] ?? false;
+            $dataReferenciaPrazo = $avisoFilaPublica['data_referencia_prazo'] ?? $avisoFilaPublica['data_documentos_completos'];
             $corBg = $prazoPausado ? 'bg-gray-50' : ($avisoFilaPublica['atrasado'] ? 'bg-red-50' : ($dias <= 5 ? 'bg-amber-50' : 'bg-cyan-50'));
             $corBorda = $prazoPausado ? 'border-gray-400' : ($avisoFilaPublica['atrasado'] ? 'border-red-400' : ($dias <= 5 ? 'border-amber-400' : 'border-cyan-400'));
             $corTexto = $prazoPausado ? 'text-gray-700' : ($avisoFilaPublica['atrasado'] ? 'text-red-700' : ($dias <= 5 ? 'text-amber-700' : 'text-cyan-700'));
@@ -204,13 +206,15 @@
                 </svg>
                 <span>
                     @if($prazoPausado && $avisoFilaPublica['atrasado'])
-                        <strong>Prazo suspenso.</strong> O processo foi parado com atraso de {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} na análise (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                        <strong>Prazo suspenso.</strong> O processo foi parado com atraso de {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} na análise (referência atual: {{ $dataReferenciaPrazo->format('d/m/Y') }})
                     @elseif($prazoPausado)
-                        <strong>Prazo suspenso.</strong> Restavam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise quando o processo foi parado (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                        <strong>Prazo suspenso.</strong> Restavam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise quando o processo foi parado (referência atual: {{ $dataReferenciaPrazo->format('d/m/Y') }})
                     @elseif($avisoFilaPublica['atrasado'])
-                        <strong>Prazo vencido!</strong> Atrasado há {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                        <strong>Prazo vencido!</strong> Atrasado há {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} (referência atual: {{ $dataReferenciaPrazo->format('d/m/Y') }})
                     @elseif($dias <= 5)
-                        <strong>Prazo próximo!</strong> Restam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                        <strong>Prazo próximo!</strong> Restam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise (referência atual: {{ $dataReferenciaPrazo->format('d/m/Y') }})
+                    @elseif($prazoReiniciado)
+                        Prazo reiniciado em {{ $dataReferenciaPrazo->format('d/m/Y') }} • Documentação completa em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }} • Prazo: {{ $avisoFilaPublica['prazo'] }} dias • <strong>Restam {{ $dias }} dias</strong>
                     @else
                         Documentação completa em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }} • Prazo: {{ $avisoFilaPublica['prazo'] }} dias • <strong>Restam {{ $dias }} dias</strong>
                     @endif
