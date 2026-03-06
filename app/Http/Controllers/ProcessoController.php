@@ -432,13 +432,14 @@ class ProcessoController extends Controller
                     
                     if ($dataDocumentosCompletos) {
                         $prazo = $processo->tipoProcesso->prazo_fila_publica;
-                        $dataLimite = \Carbon\Carbon::parse($dataDocumentosCompletos)->addDays($prazo);
+                        $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocumentosCompletos, $prazo);
                         $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
                         
                         $prazoFilaPublica[$processo->id] = [
                             'prazo' => $prazo,
                             'dias_restantes' => $diasRestantes,
                             'atrasado' => $diasRestantes < 0,
+                            'pausado' => $processo->status === 'parado',
                         ];
                     }
                 }
@@ -1008,7 +1009,7 @@ class ProcessoController extends Controller
             
             if ($todosAprovados && $dataDocumentosCompletos) {
                 $prazo = $processo->tipoProcesso->prazo_fila_publica;
-                $dataLimite = \Carbon\Carbon::parse($dataDocumentosCompletos)->addDays($prazo);
+                $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocumentosCompletos, $prazo);
                 $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
                 $atrasado = $diasRestantes < 0;
                 
@@ -1018,6 +1019,7 @@ class ProcessoController extends Controller
                     'data_limite' => $dataLimite,
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $atrasado,
+                    'pausado' => $processo->status === 'parado',
                 ];
             }
         }
@@ -2434,9 +2436,18 @@ class ProcessoController extends Controller
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
 
+            $tempoTotalParadoSegundos = (int) ($processo->tempo_total_parado_segundos ?? 0);
+            if ($processo->data_parada) {
+                $tempoTotalParadoSegundos += $processo->data_parada->diffInSeconds(now());
+            }
+
             // Atualizar processo
             $processo->update([
                 'status' => 'aberto',
+                'tempo_total_parado_segundos' => $tempoTotalParadoSegundos,
+                'motivo_parada' => null,
+                'data_parada' => null,
+                'usuario_parada_id' => null,
             ]);
 
             // ✅ REGISTRAR EVENTO NO HISTÓRICO

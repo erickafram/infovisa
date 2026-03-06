@@ -63,7 +63,6 @@
         
         .section {
             margin-bottom: 10px;
-            com_print_typeinfo?$_ENV
         }
         
         .info-grid {
@@ -77,7 +76,7 @@
             border-collapse: collapse;
             table-layout: fixed;
             border: 1px solid #d0d0d0;
-            font-size: 10pt;
+            font-size: 8pt;
         }
 
         .cabecalho-table td {

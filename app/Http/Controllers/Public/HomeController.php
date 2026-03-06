@@ -9,6 +9,7 @@ use App\Models\Processo;
 use App\Models\ProcessoDocumento;
 use App\Models\ListaDocumento;
 use App\Models\Atividade;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -47,18 +48,22 @@ class HomeController extends Controller
                 
                 if ($statusDocs['completo']) {
                     $dataReferencia = $statusDocs['data_ultimo_aprovado'] ?? $processo->created_at;
-                    $dataRef = \Carbon\Carbon::parse($dataReferencia);
-                    $hoje = \Carbon\Carbon::now();
+                    $dataRef = Carbon::parse($dataReferencia);
+                    $hoje = Carbon::now();
+                    $tempoTotalSegundos = max(0, $dataRef->diffInSeconds($hoje) - $processo->getTempoTotalParadoConsiderandoParadaAtual());
                     
-                    // Calcula dias decorridos desde a aprovação do último documento
-                    $totalHoras = $dataRef->diffInHours($hoje);
-                    $dias = floor($totalHoras / 24);
-                    $horas = $totalHoras % 24;
+                    // Considera apenas o tempo efetivo em fila, desconsiderando períodos parados.
+                    $dias = intdiv($tempoTotalSegundos, 86400);
+                    $horas = intdiv($tempoTotalSegundos % 86400, 3600);
                     
                     // Calcula prazo restante
                     $prazo = $tipo->prazo_fila_publica ?? null;
-                    $diasRestantes = $prazo ? ($prazo - $dias) : null;
-                    $atrasado = $prazo && $dias > $prazo;
+                    if ($prazo) {
+                        $dataLimite = $processo->calcularDataLimiteFilaPublica($dataRef, $prazo);
+                        $diasRestantes = (int) round(Carbon::now()->diffInDays($dataLimite, false));
+                    } else {
+                        $diasRestantes = null;
+                    }
                     
                     $processosAptos[] = [
                         'numero_processo' => $processo->numero_processo,
@@ -66,14 +71,15 @@ class HomeController extends Controller
                             ($processo->estabelecimento->nome_fantasia ?? $processo->estabelecimento->nome_completo ?? 'Não informado') : 
                             'Não vinculado',
                         'status' => $processo->status,
-                        'data_abertura' => \Carbon\Carbon::parse($processo->created_at)->format('d/m/Y H:i'),
+                        'data_abertura' => Carbon::parse($processo->created_at)->format('d/m/Y H:i'),
                         'data_documentos_completos' => $dataRef->format('d/m/Y H:i'),
                         'dias_decorridos' => $dias,
                         'horas_decorridas' => $horas,
                         'tempo_formatado' => $dias > 0 ? "{$dias}d {$horas}h" : "{$horas}h",
                         'prazo' => $prazo,
                         'dias_restantes' => $diasRestantes,
-                        'atrasado' => $atrasado,
+                        'atrasado' => $prazo ? $diasRestantes < 0 : false,
+                        'pausado' => $processo->status === 'parado',
                     ];
                 }
             }

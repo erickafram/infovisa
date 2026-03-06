@@ -325,13 +325,28 @@
                                         {{ $processo['data_documentos_completos'] }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-xs font-medium {{ $processo['atrasado'] ? 'text-red-600' : 'text-gray-900' }}">
+                                        <span class="text-xs font-medium {{ $processo['pausado'] ? 'text-amber-700' : ($processo['atrasado'] ? 'text-red-600' : 'text-gray-900') }}">
                                             {{ $processo['tempo_formatado'] }}
                                         </span>
+                                        @if($processo['pausado'])
+                                            <div class="text-[11px] text-amber-700 mt-1">Contagem congelada</div>
+                                        @endif
                                     </td>
                                     @if($fila['prazo_analise'])
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($processo['atrasado'])
+                                        @if($processo['pausado'] && $processo['dias_restantes'] !== null && $processo['dias_restantes'] < 0)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                Prazo suspenso com {{ abs($processo['dias_restantes']) }}d de atraso
+                                            </span>
+                                        @elseif($processo['pausado'] && $processo['dias_restantes'] !== null)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                Prazo suspenso com {{ $processo['dias_restantes'] }}d restante(s)
+                                            </span>
+                                        @elseif($processo['pausado'])
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                Prazo suspenso
+                                            </span>
+                                        @elseif($processo['atrasado'])
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
                                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>

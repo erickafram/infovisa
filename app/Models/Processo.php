@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,7 @@ class Processo extends Model
         'motivo_parada',
         'data_parada',
         'usuario_parada_id',
+        'tempo_total_parado_segundos',
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class Processo extends Model
         'numero_sequencial' => 'integer',
         'data_arquivamento' => 'datetime',
         'data_parada' => 'datetime',
+        'tempo_total_parado_segundos' => 'integer',
         'responsavel_desde' => 'datetime',
         'prazo_atribuicao' => 'date',
         'responsavel_ciente_em' => 'datetime',
@@ -73,6 +76,24 @@ class Processo extends Model
             'parado' => 'Parado',
             'arquivado' => 'Arquivado',
         ];
+    }
+
+    public function getTempoTotalParadoConsiderandoParadaAtual(): int
+    {
+        $tempoTotal = (int) ($this->tempo_total_parado_segundos ?? 0);
+
+        if ($this->status === 'parado' && $this->data_parada) {
+            $tempoTotal += $this->data_parada->diffInSeconds(now());
+        }
+
+        return $tempoTotal;
+    }
+
+    public function calcularDataLimiteFilaPublica($dataReferencia, int $prazoDias): Carbon
+    {
+        return Carbon::parse($dataReferencia)
+            ->addDays($prazoDias)
+            ->addSeconds($this->getTempoTotalParadoConsiderandoParadaAtual());
     }
 
     /**

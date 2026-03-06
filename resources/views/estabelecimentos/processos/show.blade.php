@@ -192,9 +192,10 @@
     @if($avisoFilaPublica && $processo->status !== 'arquivado')
         @php
             $dias = $avisoFilaPublica['dias_restantes'];
-            $corBg = $avisoFilaPublica['atrasado'] ? 'bg-red-50' : ($dias <= 5 ? 'bg-amber-50' : 'bg-cyan-50');
-            $corBorda = $avisoFilaPublica['atrasado'] ? 'border-red-400' : ($dias <= 5 ? 'border-amber-400' : 'border-cyan-400');
-            $corTexto = $avisoFilaPublica['atrasado'] ? 'text-red-700' : ($dias <= 5 ? 'text-amber-700' : 'text-cyan-700');
+            $prazoPausado = $avisoFilaPublica['pausado'] ?? false;
+            $corBg = $prazoPausado ? 'bg-gray-50' : ($avisoFilaPublica['atrasado'] ? 'bg-red-50' : ($dias <= 5 ? 'bg-amber-50' : 'bg-cyan-50'));
+            $corBorda = $prazoPausado ? 'border-gray-400' : ($avisoFilaPublica['atrasado'] ? 'border-red-400' : ($dias <= 5 ? 'border-amber-400' : 'border-cyan-400'));
+            $corTexto = $prazoPausado ? 'text-gray-700' : ($avisoFilaPublica['atrasado'] ? 'text-red-700' : ($dias <= 5 ? 'text-amber-700' : 'text-cyan-700'));
         @endphp
         <div class="mb-4 {{ $corBg }} border-l-4 {{ $corBorda }} px-4 py-2.5 rounded-r-lg">
             <div class="flex items-center gap-2 {{ $corTexto }} text-sm">
@@ -202,7 +203,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <span>
-                    @if($avisoFilaPublica['atrasado'])
+                    @if($prazoPausado && $avisoFilaPublica['atrasado'])
+                        <strong>Prazo suspenso.</strong> O processo foi parado com atraso de {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} na análise (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                    @elseif($prazoPausado)
+                        <strong>Prazo suspenso.</strong> Restavam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise quando o processo foi parado (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
+                    @elseif($avisoFilaPublica['atrasado'])
                         <strong>Prazo vencido!</strong> Atrasado há {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }} (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
                     @elseif($dias <= 5)
                         <strong>Prazo próximo!</strong> Restam {{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }} para análise (docs completos em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }})
