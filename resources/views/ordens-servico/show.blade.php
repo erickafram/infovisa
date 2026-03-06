@@ -128,7 +128,6 @@
                             @php
                                 $usuarioLogado = auth('interno')->user();
                                 $ehTecnico = in_array($usuarioLogado->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']);
-                                $ehTecnicoEstadual = $usuarioLogado->nivel_acesso->value === 'tecnico_estadual';
                                 
                                 // Verifica se o técnico está vinculado a alguma atividade pendente
                                 $tecnicoTemAtividadePendente = false;
@@ -144,14 +143,14 @@
                                 }
                             @endphp
                             
-                            @if(!$ehTecnico || $ehTecnicoEstadual)
-                            {{-- Botão Editar - Admin, Gestores e Técnico Estadual (apenas vínculo de estabelecimento) --}}
+                            @if(!$ehTecnico)
+                            {{-- Botão Editar - Apenas para Admin e Gestores --}}
                             <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
                                class="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
-                                {{ $ehTecnicoEstadual ? 'Vincular Estabelecimento' : 'Editar OS' }}
+                                Editar OS
                             </a>
                             @endif
                             
@@ -564,7 +563,11 @@
                         <p class="text-sm text-amber-800 mb-3">
                             Esta OS foi criada sem um estabelecimento vinculado. Você pode vincular um estabelecimento ao editar ou finalizar a ordem de serviço.
                         </p>
-                        @if($ordemServico->status !== 'finalizada')
+                        @php
+                            $usuarioLogado = auth('interno')->user();
+                            $ehTecnico = in_array($usuarioLogado->nivel_acesso->value, ['tecnico_estadual', 'tecnico_municipal']);
+                        @endphp
+                        @if($ordemServico->status !== 'finalizada' && !$ehTecnico)
                         <a href="{{ route('admin.ordens-servico.edit', $ordemServico) }}" 
                            class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

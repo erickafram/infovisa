@@ -434,8 +434,7 @@ class OrdemServicoController extends Controller
         // Busca tipos de ação ativos com subações
         $tiposAcao = TipoAcao::ativo()->with('subAcoesAtivas')->orderBy('descricao')->get();
         
-        // Flag: TecnicoEstadual edita somente o vínculo de estabelecimento
-        $somentVincularEstabelecimento = $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual;
+        $somentVincularEstabelecimento = false;
 
         // Busca técnicos conforme competência
         $tecnicos = $this->getTecnicosPorCompetencia($usuario);
@@ -480,11 +479,6 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para editar esta ordem de serviço.');
         }
 
-        // TecnicoEstadual: somente vinculação de estabelecimento permitida
-        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual) {
-            return $this->updateVincularEstabelecimento($request, $ordemServico);
-        }
-        
         // Validação condicional: processo é obrigatório se há estabelecimento
         $rules = [
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
@@ -960,19 +954,13 @@ class OrdemServicoController extends Controller
 
     /**
      * Verifica se usuário pode editar a OS.
-     * TecnicoEstadual pode editar apenas para vincular estabelecimento.
-     * TecnicoMunicipal não pode editar.
+     * Técnicos não podem editar.
      */
     private function podeEditarOS($usuario, $ordemServico)
     {
-        // TecnicoMunicipal não pode editar OS
-        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
+        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual ||
+            $usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoMunicipal) {
             return false;
-        }
-
-        // TecnicoEstadual pode editar SOMENTE para vincular estabelecimento em OSs estaduais
-        if ($usuario->nivel_acesso === \App\Enums\NivelAcesso::TecnicoEstadual) {
-            return $ordemServico->competencia === 'estadual';
         }
         
         return $this->podeVisualizarOS($usuario, $ordemServico);
