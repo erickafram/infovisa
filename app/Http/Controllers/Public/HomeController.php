@@ -207,7 +207,7 @@ class HomeController extends Controller
             $documento = ProcessoDocumento::where('processo_id', $processo->id)
                 ->where('tipo_documento_obrigatorio_id', $docObrigatorio->id)
                 ->where('status_aprovacao', 'aprovado')
-                ->orderBy('aprovado_em', 'desc')
+                ->orderByRaw('COALESCE(aprovado_em, updated_at) DESC')
                 ->first();
             
             if (!$documento) {
@@ -216,8 +216,10 @@ class HomeController extends Controller
             }
             
             // Guarda a data mais recente de aprovação
-            if ($documento->aprovado_em && (!$dataUltimoAprovado || $documento->aprovado_em > $dataUltimoAprovado)) {
-                $dataUltimoAprovado = $documento->aprovado_em;
+            $dataReferenciaAprovacao = $documento->aprovado_em ?? $documento->updated_at;
+
+            if ($dataReferenciaAprovacao && (!$dataUltimoAprovado || $dataReferenciaAprovacao > $dataUltimoAprovado)) {
+                $dataUltimoAprovado = $dataReferenciaAprovacao;
             }
         }
 

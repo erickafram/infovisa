@@ -78,12 +78,21 @@ class Processo extends Model
         ];
     }
 
+    public function getSegundosParadaAtual(): int
+    {
+        if (!$this->data_parada) {
+            return 0;
+        }
+
+        return max(0, now()->getTimestamp() - $this->data_parada->getTimestamp());
+    }
+
     public function getTempoTotalParadoConsiderandoParadaAtual(): int
     {
         $tempoTotal = (int) ($this->tempo_total_parado_segundos ?? 0);
 
         if ($this->status === 'parado' && $this->data_parada) {
-            $tempoTotal += $this->data_parada->diffInSeconds(now());
+            $tempoTotal += $this->getSegundosParadaAtual();
         }
 
         return $tempoTotal;

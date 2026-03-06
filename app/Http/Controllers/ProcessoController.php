@@ -422,11 +422,13 @@ class ProcessoController extends Controller
                         $docProcesso = $processo->documentos
                             ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
                             ->where('status_aprovacao', 'aprovado')
-                            ->sortByDesc('updated_at')
+                            ->sortByDesc(fn ($documento) => $documento->aprovado_em ?? $documento->updated_at)
                             ->first();
-                            
-                        if ($docProcesso && (!$dataDocumentosCompletos || $docProcesso->updated_at > $dataDocumentosCompletos)) {
-                            $dataDocumentosCompletos = $docProcesso->updated_at;
+
+                        $dataReferenciaAprovacao = $docProcesso?->aprovado_em ?? $docProcesso?->updated_at;
+
+                        if ($dataReferenciaAprovacao && (!$dataDocumentosCompletos || $dataReferenciaAprovacao > $dataDocumentosCompletos)) {
+                            $dataDocumentosCompletos = $dataReferenciaAprovacao;
                         }
                     }
                     
@@ -998,11 +1000,13 @@ class ProcessoController extends Controller
                     $docProcesso = $processo->documentos
                         ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
                         ->where('status_aprovacao', 'aprovado')
-                        ->sortByDesc('updated_at')
+                        ->sortByDesc(fn ($documento) => $documento->aprovado_em ?? $documento->updated_at)
                         ->first();
-                        
-                    if ($docProcesso && (!$dataDocumentosCompletos || $docProcesso->updated_at > $dataDocumentosCompletos)) {
-                        $dataDocumentosCompletos = $docProcesso->updated_at;
+
+                    $dataReferenciaAprovacao = $docProcesso?->aprovado_em ?? $docProcesso?->updated_at;
+
+                    if ($dataReferenciaAprovacao && (!$dataDocumentosCompletos || $dataReferenciaAprovacao > $dataDocumentosCompletos)) {
+                        $dataDocumentosCompletos = $dataReferenciaAprovacao;
                     }
                 }
             }
@@ -2438,7 +2442,7 @@ class ProcessoController extends Controller
 
             $tempoTotalParadoSegundos = (int) ($processo->tempo_total_parado_segundos ?? 0);
             if ($processo->data_parada) {
-                $tempoTotalParadoSegundos += $processo->data_parada->diffInSeconds(now());
+                $tempoTotalParadoSegundos += $processo->getSegundosParadaAtual();
             }
 
             // Atualizar processo
