@@ -1387,8 +1387,8 @@
                                                                 <div class="flex items-center justify-between gap-2">
                                                                     <div class="min-w-0 flex-1">
                                                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                                                            <button type="button" 
-                                                                                    @click="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                                                <button type="button" 
+                                                                                    @click="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}', {{ $resposta->id }})"
                                                                                     class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate">
                                                                                 📎 {{ $resposta->nome_original }}
                                                                             </button>
@@ -1407,8 +1407,8 @@
                                                                     
                                                                     {{-- Ações da resposta --}}
                                                                     <div class="flex items-center gap-0.5 flex-shrink-0">
-                                                                        <button type="button"
-                                                                               @click="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                                          <button type="button"
+                                                                              @click="abrirModalRespostas({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}', {{ $resposta->id }})"
                                                                                class="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Comparar com documento original">
                                                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -1910,6 +1910,24 @@
                 splitPercent: 50,
                 isDragging: false,
                 get respostaAtual() { return this.respostas[this.respostaAtualIndex] || null; },
+                aplicarRespostaAtualSelecionada() {
+                    if (!this.respostas.length) {
+                        this.respostaAtualIndex = 0;
+                        return;
+                    }
+
+                    const respostaId = this.respostasDocumentoRespostaId;
+                    if (respostaId) {
+                        const respostaIdx = this.respostas.findIndex(r => Number(r.id) === Number(respostaId));
+                        if (respostaIdx >= 0) {
+                            this.respostaAtualIndex = respostaIdx;
+                            return;
+                        }
+                    }
+
+                    const pendIdx = this.respostas.findIndex(r => r.status === 'pendente');
+                    this.respostaAtualIndex = pendIdx >= 0 ? pendIdx : 0;
+                },
                 init() {
                     this.$watch('respostasDocumentoId', (id) => {
                         if (!id) return;
@@ -1918,8 +1936,10 @@
                         this.splitPercent = 50;
                         const allRespostas = JSON.parse(document.getElementById('respostas-data-' + id)?.textContent || '[]');
                         this.respostas = allRespostas;
-                        const pendIdx = allRespostas.findIndex(r => r.status === 'pendente');
-                        this.respostaAtualIndex = pendIdx >= 0 ? pendIdx : 0;
+                        this.aplicarRespostaAtualSelecionada();
+                    });
+                    this.$watch('respostasDocumentoRespostaId', () => {
+                        this.aplicarRespostaAtualSelecionada();
                     });
                     const onMouseMove = (e) => {
                         if (!this.isDragging) return;
@@ -1948,11 +1968,11 @@
                 }
              }"
              x-cloak
-             @keydown.escape.window="modalRespostas = false"
+             @keydown.escape.window="fecharModalRespostas()"
              style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
             
             {{-- Overlay --}}
-            <div @click="modalRespostas = false"
+              <div @click="fecharModalRespostas()"
                  style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85);"></div>
             
             {{-- Modal Content --}}
@@ -2004,7 +2024,7 @@
                                 </button>
                             </div>
 
-                            <button @click="modalRespostas = false"
+                                <button @click="fecharModalRespostas()"
                                     
                                     class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2203,7 +2223,7 @@
                     'usuario' => $resposta->usuarioExterno->nome ?? 'N/D',
                     'avaliadoPor' => $resposta->avaliadoPor->nome ?? null,
                     'motivoRejeicao' => $resposta->motivo_rejeicao,
-                    'url' => route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]),
+                    'url' => route('admin.estabelecimentos.processos.documento-digital.resposta.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]) . '?v=' . ($resposta->updated_at?->timestamp ?? $resposta->id),
                     'urlDownload' => route('admin.estabelecimentos.processos.documento-digital.resposta.download', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]),
                     'urlAprovar' => route('admin.estabelecimentos.processos.documento-digital.resposta.aprovar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]),
                     'urlRejeitar' => route('admin.estabelecimentos.processos.documento-digital.resposta.rejeitar', [$estabelecimento->id, $processo->id, $docDigital->id, $resposta->id]),
@@ -3701,6 +3721,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 respostasDocumentoNome: '',
                 respostasDocumentoNumero: '',
                 respostasDocumentoPdfUrl: '',
+                respostasDocumentoRespostaId: null,
                 
                 // Exclusão com senha
                 exclusaoTipo: '', // 'resposta', 'documento', 'documento_digital'
@@ -4081,13 +4102,36 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     );
                 },
 
+                gerarUrlSemCache(url, chave = null) {
+                    if (!url) return '';
+
+                    const separador = url.includes('?') ? '&' : '?';
+                    const token = encodeURIComponent(chave ?? Date.now());
+
+                    return `${url}${separador}v=${token}`;
+                },
+
+                fecharModalRespostas() {
+                    this.modalRespostas = false;
+                    this.respostasDocumentoId = null;
+                    this.respostasDocumentoNome = '';
+                    this.respostasDocumentoNumero = '';
+                    this.respostasDocumentoPdfUrl = '';
+                    this.respostasDocumentoRespostaId = null;
+                },
+
                 // Abre modal de visualização de documento com respostas
-                abrirModalRespostas(documentoId, nomeDocumento, numeroDocumento, pdfUrl) {
-                    this.respostasDocumentoId = documentoId;
+                abrirModalRespostas(documentoId, nomeDocumento, numeroDocumento, pdfUrl, respostaId = null) {
+                    this.respostasDocumentoId = null;
                     this.respostasDocumentoNome = nomeDocumento;
                     this.respostasDocumentoNumero = numeroDocumento;
-                    this.respostasDocumentoPdfUrl = pdfUrl;
+                    this.respostasDocumentoPdfUrl = this.gerarUrlSemCache(pdfUrl, `doc-${documentoId}`);
+                    this.respostasDocumentoRespostaId = respostaId;
                     this.modalRespostas = true;
+
+                    this.$nextTick(() => {
+                        this.respostasDocumentoId = documentoId;
+                    });
                 },
 
                 // Abre modal de assinatura

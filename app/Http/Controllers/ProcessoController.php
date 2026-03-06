@@ -1873,7 +1873,10 @@ class ProcessoController extends Controller
 
         return response()->file($path, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $resposta->nome_original . '"'
+            'Content-Disposition' => 'inline; filename="' . $resposta->nome_original . '"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
