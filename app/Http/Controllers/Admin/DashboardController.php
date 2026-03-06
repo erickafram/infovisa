@@ -1289,6 +1289,10 @@ class DashboardController extends Controller
             $diasRestantes = $os->data_fim ? now()->startOfDay()->diffInDays($os->data_fim->startOfDay(), false) : null;
             $isVencido = $diasRestantes !== null && $diasRestantes < 0;
             $tiposAcao = $os->tiposAcao();
+            $prazoFinalizacao = $os->data_fim ? $os->data_fim->copy()->addDays(15) : null;
+            $diasParaFinalizar = $prazoFinalizacao ? now()->startOfDay()->diffInDays($prazoFinalizacao->startOfDay(), false) : null;
+            $emFinalizacao = $isVencido && $diasParaFinalizar !== null && $diasParaFinalizar >= 0;
+            $finalizacaoAtrasada = $diasParaFinalizar !== null && $diasParaFinalizar < 0;
             
             $todasTarefasCompleta->push([
                 'tipo' => 'os',
@@ -1299,7 +1303,11 @@ class DashboardController extends Controller
                 'tipo_acao' => $tiposAcao && $tiposAcao->count() > 0 ? $tiposAcao->first()->descricao : null,
                 'url' => route('admin.ordens-servico.show', $os),
                 'dias_restantes' => $diasRestantes,
-                'atrasado' => $isVencido,
+                'atrasado' => $finalizacaoAtrasada,
+                'em_finalizacao' => $emFinalizacao,
+                'dias_para_finalizar' => $diasParaFinalizar,
+                'data_fim_formatada' => $os->data_fim ? $os->data_fim->format('d/m/Y') : null,
+                'prazo_finalizacao_formatado' => $prazoFinalizacao ? $prazoFinalizacao->format('d/m/Y') : null,
                 'ordem' => 0,
                 'data' => $os->created_at->format('d/m/Y H:i'),
                 'created_at' => $os->created_at,

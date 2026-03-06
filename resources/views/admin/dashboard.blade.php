@@ -636,16 +636,15 @@ function tarefasPaginadas() {
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
             if (t.tipo === 'os') {
+                const diasOs = t.dias_para_finalizar;
                 if (t.atrasado) return 'bg-red-100 text-red-700'; // Passou 15 dias após data_fim
+                if (diasOs === null) return 'bg-gray-100 text-gray-600';
+                if (diasOs === 0) return 'bg-orange-100 text-orange-700';
                 if (t.em_finalizacao) {
-                    if (t.dias_para_finalizar <= 3) return 'bg-orange-100 text-orange-700';
-                    if (t.dias_para_finalizar <= 7) return 'bg-amber-100 text-amber-700';
+                    if (diasOs <= 3) return 'bg-orange-100 text-orange-700';
+                    if (diasOs <= 7) return 'bg-amber-100 text-amber-700';
                     return 'bg-yellow-100 text-yellow-700';
                 }
-                // Antes de data_fim (em execução)
-                if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
-                if (t.dias_restantes !== null && t.dias_restantes <= 3) return 'bg-amber-100 text-amber-700';
-                if (t.dias_restantes === null) return 'bg-gray-100 text-gray-600';
                 return 'bg-green-100 text-green-700';
             }
             if (t.is_licenciamento === false) return 'bg-gray-100 text-gray-600';
@@ -658,16 +657,15 @@ function tarefasPaginadas() {
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
             if (t.tipo === 'os') {
+                const diasOs = t.dias_para_finalizar;
                 if (t.atrasado) return 'Atrasado';
+                if (diasOs === null) return '-';
                 if (t.em_finalizacao) {
-                    if (t.dias_para_finalizar === 0) return 'Último dia';
-                    return 'Finalizar ' + t.dias_para_finalizar + 'd';
+                    if (diasOs === 0) return 'Último dia';
+                    return 'Finalizar ' + diasOs + 'd';
                 }
-                // Antes de data_fim
-                if (t.dias_restantes === 0) return 'Encerra hoje';
-                if (t.dias_restantes === null) return '-';
-                if (t.dias_restantes < 0) return 'Finalizar ' + t.dias_para_finalizar + 'd'; // fallback
-                return t.dias_restantes + 'd';
+                if (diasOs === 0) return 'Último dia';
+                return diasOs + 'd';
             }
             if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
