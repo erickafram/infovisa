@@ -208,6 +208,8 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     Route::put('/treinamentos/perguntas/{pergunta}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'updatePergunta'])->name('treinamentos.perguntas.update');
     Route::delete('/treinamentos/perguntas/{pergunta}', [\App\Http\Controllers\Admin\TreinamentoController::class, 'destroyPergunta'])->name('treinamentos.perguntas.destroy');
     Route::get('/treinamentos/apresentacoes/{apresentacao}/apresentar', [\App\Http\Controllers\Admin\TreinamentoController::class, 'apresentar'])->name('treinamentos.apresentacoes.apresentar');
+    Route::post('/treinamentos/upload-imagem', [\App\Http\Controllers\Admin\TreinamentoController::class, 'uploadImagem'])->name('treinamentos.upload-imagem');
+    Route::post('/treinamentos/apresentacoes/{apresentacao}/importar-pptx', [\App\Http\Controllers\Admin\TreinamentoController::class, 'importarPowerPoint'])->name('treinamentos.apresentacoes.importar-pptx');
     Route::get('/treinamentos/perguntas/{pergunta}/resultados', [\App\Http\Controllers\Admin\TreinamentoController::class, 'resultadosPergunta'])->name('treinamentos.perguntas.resultados');
     Route::get('/treinamentos/{evento}/relatorios/inscritos', [\App\Http\Controllers\Admin\TreinamentoController::class, 'relatorioInscritos'])->name('treinamentos.relatorios.inscritos');
     Route::get('/treinamentos/{evento}/relatorios/respostas', [\App\Http\Controllers\Admin\TreinamentoController::class, 'relatorioRespostas'])->name('treinamentos.relatorios.respostas');

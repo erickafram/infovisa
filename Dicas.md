@@ -46,3 +46,6 @@ git ls-files .env
 
 NOTEBOOK
 $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User'); php -v | Select-Object -First 1 | Out-String; php artisan serve
+
+
+composer require phpoffice/phppresentation --no-interaction 2>&1

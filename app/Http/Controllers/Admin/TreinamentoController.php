@@ -15,7 +15,15 @@ use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpPresentation\IOFactory as PptIOFactory;
+use PhpOffice\PhpPresentation\Shape\Drawing\AbstractDrawingAdapter;
+use PhpOffice\PhpPresentation\Shape\Group as ShapeGroup;
+use PhpOffice\PhpPresentation\Shape\RichText;
+use PhpOffice\PhpPresentation\Shape\RichText\BreakElement;
+use PhpOffice\PhpPresentation\Shape\RichText\Run;
+use PhpOffice\PhpPresentation\Shape\Table;
 
 class TreinamentoController extends Controller
 {
@@ -325,29 +333,54 @@ class TreinamentoController extends Controller
             'slides' => fn ($query) => $query->with(['perguntas.opcoes', 'perguntas.respostas'])->orderBy('ordem'),
         ]);
 
-        $slidesPayload = $apresentacao->slides->map(function ($slide) {
-            return [
-                'id' => $slide->id,
-                'titulo' => $slide->titulo,
-                'conteudo' => $slide->conteudo,
-                'ordem' => $slide->ordem,
-                'perguntas' => $slide->perguntas->map(function ($pergunta) {
-                    return [
-                        'id' => $pergunta->id,
-                        'enunciado' => $pergunta->enunciado,
-                        'ativa' => (bool) $pergunta->ativa,
-                        'url' => route('treinamentos.public.pergunta', $pergunta->token),
-                        'qr_code_base64' => $this->generateQrCodeBase64(route('treinamentos.public.pergunta', $pergunta->token)),
-                        'opcoes' => $pergunta->opcoes->map(fn ($opcao) => [
-                            'id' => $opcao->id,
-                            'texto' => $opcao->texto,
-                        ])->values(),
+        // Monta payload flat: cada slide de conteúdo vira um item,
+        // e cada pergunta de um slide também vira um item (tipo "pergunta")
+        // para que a apresentação funcione como PowerPoint sequencial.
+        $slidesPayload = collect();
+
+        foreach ($apresentacao->slides as $slide) {
+            if ($slide->perguntas->isEmpty()) {
+                // Slide de conteúdo puro
+                $slidesPayload->push([
+                    'id' => 'slide-' . $slide->id,
+                    'tipo' => 'conteudo',
+                    'titulo' => $slide->titulo,
+                    'conteudo' => $slide->conteudo,
+                    'ordem' => $slide->ordem,
+                ]);
+            } else {
+                // Slide de conteúdo (cabeçalho) se tiver conteúdo próprio
+                if ($slide->conteudo) {
+                    $slidesPayload->push([
+                        'id' => 'slide-' . $slide->id,
+                        'tipo' => 'conteudo',
+                        'titulo' => $slide->titulo,
+                        'conteudo' => $slide->conteudo,
+                        'ordem' => $slide->ordem,
+                    ]);
+                }
+
+                // Cada pergunta vira um slide de pergunta
+                foreach ($slide->perguntas as $pergunta) {
+                    $url = route('treinamentos.public.pergunta', $pergunta->token);
+                    $slidesPayload->push([
+                        'id' => 'pergunta-' . $pergunta->id,
+                        'tipo' => 'pergunta',
+                        'titulo' => $pergunta->enunciado,
+                        'conteudo' => null,
+                        'ordem' => $slide->ordem,
+                        'pergunta_id' => $pergunta->id,
+                        'pergunta_ativa' => (bool) $pergunta->ativa,
+                        'pergunta_url' => $url,
+                        'qr_code_base64' => $this->generateQrCodeBase64($url),
                         'resultados_url' => route('admin.treinamentos.perguntas.resultados', $pergunta),
                         'estatisticas' => $this->buildQuestionStats($pergunta),
-                    ];
-                })->values(),
-            ];
-        })->values();
+                    ]);
+                }
+            }
+        }
+
+        $slidesPayload = $slidesPayload->values();
 
         return view('treinamentos.apresentar', compact('apresentacao', 'slidesPayload'));
     }
@@ -390,6 +423,226 @@ class TreinamentoController extends Controller
         });
 
         return view('treinamentos.relatorios-respostas', compact('evento'));
+    }
+
+    public function importarPowerPoint(Request $request, TreinamentoApresentacao $apresentacao)
+    {
+        $this->authorizeTreinamentos();
+
+        // Verificar se o upload falhou por limite do PHP
+        if (!$request->hasFile('arquivo_pptx') || !$request->file('arquivo_pptx')->isValid()) {
+            $maxSize = ini_get('upload_max_filesize');
+            return back()->with('error', "Falha no upload do arquivo. O limite atual do PHP é {$maxSize}. Verifique se o arquivo não excede esse limite.");
+        }
+
+        $request->validate([
+            'arquivo_pptx' => 'required|file|max:65536',
+        ], [
+            'arquivo_pptx.required' => 'Selecione um arquivo PowerPoint.',
+            'arquivo_pptx.max' => 'O arquivo não pode ultrapassar 64 MB.',
+        ]);
+
+        $file = $request->file('arquivo_pptx');
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (!in_array($extension, ['pptx', 'ppt'])) {
+            return back()->with('error', 'O arquivo deve ser .pptx ou .ppt.');
+        }
+
+        $tempPath = $file->getRealPath();
+
+        try {
+            $pptx = PptIOFactory::load($tempPath);
+        } catch (\Throwable $e) {
+            \Log::error('Erro ao ler PowerPoint: ' . $e->getMessage());
+            return back()->with('error', 'Não foi possível ler o arquivo PowerPoint: ' . $e->getMessage());
+        }
+
+        $ordemAtual = (int) $apresentacao->slides()->max('ordem');
+        $slidesImportados = 0;
+        $totalSlides = count($pptx->getAllSlides());
+
+        \Log::info("PowerPoint importado: {$totalSlides} slides encontrados no arquivo.");
+
+        foreach ($pptx->getAllSlides() as $slideIndex => $pptSlide) {
+            $titulo = '';
+            $htmlParts = [];
+
+            $shapes = $pptSlide->getShapeCollection();
+            \Log::info("Slide {$slideIndex}: " . count($shapes) . " shapes encontrados.");
+
+            $this->extractShapesContent($shapes, $titulo, $htmlParts);
+
+            \Log::info("Slide {$slideIndex}: titulo='{$titulo}', htmlParts=" . count($htmlParts));
+
+            if ($titulo === '' && empty($htmlParts)) {
+                continue;
+            }
+
+            $ordemAtual++;
+            $slidesImportados++;
+
+            if ($titulo === '') {
+                $titulo = 'Slide ' . ($slideIndex + 1);
+            }
+
+            TreinamentoSlide::create([
+                'treinamento_apresentacao_id' => $apresentacao->id,
+                'titulo' => Str::limit($titulo, 255),
+                'conteudo' => implode("\n", $htmlParts) ?: null,
+                'ordem' => $ordemAtual,
+            ]);
+        }
+
+        if ($slidesImportados === 0) {
+            return back()->with('error', "Nenhum slide com conteúdo foi encontrado. O arquivo tem {$totalSlides} slide(s) mas nenhum com texto ou imagem reconhecível.");
+        }
+
+        return back()->with('success', $slidesImportados . ' slide(s) importado(s) do PowerPoint com sucesso.');
+    }
+
+    private function extractRichTextHtml(RichText $shape): string
+    {
+        $html = '';
+
+        foreach ($shape->getParagraphs() as $paragraph) {
+            $paraHtml = '';
+
+            foreach ($paragraph->getRichTextElements() as $element) {
+                if ($element instanceof BreakElement) {
+                    $paraHtml .= '<br>';
+                    continue;
+                }
+
+                $text = htmlspecialchars($element->getText(), ENT_QUOTES, 'UTF-8');
+
+                if ($text === '') {
+                    continue;
+                }
+
+                if ($element instanceof Run) {
+                    $font = $element->getFont();
+                    $styles = [];
+
+                    $size = $font->getSize();
+                    if ($size && $size > 0) {
+                        $styles[] = 'font-size: ' . $size . 'pt';
+                    }
+
+                    $argb = $font->getColor()->getARGB();
+                    if ($argb && strlen($argb) >= 6) {
+                        $rgb = '#' . substr($argb, -6);
+                        if ($rgb !== '#000000') {
+                            $styles[] = 'color: ' . $rgb;
+                        }
+                    }
+
+                    if ($font->isBold()) {
+                        $text = '<strong>' . $text . '</strong>';
+                    }
+                    if ($font->isItalic()) {
+                        $text = '<em>' . $text . '</em>';
+                    }
+                    if ($font->getUnderline() !== 'none' && $font->getUnderline() !== '') {
+                        $text = '<u>' . $text . '</u>';
+                    }
+
+                    if (!empty($styles)) {
+                        $text = '<span style="' . implode('; ', $styles) . '">' . $text . '</span>';
+                    }
+                }
+
+                $paraHtml .= $text;
+            }
+
+            if (trim(strip_tags($paraHtml)) !== '') {
+                $html .= '<p>' . $paraHtml . '</p>';
+            }
+        }
+
+        return $html;
+    }
+
+    private function saveDrawingAndGetHtml(AbstractDrawingAdapter $shape): ?string
+    {
+        try {
+            $contents = $shape->getContents();
+            $extension = $shape->getExtension() ?: 'png';
+            $filename = 'pptx_' . Str::random(20) . '.' . $extension;
+            $path = 'treinamentos/slides/' . $filename;
+
+            Storage::disk('public')->put($path, $contents);
+
+            $url = Storage::disk('public')->url($path);
+
+            return '<p style="text-align: center;"><img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt="Imagem do slide" style="max-width: 100%;"></p>';
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function extractShapesContent(iterable $shapes, string &$titulo, array &$htmlParts): void
+    {
+        foreach ($shapes as $shape) {
+            \Log::info('Shape encontrado: ' . get_class($shape));
+
+            if ($shape instanceof ShapeGroup) {
+                $this->extractShapesContent($shape->getShapeCollection(), $titulo, $htmlParts);
+            } elseif ($shape instanceof Table) {
+                $htmlParts[] = $this->extractTableHtml($shape);
+            } elseif ($shape instanceof RichText) {
+                $shapeHtml = $this->extractRichTextHtml($shape);
+                \Log::info('RichText extraído: ' . mb_substr(strip_tags($shapeHtml), 0, 100));
+                if ($titulo === '' && mb_strlen(strip_tags($shapeHtml)) <= 200) {
+                    $titulo = trim(strip_tags($shapeHtml));
+                } else {
+                    $htmlParts[] = $shapeHtml;
+                }
+            } elseif ($shape instanceof AbstractDrawingAdapter) {
+                $imgHtml = $this->saveDrawingAndGetHtml($shape);
+                if ($imgHtml) {
+                    $htmlParts[] = $imgHtml;
+                }
+            }
+        }
+    }
+
+    private function extractTableHtml(Table $table): string
+    {
+        $html = '<table style="border-collapse: collapse; width: 100%; margin: 0.5rem 0;">';
+
+        foreach ($table->getRows() as $row) {
+            $html .= '<tr>';
+            foreach ($row->getCells() as $cell) {
+                $cellText = '';
+                foreach ($cell->getParagraphs() as $paragraph) {
+                    foreach ($paragraph->getRichTextElements() as $element) {
+                        $cellText .= htmlspecialchars($element->getText(), ENT_QUOTES, 'UTF-8');
+                    }
+                }
+                $html .= '<td style="border: 1px solid #d1d5db; padding: 0.5rem;">' . $cellText . '</td>';
+            }
+            $html .= '</tr>';
+        }
+
+        $html .= '</table>';
+
+        return $html;
+    }
+
+    public function uploadImagem(Request $request)
+    {
+        $this->authorizeTreinamentos();
+
+        $request->validate([
+            'file' => 'required|image|mimes:jpeg,jpg,png,gif,webp,svg|max:5120',
+        ]);
+
+        $path = $request->file('file')->store('treinamentos/slides', 'public');
+
+        return response()->json([
+            'location' => Storage::disk('public')->url($path),
+        ]);
     }
 
     private function authorizeTreinamentos(): void

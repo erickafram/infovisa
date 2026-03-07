@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-10">
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-6xl space-y-6">
         <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-gray-100">
             <p class="text-sm font-medium text-blue-600">{{ $evento->titulo }}</p>
             <h1 class="mt-2 text-3xl font-bold text-gray-900">Participe da pergunta ao vivo</h1>

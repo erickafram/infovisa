@@ -199,8 +199,8 @@
             </div>
             <div class="p-3">
 
-                <div class="mb-2 flex items-center gap-2">
-                    <span x-show="salvandoAuto" class="text-sm text-green-600 flex items-center gap-1.5 font-medium">
+                <div class="mb-2 flex items-center gap-2 relative" style="min-height: 24px;">
+                    <span x-show="salvandoAuto" x-transition.opacity class="text-sm text-green-600 flex items-center gap-1.5 font-medium absolute left-0 top-0">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -412,10 +412,9 @@ function documentoEditor() {
                 selector: '#editor-tinymce',
                 language: 'pt_BR',
                 language_url: 'https://cdn.tiny.cloud/1/jr5azrsekth852dmtlbhhpicv6uzvkqn76qvngomcu1rsayk/tinymce/6/langs/pt_BR.js',
-                height: 500,
-                min_height: 400,
-                max_height: 800,
-                resize: true,
+                height: 700,
+                min_height: 700,
+                resize: false,
                 menubar: 'file edit view insert format table',
                 plugins: [
                     'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',

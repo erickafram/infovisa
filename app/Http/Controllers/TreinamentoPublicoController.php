@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Municipio;
 use App\Models\TreinamentoEvento;
 use App\Models\TreinamentoInscricao;
 use App\Models\TreinamentoPergunta;
 use App\Models\TreinamentoPerguntaResposta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TreinamentoPublicoController extends Controller
 {
@@ -17,7 +19,11 @@ class TreinamentoPublicoController extends Controller
 
         abort_unless($evento->inscricoes_ativas, 404);
 
-        return view('treinamentos.public.inscricao', compact('evento'));
+        $municipios = Municipio::doTocantins()
+            ->orderBy('nome')
+            ->pluck('nome');
+
+        return view('treinamentos.public.inscricao', compact('evento', 'municipios'));
     }
 
     public function salvarInscricao(Request $request, string $token)
@@ -31,9 +37,15 @@ class TreinamentoPublicoController extends Controller
             'telefone' => 'nullable|string|max:30',
             'instituicao' => 'nullable|string|max:255',
             'cargo' => 'nullable|string|max:255',
-            'cidade' => 'nullable|string|max:255',
-            'observacoes' => 'nullable|string',
+            'cidade' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::exists('municipios', 'nome')->where(fn ($query) => $query->where('uf', 'TO')),
+            ],
         ]);
+
+        $data = $this->normalizeInscricaoData($data);
 
         $inscricao = TreinamentoInscricao::updateOrCreate(
             [
@@ -42,6 +54,7 @@ class TreinamentoPublicoController extends Controller
             ],
             [
                 ...$data,
+                'observacoes' => null,
                 'token' => TreinamentoInscricao::where('treinamento_evento_id', $evento->id)
                     ->where('email', $data['email'])
                     ->value('token') ?? (string) Str::uuid(),
@@ -167,5 +180,22 @@ class TreinamentoPublicoController extends Controller
     private function participantSessionKey(int $eventoId): string
     {
         return 'treinamento_participante_' . $eventoId;
+    }
+
+    private function normalizeInscricaoData(array $data): array
+    {
+        foreach (['nome', 'instituicao', 'cargo', 'cidade'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null) {
+                $data[$field] = mb_strtoupper(trim((string) $data[$field]));
+            }
+        }
+
+        $data['email'] = mb_strtolower(trim((string) $data['email']));
+
+        if (array_key_exists('telefone', $data) && $data['telefone'] !== null) {
+            $data['telefone'] = trim((string) $data['telefone']);
+        }
+
+        return $data;
     }
 }
