@@ -14,7 +14,7 @@ class TipoProcessoController extends Controller
      */
     public function index()
     {
-        $tiposProcesso = TipoProcesso::with('tipoSetor')->ordenado()->get();
+        $tiposProcesso = TipoProcesso::with(['tipoSetor', 'setoresMunicipais'])->ordenado()->get();
         return view('admin.configuracoes.tipos-processo.index', compact('tiposProcesso'));
     }
 
@@ -25,7 +25,9 @@ class TipoProcessoController extends Controller
     {
         $municipios = Municipio::orderBy('nome')->get();
         $tiposSetor = TipoSetor::where('ativo', true)->orderBy('nome')->get();
-        return view('admin.configuracoes.tipos-processo.create', compact('municipios', 'tiposSetor'));
+        $setoresMunicipaisPorMunicipio = [];
+
+        return view('admin.configuracoes.tipos-processo.create', compact('municipios', 'tiposSetor', 'setoresMunicipaisPorMunicipio'));
     }
 
     /**
@@ -41,6 +43,8 @@ class TipoProcessoController extends Controller
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
             'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
+            'setores_municipais' => 'nullable|array',
+            'setores_municipais.*' => 'nullable|exists:tipo_setores,id',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -75,7 +79,8 @@ class TipoProcessoController extends Controller
             $validated['municipios_descentralizados_ids'] = $municipiosIds;
         }
 
-        TipoProcesso::create($validated);
+        $tipoProcesso = TipoProcesso::create($validated);
+        $this->sincronizarSetoresMunicipais($tipoProcesso, $request->input('setores_municipais', []), $validated['competencia']);
 
         return redirect()
             ->route('admin.configuracoes.tipos-processo.index')
@@ -95,9 +100,14 @@ class TipoProcessoController extends Controller
      */
     public function edit(TipoProcesso $tipoProcesso)
     {
+        $tipoProcesso->load('setoresMunicipais');
         $municipios = Municipio::orderBy('nome')->get();
         $tiposSetor = TipoSetor::where('ativo', true)->orderBy('nome')->get();
-        return view('admin.configuracoes.tipos-processo.edit', compact('tipoProcesso', 'municipios', 'tiposSetor'));
+        $setoresMunicipaisPorMunicipio = $tipoProcesso->setoresMunicipais
+            ->pluck('tipo_setor_id', 'municipio_id')
+            ->toArray();
+
+        return view('admin.configuracoes.tipos-processo.edit', compact('tipoProcesso', 'municipios', 'tiposSetor', 'setoresMunicipaisPorMunicipio'));
     }
 
     /**
@@ -113,6 +123,8 @@ class TipoProcessoController extends Controller
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
             'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
+            'setores_municipais' => 'nullable|array',
+            'setores_municipais.*' => 'nullable|exists:tipo_setores,id',
         ]);
 
         // Converte checkboxes para boolean (checkboxes não enviam valor quando desmarcados)
@@ -152,10 +164,34 @@ class TipoProcessoController extends Controller
         }
 
         $tipoProcesso->update($validated);
+        $this->sincronizarSetoresMunicipais($tipoProcesso, $request->input('setores_municipais', []), $validated['competencia']);
 
         return redirect()
             ->route('admin.configuracoes.tipos-processo.index')
             ->with('success', 'Tipo de processo atualizado com sucesso!');
+    }
+
+    private function sincronizarSetoresMunicipais(TipoProcesso $tipoProcesso, array $setoresMunicipais, string $competencia): void
+    {
+        if (!in_array($competencia, ['municipal', 'estadual'], true)) {
+            $tipoProcesso->setoresMunicipais()->delete();
+            return;
+        }
+
+        $registros = collect($setoresMunicipais)
+            ->filter(fn ($tipoSetorId) => !empty($tipoSetorId))
+            ->map(fn ($tipoSetorId, $municipioId) => [
+                'tipo_processo_id' => $tipoProcesso->id,
+                'municipio_id' => (int) $municipioId,
+                'tipo_setor_id' => (int) $tipoSetorId,
+            ])
+            ->values();
+
+        $tipoProcesso->setoresMunicipais()->delete();
+
+        if ($registros->isNotEmpty()) {
+            $tipoProcesso->setoresMunicipais()->createMany($registros->all());
+        }
     }
 
     /**

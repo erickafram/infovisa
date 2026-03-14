@@ -47,6 +47,11 @@ class TipoProcesso extends Model
         return $this->belongsTo(TipoSetor::class);
     }
 
+    public function setoresMunicipais()
+    {
+        return $this->hasMany(TipoProcessoSetorMunicipio::class, 'tipo_processo_id');
+    }
+
     /**
      * Scope para tipos ativos
      */
@@ -69,6 +74,111 @@ class TipoProcesso extends Model
     public function scopeOrdenado($query)
     {
         return $query->orderBy('ordem')->orderBy('nome');
+    }
+
+    public function isProcessoEspecial(): bool
+    {
+        return in_array($this->codigo, ['projeto_arquitetonico', 'analise_rotulagem'], true);
+    }
+
+    public function codigoAtividadeEspecial(): ?string
+    {
+        return match ($this->codigo) {
+            'projeto_arquitetonico' => 'PROJ_ARQ',
+            'analise_rotulagem' => 'ANAL_ROT',
+            default => null,
+        };
+    }
+
+    public function estabelecimentoPossuiAtividadeEspecial(Estabelecimento $estabelecimento): bool
+    {
+        $codigoEspecial = $this->codigoAtividadeEspecial();
+
+        if (!$codigoEspecial) {
+            return false;
+        }
+
+        return $estabelecimento->possuiAtividadeEspecial($codigoEspecial);
+    }
+
+    public function municipioDescentralizadoPara(Estabelecimento $estabelecimento): bool
+    {
+        $municipioId = $estabelecimento->municipio_id;
+        $municipiosIds = $this->municipios_descentralizados_ids ?? [];
+
+        if ($municipioId && !empty($municipiosIds)) {
+            return in_array((int) $municipioId, array_map('intval', $municipiosIds), true);
+        }
+
+        $municipioNome = optional($estabelecimento->municipioRelacionado)->nome;
+
+        if (!$municipioNome || empty($this->municipios_descentralizados)) {
+            return false;
+        }
+
+        $municipioNorm = strtoupper(self::removerAcentosStatic(trim($municipioNome)));
+
+        foreach ($this->municipios_descentralizados as $municipioDesc) {
+            if (strtoupper(self::removerAcentosStatic(trim($municipioDesc))) === $municipioNorm) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function resolverEscopoCompetencia(Estabelecimento $estabelecimento): string
+    {
+        return match ($this->competencia) {
+            'municipal' => 'municipal',
+            'estadual_exclusivo' => 'estadual',
+            'estadual' => $this->municipioDescentralizadoPara($estabelecimento) ? 'municipal' : 'estadual',
+            default => $estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal',
+        };
+    }
+
+    public function disponivelParaEstabelecimento(Estabelecimento $estabelecimento): bool
+    {
+        if ($this->isProcessoEspecial()) {
+            if ($estabelecimento->possuiSomenteAtividadesEspeciais()) {
+                return $this->estabelecimentoPossuiAtividadeEspecial($estabelecimento);
+            }
+
+            return true;
+        }
+
+        if ($estabelecimento->isCompetenciaEstadual()) {
+            return in_array($this->competencia, ['estadual', 'estadual_exclusivo'], true);
+        }
+
+        if ($this->competencia === 'municipal') {
+            return true;
+        }
+
+        if ($this->competencia === 'estadual_exclusivo') {
+            return false;
+        }
+
+        if ($this->competencia !== 'estadual') {
+            return false;
+        }
+
+        return $this->municipioDescentralizadoPara($estabelecimento);
+    }
+
+    public function resolverSetorInicial(Estabelecimento $estabelecimento): ?TipoSetor
+    {
+        if ($this->resolverEscopoCompetencia($estabelecimento) === 'municipal' && $estabelecimento->municipio_id) {
+            $setorMunicipal = $this->relationLoaded('setoresMunicipais')
+                ? $this->setoresMunicipais->firstWhere('municipio_id', $estabelecimento->municipio_id)
+                : $this->setoresMunicipais()->where('municipio_id', $estabelecimento->municipio_id)->with('tipoSetor')->first();
+
+            if ($setorMunicipal?->tipoSetor) {
+                return $setorMunicipal->tipoSetor;
+            }
+        }
+
+        return $this->tipoSetor;
     }
     
     /**

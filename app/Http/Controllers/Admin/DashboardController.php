@@ -135,7 +135,7 @@ class DashboardController extends Controller
                 ];
             });
         
-        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
         

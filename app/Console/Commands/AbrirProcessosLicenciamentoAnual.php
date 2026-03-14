@@ -102,9 +102,10 @@ class AbrirProcessosLicenciamentoAnual extends Command
                             'observacoes' => 'Processo aberto automaticamente pelo sistema para renovação anual de licenciamento sanitário.',
                         ];
                         
-                        // Se o tipo de processo tem setor configurado, atribui automaticamente
-                        if ($tipoProcesso && $tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
-                            $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                        // Resolve o setor inicial considerando override municipal por município.
+                        $setorInicial = $tipoProcesso?->resolverSetorInicial($estabelecimento);
+                        if ($setorInicial) {
+                            $dadosProcesso['setor_atual'] = $setorInicial->codigo;
                         }
 
                         Processo::create($dadosProcesso);

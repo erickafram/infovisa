@@ -125,7 +125,7 @@ class ProcessoController extends Controller
             });
         
         // Determina o escopo de competência e tipo de setor do estabelecimento
-        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
         
@@ -366,8 +366,15 @@ class ProcessoController extends Controller
         }
 
         // Dados para filtros
+        $codigosTiposVisiveis = $processosCollection
+            ->pluck('tipo')
+            ->filter()
+            ->unique()
+            ->values();
+
         $tiposProcesso = TipoProcesso::ativos()
             ->paraUsuario(auth('interno')->user())
+            ->whereIn('codigo', $codigosTiposVisiveis)
             ->ordenado()
             ->get();
         $statusDisponiveis = Processo::statusDisponiveis();
@@ -735,7 +742,9 @@ class ProcessoController extends Controller
         $tiposProcesso = TipoProcesso::ativos()
             ->paraUsuario(auth('interno')->user())
             ->ordenado()
-            ->get();
+            ->get()
+            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->values();
         
         return view('estabelecimentos.processos.index', compact('estabelecimento', 'processos', 'tiposProcesso'));
     }
@@ -746,9 +755,14 @@ class ProcessoController extends Controller
     public function create($estabelecimentoId)
     {
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
-        $tipos = Processo::tipos();
-        
-        return view('estabelecimentos.processos.create', compact('estabelecimento', 'tipos'));
+        $tiposProcesso = TipoProcesso::ativos()
+            ->paraUsuario(auth('interno')->user())
+            ->ordenado()
+            ->get()
+            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->values();
+
+        return view('estabelecimentos.processos.create', compact('estabelecimento', 'tiposProcesso'));
     }
 
     /**
@@ -761,6 +775,9 @@ class ProcessoController extends Controller
         // Busca códigos dos tipos ativos (filtrados por usuário)
         $codigosAtivos = TipoProcesso::ativos()
             ->paraUsuario(auth('interno')->user())
+            ->ordenado()
+            ->get()
+            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
             ->pluck('codigo')
             ->toArray();
         
@@ -818,9 +835,10 @@ class ProcessoController extends Controller
                     'observacoes' => $validated['observacoes'] ?? null,
                 ];
                 
-                // Se o tipo de processo tem setor configurado, atribui automaticamente
-                if ($tipoProcesso && $tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
-                    $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                // Resolve o setor inicial considerando override municipal por município.
+                $setorInicial = $tipoProcesso?->resolverSetorInicial($estabelecimento);
+                if ($setorInicial) {
+                    $dadosProcesso['setor_atual'] = $setorInicial->codigo;
                 }
                 
                 // Cria o processo
@@ -2474,9 +2492,25 @@ class ProcessoController extends Controller
     /**
      * Valida se o usuário tem permissão para acessar o processo
      */
-    private function validarPermissaoAcesso($estabelecimento)
+    private function validarPermissaoAcesso($estabelecimento, ?Processo $processo = null)
     {
         $usuario = auth('interno')->user();
+
+        if (!$processo) {
+            $processoRoute = request()->route('processo');
+
+            if ($processoRoute) {
+                $processoId = $processoRoute instanceof Processo ? $processoRoute->id : $processoRoute;
+
+                $processo = Processo::with('tipoProcesso')
+                    ->where('estabelecimento_id', $estabelecimento->id)
+                    ->find($processoId);
+            }
+        }
+
+        $escopoCompetencia = $processo && $processo->tipoProcesso
+            ? $processo->tipoProcesso->resolverEscopoCompetencia($estabelecimento)
+            : ($estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal');
         
         // Administrador tem acesso total
         if ($usuario->isAdmin()) {
@@ -2485,7 +2519,7 @@ class ProcessoController extends Controller
         
         // Usuário estadual só pode acessar processos de competência estadual
         if ($usuario->isEstadual()) {
-            if (!$estabelecimento->isCompetenciaEstadual()) {
+            if ($escopoCompetencia !== 'estadual') {
                 abort(403, 'Você não tem permissão para acessar processos de competência municipal.');
             }
             return true;
@@ -2496,7 +2530,7 @@ class ProcessoController extends Controller
             if (!$usuario->municipio_id || $estabelecimento->municipio_id != $usuario->municipio_id) {
                 abort(403, 'Você não tem permissão para acessar processos de outros municípios.');
             }
-            if ($estabelecimento->isCompetenciaEstadual()) {
+            if ($escopoCompetencia !== 'municipal') {
                 abort(403, 'Você não tem permissão para acessar processos de competência estadual.');
             }
             return true;

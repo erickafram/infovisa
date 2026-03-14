@@ -779,7 +779,10 @@ class Estabelecimento extends Model
         
         // PRIORIDADE 2: Verifica pela pactuação (lógica normal)
         // Pega todas as atividades do estabelecimento
-        $atividades = $this->getTodasAtividades();
+        $atividades = array_values(array_filter(
+            $this->getTodasAtividades(),
+            fn ($cnae) => !in_array($cnae, ['PROJ_ARQ', 'ANAL_ROT'], true)
+        ));
         
         // Normaliza o nome do município (remove " - TO" ou "/TO")
         $municipio = $this->cidade;
@@ -886,6 +889,36 @@ class Estabelecimento extends Model
         }
         
         return array_unique(array_filter($atividades));
+    }
+
+    public function getAtividadesEspeciais(): array
+    {
+        return array_values(array_filter(
+            $this->getTodasAtividades(),
+            fn ($codigo) => in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT'], true)
+        ));
+    }
+
+    public function possuiAtividadeEspecial(string $codigo): bool
+    {
+        return in_array($codigo, $this->getAtividadesEspeciais(), true);
+    }
+
+    public function possuiSomenteAtividadesEspeciais(): bool
+    {
+        $atividades = $this->getTodasAtividades();
+
+        if (empty($atividades)) {
+            return false;
+        }
+
+        foreach ($atividades as $codigo) {
+            if (!in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT'], true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
     
     /**

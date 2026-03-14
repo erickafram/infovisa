@@ -33,6 +33,25 @@
     </div>
     @endif
 
+    @if($processo->status === 'parado')
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-semibold text-red-800">Processo parado</p>
+                @if($processo->motivo_parada)
+                <p class="text-sm text-red-700 mt-1"><strong>Motivo:</strong> {{ $processo->motivo_parada }}</p>
+                @endif
+                @if($processo->data_parada)
+                <p class="text-xs text-red-600 mt-1">Parado em {{ $processo->data_parada->format('d/m/Y H:i') }}</p>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Cabeçalho com dados do processo --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
@@ -410,7 +429,7 @@
                     Menu
                 </h3>
                 <div class="space-y-1">
-                    @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
+                    @if($processo->status !== 'arquivado')
                     <button @click="modalUpload = true" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors">
                         <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
@@ -545,8 +564,9 @@
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 <span class="px-2 py-1 bg-red-200 text-red-800 text-xs font-medium rounded">Rejeitado</span>
-                                @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
-                                <button @click="docReenvioId = {{ $documento->id }}; docReenvioNome = '{{ addslashes($documento->nome_original) }}'; docReenvioMotivo = '{{ addslashes($documento->motivo_rejeicao ?? '') }}'; modalReenvio = true" 
+                                @if($processo->status !== 'arquivado')
+                                <button type="button"
+                                    @click.prevent="docReenvioId = {{ $documento->id }}; docReenvioNome = @js($documento->nome_original); docReenvioMotivo = @js($documento->motivo_rejeicao ?? ''); modalReenvio = true" 
                                         class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -600,7 +620,7 @@
                         </svg>
                         Lista de Documentos/Arquivos
                     </h2>
-                    @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
+                    @if($processo->status !== 'arquivado')
                     <button @click="modalUpload = true" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -975,7 +995,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
                     <p class="mt-2 text-sm text-gray-500">Nenhum documento no processo</p>
-                    @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
+                    @if($processo->status !== 'arquivado')
                     <button @click="modalUpload = true" class="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
                         Enviar primeiro arquivo →
                     </button>

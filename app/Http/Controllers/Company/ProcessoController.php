@@ -192,7 +192,7 @@ class ProcessoController extends Controller
             });
 
         // Determina o escopo de competência e tipo de setor do estabelecimento
-        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
+        $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
 

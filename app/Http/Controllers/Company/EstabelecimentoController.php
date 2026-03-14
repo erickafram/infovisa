@@ -1091,7 +1091,9 @@ class EstabelecimentoController extends Controller
             ->where('usuario_externo_pode_abrir', true)
             ->orderBy('ordem')
             ->orderBy('nome')
-            ->get();
+            ->get()
+            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->values();
 
         // Filtra tipos de processo baseado nas regras de anual/único E atividades especiais
         $anoAtual = date('Y');
@@ -1236,12 +1238,13 @@ class EstabelecimentoController extends Controller
         })->filter()->values()->toArray();
 
         // Determina o escopo de competência e tipo de setor do estabelecimento
-        $escopoCompetencia = $estabelecimento->getEscopoCompetencia();
         $tipoSetorEnum = $estabelecimento->tipo_setor;
         $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
 
         // Para cada tipo de processo, busca as listas de documentos aplicáveis
         foreach ($tiposProcesso as $tipoProcesso) {
+            $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
+
             // ========================================
             // BUSCA POR TIPO DE PROCESSO (para atividades especiais)
             // ========================================
@@ -1450,6 +1453,12 @@ class EstabelecimentoController extends Controller
             ->where('usuario_externo_pode_abrir', true)
             ->firstOrFail();
 
+        if (!$tipoProcesso->disponivelParaEstabelecimento($estabelecimento)) {
+            return back()->withErrors([
+                'tipo_processo_id' => 'O tipo de processo selecionado não está disponível para este estabelecimento.',
+            ])->withInput();
+        }
+
         // Validação de processo único por estabelecimento
         if ($tipoProcesso->unico_por_estabelecimento) {
             $existeProcesso = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
@@ -1504,9 +1513,10 @@ class EstabelecimentoController extends Controller
                     'observacoes' => $validated['observacao'] ?? null,
                 ];
                 
-                // Se o tipo de processo tem setor configurado, atribui automaticamente
-                if ($tipoProcesso->tipo_setor_id && $tipoProcesso->tipoSetor) {
-                    $dadosProcesso['setor_atual'] = $tipoProcesso->tipoSetor->codigo;
+                // Resolve o setor inicial considerando override municipal por município.
+                $setorInicial = $tipoProcesso->resolverSetorInicial($estabelecimento);
+                if ($setorInicial) {
+                    $dadosProcesso['setor_atual'] = $setorInicial->codigo;
                 }
 
                 $processo = \App\Models\Processo::create($dadosProcesso);

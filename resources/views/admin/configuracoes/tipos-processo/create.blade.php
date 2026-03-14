@@ -58,6 +58,8 @@
     <form action="{{ route('admin.configuracoes.tipos-processo.store') }}" method="POST" class="space-y-6">
         @csrf
 
+        <div x-data="{ competencia: '{{ old('competencia', 'municipal') }}', municipiosSelecionados: @js(old('municipios_descentralizados', [])) }" class="space-y-6">
+
         {{-- Card Principal --}}
         <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
@@ -138,7 +140,8 @@
                 {{-- Setor Responsável --}}
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
-                        Setor Responsável pela Análise Inicial
+                        <span x-show="competencia === 'estadual'">Setor Padrão / Estadual pela Análise Inicial</span>
+                        <span x-show="competencia !== 'estadual'">Setor Padrão pela Análise Inicial</span>
                     </label>
                     <select name="tipo_setor_id" 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('tipo_setor_id') border-red-500 @enderror">
@@ -149,9 +152,14 @@
                             </option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-gray-500">
-                        Quando um processo deste tipo for criado, será automaticamente encaminhado para este setor.
-                        Os usuários vinculados ao setor receberão notificação do novo processo.
+                    <p x-show="competencia === 'estadual_exclusivo'" class="mt-1 text-xs text-gray-500">
+                        Usado para encaminhar automaticamente os processos deste tipo para o setor inicial definido.
+                    </p>
+                    <p x-show="competencia === 'municipal'" class="mt-1 text-xs text-gray-500">
+                        Usado como setor padrão quando não houver um setor municipal específico configurado para o município.
+                    </p>
+                    <p x-show="competencia === 'estadual'" class="mt-1 text-xs text-gray-500">
+                        Usado para processos estaduais e como fallback quando não houver setor municipal configurado para o município.
                     </p>
                     @error('tipo_setor_id')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -161,7 +169,7 @@
         </div>
 
         {{-- Card Competência e Descentralização --}}
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden" x-data="{ competencia: '{{ old('competencia', 'municipal') }}', municipiosSelecionados: {{ json_encode(old('municipios_descentralizados', [])) }} }">
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,7 +239,8 @@
                     <label class="block text-xs font-medium text-gray-700 mb-1.5">
                         Municípios Descentralizados
                     </label>
-                    <select name="municipios_descentralizados[]" 
+                    <select name="municipios_descentralizados[]"
+                            x-model="municipiosSelecionados"
                             multiple
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             size="6">
@@ -246,7 +255,46 @@
                         Segure Ctrl/Cmd para selecionar múltiplos municípios
                     </p>
                 </div>
+
+                <div x-show="competencia === 'municipal' || competencia === 'estadual'" x-cloak class="pt-2 border-t border-gray-100">
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                        Setor Responsável Municipal por Município
+                    </label>
+                    <p class="mb-3 text-xs text-gray-500">
+                        Defina o setor inicial dos processos municipais. Para tipos estaduais descentralizados, configure apenas os municípios selecionados acima.
+                    </p>
+
+                    <div class="max-h-80 overflow-y-auto rounded-lg border border-gray-200">
+                        <div class="divide-y divide-gray-200">
+                            @foreach($municipios as $municipio)
+                                  <div class="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]"
+                                      x-show="competencia === 'municipal' || municipiosSelecionados.includes(@js($municipio->nome))">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ $municipio->nome }}</p>
+                                        <p class="text-xs text-gray-500">Setor inicial quando o estabelecimento deste município abrir o processo.</p>
+                                    </div>
+                                    <div>
+                                        <select name="setores_municipais[{{ $municipio->id }}]"
+                                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                                            <option value="">-- Usar setor padrão / sem override --</option>
+                                            @foreach($tiposSetor as $setor)
+                                                <option value="{{ $setor->id }}" {{ old('setores_municipais.' . $municipio->id, $setoresMunicipaisPorMunicipio[$municipio->id] ?? '') == $setor->id ? 'selected' : '' }}>
+                                                    {{ $setor->nome }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @error('setores_municipais.*')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
+        </div>
+
         </div>
 
         {{-- Card Configurações --}}
