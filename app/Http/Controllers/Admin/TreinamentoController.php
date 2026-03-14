@@ -650,7 +650,7 @@ class TreinamentoController extends Controller
         $usuario = Auth::guard('interno')->user();
 
         abort_unless(
-            $usuario && ($usuario->isAdmin() || $usuario->nivel_acesso->value === 'gestor_estadual'),
+            $usuario && $usuario->isAdmin(),
             403,
             'Acesso não autorizado ao módulo de treinamentos.'
         );

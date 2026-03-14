@@ -25,8 +25,28 @@
         </div>
     </div>
 
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.relatorios.pesquisa-satisfacao', array_filter(array_merge(request()->except('page', 'aba'), ['aba' => 'relatorio']))) }}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition {{ $aba === 'relatorio' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50' }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Relatório
+            </a>
+            <a href="{{ route('admin.relatorios.pesquisa-satisfacao', array_filter(array_merge(request()->except('page', 'pesquisa_ids', 'aba'), ['aba' => 'pesquisas']))) }}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition {{ $aba === 'pesquisas' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50' }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Pesquisas
+            </a>
+        </div>
+    </div>
+
+    @if($aba === 'pesquisas')
+        @include('admin.relatorios.partials.pesquisa-satisfacao-respostas')
+    @else
+
     {{-- Seletor de pesquisas (multi-select com checkboxes) --}}
     <form method="GET" action="{{ route('admin.relatorios.pesquisa-satisfacao') }}" id="formPesquisa">
+        <input type="hidden" name="aba" value="relatorio">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div class="flex items-center justify-between mb-3">
                 <p class="text-sm font-semibold text-gray-900">Pesquisas Disponíveis</p>
@@ -239,11 +259,12 @@
         <p class="text-sm text-gray-400 mt-1 max-w-md mx-auto">Marque uma ou mais pesquisas e clique em "Gerar Relatório"</p>
     </div>
     @endif
+    @endif
 </div>
 @endsection
 
 @push('scripts')
-@if($pesquisasSelecionadas->count() > 0 && $dados)
+@if($aba === 'relatorio' && $pesquisasSelecionadas->count() > 0 && $dados)
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

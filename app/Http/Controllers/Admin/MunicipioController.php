@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\NivelAcesso;
 use App\Http\Controllers\Controller;
 use App\Models\Municipio;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MunicipioController extends Controller
@@ -14,10 +17,19 @@ class MunicipioController extends Controller
      */
     public function index(Request $request)
     {
+        $usuario = auth('interno')->user();
         $query = Municipio::query();
 
+        if ($this->isGestorMunicipal($usuario)) {
+            if (!$usuario->municipio_id) {
+                abort(403, 'Gestor municipal sem município vinculado.');
+            }
+
+            $query->where('id', $usuario->municipio_id);
+        }
+
         // Filtro de busca
-        if ($request->filled('search')) {
+        if ($request->filled('search') && !$this->isGestorMunicipal($usuario)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('nome', 'like', "%{$search}%")
@@ -27,28 +39,32 @@ class MunicipioController extends Controller
         }
 
         // Filtro de status
-        if ($request->filled('ativo')) {
+        if ($request->filled('ativo') && !$this->isGestorMunicipal($usuario)) {
             $query->where('ativo', $request->ativo === '1');
         }
 
         // Filtro de UF
-        if ($request->filled('uf')) {
+        if ($request->filled('uf') && !$this->isGestorMunicipal($usuario)) {
             $query->where('uf', $request->uf);
         }
 
         $municipios = $query->withCount('usuariosInternos')->orderBy('nome')->paginate(20);
 
+        $municipiosIds = (clone $query)->pluck('id');
+
         // Estatísticas
         $stats = [
-            'total' => Municipio::count(),
-            'ativos' => Municipio::where('ativo', true)->count(),
-            'inativos' => Municipio::where('ativo', false)->count(),
-            'com_estabelecimentos' => Municipio::has('estabelecimentos')->count(),
-            'com_pactuacoes' => Municipio::has('pactuacoes')->count(),
-            'com_usuarios' => Municipio::has('usuariosInternos')->count(),
+            'total' => Municipio::whereIn('id', $municipiosIds)->count(),
+            'ativos' => Municipio::whereIn('id', $municipiosIds)->where('ativo', true)->count(),
+            'inativos' => Municipio::whereIn('id', $municipiosIds)->where('ativo', false)->count(),
+            'com_estabelecimentos' => Municipio::whereIn('id', $municipiosIds)->has('estabelecimentos')->count(),
+            'com_pactuacoes' => Municipio::whereIn('id', $municipiosIds)->has('pactuacoes')->count(),
+            'com_usuarios' => Municipio::whereIn('id', $municipiosIds)->has('usuariosInternos')->count(),
         ];
 
-        return view('admin.municipios.index', compact('municipios', 'stats'));
+        $modoMunicipal = $this->isGestorMunicipal($usuario);
+
+        return view('admin.municipios.index', compact('municipios', 'stats', 'modoMunicipal'));
     }
 
     /**
@@ -145,8 +161,13 @@ class MunicipioController extends Controller
      */
     public function edit($id)
     {
+        $usuario = auth('interno')->user();
+        $this->autorizarAcessoMunicipio($usuario, (int) $id);
+
         $municipio = Municipio::findOrFail($id);
-        return view('admin.municipios.edit', compact('municipio'));
+        $modoMunicipal = $this->isGestorMunicipal($usuario);
+
+        return view('admin.municipios.edit', compact('municipio', 'modoMunicipal'));
     }
 
     /**
@@ -154,7 +175,67 @@ class MunicipioController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $usuario = auth('interno')->user();
+        $this->autorizarAcessoMunicipio($usuario, (int) $id);
+
         $municipio = Municipio::findOrFail($id);
+
+        if ($this->isGestorMunicipal($usuario)) {
+            $request->validate([
+                'logomarca' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+                'rodape_documento' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:4096',
+                'rodape_texto' => 'nullable|string|max:4000',
+                'remover_logomarca' => 'nullable|in:1,on',
+                'remover_rodape_documento' => 'nullable|in:1,on',
+            ], [
+                'logomarca.image' => 'O arquivo deve ser uma imagem',
+                'logomarca.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
+                'logomarca.max' => 'A logomarca não pode ser maior que 2MB',
+                'rodape_documento.image' => 'O arquivo deve ser uma imagem',
+                'rodape_documento.mimes' => 'O rodapé deve ser um arquivo: jpeg, png, jpg ou svg',
+                'rodape_documento.max' => 'O rodapé não pode ser maior que 4MB',
+                'rodape_texto.max' => 'O texto do rodapé não pode ter mais que 4000 caracteres',
+            ]);
+
+            $dados = [];
+
+            if ($request->hasFile('logomarca')) {
+                $dados['logomarca'] = $this->armazenarImagemMunicipio(
+                    $request->file('logomarca'),
+                    'municipios/logomarcas',
+                    'logomarca_' . Str::slug($municipio->nome),
+                    $municipio->logomarca
+                );
+            } elseif ($request->has('remover_logomarca') && $municipio->logomarca) {
+                $this->removerImagemMunicipio($municipio->logomarca);
+                $dados['logomarca'] = null;
+            }
+
+            if ($request->hasFile('rodape_documento')) {
+                $dados['rodape_documento'] = $this->armazenarImagemMunicipio(
+                    $request->file('rodape_documento'),
+                    'municipios/rodapes',
+                    'rodape_' . Str::slug($municipio->nome),
+                    $municipio->rodape_documento
+                );
+            } elseif ($request->has('remover_rodape_documento') && $municipio->rodape_documento) {
+                $this->removerImagemMunicipio($municipio->rodape_documento);
+                $dados['rodape_documento'] = null;
+            }
+
+            if ($request->has('rodape_texto')) {
+                $textoRodape = trim((string) $request->input('rodape_texto'));
+                $dados['rodape_texto'] = $textoRodape !== '' ? $textoRodape : null;
+            }
+
+            if (!empty($dados)) {
+                $municipio->update($dados);
+            }
+
+            return redirect()
+                ->route('admin.configuracoes.municipios.index')
+                ->with('success', 'Identidade visual do município atualizada com sucesso!');
+        }
 
         // Debug: Log todos os dados recebidos
         \Log::info('=== ATUALIZAÇÃO DE MUNICÍPIO ===', [
@@ -171,7 +252,10 @@ class MunicipioController extends Controller
             'codigo_ibge' => 'required|string|size:7|unique:municipios,codigo_ibge,' . $id,
             'uf' => 'required|string|size:2',
             'logomarca' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'rodape_documento' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:4096',
+            'rodape_texto' => 'nullable|string|max:4000',
             'remover_logomarca' => 'nullable|in:1,on',
+            'remover_rodape_documento' => 'nullable|in:1,on',
             // ativo não precisa de validação pois usamos $request->has('ativo')
         ], [
             'nome.required' => 'O nome do município é obrigatório',
@@ -183,6 +267,10 @@ class MunicipioController extends Controller
             'logomarca.image' => 'O arquivo deve ser uma imagem',
             'logomarca.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
             'logomarca.max' => 'A logomarca não pode ser maior que 2MB',
+            'rodape_documento.image' => 'O arquivo deve ser uma imagem',
+            'rodape_documento.mimes' => 'O rodapé deve ser um arquivo: jpeg, png, jpg ou svg',
+            'rodape_documento.max' => 'O rodapé não pode ser maior que 4MB',
+            'rodape_texto.max' => 'O texto do rodapé não pode ter mais que 4000 caracteres',
         ]);
 
         if ($validator->fails()) {
@@ -205,6 +293,7 @@ class MunicipioController extends Controller
             'ativo' => $request->has('ativo'),
             'usa_infovisa' => $request->has('usa_infovisa'),
             'data_adesao_infovisa' => $request->has('usa_infovisa') ? $request->data_adesao_infovisa : null,
+            'rodape_texto' => filled($request->rodape_texto) ? trim((string) $request->rodape_texto) : null,
         ];
 
         // Upload da nova logomarca (tem prioridade sobre remoção)
@@ -246,20 +335,20 @@ class MunicipioController extends Controller
             $nomeArquivo = 'logomarca_' . Str::slug($request->nome) . '_' . time() . '.' . $arquivo->getClientOriginalExtension();
             
             try {
-                // Salva no disco 'public' explicitamente
-                $caminho = $arquivo->storeAs('municipios/logomarcas', $nomeArquivo, 'public');
-                $dados['logomarca'] = 'storage/' . $caminho;
+                $dados['logomarca'] = $this->armazenarImagemMunicipio(
+                    $arquivo,
+                    'municipios/logomarcas',
+                    'logomarca_' . Str::slug($request->nome),
+                    $municipio->logomarca
+                );
                 
                 \Log::info('Logomarca salva com sucesso!', [
-                    'caminho_storage' => $caminho,
                     'caminho_public' => $dados['logomarca'],
-                    'nome_arquivo' => $nomeArquivo,
-                    'caminho_completo' => \Storage::disk('public')->path($caminho),
+                    'nome_arquivo' => basename((string) $dados['logomarca']),
                 ]);
             } catch (\Exception $e) {
                 \Log::error('Erro ao salvar logomarca', [
                     'erro' => $e->getMessage(),
-                    'arquivo' => $nomeArquivo,
                 ]);
                 return redirect()
                     ->back()
@@ -267,16 +356,37 @@ class MunicipioController extends Controller
             }
         } elseif ($request->has('remover_logomarca') && $municipio->logomarca) {
             // Remove logomarca apenas se não houver upload de nova imagem
-            $caminhoRemover = str_replace('storage/', '', $municipio->logomarca);
-            \Storage::disk('public')->delete($caminhoRemover);
+            $this->removerImagemMunicipio($municipio->logomarca);
             $dados['logomarca'] = null;
-            \Log::info('Logomarca removida', ['caminho' => $caminhoRemover]);
+            \Log::info('Logomarca removida', ['caminho' => $municipio->logomarca]);
         } else {
             \Log::warning('Nenhum arquivo de logomarca recebido', [
                 'municipio_id' => $id,
                 'has_file' => $request->hasFile('logomarca'),
                 'all_files' => $request->allFiles(),
             ]);
+        }
+
+        if ($request->hasFile('rodape_documento')) {
+            try {
+                $dados['rodape_documento'] = $this->armazenarImagemMunicipio(
+                    $request->file('rodape_documento'),
+                    'municipios/rodapes',
+                    'rodape_' . Str::slug($request->nome),
+                    $municipio->rodape_documento
+                );
+            } catch (\Exception $e) {
+                \Log::error('Erro ao salvar rodapé do município', [
+                    'erro' => $e->getMessage(),
+                ]);
+
+                return redirect()
+                    ->back()
+                    ->with('error', 'Erro ao salvar o rodapé do município: ' . $e->getMessage());
+            }
+        } elseif ($request->has('remover_rodape_documento') && $municipio->rodape_documento) {
+            $this->removerImagemMunicipio($municipio->rodape_documento);
+            $dados['rodape_documento'] = null;
         }
 
         $municipio->update($dados);
@@ -365,5 +475,53 @@ class MunicipioController extends Controller
             ->get(['id', 'nome', 'codigo_ibge', 'uf']);
 
         return response()->json($municipios);
+    }
+
+    private function isGestorMunicipal($usuario): bool
+    {
+        return $usuario->nivel_acesso === NivelAcesso::GestorMunicipal;
+    }
+
+    private function autorizarAcessoMunicipio($usuario, int $municipioId): void
+    {
+        if ($usuario->isAdmin() || $usuario->isEstadual()) {
+            return;
+        }
+
+        if ($this->isGestorMunicipal($usuario) && (int) $usuario->municipio_id === $municipioId) {
+            return;
+        }
+
+        abort(403, 'Você não tem permissão para acessar este município.');
+    }
+
+    private function armazenarImagemMunicipio(UploadedFile $arquivo, string $diretorio, string $prefixo, ?string $caminhoAnterior = null): string
+    {
+        if (!Storage::disk('public')->exists($diretorio)) {
+            Storage::disk('public')->makeDirectory($diretorio);
+        }
+
+        if ($caminhoAnterior) {
+            $this->removerImagemMunicipio($caminhoAnterior);
+        }
+
+        $nomeArquivo = $prefixo . '_' . time() . '.' . $arquivo->getClientOriginalExtension();
+        $caminho = $arquivo->storeAs($diretorio, $nomeArquivo, 'public');
+
+        if (!$caminho) {
+            throw new \RuntimeException('Não foi possível armazenar a imagem no disco público.');
+        }
+
+        return 'storage/' . $caminho;
+    }
+
+    private function removerImagemMunicipio(?string $caminhoPublico): void
+    {
+        if (!$caminhoPublico) {
+            return;
+        }
+
+        $caminhoRelativo = str_replace('storage/', '', $caminhoPublico);
+        Storage::disk('public')->delete($caminhoRelativo);
     }
 }

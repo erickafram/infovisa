@@ -971,6 +971,8 @@
                                         $assinaturasPendentes = $assinaturas->where('status', 'pendente')->count();
                                         $todasAssinaturas = $assinaturas->count();
                                         $temAssinaturasPendentes = $assinaturasPendentes > 0;
+                                        $podeProrrogarPrazo = $docDigital->podeProrrogarPrazo();
+                                        $diasProrrogacaoDisponiveis = $docDigital->dias_prorrogacao_disponiveis;
                                         
                                         // Verificar se o usuário logado precisa assinar este documento
                                         $usuarioLogado = auth('interno')->user();
@@ -1140,7 +1142,30 @@
                                                             {{ $docDigital->texto_status_prazo }}
                                                         </span>
                                                     @endif
+
+                                                    @if(($docDigital->prazo_prorrogado_dias ?? 0) > 0)
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-bold"
+                                                              title="Prorrogação acumulada nesta notificação">
+                                                            <i class="fas fa-plus" style="font-size: 9px;"></i>
+                                                            {{ $docDigital->prazo_prorrogado_dias }} dia(s)
+                                                        </span>
+                                                    @endif
                                                 </div>
+
+                                                @if(($docDigital->prazo_prorrogado_dias ?? 0) > 0 && ($docDigital->usuarioProrrogouPrazo || $docDigital->prazo_prorrogado_motivo))
+                                                    <p class="mt-1 text-[10px] leading-tight text-gray-500 truncate"
+                                                       title="{{ $docDigital->usuarioProrrogouPrazo?->nome ? 'Prorrogado por ' . $docDigital->usuarioProrrogouPrazo->nome . '. ' : '' }}{{ $docDigital->prazo_prorrogado_motivo }}">
+                                                        @if($docDigital->usuarioProrrogouPrazo)
+                                                            <span class="font-medium text-gray-600">{{ Str::words($docDigital->usuarioProrrogouPrazo->nome, 2, '') }}</span>
+                                                        @endif
+                                                        @if($docDigital->usuarioProrrogouPrazo && $docDigital->prazo_prorrogado_motivo)
+                                                            <span> • </span>
+                                                        @endif
+                                                        @if($docDigital->prazo_prorrogado_motivo)
+                                                            <span>{{ $docDigital->prazo_prorrogado_motivo }}</span>
+                                                        @endif
+                                                    </p>
+                                                @endif
 
                                                 @if($statusGeral === 'aguardando_assinatura')
                                                     <div class="mt-1 space-y-1">
@@ -1227,6 +1252,16 @@
                                                     </button>
                                                 </form>
                                             @endif
+
+                                            @if($podeProrrogarPrazo)
+                                                <button type="button"
+                                                        @click="abrirModalProrrogarPrazo({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ $docDigital->data_vencimento?->format('d/m/Y') }}', {{ $diasProrrogacaoDisponiveis }}, '{{ route('admin.estabelecimentos.processos.documento-digital.prorrogar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                        class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+                                                        title="Prorrogar prazo restante da notificação">
+                                                    <i class="far fa-calendar-plus" style="font-size: 12px;"></i>
+                                                    Prorrogar
+                                                </button>
+                                            @endif
                                             
                                             {{-- Botão Download PDF --}}
                                             @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
@@ -1287,6 +1322,14 @@
                                                                     Encerrar Prazo
                                                                 </button>
                                                             </form>
+                                                            @if($podeProrrogarPrazo)
+                                                                <button type="button"
+                                                                        @click="abrirModalProrrogarPrazo({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ $docDigital->data_vencimento?->format('d/m/Y') }}', {{ $diasProrrogacaoDisponiveis }}, '{{ route('admin.estabelecimentos.processos.documento-digital.prorrogar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'); menuAberto = false"
+                                                                        class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors">
+                                                                    <i class="far fa-calendar-plus fa-fw" style="font-size: 13px;"></i>
+                                                                    Prorrogar Prazo
+                                                                </button>
+                                                            @endif
                                                         @elseif($docDigital->primeiraVisualizacao)
                                                             <form action="{{ route('admin.estabelecimentos.processos.documento-digital.finalizar-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}" method="POST">
                                                                 @csrf
@@ -1606,6 +1649,26 @@
                                                     <span class="px-1.5 py-0.5 text-[10px] rounded {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700 font-semibold' : 'bg-blue-100 text-blue-700 font-semibold' }}">
                                                         {{ $documento->tipo_usuario === 'interno' ? 'Int' : 'Ext' }}
                                                     </span>
+                                                    @if($documento->os_id && $documento->ordemServico)
+                                                        @php
+                                                            $atividadeDocumentoOs = null;
+                                                            if ($documento->atividade_index !== null) {
+                                                                $atividadeDocumentoOs = $documento->ordemServico->atividades_tecnicos[$documento->atividade_index]['nome_atividade'] ?? null;
+                                                            }
+                                                        @endphp
+                                                        <a href="{{ route('admin.ordens-servico.show', $documento->ordemServico) }}"
+                                                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded font-bold hover:bg-blue-100 transition-colors"
+                                                           @click.stop>
+                                                            <i class="fas fa-clipboard-check" style="font-size: 10px;"></i>
+                                                            OS #{{ $documento->ordemServico->numero }}
+                                                        </a>
+                                                        @if($atividadeDocumentoOs)
+                                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] rounded font-bold">
+                                                                <i class="far fa-check-square" style="font-size: 10px;"></i>
+                                                                {{ $atividadeDocumentoOs }}
+                                                            </span>
+                                                        @endif
+                                                    @endif
                                                     @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                                         @if($documento->status_aprovacao === 'pendente')
                                                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold documento-status-badge">
@@ -1894,6 +1957,84 @@
                                 style="min-height: 500px;">
                         </iframe>
                     </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="modalProrrogarPrazo">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalProrrogarPrazo" style="display: none;">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="fixed inset-0 bg-gray-900/50" @click="modalProrrogarPrazo = false"></div>
+
+                <div class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
+                    <div class="border-b border-gray-200 px-6 py-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Prorrogar Prazo</p>
+                                <h3 class="mt-1 text-lg font-semibold text-gray-900" x-text="prorrogarPrazoDocumentoNome"></h3>
+                                <p class="mt-1 text-xs text-gray-500" x-text="prorrogarPrazoDocumentoNumero"></p>
+                            </div>
+                            <button type="button" @click="modalProrrogarPrazo = false" class="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form :action="prorrogarPrazoUrl" method="POST" class="px-6 py-5 space-y-4">
+                        @csrf
+                        <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+                            <p><span class="font-semibold">Prazo atual:</span> <span x-text="prorrogarPrazoDataAtual"></span></p>
+                            <p class="mt-1"><span class="font-semibold">Limite restante nesta notificação:</span> <span x-text="prorrogarPrazoDiasDisponiveis"></span> dia(s)</p>
+                        </div>
+
+                        <div>
+                            <label for="prorrogar_prazo_dias" class="block text-sm font-medium text-gray-700 mb-2">Dias para prorrogar</label>
+                            <input type="number"
+                                   id="prorrogar_prazo_dias"
+                                   name="dias"
+                                   x-model="prorrogarPrazoDias"
+                                   min="1"
+                                   :max="prorrogarPrazoDiasDisponiveis"
+                                   required
+                                   class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            <p class="mt-1 text-xs text-gray-500">A mesma notificação pode ser prorrogada no máximo em 30 dias no total.</p>
+                        </div>
+
+                        <div>
+                            <label for="prorrogar_prazo_motivo" class="block text-sm font-medium text-gray-700 mb-2">Motivo da prorrogação</label>
+                            <textarea id="prorrogar_prazo_motivo"
+                                      name="motivo"
+                                      rows="3"
+                                      minlength="10"
+                                      required
+                                      class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                      placeholder="Informe o motivo da prorrogação com no mínimo 10 caracteres"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="prorrogar_prazo_senha" class="block text-sm font-medium text-gray-700 mb-2">Senha de assinatura digital</label>
+                            <input type="password"
+                                   id="prorrogar_prazo_senha"
+                                   name="senha_assinatura"
+                                   required
+                                   class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                   placeholder="Digite sua senha de assinatura">
+                            <p class="mt-1 text-xs text-gray-500">Use a mesma senha configurada em <a href="{{ route('admin.assinatura.configurar-senha') }}" class="text-blue-600 hover:underline" target="_blank">Configurar Senha de Assinatura</a>.</p>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 pt-2">
+                            <button type="button" @click="modalProrrogarPrazo = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                                <i class="far fa-calendar-plus" style="font-size: 12px;"></i>
+                                Confirmar Prorrogação
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -3473,6 +3614,40 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                                         @endif
                                                     </div>
                                                     @endif
+
+                                                    @if($evento->tipo_evento === 'prazo_prorrogado')
+                                                    <div class="mt-1.5 p-2 bg-indigo-50 rounded border border-indigo-200">
+                                                        <div class="flex items-center gap-2 text-xs text-indigo-700">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                            </svg>
+                                                            <span>
+                                                                <strong>Documento:</strong>
+                                                                {{ $evento->dados_adicionais['numero_documento'] ?? ($evento->dados_adicionais['nome_documento'] ?? 'Documento') }}
+                                                            </span>
+                                                        </div>
+                                                        <div class="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-indigo-600">
+                                                            @if(isset($evento->dados_adicionais['prorrogado_por_nome']))
+                                                            <span><strong>Por:</strong> {{ $evento->dados_adicionais['prorrogado_por_nome'] }}</span>
+                                                            @endif
+                                                            @if(isset($evento->dados_adicionais['prazo_anterior']))
+                                                            <span><strong>Prazo anterior:</strong> {{ \Carbon\Carbon::parse($evento->dados_adicionais['prazo_anterior'])->format('d/m/Y') }}</span>
+                                                            @endif
+                                                            @if(isset($evento->dados_adicionais['prazo']))
+                                                            <span><strong>Novo prazo:</strong> {{ \Carbon\Carbon::parse($evento->dados_adicionais['prazo'])->format('d/m/Y') }}</span>
+                                                            @endif
+                                                            @if(isset($evento->dados_adicionais['dias_prorrogados']))
+                                                            <span><strong>Prorrogado:</strong> {{ $evento->dados_adicionais['dias_prorrogados'] }} dia(s)</span>
+                                                            @endif
+                                                            @if(isset($evento->dados_adicionais['dias_prorrogados_total']))
+                                                            <span><strong>Total acumulado:</strong> {{ $evento->dados_adicionais['dias_prorrogados_total'] }} dia(s)</span>
+                                                            @endif
+                                                        </div>
+                                                        @if(isset($evento->dados_adicionais['motivo']) && $evento->dados_adicionais['motivo'])
+                                                        <p class="mt-1 text-[10px] text-indigo-700"><strong>Motivo:</strong> {{ $evento->dados_adicionais['motivo'] }}</p>
+                                                        @endif
+                                                    </div>
+                                                    @endif
                                                     
                                                     @if(in_array($evento->tipo_evento, ['documento_anexado', 'documento_digital_criado']) && isset($evento->dados_adicionais['nome_arquivo']))
                                                     <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
@@ -3705,6 +3880,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 modalAtribuir: false,
                 modalRespostas: false,
                 modalAssinar: false,
+                modalProrrogarPrazo: false,
                 
                 // Modal de Assinatura
                 assinarDocumentoId: null,
@@ -3715,6 +3891,15 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 assinarSenha: '',
                 assinarErro: '',
                 assinarCarregando: false,
+
+                // Modal de Prorrogação de Prazo
+                prorrogarPrazoDocumentoId: null,
+                prorrogarPrazoDocumentoNome: '',
+                prorrogarPrazoDocumentoNumero: '',
+                prorrogarPrazoDataAtual: '',
+                prorrogarPrazoDiasDisponiveis: 0,
+                prorrogarPrazoDias: 1,
+                prorrogarPrazoUrl: '',
                 
                 // Modal de Respostas
                 respostasDocumentoId: null,
@@ -4145,6 +4330,17 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.assinarErro = '';
                     this.assinarCarregando = false;
                     this.modalAssinar = true;
+                },
+
+                abrirModalProrrogarPrazo(documentoId, nomeDocumento, numeroDocumento, dataAtual, diasDisponiveis, url) {
+                    this.prorrogarPrazoDocumentoId = documentoId;
+                    this.prorrogarPrazoDocumentoNome = nomeDocumento;
+                    this.prorrogarPrazoDocumentoNumero = numeroDocumento;
+                    this.prorrogarPrazoDataAtual = dataAtual;
+                    this.prorrogarPrazoDiasDisponiveis = Number(diasDisponiveis) || 0;
+                    this.prorrogarPrazoDias = this.prorrogarPrazoDiasDisponiveis > 0 ? 1 : 0;
+                    this.prorrogarPrazoUrl = url;
+                    this.modalProrrogarPrazo = true;
                 },
 
                 // Processa assinatura via AJAX

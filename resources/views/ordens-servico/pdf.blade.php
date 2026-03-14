@@ -580,8 +580,30 @@
                 <div class="footer-logo">
                     @php
                         try {
-                            $rodapeImagePath = public_path('img/rodape.jpeg');
-                            if (file_exists($rodapeImagePath)) {
+                            $rodapeDocumento = $rodapeDocumento ?? null;
+
+                            if (!$rodapeDocumento) {
+                                $estabelecimentoRodape = $estabelecimentoPdf ?? $ordemServico->estabelecimento;
+                                $municipioRodape = null;
+
+                                if ($estabelecimentoRodape && !$estabelecimentoRodape->isCompetenciaEstadual()) {
+                                    $municipioRodapeObj = $estabelecimentoRodape->municipio ?? null;
+
+                                    if (!$municipioRodapeObj && $estabelecimentoRodape->municipio_id) {
+                                        $municipioRodapeObj = \App\Models\Municipio::find($estabelecimentoRodape->municipio_id);
+                                    }
+
+                                    if ($municipioRodapeObj && !empty($municipioRodapeObj->rodape_documento)) {
+                                        $municipioRodape = $municipioRodapeObj->rodape_documento;
+                                    }
+                                }
+
+                                $rodapeDocumento = $municipioRodape ?: \App\Models\ConfiguracaoSistema::rodapeEstadual();
+                            }
+
+                            $rodapeImagePath = $rodapeDocumento ? public_path(ltrim($rodapeDocumento, '/')) : null;
+
+                            if ($rodapeImagePath && file_exists($rodapeImagePath)) {
                                 $imageData = file_get_contents($rodapeImagePath);
                                 $imageInfo = getimagesize($rodapeImagePath);
 
@@ -597,8 +619,29 @@
                     @endphp
                 </div>
                 <div class="footer-text">
-                    Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Lauro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
-                    Contatos: (63) 3027-4486 - (63) 3027-4475 - (63) 3027-4432 – tocantins.visa@gmail.com
+                    @php
+                        $rodapeTexto = $rodapeTexto ?? null;
+
+                        if (!$rodapeTexto) {
+                            $estabelecimentoTexto = $estabelecimentoPdf ?? $ordemServico->estabelecimento;
+                            $municipioTexto = null;
+
+                            if ($estabelecimentoTexto && !$estabelecimentoTexto->isCompetenciaEstadual()) {
+                                $municipioTextoObj = $estabelecimentoTexto->municipio ?? null;
+
+                                if (!$municipioTextoObj && $estabelecimentoTexto->municipio_id) {
+                                    $municipioTextoObj = \App\Models\Municipio::find($estabelecimentoTexto->municipio_id);
+                                }
+
+                                if ($municipioTextoObj && !empty($municipioTextoObj->rodape_texto)) {
+                                    $municipioTexto = $municipioTextoObj->rodape_texto;
+                                }
+                            }
+
+                            $rodapeTexto = $municipioTexto ?: \App\Models\ConfiguracaoSistema::rodapeTextoPadrao();
+                        }
+                    @endphp
+                    {!! nl2br(e($rodapeTexto)) !!}
                 </div>
             </div>
         </div>

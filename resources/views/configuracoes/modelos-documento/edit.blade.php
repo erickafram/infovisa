@@ -6,12 +6,20 @@
 @section('content')
 <div class="max-w-8xl mx-auto">
     {{-- Breadcrumb --}}
+    @php
+        $usuario = auth('interno')->user();
+        $podeAcessarConfiguracoes = $usuario->isAdmin() || $usuario->isGestor();
+        $escopoInicial = old('escopo', $modeloDocumento->escopo ?? 'estadual');
+    @endphp
+
     <div class="mb-6">
         <nav class="flex items-center gap-2 text-sm text-gray-600">
-            <a href="{{ route('admin.configuracoes.index') }}" class="hover:text-blue-600">Configurações</a>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
+            @if($podeAcessarConfiguracoes)
+                <a href="{{ route('admin.configuracoes.index') }}" class="hover:text-blue-600">Configurações</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            @endif
             <a href="{{ route('admin.configuracoes.modelos-documento.index') }}" class="hover:text-blue-600">Modelos de Documentos</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -21,7 +29,7 @@
     </div>
 
     {{-- Formulário --}}
-    <form method="POST" action="{{ route('admin.configuracoes.modelos-documento.update', $modeloDocumento->id) }}" class="space-y-6">
+    <form method="POST" action="{{ route('admin.configuracoes.modelos-documento.update', $modeloDocumento->id) }}" class="space-y-6" x-data="{ escopo: @js($escopoInicial) }">
         @csrf
         @method('PUT')
 
@@ -33,8 +41,8 @@
             </h3>
 
             <div class="space-y-6">
-                {{-- Grid: Tipo, Código e Ordem --}}
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {{-- Grid: Tipo, Código, Escopo e Ordem --}}
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
                     {{-- Tipo de Documento --}}
                     <div class="md:col-span-2">
                         <label for="tipo_documento_id" class="block text-sm font-medium text-gray-700 mb-2">
@@ -52,6 +60,31 @@
                             @endforeach
                         </select>
                         @error('tipo_documento_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Escopo --}}
+                    <div>
+                        <label for="escopo" class="block text-sm font-medium text-gray-700 mb-2">
+                            Escopo <span class="text-red-500">*</span>
+                        </label>
+                        @if($usuario->nivel_acesso->value === 'gestor_estadual')
+                            <input type="hidden" name="escopo" value="estadual">
+                            <div class="px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">Estadual</div>
+                        @elseif($usuario->nivel_acesso->value === 'gestor_municipal')
+                            <input type="hidden" name="escopo" value="municipal">
+                            <div class="px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">Municipal</div>
+                        @else
+                            <select name="escopo"
+                                    id="escopo"
+                                    x-model="escopo"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('escopo') border-red-500 @enderror">
+                                <option value="estadual" {{ $escopoInicial === 'estadual' ? 'selected' : '' }}>Estadual</option>
+                                <option value="municipal" {{ $escopoInicial === 'municipal' ? 'selected' : '' }}>Municipal</option>
+                            </select>
+                        @endif
+                        @error('escopo')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -87,6 +120,34 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
+
+                {{-- Município --}}
+                <div x-show="escopo === 'municipal'" x-cloak>
+                    <label for="municipio_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        Município <span class="text-red-500">*</span>
+                    </label>
+                    @if($usuario->nivel_acesso->value === 'gestor_municipal')
+                        <input type="hidden" name="municipio_id" value="{{ $usuario->municipio_id }}">
+                        <div class="px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">
+                            {{ $usuario->municipioRelacionado?->nome ?? 'Município não vinculado' }}
+                        </div>
+                    @else
+                        <select name="municipio_id"
+                                id="municipio_id"
+                                :disabled="escopo !== 'municipal'"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('municipio_id') border-red-500 @enderror">
+                            <option value="">Selecione o município</option>
+                            @foreach($municipios as $municipio)
+                                <option value="{{ $municipio->id }}" {{ old('municipio_id', $modeloDocumento->municipio_id) == $municipio->id ? 'selected' : '' }}>
+                                    {{ $municipio->nome }}
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
+                    @error('municipio_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Descrição --}}

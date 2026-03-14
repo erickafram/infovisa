@@ -5,12 +5,21 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto">
+    @php $modoMunicipal = $modoMunicipal ?? false; @endphp
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form action="{{ route('admin.configuracoes.municipios.update', $municipio->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
+            @if($modoMunicipal)
+            <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h2 class="text-base font-semibold text-blue-900">{{ $municipio->nome }}</h2>
+                <p class="mt-1 text-sm text-blue-700">Nesta tela você pode alterar a logomarca e a imagem de rodapé usadas nos documentos do seu município.</p>
+            </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @if(!$modoMunicipal)
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Nome do Município <span class="text-red-500">*</span>
@@ -56,6 +65,7 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+                @endif
 
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -115,6 +125,79 @@
                 </div>
 
                 <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Rodapé do Documento
+                    </label>
+
+                    @if($municipio->rodape_documento)
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-start gap-4">
+                                <img src="{{ asset($municipio->rodape_documento) }}"
+                                     alt="Rodapé de {{ $municipio->nome }}"
+                                     class="w-full max-w-md h-auto object-contain bg-white border border-gray-300 rounded-lg p-2">
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-700 font-medium mb-2">Rodapé atual</p>
+                                    <p class="text-xs text-gray-500 mb-3">Esta imagem será usada no rodapé dos PDFs do município. Se não existir, o sistema usa o rodapé estadual.</p>
+                                    <label class="flex items-center">
+                                        <input type="checkbox"
+                                               name="remover_rodape_documento"
+                                               value="1"
+                                               class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                        <span class="ml-2 text-sm text-red-600">Remover rodapé</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex items-center gap-3">
+                        <label class="flex-1 cursor-pointer">
+                            <div class="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                                <div class="text-center">
+                                    <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="mt-1 text-sm text-gray-600">
+                                        <span class="font-medium text-blue-600">Clique para selecionar</span> ou arraste a imagem do rodapé
+                                    </p>
+                                    <p class="mt-1 text-xs text-gray-500">PNG, JPG, JPEG ou SVG (máx. 4MB)</p>
+                                </div>
+                            </div>
+                            <input type="file"
+                                   name="rodape_documento"
+                                   accept="image/jpeg,image/png,image/jpg,image/svg+xml"
+                                   class="hidden"
+                                   onchange="previewRodape(event)">
+                        </label>
+                    </div>
+
+                    <div id="preview-container-rodape" class="hidden mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-blue-700 font-medium mb-2">Prévia do novo rodapé:</p>
+                        <img id="preview-image-rodape" src="" alt="Prévia do rodapé" class="w-full max-w-md h-auto object-contain bg-white border border-gray-300 rounded-lg p-2">
+                    </div>
+
+                    @error('rodape_documento')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="rodape_texto" class="block text-sm font-medium text-gray-700 mb-2">
+                        Texto do Rodapé
+                    </label>
+                    <textarea id="rodape_texto"
+                              name="rodape_texto"
+                              rows="5"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('rodape_texto') border-red-500 @enderror"
+                              placeholder="Se quiser, informe um texto próprio para o rodapé do município">{{ old('rodape_texto', $municipio->rodape_texto) }}</textarea>
+                    <p class="mt-2 text-xs text-gray-500">Se esse campo ficar em branco, o sistema usa o texto padrão configurado pelo estado.</p>
+                    @error('rodape_texto')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                @if(!$modoMunicipal)
+                <div class="md:col-span-2">
                     <label class="flex items-center">
                         <input type="checkbox" 
                                name="ativo" 
@@ -171,6 +254,7 @@
                     }
                 }
                 </script>
+                @endif
             </div>
 
             <script>
@@ -185,6 +269,18 @@
                     reader.readAsDataURL(file);
                 }
             }
+
+            function previewRodape(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('preview-image-rodape').src = e.target.result;
+                        document.getElementById('preview-container-rodape').classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            }
             </script>
 
             <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
@@ -194,7 +290,7 @@
                 </a>
                 <button type="submit" 
                         class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Atualizar Município
+                    {{ $modoMunicipal ? 'Salvar Identidade Visual' : 'Atualizar Município' }}
                 </button>
             </div>
         </form>

@@ -18,13 +18,25 @@ class ConfiguracaoSistemaController extends Controller
     {
         $logomarcaEstadual = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
         if ($logomarcaEstadual && $logomarcaEstadual->valor) {
-            $logomarcaEstadual->valor = ConfiguracaoSistema::normalizarCaminhoLogomarca($logomarcaEstadual->valor);
+            $logomarcaEstadual->valor = ConfiguracaoSistema::normalizarCaminhoArquivoPublico($logomarcaEstadual->valor);
             $relativo = $this->caminhoRelativoDiscoPublico($logomarcaEstadual->valor);
             if ($relativo && !Storage::disk('public')->exists($relativo)) {
                 $logomarcaEstadual->valor = null;
             }
             $this->garantirArquivoPublicoAcessivel($logomarcaEstadual->valor);
         }
+
+        $rodapeEstadual = ConfiguracaoSistema::where('chave', 'rodape_estadual')->first();
+        if ($rodapeEstadual && $rodapeEstadual->valor) {
+            $rodapeEstadual->valor = ConfiguracaoSistema::normalizarCaminhoArquivoPublico($rodapeEstadual->valor);
+            $relativo = $this->caminhoRelativoDiscoPublico($rodapeEstadual->valor);
+            if ($relativo && !Storage::disk('public')->exists($relativo)) {
+                $rodapeEstadual->valor = null;
+            }
+            $this->garantirArquivoPublicoAcessivel($rodapeEstadual->valor);
+        }
+
+        $rodapeTextoPadrao = ConfiguracaoSistema::rodapeTextoPadrao();
         
         // Configurações da IA
         $iaAtiva = ConfiguracaoSistema::where('chave', 'ia_ativa')->first();
@@ -42,6 +54,8 @@ class ConfiguracaoSistemaController extends Controller
         
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
+            'rodapeEstadual',
+            'rodapeTextoPadrao',
             'iaAtiva',
             'iaExternaAtiva',
             'iaApiKey',
@@ -61,6 +75,9 @@ class ConfiguracaoSistemaController extends Controller
         $request->validate([
             'logomarca_estadual' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'remover_logomarca_estadual' => 'nullable|boolean',
+            'rodape_estadual' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:4096',
+            'remover_rodape_estadual' => 'nullable|boolean',
+            'rodape_texto_padrao' => 'nullable|string|max:4000',
             'ia_ativa' => 'nullable|boolean',
             'ia_externa_ativa' => 'nullable|boolean',
             'ia_api_key' => 'nullable|string',
@@ -72,6 +89,10 @@ class ConfiguracaoSistemaController extends Controller
             'logomarca_estadual.image' => 'O arquivo deve ser uma imagem',
             'logomarca_estadual.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
             'logomarca_estadual.max' => 'A logomarca não pode ser maior que 2MB',
+            'rodape_estadual.image' => 'O arquivo deve ser uma imagem',
+            'rodape_estadual.mimes' => 'O rodapé deve ser um arquivo: jpeg, png, jpg ou svg',
+            'rodape_estadual.max' => 'O rodapé não pode ser maior que 4MB',
+            'rodape_texto_padrao.max' => 'O texto padrão do rodapé não pode ter mais que 4000 caracteres',
             'ia_api_url.url' => 'A URL da API deve ser válida',
         ]);
         
@@ -151,50 +172,94 @@ class ConfiguracaoSistemaController extends Controller
                        $request->has('chat_interno_ativo') ||
                        $request->has('assistente_redacao_ativo');
 
-        $config = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
-        
-        // Remove logomarca se solicitado
-        if ($request->has('remover_logomarca_estadual') && $config && $config->valor) {
-            $this->removerArquivoLogomarca($config->valor);
-            $config->update(['valor' => null]);
-            
-            return redirect()
-                ->route('admin.configuracoes.sistema.index')
-                ->with('success', 'Logomarca estadual removida com sucesso!');
-        }
+        $configLogomarca = ConfiguracaoSistema::where('chave', 'logomarca_estadual')->first();
+        $configRodape = ConfiguracaoSistema::where('chave', 'rodape_estadual')->first();
+        $alteracoesIdentidadeVisual = [];
 
-        // Upload da nova logomarca
         if ($request->hasFile('logomarca_estadual')) {
-            // Remove logomarca antiga se existir
-            if ($config && $config->valor) {
-                $this->removerArquivoLogomarca($config->valor);
+            if ($configLogomarca && $configLogomarca->valor) {
+                $this->removerArquivoConfiguracao($configLogomarca->valor);
             }
-            
+
             $arquivo = $request->file('logomarca_estadual');
             $nomeArquivo = 'logomarca_estado_tocantins_' . time() . '.' . $arquivo->getClientOriginalExtension();
-            
-            // Usa o disco 'public' que aponta para storage/app/public
             $caminho = $arquivo->storeAs('sistema/logomarcas', $nomeArquivo, 'public');
-            
+
             if (!$caminho) {
                 return redirect()
                     ->route('admin.configuracoes.sistema.index')
                     ->with('error', 'Erro ao salvar o arquivo. Verifique as permissões.');
             }
-            
+
             $caminhoPublico = 'storage/' . $caminho;
             $this->garantirArquivoPublicoAcessivel($caminhoPublico);
-            
+
             ConfiguracaoSistema::definir(
                 'logomarca_estadual',
                 $caminhoPublico,
                 'imagem',
                 'Logomarca do Estado do Tocantins (usada em documentos de usuários estaduais)'
             );
-            
+
+            $alteracoesIdentidadeVisual[] = 'logomarca estadual atualizada';
+        } elseif ($request->boolean('remover_logomarca_estadual') && $configLogomarca && $configLogomarca->valor) {
+            $this->removerArquivoConfiguracao($configLogomarca->valor);
+            $configLogomarca->update(['valor' => null]);
+            $alteracoesIdentidadeVisual[] = 'logomarca estadual removida';
+        }
+
+        if ($request->hasFile('rodape_estadual')) {
+            if ($configRodape && $configRodape->valor) {
+                $this->removerArquivoConfiguracao($configRodape->valor);
+            }
+
+            $arquivo = $request->file('rodape_estadual');
+            $nomeArquivo = 'rodape_estado_tocantins_' . time() . '.' . $arquivo->getClientOriginalExtension();
+            $caminho = $arquivo->storeAs('sistema/rodapes', $nomeArquivo, 'public');
+
+            if (!$caminho) {
+                return redirect()
+                    ->route('admin.configuracoes.sistema.index')
+                    ->with('error', 'Erro ao salvar o arquivo. Verifique as permissões.');
+            }
+
+            $caminhoPublico = 'storage/' . $caminho;
+            $this->garantirArquivoPublicoAcessivel($caminhoPublico);
+
+            ConfiguracaoSistema::definir(
+                'rodape_estadual',
+                $caminhoPublico,
+                'imagem',
+                'Imagem de rodapé padrão do Estado do Tocantins para documentos e PDFs'
+            );
+
+            $alteracoesIdentidadeVisual[] = 'rodapé estadual atualizado';
+        } elseif ($request->boolean('remover_rodape_estadual') && $configRodape && $configRodape->valor) {
+            $this->removerArquivoConfiguracao($configRodape->valor);
+            $configRodape->update(['valor' => null]);
+            $alteracoesIdentidadeVisual[] = 'rodapé estadual removido';
+        }
+
+        if ($request->has('rodape_texto_padrao')) {
+            $textoRodapePadrao = trim((string) $request->input('rodape_texto_padrao'));
+            $textoRodapePadrao = $textoRodapePadrao !== ''
+                ? $textoRodapePadrao
+                : ConfiguracaoSistema::RODAPE_TEXTO_PADRAO;
+
+            ConfiguracaoSistema::definir(
+                'rodape_texto_padrao',
+                $textoRodapePadrao,
+                'texto',
+                'Texto padrão do rodapé usado pelo estado e como fallback dos municípios'
+            );
+
+            $alteracoesIdentidadeVisual[] = 'texto padrão do rodapé atualizado';
+        }
+
+        if (!empty($alteracoesIdentidadeVisual)) {
             return redirect()
                 ->route('admin.configuracoes.sistema.index')
-                ->with('success', 'Logomarca estadual atualizada com sucesso!');
+                ->with('success', 'Identidade visual estadual atualizada com sucesso: ' . implode(', ', $alteracoesIdentidadeVisual) . '.');
         }
         
         // Se atualizou apenas IA, retorna com sucesso
@@ -211,7 +276,7 @@ class ConfiguracaoSistemaController extends Controller
 
     private function caminhoRelativoDiscoPublico(?string $valor): ?string
     {
-        $normalizado = ConfiguracaoSistema::normalizarCaminhoLogomarca($valor);
+        $normalizado = ConfiguracaoSistema::normalizarCaminhoArquivoPublico($valor);
         if (!$normalizado) {
             return null;
         }
@@ -249,14 +314,14 @@ class ConfiguracaoSistemaController extends Controller
                 File::copy(Storage::disk('public')->path($relativo), $destino);
             }
         } catch (\Throwable $e) {
-            Log::warning('Não foi possível espelhar logomarca em public/storage', [
+            Log::warning('Não foi possível espelhar arquivo de configuração em public/storage', [
                 'valor' => $valor,
                 'erro' => $e->getMessage(),
             ]);
         }
     }
 
-    private function removerArquivoLogomarca(?string $valor): void
+    private function removerArquivoConfiguracao(?string $valor): void
     {
         try {
             $relativo = $this->caminhoRelativoDiscoPublico($valor);
@@ -271,7 +336,7 @@ class ConfiguracaoSistemaController extends Controller
                 File::delete($espelhoPublico);
             }
         } catch (\Throwable $e) {
-            Log::warning('Não foi possível remover arquivos de logomarca', [
+            Log::warning('Não foi possível remover arquivo de configuração', [
                 'valor' => $valor,
                 'erro' => $e->getMessage(),
             ]);

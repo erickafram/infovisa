@@ -14,56 +14,11 @@ class PesquisaSatisfacaoRespostaController extends Controller
      */
     public function index(Request $request)
     {
-        $pesquisas = PesquisaSatisfacao::orderBy('titulo')->get();
-
-        $query = PesquisaSatisfacaoResposta::with([
-            'pesquisa', 'ordemServico', 'estabelecimento',
-            'usuarioInterno', 'usuarioExterno',
-        ])->orderByDesc('created_at');
-
-        // Filtro por pesquisa
-        if ($request->filled('pesquisa_id')) {
-            $query->where('pesquisa_id', $request->pesquisa_id);
-        }
-
-        // Filtro por tipo de respondente
-        if ($request->filled('tipo_respondente')) {
-            $query->where('tipo_respondente', $request->tipo_respondente);
-        }
-
-        // Filtro por OS
-        if ($request->filled('ordem_servico_id')) {
-            $query->where('ordem_servico_id', $request->ordem_servico_id);
-        }
-
-        // Filtro por data
-        if ($request->filled('data_inicio')) {
-            $query->whereDate('created_at', '>=', $request->data_inicio);
-        }
-        if ($request->filled('data_fim')) {
-            $query->whereDate('created_at', '<=', $request->data_fim);
-        }
-
-        // Busca por nome do respondente
-        if ($request->filled('busca')) {
-            $busca = $request->busca;
-            $query->where(function ($q) use ($busca) {
-                $q->where('respondente_nome', 'ilike', "%{$busca}%")
-                  ->orWhere('respondente_email', 'ilike', "%{$busca}%");
-            });
-        }
-
-        $respostas = $query->paginate(20)->withQueryString();
-
-        // Estatísticas
-        $totalRespostas   = PesquisaSatisfacaoResposta::count();
-        $respostasInterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'interno')->count();
-        $respostasExterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'externo')->count();
-
-        return view('admin.pesquisas-satisfacao.respostas.index', compact(
-            'respostas', 'pesquisas', 'totalRespostas',
-            'respostasInterno', 'respostasExterno'
-        ));
+        return redirect()
+            ->route('admin.relatorios.pesquisa-satisfacao', array_merge(
+                $request->query(),
+                ['aba' => 'pesquisas']
+            ));
     }
 
     /**
@@ -89,7 +44,7 @@ class PesquisaSatisfacaoRespostaController extends Controller
         $resposta->delete();
 
         return redirect()
-            ->route('admin.pesquisas-satisfacao.respostas.index')
+            ->route('admin.relatorios.pesquisa-satisfacao', ['aba' => 'pesquisas'])
             ->with('success', 'Resposta excluída com sucesso!');
     }
 }

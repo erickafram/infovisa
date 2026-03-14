@@ -402,8 +402,31 @@
             <div class="footer-logo">
                 @php
                     try {
-                        $rodapeImagePath = public_path('img/rodape.jpeg');
-                        if (file_exists($rodapeImagePath)) {
+                        $rodapeDocumento = $rodapeDocumento ?? null;
+
+                        if (!$rodapeDocumento) {
+                            $municipioRodape = null;
+
+                            if (isset($estabelecimento) && $estabelecimento && !$estabelecimento->isCompetenciaEstadual() && $estabelecimento->municipio_id) {
+                                $municipioRodapeObj = null;
+
+                                if (method_exists($estabelecimento, 'relationLoaded') && $estabelecimento->relationLoaded('municipio') && is_object($estabelecimento->getRelation('municipio'))) {
+                                    $municipioRodapeObj = $estabelecimento->getRelation('municipio');
+                                } else {
+                                    $municipioRodapeObj = \App\Models\Municipio::find($estabelecimento->municipio_id);
+                                }
+
+                                if ($municipioRodapeObj && !empty($municipioRodapeObj->rodape_documento)) {
+                                    $municipioRodape = $municipioRodapeObj->rodape_documento;
+                                }
+                            }
+
+                            $rodapeDocumento = $municipioRodape ?: \App\Models\ConfiguracaoSistema::rodapeEstadual();
+                        }
+
+                        $rodapeImagePath = $rodapeDocumento ? public_path(ltrim($rodapeDocumento, '/')) : null;
+
+                        if ($rodapeImagePath && file_exists($rodapeImagePath)) {
                             $imageData = file_get_contents($rodapeImagePath);
                             $imageInfo = getimagesize($rodapeImagePath);
                             
@@ -419,8 +442,30 @@
                 @endphp
             </div>
             <div class="footer-text">
-                Diretoria de Vigilância Sanitária - Anexo I da Secretaria de Estado de Saúde - Qd. 104 Norte, Av. LO-02, Conj. 01, Lotes 20/30 - Ed. Lauro Knopp (3° Andar) - CEP 77.006-022 - Palmas-TO.<br>
-                Contatos: (63) 3027-4486 - (63) 3027-4475 - (63) 3027-4432 – tocantins.visa@gmail.com
+                @php
+                    $rodapeTexto = $rodapeTexto ?? null;
+
+                    if (!$rodapeTexto) {
+                        $municipioTexto = null;
+
+                        if (isset($estabelecimento) && $estabelecimento && !$estabelecimento->isCompetenciaEstadual() && $estabelecimento->municipio_id) {
+                            $municipioTextoObj = null;
+
+                            if (method_exists($estabelecimento, 'relationLoaded') && $estabelecimento->relationLoaded('municipio') && is_object($estabelecimento->getRelation('municipio'))) {
+                                $municipioTextoObj = $estabelecimento->getRelation('municipio');
+                            } else {
+                                $municipioTextoObj = \App\Models\Municipio::find($estabelecimento->municipio_id);
+                            }
+
+                            if ($municipioTextoObj && !empty($municipioTextoObj->rodape_texto)) {
+                                $municipioTexto = $municipioTextoObj->rodape_texto;
+                            }
+                        }
+
+                        $rodapeTexto = $municipioTexto ?: \App\Models\ConfiguracaoSistema::rodapeTextoPadrao();
+                    }
+                @endphp
+                {!! nl2br(e($rodapeTexto)) !!}
             </div>
         </div>
     </div>

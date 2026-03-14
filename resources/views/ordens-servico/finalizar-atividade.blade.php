@@ -30,6 +30,42 @@
 
     <div class="container-fluid px-4 py-6">
         <div class="max-w-8xl mx-auto">
+            @if(session('success'))
+                <div class="mb-6 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="mb-6 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <p class="text-sm font-medium text-red-800">{{ session('error') }}</p>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="mb-6 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-red-800 mb-2">Erro ao processar a solicitação:</p>
+                            <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {{-- ========================================
@@ -211,6 +247,9 @@
 
                         {{-- Card: Documentos da OS --}}
                         @if($processosVinculadosOs->isNotEmpty())
+                        @php
+                            $totalDocumentosVinculados = $documentosOs->count() + $arquivosExternosOs->count();
+                        @endphp
                         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden order-1">
                             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                                 <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
@@ -218,21 +257,116 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
                                     Documentos da OS
-                                    @if($documentosOs->count() > 0)
-                                    <span class="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-700 rounded-full">{{ $documentosOs->count() }}</span>
+                                    @if($totalDocumentosVinculados > 0)
+                                    <span class="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-700 rounded-full">{{ $totalDocumentosVinculados }}</span>
                                     @endif
                                 </h3>
-                                          <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
-                                   target="_blank"
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    Criar Documento
-                                </a>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                            onclick="toggleUploadArquivoExterno()"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                        </svg>
+                                        Upload Externo
+                                    </button>
+                                    <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        Criar Documento
+                                    </a>
+                                </div>
                             </div>
                             <div class="px-6 py-5">
+                                <div id="painelUploadArquivoExterno" class="hidden mb-5 rounded-xl border border-blue-200 bg-blue-50/70 p-4">
+                                    <div class="flex items-start gap-3 mb-4">
+                                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-gray-900">Upload de Arquivo Externo</h4>
+                                            <p class="text-xs text-gray-600 mt-0.5">Envie um PDF para o processo e vincule este arquivo à OS e à atividade atual.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Processo <span class="text-red-500">*</span>
+                                                </label>
+                                                <select name="processo_id" form="formUploadArquivoExternoOs" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white">
+                                                    <option value="" disabled {{ old('processo_id') ? '' : 'selected' }}>Selecione o processo</option>
+                                                    @foreach($processosInfo as $procInfo)
+                                                        <option value="{{ $procInfo->id }}" {{ (string) old('processo_id', $processosVinculadosOs->count() === 1 ? $processosVinculadosOs->first() : '') === (string) $procInfo->id ? 'selected' : '' }}>
+                                                            {{ $procInfo->numero_processo ?? 'Processo #' . $procInfo->id }}
+                                                            @if($procInfo->estabelecimento)
+                                                                • {{ $procInfo->estabelecimento->nome_fantasia ?? $procInfo->estabelecimento->razao_social }}
+                                                            @endif
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Tipo de Documento <span class="text-red-500">*</span>
+                                                </label>
+                                                <select name="tipo_documento" form="formUploadArquivoExternoOs" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white">
+                                                    <option value="" disabled {{ old('tipo_documento') ? '' : 'selected' }}>Selecione o tipo de documento</option>
+                                                    <option value="Termo de Vistoria" {{ old('tipo_documento') === 'Termo de Vistoria' ? 'selected' : '' }}>Termo de Vistoria</option>
+                                                    <option value="Auto de Infração" {{ old('tipo_documento') === 'Auto de Infração' ? 'selected' : '' }}>Auto de Infração</option>
+                                                    <option value="Notificação" {{ old('tipo_documento') === 'Notificação' ? 'selected' : '' }}>Notificação</option>
+                                                    <option value="Usar nome do arquivo" {{ old('tipo_documento') === 'Usar nome do arquivo' ? 'selected' : '' }}>Usar nome do arquivo PDF</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                Arquivo PDF <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="file"
+                                                   name="arquivo"
+                                                   form="formUploadArquivoExternoOs"
+                                                   accept=".pdf"
+                                                   required
+                                                   id="inputArquivoExternoOs"
+                                                   onchange="validarTamanhoArquivoExternoOs(this)"
+                                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white">
+                                            <p class="mt-1 text-xs text-gray-500">Apenas arquivos PDF. Tamanho máximo: 10MB.</p>
+                                            <p id="erroArquivoExternoOs" class="mt-1 text-xs text-red-600 hidden"></p>
+                                        </div>
+
+                                        <div class="bg-white border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                                            O documento será salvo no processo selecionado e aparecerá também na lista desta atividade da OS.
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button type="button"
+                                                    onclick="toggleUploadArquivoExterno(false)"
+                                                    class="px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                                Cancelar
+                                            </button>
+                                            <button type="submit"
+                                                    id="btnEnviarArquivoExternoOs"
+                                                    form="formUploadArquivoExternoOs"
+                                                    class="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Enviar Arquivo
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if($documentosOs->count() > 0 || $arquivosExternosOs->isNotEmpty())
                                 @if($documentosOs->count() > 0)
+                                <div class="mb-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Documentos Digitais</p>
+                                </div>
                                 <div class="space-y-2 mb-4">
                                     @foreach($documentosOs as $docOs)
                                     @php
@@ -240,6 +374,20 @@
                                         $assinaturasObrigatoriasDocOs = $docOs->assinaturas->where('obrigatoria', true)->values();
                                         $assinantesConcluidosDocOs = $assinaturasObrigatoriasDocOs->where('status', 'assinado');
                                         $assinantesPendentesDocOs = $assinaturasObrigatoriasDocOs->where('status', '!=', 'assinado');
+                                        $assinaturaUsuarioDocOs = $assinaturasObrigatoriasDocOs->first(fn($assinatura) => $assinatura->usuario_interno_id === auth('interno')->id() && $assinatura->status !== 'assinado');
+                                        $usuarioPrecisaAssinarDocOs = $assinaturaUsuarioDocOs !== null && $statusDocOs !== 'rascunho';
+                                        $assinaturasModalDocOs = $docOs->assinaturas
+                                            ->map(function ($assinatura) {
+                                                return [
+                                                    'nome' => $assinatura->usuarioInterno?->nome ?? 'Usuário',
+                                                    'status' => $assinatura->status,
+                                                    'ordem' => $assinatura->ordem,
+                                                    'isCurrentUser' => $assinatura->usuario_interno_id === auth('interno')->id(),
+                                                ];
+                                            })
+                                            ->sortBy('ordem')
+                                            ->values()
+                                            ->all();
                                         $docOsPossuiAssinaturaRealizada = $docOs->assinaturas->contains(fn($assinatura) => $assinatura->status === 'assinado');
                                         $docOsAssinaturasTotais = $assinaturasObrigatoriasDocOs->count();
                                         $docOsAssinaturasConcluidas = $assinantesConcluidosDocOs->count();
@@ -254,8 +402,7 @@
                                             default => '<span class="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-600 rounded">' . ucfirst($statusDocOs) . '</span>'
                                         };
                                     @endphp
-                                    <a href="{{ route('admin.documentos.show', $docOs->id) }}" target="_blank"
-                                       class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 transition-all group">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 transition-all group">
                                         <div class="flex items-center gap-3 min-w-0">
                                             <div class="flex-shrink-0 w-9 h-9 rounded-lg {{ $statusDocOs === 'assinado' ? 'bg-green-100' : ($statusDocOs === 'aguardando_assinatura' ? 'bg-yellow-100' : 'bg-gray-100') }} flex items-center justify-center">
                                                 <svg class="w-4 h-4 {{ $statusDocOs === 'assinado' ? 'text-green-600' : ($statusDocOs === 'aguardando_assinatura' ? 'text-yellow-600' : 'text-gray-500') }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,6 +435,29 @@
                                                     </span>
                                                     @endif
                                                 </div>
+                                                @if($usuarioPrecisaAssinarDocOs)
+                                                <div class="mt-2 flex items-center gap-2 flex-wrap">
+                                                    <button type="button"
+                                                            onclick='abrirModalAssinarDocumentoOs({{ $docOs->id }}, @json($docOs->nome ?? $docOs->tipoDocumento->nome ?? "Documento"), @json($docOs->numero_documento), @json($assinaturaUsuarioDocOs->ordem), @json($assinaturasModalDocOs))'
+                                                            class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 3v5h5"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 16c1.2-1.6 2.4-2.4 3.7-2.4.8 0 1.2.4 1.8 1 .6.6 1 .9 1.7.9.6 0 1.1-.2 1.8-.7"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 19h8"/>
+                                                        </svg>
+                                                        Assinar Documento
+                                                    </button>
+                                                    <a href="{{ route('admin.documentos.show', $docOs->id) }}"
+                                                       target="_blank"
+                                                       class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                        </svg>
+                                                        Abrir Documento
+                                                    </a>
+                                                </div>
+                                                @endif
                                                 @if($assinaturasObrigatoriasDocOs->isNotEmpty())
                                                 <div class="mt-2 space-y-1">
                                                     @if($assinantesConcluidosDocOs->isNotEmpty())
@@ -307,14 +477,74 @@
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+                                            @unless($usuarioPrecisaAssinarDocOs)
+                                            <a href="{{ route('admin.documentos.show', $docOs->id) }}"
+                                               target="_blank"
+                                               class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                </svg>
+                                                Abrir
+                                            </a>
+                                            @endunless
                                             {!! $statusDocOsBadge !!}
                                             <svg class="w-4 h-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                             </svg>
                                         </div>
-                                    </a>
+                                    </div>
                                     @endforeach
                                 </div>
+                                @endif
+
+                                @if($arquivosExternosOs->isNotEmpty())
+                                <div class="{{ $documentosOs->count() > 0 ? 'mt-5 pt-5 border-t border-gray-100' : '' }}">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Arquivos Externos</p>
+                                    <div class="space-y-2">
+                                        @foreach($arquivosExternosOs as $arquivoOs)
+                                            @php
+                                                $processoArquivoOs = $processosInfo->firstWhere('id', $arquivoOs->processo_id);
+                                            @endphp
+                                            <a href="{{ route('admin.estabelecimentos.processos.visualizar', [$processoArquivoOs?->estabelecimento_id ?? $ordemServico->estabelecimento_id, $arquivoOs->processo_id, $arquivoOs->id]) }}"
+                                               target="_blank"
+                                               class="flex items-center justify-between p-3 bg-blue-50/60 rounded-lg border border-blue-100 hover:bg-blue-100/70 hover:border-blue-200 transition-all group">
+                                                <div class="flex items-center gap-3 min-w-0">
+                                                    <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900 group-hover:text-blue-700 truncate">
+                                                            {{ $arquivoOs->nome_original }}
+                                                        </p>
+                                                        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                            <span class="text-xs text-gray-500">{{ $arquivoOs->created_at->format('d/m/Y H:i') }}</span>
+                                                            <span class="text-xs text-gray-400">{{ $arquivoOs->tamanho_formatado }}</span>
+                                                            @if($arquivoOs->usuario)
+                                                                <span class="text-xs text-gray-400">por {{ $arquivoOs->usuario->nome }}</span>
+                                                            @endif
+                                                        </div>
+                                                        @if($processoArquivoOs)
+                                                            <div class="mt-1">
+                                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white border border-blue-200 rounded px-2 py-0.5">
+                                                                    Processo {{ $processoArquivoOs->numero_processo ?? '#' . $processoArquivoOs->id }}
+                                                                </span>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                    <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 rounded">Arquivo Externo</span>
+                                                    <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                    </svg>
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
 
                                 @if($documentosOsAssinadosCompletos->isNotEmpty())
                                 <div class="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
@@ -347,16 +577,26 @@
                                     </div>
                                     <p class="text-sm font-semibold text-gray-900 mb-1">Nenhum documento vinculado</p>
                                     <p class="text-xs text-gray-500 mb-4 max-w-sm mx-auto">
-                                        Nenhum documento foi criado para esta OS. Crie um documento ou confirme abaixo que não há documentos a serem criados.
+                                        Nenhum documento ou arquivo externo foi vinculado a esta OS. Crie um documento digital, envie um arquivo externo ou confirme abaixo que não há documentos a serem criados.
                                     </p>
-                                                <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
+                                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                        <button type="button"
+                                                onclick="toggleUploadArquivoExterno(true)"
+                                                class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                            Upload de Arquivo Externo
+                                        </button>
+                                        <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
                                        target="_blank"
                                        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl hover:bg-indigo-100 transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                         </svg>
                                         Criar Documento Digital
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
 
                                 <div class="mt-4 border-t border-gray-100 pt-4">
@@ -393,6 +633,11 @@
                                 Finalizar Atividade
                             </button>
                         </div>
+                    </form>
+
+                    <form id="formUploadArquivoExternoOs" method="POST" action="{{ route('admin.ordens-servico.upload-arquivo-atividade', $ordemServico) }}" enctype="multipart/form-data" class="hidden">
+                        @csrf
+                        <input type="hidden" name="atividade_index" value="{{ $atividadeIndex }}">
                     </form>
                 </div>
 
@@ -566,11 +811,87 @@
     </div>
 </div>
 @endif
+
+<div id="modalAssinarDocumentoOs" class="hidden fixed inset-0 z-[70] overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="fecharModalAssinarDocumentoOs()"></div>
+
+        <div class="relative w-full max-w-sm transform transition-all bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="relative px-6 pt-6 pb-4">
+                <button type="button" onclick="fecharModalAssinarDocumentoOs()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-times" style="font-size: 14px;"></i>
+                </button>
+
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-3 shadow-lg shadow-blue-500/25">
+                        <i class="fas fa-file-signature text-white" style="font-size: 22px;"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">Assinar Documento</h3>
+                    <p id="assinarDocumentoOsNome" class="text-xs text-gray-500 mt-0.5 max-w-[260px] truncate"></p>
+                </div>
+            </div>
+
+            <div class="px-6 pb-3">
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Documento</p>
+                        <p id="assinarDocumentoOsNumero" class="text-sm text-gray-800 font-semibold mt-0.5"></p>
+                    </div>
+                    <div class="flex-1 bg-blue-50 rounded-xl px-3 py-2.5 text-center">
+                        <p class="text-[10px] text-blue-400 uppercase tracking-wider font-medium">Sua posição</p>
+                        <p class="text-sm text-blue-700 font-semibold mt-0.5"><span id="assinarDocumentoOsOrdem"></span>º assinante</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 pb-3">
+                <p class="text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-2">Assinantes</p>
+                <div id="assinarDocumentoOsAssinaturas" class="space-y-1.5"></div>
+            </div>
+
+            <div class="mx-6 border-t border-gray-100"></div>
+
+            <div class="px-6 py-4">
+                <label class="block text-[11px] text-gray-400 uppercase tracking-wider font-medium mb-2">Senha de Assinatura</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-300" style="font-size: 13px;"></i>
+                    </div>
+                    <input type="password" id="assinarDocumentoOsSenha" class="w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all border-gray-200" placeholder="Digite sua senha de assinatura">
+                </div>
+                <div id="assinarDocumentoOsErro" class="hidden mt-2 flex items-center gap-1.5 text-xs text-red-500">
+                    <i class="fas fa-exclamation-circle" style="font-size: 12px;"></i>
+                    <span id="assinarDocumentoOsErroTexto"></span>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-4">
+                    <button type="button" id="btnProcessarAssinaturaOs" onclick="processarAssinaturaDocumentoOs()" class="w-full px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none">
+                        <i class="fas fa-file-signature" style="font-size: 13px;"></i>
+                        <span id="btnProcessarAssinaturaOsTexto">Assinar Documento</span>
+                    </button>
+                    <button type="button" onclick="fecharModalAssinarDocumentoOs()" class="w-full px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-gray-50/80 border-t border-gray-100">
+                <p class="text-[10px] text-gray-400 flex items-center justify-center gap-1.5">
+                    <i class="fas fa-shield-alt text-green-400" style="font-size: 11px;"></i>
+                    Assinatura digital protegida por criptografia
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
     let payloadFinalizacaoPendente = null;
+    let assinaturaDocumentoOsAtual = {
+        documentoId: null,
+    };
 
     function aplicarPreset(texto) {
         const campo = document.getElementById('observacoes');
@@ -625,6 +946,124 @@
         circulo.style.borderColor = cor;
         circulo.style.color = 'white';
         el.querySelector('input[type=radio]').checked = true;
+    }
+
+    function abrirModalAssinarDocumentoOs(documentoId, nomeDocumento, numeroDocumento, ordem, assinaturas) {
+        assinaturaDocumentoOsAtual.documentoId = documentoId;
+        document.getElementById('assinarDocumentoOsNome').textContent = nomeDocumento || 'Documento';
+        document.getElementById('assinarDocumentoOsNumero').textContent = numeroDocumento || '';
+        document.getElementById('assinarDocumentoOsOrdem').textContent = ordem || '';
+        document.getElementById('assinarDocumentoOsSenha').value = '';
+        limparErroAssinaturaDocumentoOs();
+        renderizarAssinaturasDocumentoOs(Array.isArray(assinaturas) ? assinaturas : []);
+        document.getElementById('modalAssinarDocumentoOs').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => document.getElementById('assinarDocumentoOsSenha')?.focus(), 50);
+    }
+
+    function fecharModalAssinarDocumentoOs() {
+        document.getElementById('modalAssinarDocumentoOs')?.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        assinaturaDocumentoOsAtual.documentoId = null;
+        limparErroAssinaturaDocumentoOs();
+        atualizarEstadoBotaoAssinaturaDocumentoOs(false);
+    }
+
+    function renderizarAssinaturasDocumentoOs(assinaturas) {
+        const container = document.getElementById('assinarDocumentoOsAssinaturas');
+        if (!container) return;
+
+        container.innerHTML = assinaturas.map((ass) => {
+            const statusAssinado = ass.status === 'assinado';
+            const classesLinha = statusAssinado ? 'bg-green-50' : (ass.isCurrentUser ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-gray-50');
+            const classesIcone = statusAssinado ? 'bg-green-500' : (ass.isCurrentUser ? 'bg-blue-500' : 'bg-gray-300');
+            const classesNome = statusAssinado ? 'text-green-800' : (ass.isCurrentUser ? 'text-blue-800' : 'text-gray-600');
+            const statusHtml = statusAssinado
+                ? '<span class="text-[10px] font-medium text-green-600">Assinado</span>'
+                : (ass.isCurrentUser
+                    ? '<span class="flex items-center gap-1 text-[10px] font-medium text-blue-600"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Você</span>'
+                    : '<span class="text-[10px] font-medium text-gray-400">Pendente</span>');
+            const icone = statusAssinado
+                ? '<i class="fas fa-check text-white" style="font-size: 10px;"></i>'
+                : (ass.isCurrentUser
+                    ? '<i class="fas fa-pen text-white" style="font-size: 9px;"></i>'
+                    : '<i class="fas fa-clock text-white" style="font-size: 9px;"></i>');
+
+            return `<div class="flex items-center gap-2.5 px-3 py-2 rounded-lg ${classesLinha}"><div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${classesIcone}">${icone}</div><div class="min-w-0 flex-1"><p class="text-xs font-medium truncate ${classesNome}">${ass.nome ?? 'Usuário'}</p></div>${statusHtml}</div>`;
+        }).join('');
+    }
+
+    function mostrarErroAssinaturaDocumentoOs(mensagem) {
+        document.getElementById('assinarDocumentoOsErroTexto').textContent = mensagem;
+        document.getElementById('assinarDocumentoOsErro').classList.remove('hidden');
+        const input = document.getElementById('assinarDocumentoOsSenha');
+        input?.classList.remove('border-gray-200');
+        input?.classList.add('border-red-300', 'bg-red-50');
+    }
+
+    function limparErroAssinaturaDocumentoOs() {
+        document.getElementById('assinarDocumentoOsErro')?.classList.add('hidden');
+        const input = document.getElementById('assinarDocumentoOsSenha');
+        input?.classList.remove('border-red-300', 'bg-red-50');
+        input?.classList.add('border-gray-200');
+    }
+
+    function atualizarEstadoBotaoAssinaturaDocumentoOs(carregando) {
+        const botao = document.getElementById('btnProcessarAssinaturaOs');
+        const texto = document.getElementById('btnProcessarAssinaturaOsTexto');
+        if (!botao || !texto) return;
+        botao.disabled = carregando;
+        texto.textContent = carregando ? 'Processando assinatura...' : 'Assinar Documento';
+    }
+
+    async function processarAssinaturaDocumentoOs() {
+        const senhaInput = document.getElementById('assinarDocumentoOsSenha');
+        const senha = senhaInput?.value?.trim() || '';
+
+        if (!senha) {
+            mostrarErroAssinaturaDocumentoOs('Digite sua senha de assinatura');
+            senhaInput?.focus();
+            return;
+        }
+
+        if (!assinaturaDocumentoOsAtual.documentoId) {
+            mostrarErroAssinaturaDocumentoOs('Documento não identificado para assinatura.');
+            return;
+        }
+
+        atualizarEstadoBotaoAssinaturaDocumentoOs(true);
+        limparErroAssinaturaDocumentoOs();
+
+        try {
+            const response = await fetch(`{{ url('/admin/assinatura/processar') }}/${assinaturaDocumentoOsAtual.documentoId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    senha_assinatura: senha,
+                    acao: 'assinar'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                fecharModalAssinarDocumentoOs();
+                alert(data.message || 'Documento assinado com sucesso!');
+                window.location.reload();
+                return;
+            }
+
+            mostrarErroAssinaturaDocumentoOs(data.message || data.error || 'Erro ao assinar documento');
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarErroAssinaturaDocumentoOs('Erro de conexão. Tente novamente.');
+        } finally {
+            atualizarEstadoBotaoAssinaturaDocumentoOs(false);
+        }
     }
 
     async function enviarPesquisaInterna() {
@@ -874,5 +1313,64 @@
             resetarBotaoFinalizarAtividade();
         }
     });
+
+    window.toggleUploadArquivoExterno = function (forceOpen = null) {
+        const painel = document.getElementById('painelUploadArquivoExterno');
+        if (!painel) {
+            return;
+        }
+
+        const deveAbrir = forceOpen === null ? painel.classList.contains('hidden') : forceOpen;
+        painel.classList.toggle('hidden', !deveAbrir);
+
+        if (deveAbrir) {
+            const primeiroCampo = painel.querySelector('select, input[type="file"]');
+            primeiroCampo?.focus();
+        }
+    };
+
+    window.validarTamanhoArquivoExternoOs = function (input) {
+        const maxSize = 10 * 1024 * 1024;
+        const erroEl = document.getElementById('erroArquivoExternoOs');
+        const btnEnviar = document.getElementById('btnEnviarArquivoExternoOs');
+
+        if (!erroEl || !btnEnviar) {
+            return;
+        }
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+
+            if (file.size > maxSize) {
+                erroEl.textContent = `Arquivo muito grande (${sizeMB}MB). O tamanho máximo permitido é 10MB.`;
+                erroEl.classList.remove('hidden');
+                btnEnviar.disabled = true;
+                return;
+            }
+
+            erroEl.classList.add('hidden');
+            btnEnviar.disabled = false;
+            return;
+        }
+
+        erroEl.classList.add('hidden');
+        btnEnviar.disabled = false;
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const deveAbrirUploadExterno = @json(old('processo_id') || old('tipo_documento'));
+        if (deveAbrirUploadExterno) {
+            toggleUploadArquivoExterno(true);
+        }
+
+        document.getElementById('assinarDocumentoOsSenha')?.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                processarAssinaturaDocumentoOs();
+            }
+        });
+    });
 </script>
+
 @endpush

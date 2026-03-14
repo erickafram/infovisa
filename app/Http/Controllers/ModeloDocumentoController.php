@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NivelAcesso;
+use App\Models\Municipio;
 use App\Models\ModeloDocumento;
 use App\Models\TipoDocumento;
+use App\Models\UsuarioInterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ModeloDocumentoController extends Controller
 {
@@ -14,7 +18,12 @@ class ModeloDocumentoController extends Controller
      */
     public function index()
     {
-        $modelos = ModeloDocumento::with('tipoDocumento')->ordenado()->paginate(15);
+        $usuario = auth('interno')->user();
+
+        $modelos = ModeloDocumento::with(['tipoDocumento', 'municipio'])
+            ->visiveisParaUsuario($usuario)
+            ->ordenado()
+            ->paginate(15);
         
         return view('configuracoes.modelos-documento.index', compact('modelos'));
     }
@@ -24,9 +33,11 @@ class ModeloDocumentoController extends Controller
      */
     public function create()
     {
+        $usuario = auth('interno')->user();
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
+        $municipios = $this->getMunicipiosDisponiveis($usuario);
         
-        return view('configuracoes.modelos-documento.create', compact('tiposDocumento'));
+        return view('configuracoes.modelos-documento.create', compact('tiposDocumento', 'municipios'));
     }
 
     /**
@@ -34,18 +45,25 @@ class ModeloDocumentoController extends Controller
      */
     public function store(Request $request)
     {
+        $usuario = auth('interno')->user();
+
         $validated = $request->validate([
             'tipo_documento_id' => 'required|exists:tipo_documentos,id',
             'descricao' => 'nullable|string',
             'conteudo' => 'required|string',
             'variaveis' => 'nullable|array',
+            'escopo' => 'required|in:estadual,municipal',
+            'municipio_id' => 'nullable|exists:municipios,id',
             'ativo' => 'boolean',
-            'ordem' => 'integer|min:0',
+            'ordem' => 'nullable|integer|min:0',
         ]);
+
+        $validated = $this->normalizarEscopo($validated, $usuario);
 
         // Gera código automaticamente baseado no tipo + timestamp
         $tipoDocumento = TipoDocumento::find($validated['tipo_documento_id']);
         $validated['codigo'] = $tipoDocumento->codigo . '_' . time();
+        $validated['ativo'] = $request->has('ativo');
 
         ModeloDocumento::create($validated);
 
@@ -59,9 +77,13 @@ class ModeloDocumentoController extends Controller
      */
     public function edit(ModeloDocumento $modeloDocumento)
     {
+        $usuario = auth('interno')->user();
+        $this->autorizarGerenciamento($modeloDocumento, $usuario);
+
         $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
+        $municipios = $this->getMunicipiosDisponiveis($usuario);
         
-        return view('configuracoes.modelos-documento.edit', compact('modeloDocumento', 'tiposDocumento'));
+        return view('configuracoes.modelos-documento.edit', compact('modeloDocumento', 'tiposDocumento', 'municipios'));
     }
 
     /**
@@ -69,16 +91,22 @@ class ModeloDocumentoController extends Controller
      */
     public function update(Request $request, ModeloDocumento $modeloDocumento)
     {
+        $usuario = auth('interno')->user();
+        $this->autorizarGerenciamento($modeloDocumento, $usuario);
+
         $validated = $request->validate([
             'tipo_documento_id' => 'required|exists:tipo_documentos,id',
             'codigo' => 'nullable|string|max:255',
             'descricao' => 'nullable|string',
             'conteudo' => 'required|string',
             'variaveis' => 'nullable|array',
+            'escopo' => 'required|in:estadual,municipal',
+            'municipio_id' => 'nullable|exists:municipios,id',
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
         ]);
 
+        $validated = $this->normalizarEscopo($validated, $usuario);
         // Converte checkbox ativo
         $validated['ativo'] = $request->has('ativo') ? true : false;
 
@@ -94,10 +122,76 @@ class ModeloDocumentoController extends Controller
      */
     public function destroy(ModeloDocumento $modeloDocumento)
     {
+        $usuario = auth('interno')->user();
+        $this->autorizarGerenciamento($modeloDocumento, $usuario);
+
         $modeloDocumento->delete();
 
         return redirect()
             ->route('admin.configuracoes.modelos-documento.index')
             ->with('success', 'Modelo de documento removido com sucesso!');
+    }
+
+    private function getMunicipiosDisponiveis(UsuarioInterno $usuario)
+    {
+        if ($usuario->nivel_acesso === NivelAcesso::GestorMunicipal && $usuario->municipio_id) {
+            return Municipio::where('id', $usuario->municipio_id)->orderBy('nome')->get();
+        }
+
+        return Municipio::orderBy('nome')->get();
+    }
+
+    private function normalizarEscopo(array $validated, UsuarioInterno $usuario): array
+    {
+        if ($usuario->nivel_acesso === NivelAcesso::GestorEstadual) {
+            $validated['escopo'] = 'estadual';
+            $validated['municipio_id'] = null;
+
+            return $validated;
+        }
+
+        if ($usuario->nivel_acesso === NivelAcesso::GestorMunicipal) {
+            if (!$usuario->municipio_id) {
+                abort(403, 'O gestor municipal precisa estar vinculado a um município.');
+            }
+
+            $validated['escopo'] = 'municipal';
+            $validated['municipio_id'] = $usuario->municipio_id;
+
+            return $validated;
+        }
+
+        if (($validated['escopo'] ?? 'estadual') === 'estadual') {
+            $validated['municipio_id'] = null;
+        }
+
+        if (($validated['escopo'] ?? null) === 'municipal' && empty($validated['municipio_id'])) {
+            throw ValidationException::withMessages([
+                'municipio_id' => 'Selecione o município do modelo municipal.',
+            ]);
+        }
+
+        return $validated;
+    }
+
+    private function autorizarGerenciamento(ModeloDocumento $modeloDocumento, UsuarioInterno $usuario): void
+    {
+        if ($usuario->nivel_acesso === NivelAcesso::Administrador) {
+            return;
+        }
+
+        if ($usuario->nivel_acesso === NivelAcesso::GestorEstadual && $modeloDocumento->isEstadual()) {
+            return;
+        }
+
+        if (
+            $usuario->nivel_acesso === NivelAcesso::GestorMunicipal
+            && $modeloDocumento->isMunicipal()
+            && (int) $modeloDocumento->municipio_id === (int) $usuario->municipio_id
+        ) {
+            return;
+        }
+
+        abort(403, 'Você não tem permissão para gerenciar este modelo de documento.');
     }
 }

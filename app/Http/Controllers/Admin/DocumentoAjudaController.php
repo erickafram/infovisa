@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DocumentoAjuda;
+use App\Models\Municipio;
 use App\Models\TipoProcesso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class DocumentoAjudaController extends Controller
 {
@@ -15,7 +17,7 @@ class DocumentoAjudaController extends Controller
      */
     public function index()
     {
-        $documentos = DocumentoAjuda::with('tiposProcesso')
+        $documentos = DocumentoAjuda::with(['tiposProcesso', 'municipio'])
             ->ordenado()
             ->paginate(20);
 
@@ -28,8 +30,9 @@ class DocumentoAjudaController extends Controller
     public function create()
     {
         $tiposProcesso = TipoProcesso::orderBy('nome')->get();
+        $municipios = Municipio::orderBy('nome')->get();
         
-        return view('admin.configuracoes.documentos-ajuda.create', compact('tiposProcesso'));
+        return view('admin.configuracoes.documentos-ajuda.create', compact('tiposProcesso', 'municipios'));
     }
 
     /**
@@ -43,6 +46,12 @@ class DocumentoAjudaController extends Controller
             'arquivo' => 'required|file|mimes:pdf|max:10240', // Max 10MB
             'tipos_processo' => 'required|array|min:1',
             'tipos_processo.*' => 'exists:tipo_processos,id',
+            'escopo_competencia' => ['required', Rule::in(['todos', 'estadual', 'municipal'])],
+            'municipio_id' => [
+                Rule::requiredIf(fn () => $request->escopo_competencia === 'municipal'),
+                'nullable',
+                'exists:municipios,id',
+            ],
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
         ], [
@@ -52,6 +61,9 @@ class DocumentoAjudaController extends Controller
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
             'tipos_processo.required' => 'Selecione pelo menos um tipo de processo.',
             'tipos_processo.min' => 'Selecione pelo menos um tipo de processo.',
+            'escopo_competencia.required' => 'Selecione onde este documento será exibido.',
+            'municipio_id.required' => 'Selecione o município para documentos municipais.',
+            'municipio_id.exists' => 'Município inválido.',
         ]);
 
         // Upload do arquivo
@@ -68,6 +80,8 @@ class DocumentoAjudaController extends Controller
             'tamanho' => $tamanho,
             'ativo' => $request->boolean('ativo', true),
             'ordem' => $request->ordem ?? 0,
+            'escopo_competencia' => $request->escopo_competencia,
+            'municipio_id' => $request->escopo_competencia === 'municipal' ? $request->municipio_id : null,
         ]);
 
         // Vincula aos tipos de processo
@@ -85,8 +99,9 @@ class DocumentoAjudaController extends Controller
     {
         $documento = DocumentoAjuda::with('tiposProcesso')->findOrFail($id);
         $tiposProcesso = TipoProcesso::orderBy('nome')->get();
+        $municipios = Municipio::orderBy('nome')->get();
         
-        return view('admin.configuracoes.documentos-ajuda.edit', compact('documento', 'tiposProcesso'));
+        return view('admin.configuracoes.documentos-ajuda.edit', compact('documento', 'tiposProcesso', 'municipios'));
     }
 
     /**
@@ -102,6 +117,12 @@ class DocumentoAjudaController extends Controller
             'arquivo' => 'nullable|file|mimes:pdf|max:10240',
             'tipos_processo' => 'required|array|min:1',
             'tipos_processo.*' => 'exists:tipo_processos,id',
+            'escopo_competencia' => ['required', Rule::in(['todos', 'estadual', 'municipal'])],
+            'municipio_id' => [
+                Rule::requiredIf(fn () => $request->escopo_competencia === 'municipal'),
+                'nullable',
+                'exists:municipios,id',
+            ],
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
         ], [
@@ -110,6 +131,9 @@ class DocumentoAjudaController extends Controller
             'arquivo.max' => 'O arquivo não pode ter mais de 10MB.',
             'tipos_processo.required' => 'Selecione pelo menos um tipo de processo.',
             'tipos_processo.min' => 'Selecione pelo menos um tipo de processo.',
+            'escopo_competencia.required' => 'Selecione onde este documento será exibido.',
+            'municipio_id.required' => 'Selecione o município para documentos municipais.',
+            'municipio_id.exists' => 'Município inválido.',
         ]);
 
         $dados = [
@@ -117,6 +141,8 @@ class DocumentoAjudaController extends Controller
             'descricao' => $request->descricao,
             'ativo' => $request->boolean('ativo', true),
             'ordem' => $request->ordem ?? 0,
+            'escopo_competencia' => $request->escopo_competencia,
+            'municipio_id' => $request->escopo_competencia === 'municipal' ? $request->municipio_id : null,
         ];
 
         // Se enviou novo arquivo, substitui o antigo

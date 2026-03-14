@@ -135,6 +135,15 @@
             font-size: 7.5pt;
             color: #666;
         }
+
+        .footer img {
+            max-width: 320px;
+            max-height: 50px;
+            height: auto;
+            width: auto;
+            display: block;
+            margin: 0 auto 8px;
+        }
     </style>
 </head>
 <body>
@@ -289,6 +298,39 @@
 
     {{-- Rodapé --}}
     <div class="footer">
+        @php
+            $rodapeDocumento = $rodapeDocumento ?? null;
+
+            if (!$rodapeDocumento) {
+                $municipioRodape = null;
+
+                if (isset($estabelecimento) && $estabelecimento && !$estabelecimento->isCompetenciaEstadual() && $estabelecimento->municipio_id) {
+                    $municipioRodapeObj = $estabelecimento->municipioRelacionado ?? $estabelecimento->municipio ?? null;
+
+                    if (!$municipioRodapeObj) {
+                        $municipioRodapeObj = \App\Models\Municipio::find($estabelecimento->municipio_id);
+                    }
+
+                    if ($municipioRodapeObj && !empty($municipioRodapeObj->rodape_documento)) {
+                        $municipioRodape = $municipioRodapeObj->rodape_documento;
+                    }
+                }
+
+                $rodapeDocumento = $municipioRodape ?: \App\Models\ConfiguracaoSistema::rodapeEstadual();
+            }
+
+            $rodapePreviewPath = $rodapeDocumento ? public_path(ltrim($rodapeDocumento, '/')) : null;
+        @endphp
+
+        @if($rodapePreviewPath && file_exists($rodapePreviewPath))
+            @php
+                $rodapePreviewData = base64_encode(file_get_contents($rodapePreviewPath));
+                $rodapePreviewExtension = pathinfo($rodapePreviewPath, PATHINFO_EXTENSION);
+                $rodapePreviewMimeType = $rodapePreviewExtension === 'svg' ? 'svg+xml' : $rodapePreviewExtension;
+            @endphp
+            <img src="data:image/{{ $rodapePreviewMimeType }};base64,{{ $rodapePreviewData }}" alt="Rodapé do documento">
+        @endif
+
         Documento gerado eletronicamente pelo Sistema InfoVISA em {{ $documento->created_at->format('d/m/Y H:i:s') }}
     </div>
 </body>

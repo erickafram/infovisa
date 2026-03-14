@@ -113,7 +113,7 @@ class DashboardController extends Controller
      */
     public function visualizarDocumentoAjuda($documentoId)
     {
-        $documento = DocumentoAjuda::ativos()->findOrFail($documentoId);
+        $documento = DocumentoAjuda::ativos()->genericosGlobais()->findOrFail($documentoId);
 
         if (!Storage::disk('local')->exists($documento->arquivo)) {
             abort(404, 'Arquivo não encontrado.');

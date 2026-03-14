@@ -5,8 +5,10 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto">
+    @php $modoMunicipal = $modoMunicipal ?? false; @endphp
     
     {{-- Estatísticas --}}
+    @if(!$modoMunicipal)
     <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between">
@@ -93,10 +95,12 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- Filtros e Ações --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            @if(!$modoMunicipal)
             <form method="GET" class="flex-1 flex gap-3">
                 <div class="flex-1">
                     <input type="text" 
@@ -119,6 +123,13 @@
                     </a>
                 @endif
             </form>
+            @else
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Seu município</h2>
+                <p class="text-sm text-gray-600">Você pode atualizar apenas a logomarca do município vinculado ao seu usuário.</p>
+            </div>
+            @endif
+            @if(!$modoMunicipal)
             <a href="{{ route('admin.configuracoes.municipios.create') }}" 
                class="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,6 +137,7 @@
                 </svg>
                 Novo Município
             </a>
+            @endif
         </div>
     </div>
 
@@ -146,6 +158,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Município</th>
+                            @if(!$modoMunicipal)
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código IBGE</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UF</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuários</th>
@@ -153,6 +166,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pactuações</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">InfoVISA</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            @endif
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
@@ -173,6 +187,7 @@
                                     </div>
                                 </div>
                             </td>
+                            @if(!$modoMunicipal)
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ $municipio->codigo_ibge }}
                             </td>
@@ -225,14 +240,16 @@
                                     {{ $municipio->ativo ? 'Ativo' : 'Inativo' }}
                                 </span>
                             </td>
+                            @endif
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{{ route('admin.configuracoes.municipios.edit', $municipio->id) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 {{ $modoMunicipal ? '' : 'mr-3' }}">
+                                    Editar
+                                </a>
+                                @if(!$modoMunicipal)
                                 <a href="{{ route('admin.configuracoes.municipios.show', $municipio->id) }}" 
                                    class="text-blue-600 hover:text-blue-900 mr-3">
                                     Ver
-                                </a>
-                                <a href="{{ route('admin.configuracoes.municipios.edit', $municipio->id) }}" 
-                                   class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                    Editar
                                 </a>
                                 <form action="{{ route('admin.configuracoes.municipios.destroy', $municipio->id) }}" 
                                       method="POST" 
@@ -244,6 +261,7 @@
                                         Excluir
                                     </button>
                                 </form>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

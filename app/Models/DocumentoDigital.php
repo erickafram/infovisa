@@ -36,6 +36,10 @@ class DocumentoDigital extends Model
         'prazo_finalizado_em',
         'prazo_finalizado_por',
         'prazo_finalizado_motivo',
+        'prazo_prorrogado_dias',
+        'prazo_prorrogado_em',
+        'prazo_prorrogado_por',
+        'prazo_prorrogado_motivo',
         'processos_ids',
         'os_id',
         'atividade_index',
@@ -50,6 +54,8 @@ class DocumentoDigital extends Model
         'data_vencimento' => 'date',
         'prazo_iniciado_em' => 'datetime',
         'prazo_finalizado_em' => 'datetime',
+        'prazo_prorrogado_dias' => 'integer',
+        'prazo_prorrogado_em' => 'datetime',
         'processos_ids' => 'array',
         'atividade_index' => 'integer',
     ];
@@ -191,6 +197,14 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Relacionamento com usuário que prorrogou o prazo
+     */
+    public function usuarioProrrogouPrazo()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'prazo_prorrogado_por');
+    }
+
+    /**
      * Finaliza o prazo do documento (marca como respondido/resolvido)
      */
     public function finalizarPrazo($usuarioInternoId, $motivo = null): void
@@ -220,6 +234,63 @@ class DocumentoDigital extends Model
     public function isPrazoFinalizado(): bool
     {
         return $this->prazo_finalizado_em !== null;
+    }
+
+    /**
+     * Quantidade de dias ainda disponíveis para prorrogação
+     */
+    public function getDiasProrrogacaoDisponiveisAttribute(): int
+    {
+        return max(0, 30 - ((int) ($this->prazo_prorrogado_dias ?? 0)));
+    }
+
+    /**
+     * Verifica se o prazo ainda pode ser prorrogado
+     */
+    public function podeProrrogarPrazo(): bool
+    {
+        return $this->temPrazo()
+            && $this->data_vencimento !== null
+            && !$this->isPrazoFinalizado()
+            && $this->todasAssinaturasCompletas()
+            && $this->status === 'assinado'
+            && $this->dias_prorrogacao_disponiveis > 0;
+    }
+
+    /**
+     * Prorroga o prazo do documento respeitando o limite total de 30 dias
+     */
+    public function prorrogarPrazo(int $dias, int $usuarioInternoId, string $motivo): array
+    {
+        if ($dias < 1) {
+            throw new \InvalidArgumentException('A prorrogação deve ser de pelo menos 1 dia.');
+        }
+
+        if (!$this->podeProrrogarPrazo()) {
+            throw new \RuntimeException('Este documento não pode mais ter o prazo prorrogado.');
+        }
+
+        if ($dias > $this->dias_prorrogacao_disponiveis) {
+            throw new \RuntimeException('A prorrogação excede o limite máximo de 30 dias para esta notificação.');
+        }
+
+        $dataAnterior = $this->data_vencimento->copy();
+        $novaData = $dataAnterior->copy()->addDays($dias);
+
+        $this->update([
+            'data_vencimento' => $novaData,
+            'prazo_prorrogado_dias' => ((int) ($this->prazo_prorrogado_dias ?? 0)) + $dias,
+            'prazo_prorrogado_em' => now(),
+            'prazo_prorrogado_por' => $usuarioInternoId,
+            'prazo_prorrogado_motivo' => trim($motivo),
+        ]);
+
+        return [
+            'data_anterior' => $dataAnterior,
+            'data_nova' => $novaData,
+            'dias' => $dias,
+            'dias_total' => (int) $this->prazo_prorrogado_dias,
+        ];
     }
 
     /**

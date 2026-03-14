@@ -20,16 +20,16 @@
         <p class="mt-2 text-gray-600">Gerencie as configurações globais do sistema INFOVISA</p>
     </div>
 
-    {{-- Seção: Logomarca Estadual --}}
+    {{-- Seção: Identidade Visual Estadual --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
         <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                Logomarca Estadual
+                Identidade Visual Estadual
             </h2>
-            <p class="text-sm text-gray-600 mt-1">Esta logomarca será exibida nos documentos digitais gerados por <strong>Gestores Estaduais</strong> e <strong>Técnicos Estaduais</strong></p>
+            <p class="text-sm text-gray-600 mt-1">Configure a logomarca e a imagem de rodapé padrão usadas nos documentos e PDFs estaduais</p>
         </div>
 
         <div class="p-6">
@@ -37,8 +37,11 @@
                 @csrf
                 @method('PUT')
 
-                @if($logomarcaEstadual && $logomarcaEstadual->valor)
-                    <div class="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-3">Logomarca Estadual</h3>
+
+                    @if($logomarcaEstadual && $logomarcaEstadual->valor)
+                        <div class="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                         <div class="flex items-start gap-4">
                             <img src="{{ asset($logomarcaEstadual->valor) }}" 
                                  alt="Logomarca do Estado do Tocantins"
@@ -82,9 +85,9 @@
                                 </label>
                             </div>
                         </div>
-                    </div>
-                @else
-                    <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        </div>
+                    @else
+                        <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div class="flex items-start gap-3">
                             <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -96,45 +99,129 @@
                                 </p>
                             </div>
                         </div>
-                    </div>
-                @endif
+                        </div>
+                    @endif
 
-                <div class="space-y-4">
-                    <div class="block">
-                        <span class="text-sm font-medium text-gray-700 mb-2 block">
-                            {{ $logomarcaEstadual && $logomarcaEstadual->valor ? 'Substituir Logomarca' : 'Fazer Upload da Logomarca' }}
-                        </span>
-                        <div class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
-                             onclick="document.getElementById('input-logomarca-estadual').click()">
-                            <div class="text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <p class="mt-2 text-sm text-gray-600">
-                                    <span class="font-semibold text-purple-600">Clique para selecionar</span> ou arraste a imagem
-                                </p>
-                                <p class="mt-1 text-xs text-gray-500">PNG, JPG, JPEG ou SVG (máx. 2MB)</p>
-                                <p class="mt-2 text-xs text-gray-600 bg-gray-100 inline-block px-3 py-1 rounded-full">
-                                    Recomendado: 400x400px ou maior
-                                </p>
+                    <div class="space-y-4">
+                        <div class="block">
+                            <span class="text-sm font-medium text-gray-700 mb-2 block">
+                                {{ $logomarcaEstadual && $logomarcaEstadual->valor ? 'Substituir Logomarca' : 'Fazer Upload da Logomarca' }}
+                            </span>
+                            <div class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
+                                 onclick="document.getElementById('input-logomarca-estadual').click()">
+                                <div class="text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        <span class="font-semibold text-purple-600">Clique para selecionar</span> ou arraste a imagem
+                                    </p>
+                                    <p class="mt-1 text-xs text-gray-500">PNG, JPG, JPEG ou SVG (máx. 2MB)</p>
+                                    <p class="mt-2 text-xs text-gray-600 bg-gray-100 inline-block px-3 py-1 rounded-full">
+                                        Recomendado: 400x400px ou maior
+                                    </p>
+                                </div>
+                            </div>
+                            <input type="file" 
+                                   id="input-logomarca-estadual"
+                                   name="logomarca_estadual" 
+                                   accept="image/jpeg,image/png,image/jpg,image/svg+xml"
+                                   class="hidden"
+                                   onchange="previewImagem(event, 'preview-image-estadual', 'preview-container-estadual')">
+                        </div>
+
+                        <div id="preview-container-estadual" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-700 font-semibold mb-3">Prévia da nova logomarca:</p>
+                            <img id="preview-image-estadual" src="" alt="Prévia" class="w-40 h-40 object-contain bg-white border border-gray-300 rounded-lg p-3 mx-auto">
+                        </div>
+
+                        @error('logomarca_estadual')
+                            <p class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-900 mb-3">Rodapé Estadual</h3>
+
+                    @if($rodapeEstadual && $rodapeEstadual->valor)
+                        <div class="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                            <div class="flex items-start gap-4">
+                                <img src="{{ asset($rodapeEstadual->valor) }}"
+                                     alt="Rodapé do Estado do Tocantins"
+                                     class="w-full max-w-md h-auto object-contain bg-white border-2 border-purple-300 rounded-lg p-3 shadow-sm">
+                                <div class="flex-1">
+                                    <p class="text-sm text-purple-900 font-semibold mb-2">Rodapé estadual configurado</p>
+                                    <p class="text-xs text-purple-700 mb-4">Esta imagem será usada como rodapé padrão dos PDFs quando o município não tiver um rodapé próprio cadastrado.</p>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox"
+                                               name="remover_rodape_estadual"
+                                               value="1"
+                                               class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                        <span class="ml-2 text-sm text-red-600 font-medium">Remover rodapé estadual</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <input type="file" 
-                               id="input-logomarca-estadual"
-                               name="logomarca_estadual" 
-                               accept="image/jpeg,image/png,image/jpg,image/svg+xml"
-                               class="hidden"
-                               onchange="previewLogoEstadual(event)">
+                    @else
+                        <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm font-semibold text-yellow-800">Nenhum rodapé estadual personalizado configurado</p>
+                            <p class="text-xs text-yellow-700 mt-1">Enquanto não houver upload aqui, o sistema continua usando o rodapé padrão já existente do estado.</p>
+                        </div>
+                    @endif
+
+                    <div class="space-y-4">
+                        <div class="block">
+                            <span class="text-sm font-medium text-gray-700 mb-2 block">
+                                {{ $rodapeEstadual && $rodapeEstadual->valor ? 'Substituir Rodapé' : 'Fazer Upload do Rodapé' }}
+                            </span>
+                            <div class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors cursor-pointer"
+                                 onclick="document.getElementById('input-rodape-estadual').click()">
+                                <div class="text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        <span class="font-semibold text-purple-600">Clique para selecionar</span> ou arraste a imagem
+                                    </p>
+                                    <p class="mt-1 text-xs text-gray-500">PNG, JPG, JPEG ou SVG (máx. 4MB)</p>
+                                    <p class="mt-2 text-xs text-gray-600 bg-gray-100 inline-block px-3 py-1 rounded-full">
+                                        Recomendado: imagem horizontal com boa resolução
+                                    </p>
+                                </div>
+                            </div>
+                            <input type="file"
+                                   id="input-rodape-estadual"
+                                   name="rodape_estadual"
+                                   accept="image/jpeg,image/png,image/jpg,image/svg+xml"
+                                   class="hidden"
+                                   onchange="previewImagem(event, 'preview-image-rodape-estadual', 'preview-container-rodape-estadual')">
+                        </div>
+
+                        <div id="preview-container-rodape-estadual" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-sm text-blue-700 font-semibold mb-3">Prévia do novo rodapé:</p>
+                            <img id="preview-image-rodape-estadual" src="" alt="Prévia do rodapé" class="w-full max-w-md h-auto object-contain bg-white border border-gray-300 rounded-lg p-3 mx-auto">
+                        </div>
+
+                        @error('rodape_estadual')
+                            <p class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
-                    <div id="preview-container-estadual" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p class="text-sm text-blue-700 font-semibold mb-3">Prévia da nova logomarca:</p>
-                        <img id="preview-image-estadual" src="" alt="Prévia" class="w-40 h-40 object-contain bg-white border border-gray-300 rounded-lg p-3 mx-auto">
+                    <div class="mt-6">
+                        <label for="rodape_texto_padrao" class="block text-sm font-medium text-gray-700 mb-2">
+                            Texto Padrão do Rodapé
+                        </label>
+                        <textarea id="rodape_texto_padrao"
+                                  name="rodape_texto_padrao"
+                                  rows="5"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 @error('rodape_texto_padrao') border-red-500 @enderror"
+                                  placeholder="Informe o texto padrão que será usado no rodapé dos documentos">{{ old('rodape_texto_padrao', $rodapeTextoPadrao) }}</textarea>
+                        <p class="mt-2 text-xs text-gray-500">Esse texto é usado nos documentos estaduais e como padrão para municípios que não definirem um texto próprio.</p>
+                        @error('rodape_texto_padrao')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
-
-                    @error('logomarca_estadual')
-                        <p class="text-sm text-red-600">{{ $message }}</p>
-                    @enderror
                 </div>
 
                 <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
@@ -147,7 +234,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        Salvar Configurações
+                        Salvar Identidade Visual
                     </button>
                 </div>
             </form>
@@ -420,11 +507,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div class="text-sm text-blue-800">
-                <p class="font-semibold mb-2">Como funciona a seleção de logomarca nos documentos:</p>
+                <p class="font-semibold mb-2">Como funciona a identidade visual nos documentos:</p>
                 <ul class="space-y-1 text-xs">
-                    <li>• <strong>Usuários Municipais</strong> (Gestor Municipal / Técnico Municipal): Usam a logomarca do município vinculado</li>
-                    <li>• <strong>Usuários Estaduais</strong> (Gestor Estadual / Técnico Estadual): Usam a logomarca estadual configurada aqui</li>
-                    <li>• <strong>Usuários sem município</strong>: Usam a logomarca estadual como padrão</li>
+                    <li>• <strong>Usuários Municipais</strong>: usam a logomarca e o rodapé do município quando existirem</li>
+                    <li>• <strong>Usuários Estaduais</strong>: usam a identidade visual estadual configurada aqui</li>
+                    <li>• <strong>Fallback</strong>: quando o município não tiver rodapé próprio, o sistema usa o rodapé estadual padrão</li>
                 </ul>
             </div>
         </div>
@@ -432,13 +519,13 @@
 </div>
 
 <script>
-function previewLogoEstadual(event) {
+function previewImagem(event, imageId, containerId) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('preview-image-estadual').src = e.target.result;
-            document.getElementById('preview-container-estadual').classList.remove('hidden');
+            document.getElementById(imageId).src = e.target.result;
+            document.getElementById(containerId).classList.remove('hidden');
         }
         reader.readAsDataURL(file);
     }

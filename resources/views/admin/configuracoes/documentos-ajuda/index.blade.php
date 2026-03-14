@@ -46,6 +46,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ordem</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Escopo</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipos de Processo</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tamanho</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -71,6 +72,16 @@
                                     <p class="text-xs text-gray-500 truncate max-w-xs">{{ $documento->descricao }}</p>
                                     @endif
                                 </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="space-y-1">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                                    {{ $documento->escopo_competencia_label }}
+                                </span>
+                                @if($documento->municipio)
+                                <div class="text-xs text-gray-500">{{ $documento->municipio->nome }}/{{ $documento->municipio->uf }}</div>
+                                @endif
                             </div>
                         </td>
                         <td class="px-4 py-3">

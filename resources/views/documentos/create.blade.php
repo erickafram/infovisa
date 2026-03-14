@@ -871,7 +871,7 @@ function buscaTecnicos() {
 
 function documentoEditor() {
     return {
-        tipoSelecionado: null,
+        tipoSelecionado: @json(old('tipo_documento_id')),
         sigiloso: false,
         conteudo: '',
         modelos: [],
@@ -887,8 +887,8 @@ function documentoEditor() {
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id") ?: (request()->get("processos_ids") ?: "novo") }}',
         // Campos de prazo
         temPrazo: false,
-        prazoDias: null,
-        tipoPrazo: 'corridos',
+        prazoDias: @json(old('prazo_dias')),
+        tipoPrazo: @json(old('tipo_prazo', 'corridos')),
         dataVencimentoFormatada: '',
         isNotificacao: false, // Se é documento de notificação/fiscalização (§1º)
         // Controle de edição simultânea
@@ -941,6 +941,24 @@ function documentoEditor() {
             } else {
                 this.conteudo = conteudoInicial;
             }
+
+            this.$nextTick(async () => {
+                const selectTipo = document.querySelector('select[name="tipo_documento_id"]');
+                const tipoInicial = this.tipoSelecionado || selectTipo?.value;
+
+                if (!tipoInicial) {
+                    return;
+                }
+
+                this.tipoSelecionado = String(tipoInicial);
+
+                if (selectTipo && selectTipo.value !== this.tipoSelecionado) {
+                    selectTipo.value = this.tipoSelecionado;
+                }
+
+                this.atualizarAvisoPrazo(this.tipoSelecionado);
+                await this.buscarPrazoTipo(this.tipoSelecionado, true);
+            });
 
             // Inicializa TinyMCE
             tinymce.init({
@@ -1416,7 +1434,13 @@ function documentoEditor() {
             
             try {
                 // Busca modelos - usa APP_URL para funcionar em subdiretórios
-                const url = `${window.APP_URL}/admin/documentos/modelos/${tipoId}`;
+                const processoId = document.querySelector('input[name="processo_id"]')?.value;
+                const query = new URLSearchParams();
+                if (processoId) {
+                    query.set('processo_id', processoId);
+                }
+
+                const url = `${window.APP_URL}/admin/documentos/modelos/${tipoId}${query.toString() ? `?${query.toString()}` : ''}`;
                 console.log('Fazendo requisição para:', url);
                 
                 const response = await fetch(url);
@@ -1540,7 +1564,7 @@ function documentoEditor() {
         },
 
         // Busca informações de prazo do tipo de documento
-        async buscarPrazoTipo(tipoId) {
+        async buscarPrazoTipo(tipoId, preservarValoresAtuais = false) {
             try {
                 const response = await fetch(`${window.APP_URL}/admin/documentos/prazo-tipo/${tipoId}`);
                 
@@ -1556,15 +1580,21 @@ function documentoEditor() {
                 
                 // Se tem prazo, preenche os campos
                 if (data.tem_prazo) {
+                    const prazoAtualValido = this.prazoDias !== null && this.prazoDias !== '' && Number(this.prazoDias) > 0;
+
                     // Preenche prazo padrão se existir
-                    if (data.prazo_padrao_dias) {
+                    if (preservarValoresAtuais && prazoAtualValido) {
+                        this.prazoDias = this.prazoDias;
+                    } else if (data.prazo_padrao_dias) {
                         this.prazoDias = data.prazo_padrao_dias;
                     } else {
                         this.prazoDias = null;
                     }
                     
                     // Preenche tipo de prazo
-                    this.tipoPrazo = data.tipo_prazo || 'corridos';
+                    if (!preservarValoresAtuais || !['corridos', 'uteis'].includes(this.tipoPrazo)) {
+                        this.tipoPrazo = data.tipo_prazo || 'corridos';
+                    }
                     
                     // Calcula data de vencimento se tiver prazo
                     if (this.prazoDias) {

@@ -6,7 +6,7 @@
     $nomeUsuario = $usuarioExterno ? $usuarioExterno->nome : 'Usuário';
     $primeiroNome = explode(' ', $nomeUsuario)[0];
 
-    $documentosAjudaLinks = \App\Models\DocumentoAjuda::ativos()->ordenado()->get(['id', 'titulo'])
+    $documentosAjudaLinks = \App\Models\DocumentoAjuda::ativos()->genericosGlobais()->ordenado()->get(['id', 'titulo'])
         ->map(function ($doc) {
             return [
                 'titulo' => $doc->titulo,

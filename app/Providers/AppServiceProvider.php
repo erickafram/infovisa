@@ -77,7 +77,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Compartilha documentos de ajuda com o layout company
         View::composer('layouts.company', function ($view) {
-            $view->with('documentosAjuda', DocumentoAjuda::ativos()->ordenado()->get());
+            $view->with('documentosAjuda', DocumentoAjuda::ativos()->genericosGlobais()->ordenado()->get());
         });
     }
 }

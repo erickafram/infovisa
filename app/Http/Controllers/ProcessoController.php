@@ -17,6 +17,7 @@ use App\Models\DocumentoDigital;
 use App\Models\TipoSetor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -875,7 +876,7 @@ class ProcessoController extends Controller
                 'estabelecimento', 
                 'tipoProcesso',
                 'documentos' => function($query) {
-                    $query->with(['documentoSubstituido'])->orderBy('created_at', 'desc');
+                    $query->with(['documentoSubstituido', 'ordemServico', 'aprovadoPor'])->orderBy('created_at', 'desc');
                 },
                 'documentos.usuario', 
                 'usuariosAcompanhando',
@@ -886,12 +887,13 @@ class ProcessoController extends Controller
         
         // Busca modelos de documentos ativos
         $modelosDocumento = ModeloDocumento::with('tipoDocumento')
+            ->disponiveisParaUsuario(auth('interno')->user())
             ->ativo()
             ->ordenado()
             ->get();
         
         // Busca documentos digitais do processo (incluindo rascunhos)
-        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas.usuarioInterno', 'primeiraVisualizacao.usuarioExterno', 'respostas.usuarioExterno', 'respostas.avaliadoPor', 'ordemServico'])
+        $documentosDigitais = \App\Models\DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'assinaturas.usuarioInterno', 'primeiraVisualizacao.usuarioExterno', 'respostas.usuarioExterno', 'respostas.avaliadoPor', 'ordemServico', 'usuarioProrrogouPrazo'])
             ->where('processo_id', $processoId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -2119,7 +2121,9 @@ class ProcessoController extends Controller
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
             
-            $modelo = ModeloDocumento::with('tipoDocumento')->findOrFail($request->modelo_documento_id);
+            $modelo = ModeloDocumento::with('tipoDocumento')
+                ->disponiveisParaUsuario(auth('interno')->user())
+                ->findOrFail($request->modelo_documento_id);
             
             // Substitui variáveis no conteúdo HTML
             $conteudo = $this->substituirVariaveis($modelo->conteudo, $estabelecimento, $processo);
@@ -3229,5 +3233,87 @@ class ProcessoController extends Controller
         return redirect()
             ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
             ->with('success', 'Prazo do documento reaberto com sucesso!');
+    }
+
+    /**
+     * Prorroga o prazo de um documento digital em até 30 dias no total
+     */
+    public function prorrogarPrazoDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $validated = $request->validate([
+            'dias' => 'required|integer|min:1|max:30',
+            'motivo' => 'required|string|min:10|max:500',
+            'senha_assinatura' => 'required|string',
+        ]);
+
+        $usuario = auth('interno')->user();
+
+        if (!$usuario->temSenhaAssinatura()) {
+            return back()->with('error', 'Você precisa configurar sua senha de assinatura digital primeiro.');
+        }
+
+        if (!Hash::check($validated['senha_assinatura'], $usuario->senha_assinatura_digital)) {
+            return back()->with('error', 'Senha de assinatura digital incorreta.');
+        }
+
+        if (!$documento->temPrazo() || !$documento->data_vencimento) {
+            return back()->with('error', 'Este documento não possui prazo ativo para prorrogação.');
+        }
+
+        if ($documento->isPrazoFinalizado()) {
+            return back()->with('warning', 'O prazo deste documento já foi finalizado.');
+        }
+
+        if (!$documento->podeProrrogarPrazo()) {
+            return back()->with('warning', 'Este documento não pode mais ter o prazo prorrogado.');
+        }
+
+        $diasSolicitados = (int) $validated['dias'];
+
+        if ($diasSolicitados > $documento->dias_prorrogacao_disponiveis) {
+            return back()->with('error', 'A prorrogação máxima disponível para esta notificação é de ' . $documento->dias_prorrogacao_disponiveis . ' dia(s).');
+        }
+
+        $motivoProrrogacao = trim($validated['motivo']);
+
+        $resultado = DB::transaction(function () use ($documento, $diasSolicitados, $motivoProrrogacao, $processo, $request, $usuario) {
+            $resultadoProrrogacao = $documento->prorrogarPrazo($diasSolicitados, $usuario->id, $motivoProrrogacao);
+
+            ProcessoEvento::create([
+                'processo_id' => $processo->id,
+                'usuario_interno_id' => $usuario->id,
+                'tipo_evento' => 'prazo_prorrogado',
+                'titulo' => 'Prazo Prorrogado',
+                'descricao' => 'Prazo do documento ' . ($documento->numero_documento ?? ($documento->nome ?? 'Documento')) . ' prorrogado em ' . $diasSolicitados . ' dia(s)',
+                'dados_adicionais' => [
+                    'documento_digital_id' => $documento->id,
+                    'numero_documento' => $documento->numero_documento,
+                    'nome_documento' => $documento->nome ?? $documento->tipoDocumento->nome ?? 'Documento',
+                    'prorrogado_por_nome' => $usuario->nome,
+                    'motivo' => $motivoProrrogacao,
+                    'dias_prorrogados' => $diasSolicitados,
+                    'dias_prorrogados_total' => $resultadoProrrogacao['dias_total'],
+                    'prazo_anterior' => $resultadoProrrogacao['data_anterior']->format('Y-m-d'),
+                    'prazo' => $resultadoProrrogacao['data_nova']->format('Y-m-d'),
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return $resultadoProrrogacao;
+        });
+
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Prazo do documento prorrogado até ' . $resultado['data_nova']->format('d/m/Y') . '.');
     }
 }

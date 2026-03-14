@@ -550,6 +550,7 @@ class ProcessoController extends Controller
         $documentosAjuda = \App\Models\DocumentoAjuda::ativos()
             ->ordenado()
             ->paraTipoProcesso($processo->tipo)
+            ->visiveisParaProcesso($processo)
             ->get();
         
         // Verifica se o estabelecimento precisa cadastrar equipamentos de imagem para este tipo de processo
@@ -733,6 +734,7 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with(['estabelecimento', 'tipoProcesso'])
             ->findOrFail($processoId);
 
         $documento = \App\Models\ProcessoDocumento::where('processo_id', $processo->id)
@@ -1282,6 +1284,7 @@ class ProcessoController extends Controller
         // Busca o documento de ajuda
         $documento = \App\Models\DocumentoAjuda::ativos()
             ->paraTipoProcesso($processo->tipo)
+            ->visiveisParaProcesso($processo)
             ->findOrFail($documentoId);
         
         // Verifica se o arquivo existe

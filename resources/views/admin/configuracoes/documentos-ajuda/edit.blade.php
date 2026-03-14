@@ -54,6 +54,45 @@
                 @enderror
             </div>
 
+            {{-- Escopo e Município --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="escopo_competencia" class="block text-sm font-medium text-gray-700 mb-1">
+                        Exibir para <span class="text-red-500">*</span>
+                    </label>
+                    <select name="escopo_competencia"
+                            id="escopo_competencia"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('escopo_competencia') border-red-500 @enderror"
+                            required>
+                        <option value="todos" @selected(old('escopo_competencia', $documento->escopo_competencia) === 'todos')>Todos os processos vinculados</option>
+                        <option value="estadual" @selected(old('escopo_competencia', $documento->escopo_competencia) === 'estadual')>Somente processos de competência estadual</option>
+                        <option value="municipal" @selected(old('escopo_competencia', $documento->escopo_competencia) === 'municipal')>Somente processos de competência municipal</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Use municipal quando o documento deve aparecer apenas para processos municipais.</p>
+                    @error('escopo_competencia')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div id="municipio-field-wrapper" class="{{ old('escopo_competencia', $documento->escopo_competencia) === 'municipal' ? '' : 'hidden' }}">
+                    <label for="municipio_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Município <span class="text-red-500">*</span>
+                    </label>
+                    <select name="municipio_id"
+                            id="municipio_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('municipio_id') border-red-500 @enderror">
+                        <option value="">Selecione o município</option>
+                        @foreach($municipios as $municipio)
+                        <option value="{{ $municipio->id }}" @selected((string) old('municipio_id', $documento->municipio_id) === (string) $municipio->id)>{{ $municipio->nome }}/{{ $municipio->uf }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Exemplo: um documento municipal de Dianópolis só aparecerá para processos municipais de Dianópolis.</p>
+                    @error('municipio_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
             {{-- Arquivo Atual --}}
             <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo Atual</label>
@@ -187,6 +226,24 @@
             nomeEl.classList.add('hidden');
         }
     });
+
+    const escopoCompetenciaSelect = document.getElementById('escopo_competencia');
+    const municipioFieldWrapper = document.getElementById('municipio-field-wrapper');
+    const municipioSelect = document.getElementById('municipio_id');
+
+    function atualizarCampoMunicipioDocumentoAjuda() {
+        const exibirMunicipio = escopoCompetenciaSelect.value === 'municipal';
+
+        municipioFieldWrapper.classList.toggle('hidden', !exibirMunicipio);
+        municipioSelect.required = exibirMunicipio;
+
+        if (!exibirMunicipio) {
+            municipioSelect.value = '';
+        }
+    }
+
+    escopoCompetenciaSelect.addEventListener('change', atualizarCampoMunicipioDocumentoAjuda);
+    atualizarCampoMunicipioDocumentoAjuda();
 </script>
 @endpush
 @endsection

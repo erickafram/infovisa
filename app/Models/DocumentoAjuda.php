@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class DocumentoAjuda extends Model
@@ -17,13 +18,24 @@ class DocumentoAjuda extends Model
         'tamanho',
         'ativo',
         'ordem',
+        'escopo_competencia',
+        'municipio_id',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
         'ordem' => 'integer',
         'tamanho' => 'integer',
+        'municipio_id' => 'integer',
     ];
+
+    /**
+     * Relacionamento com município
+     */
+    public function municipio(): BelongsTo
+    {
+        return $this->belongsTo(Municipio::class);
+    }
 
     /**
      * Relacionamento com tipos de processo
@@ -51,6 +63,15 @@ class DocumentoAjuda extends Model
     }
 
     /**
+     * Scope para documentos genéricos exibidos fora do contexto de processo
+     */
+    public function scopeGenericosGlobais($query)
+    {
+        return $query->where('escopo_competencia', 'todos')
+            ->whereNull('municipio_id');
+    }
+
+    /**
      * Scope para documentos de um tipo de processo específico
      */
     public function scopeParaTipoProcesso($query, $tipoProcessoCodigo)
@@ -58,6 +79,44 @@ class DocumentoAjuda extends Model
         return $query->whereHas('tiposProcesso', function ($q) use ($tipoProcessoCodigo) {
             $q->where('codigo', $tipoProcessoCodigo);
         });
+    }
+
+    /**
+     * Scope para documentos visíveis no contexto de um processo específico
+     */
+    public function scopeVisiveisParaProcesso($query, Processo $processo)
+    {
+        $estabelecimento = $processo->estabelecimento;
+        $tipoProcesso = $processo->tipoProcesso;
+
+        $escopoCompetencia = $tipoProcesso
+            ? $tipoProcesso->resolverEscopoCompetencia($estabelecimento)
+            : ($estabelecimento && $estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal');
+
+        return $query
+            ->where(function ($q) use ($escopoCompetencia) {
+                $q->where('escopo_competencia', 'todos')
+                    ->orWhere('escopo_competencia', $escopoCompetencia);
+            })
+            ->where(function ($q) use ($escopoCompetencia, $estabelecimento) {
+                if ($escopoCompetencia === 'municipal' && $estabelecimento?->municipio_id) {
+                    $q->whereNull('municipio_id')
+                        ->orWhere('municipio_id', $estabelecimento->municipio_id);
+
+                    return;
+                }
+
+                $q->whereNull('municipio_id');
+            });
+    }
+
+    public function getEscopoCompetenciaLabelAttribute(): string
+    {
+        return match ($this->escopo_competencia) {
+            'estadual' => 'Estadual',
+            'municipal' => 'Municipal',
+            default => 'Todos',
+        };
     }
 
     /**

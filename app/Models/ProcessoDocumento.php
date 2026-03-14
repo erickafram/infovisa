@@ -10,6 +10,8 @@ class ProcessoDocumento extends Model
 {
     protected $fillable = [
         'processo_id',
+        'os_id',
+        'atividade_index',
         'documento_substituido_id',
         'pasta_id',
         'usuario_id',
@@ -33,6 +35,7 @@ class ProcessoDocumento extends Model
     ];
 
     protected $casts = [
+        'atividade_index' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'aprovado_em' => 'datetime',
@@ -42,6 +45,11 @@ class ProcessoDocumento extends Model
     public function processo(): BelongsTo
     {
         return $this->belongsTo(Processo::class);
+    }
+
+    public function ordemServico(): BelongsTo
+    {
+        return $this->belongsTo(OrdemServico::class, 'os_id');
     }
 
     public function usuario(): BelongsTo

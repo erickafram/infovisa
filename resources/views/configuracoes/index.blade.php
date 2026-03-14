@@ -7,16 +7,49 @@
     $user = auth('interno')->user();
     $isAdmin = $user->isAdmin();
     $isGestorEstadual = $user->nivel_acesso->value === 'gestor_estadual';
+    $isGestorMunicipal = $user->nivel_acesso->value === 'gestor_municipal';
 @endphp
 
 @section('content')
 <div class="max-w-8xl mx-auto">
+    <style>
+        .configuracoes-grid {
+            gap: 1rem;
+        }
+
+        .configuracoes-grid > a {
+            padding: 0.75rem;
+            min-height: 96px;
+        }
+
+        .configuracoes-grid > a > div > div:first-child > div {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+
+        .configuracoes-grid > a > div > div:first-child svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .configuracoes-grid > a h3 {
+            font-size: 0.9rem;
+            line-height: 1.1rem;
+            margin-bottom: 0.125rem;
+        }
+
+        .configuracoes-grid > a p {
+            font-size: 0.68rem;
+            line-height: 0.9rem;
+        }
+    </style>
+
     <div class="mb-6">
         <p class="text-gray-600">Gerencie as configurações e parâmetros do sistema</p>
     </div>
 
     {{-- Grid de Cards de Configurações --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="configuracoes-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
         
         @if($isAdmin)
         {{-- Tipos de Processo - Apenas Admin --}}
@@ -56,8 +89,10 @@
                 </div>
             </div>
         </a>
+        @endif
 
-        {{-- Modelos de Documentos - Admin e Gestor Estadual --}}
+        @if($isAdmin || $isGestorEstadual || $isGestorMunicipal)
+        {{-- Modelos de Documentos - Admin, Gestor Estadual e Gestor Municipal --}}
         <a href="{{ route('admin.configuracoes.modelos-documento.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -70,11 +105,13 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-base font-bold text-gray-900 mb-1">Modelos de Documentos</h3>
-                    <p class="text-xs text-gray-600">Crie e gerencie modelos de documentos digitais</p>
+                    <p class="text-xs text-gray-600">{{ $isGestorMunicipal ? 'Crie e gerencie os modelos de documentos do seu município' : 'Crie e gerencie modelos de documentos digitais' }}</p>
                 </div>
             </div>
         </a>
+        @endif
 
+        @if($isAdmin || $isGestorEstadual)
         {{-- Avisos do Sistema - Admin e Gestor Estadual --}}
         <a href="{{ route('admin.configuracoes.avisos.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
@@ -190,8 +227,8 @@
         </a>
         @endif
 
-        @if($isAdmin)
-        {{-- Municípios - Apenas Admin --}}
+        @if($isAdmin || $isGestorMunicipal)
+        {{-- Municípios - Admin e Gestor Municipal --}}
         <a href="{{ route('admin.configuracoes.municipios.index') }}" 
            class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div class="flex items-start gap-3">
@@ -205,7 +242,27 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-base font-bold text-gray-900 mb-1">Municípios</h3>
-                    <p class="text-xs text-gray-600">Gerencie o cadastro de municípios do Tocantins</p>
+                    <p class="text-xs text-gray-600">{{ $isGestorMunicipal ? 'Atualize a logomarca do seu município' : 'Gerencie o cadastro de municípios do Tocantins' }}</p>
+                </div>
+            </div>
+        </a>
+        @endif
+
+        @if($isAdmin)
+        {{-- Treinamentos - Apenas Admin --}}
+        <a href="{{ route('admin.treinamentos.index') }}"
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0112 20.055a12.083 12.083 0 01-6.16-9.477L12 14zm0 0v6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-bold text-gray-900 mb-1">Treinamentos</h3>
+                    <p class="text-xs text-gray-600">Gerencie eventos, apresentações, perguntas e relatórios do módulo de treinamentos</p>
                 </div>
             </div>
         </a>

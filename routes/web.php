@@ -376,6 +376,7 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     // Finalizar/Reabrir prazo de documentos digitais
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/finalizar-prazo', [\App\Http\Controllers\ProcessoController::class, 'finalizarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.finalizar-prazo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/reabrir-prazo', [\App\Http\Controllers\ProcessoController::class, 'reabrirPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.reabrir-prazo');
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/prorrogar-prazo', [\App\Http\Controllers\ProcessoController::class, 'prorrogarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.prorrogar-prazo');
     
     // Anotações em PDFs
     Route::get('/processos/documentos/{documento}/anotacoes', [\App\Http\Controllers\ProcessoController::class, 'carregarAnotacoes'])->name('processos.documentos.anotacoes.carregar');
@@ -458,6 +459,10 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     Route::post('ordens-servico/{ordemServico}/finalizar-atividade', 
         [\App\Http\Controllers\OrdemServicoController::class, 'finalizarAtividade']
     )->name('ordens-servico.finalizar-atividade');
+
+    Route::post('ordens-servico/{ordemServico}/finalizar-atividade/upload-arquivo',
+        [\App\Http\Controllers\OrdemServicoController::class, 'uploadArquivoExternoAtividade']
+    )->name('ordens-servico.upload-arquivo-atividade');
     
     // Obter minhas atividades na OS
     Route::get('ordens-servico/{ordemServico}/minhas-atividades', 
@@ -532,19 +537,25 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         'usuarios-externos' => 'usuarioExterno'
     ]);
 
+    Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin.gestor')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])->name('index');
+
+        Route::resource('modelos-documento', \App\Http\Controllers\ModeloDocumentoController::class)->parameters([
+            'modelos-documento' => 'modeloDocumento'
+        ]);
+
+        Route::prefix('municipios')->name('municipios.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'index'])->name('index');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\MunicipioController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'update'])->name('update');
+        });
+    });
+
     // Configurações - Acesso para ADMINISTRADORES e GESTOR ESTADUAL (rotas específicas)
     Route::prefix('configuracoes')->name('configuracoes.')->middleware('admin.gestor.estadual')->group(function () {
-        // Página principal de configurações
-        Route::get('/', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])->name('index');
-        
         // Tipos de Documento - Admin e Gestor Estadual
         Route::resource('tipos-documento', \App\Http\Controllers\TipoDocumentoController::class)->parameters([
             'tipos-documento' => 'tipoDocumento'
-        ]);
-        
-        // Modelos de Documentos - Admin e Gestor Estadual
-        Route::resource('modelos-documento', \App\Http\Controllers\ModeloDocumentoController::class)->parameters([
-            'modelos-documento' => 'modeloDocumento'
         ]);
         
         // Avisos do Sistema - Admin e Gestor Estadual
@@ -647,12 +658,9 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         
         // Municípios - Apenas Admin
         Route::prefix('municipios')->name('municipios.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\MunicipioController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\Admin\MunicipioController::class, 'store'])->name('store');
             Route::get('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'show'])->name('show');
-            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\MunicipioController::class, 'edit'])->name('edit');
-            Route::put('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'update'])->name('update');
             Route::post('/{id}/toggle', [\App\Http\Controllers\Admin\MunicipioController::class, 'toggleStatus'])->name('toggle');
             Route::delete('/{id}', [\App\Http\Controllers\Admin\MunicipioController::class, 'destroy'])->name('destroy');
             Route::get('/buscar', [\App\Http\Controllers\Admin\MunicipioController::class, 'buscar'])->name('buscar');

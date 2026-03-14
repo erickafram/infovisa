@@ -10,6 +10,28 @@
             $temAssinaturaFeita = $documento->assinaturas->where('status', 'assinado')->count() > 0;
             $totalAssinaturas = $documento->assinaturas->count();
             $totalAssinaturasFeitas = $documento->assinaturas->where('status', 'assinado')->count();
+            $podeBaixarPdf = $documento->status !== 'rascunho' && $documento->arquivo_pdf;
+            $percentualAssinaturas = $totalAssinaturas > 0
+                ? (int) round(($totalAssinaturasFeitas / $totalAssinaturas) * 100)
+                : 0;
+            $statusInfo = match ($documento->status) {
+                'rascunho' => [
+                    'label' => 'Rascunho',
+                    'descricao' => 'Revise o conteúdo antes de enviar para assinatura.',
+                    'badge' => 'bg-gray-100 text-gray-700 border-gray-200',
+                ],
+                'aguardando_assinatura' => [
+                    'label' => 'Aguardando assinaturas',
+                    'descricao' => 'Acompanhe as assinaturas pendentes para liberar a versão final.',
+                    'badge' => 'bg-blue-50 text-blue-700 border-blue-100',
+                ],
+                default => [
+                    'label' => 'Finalizado',
+                    'descricao' => 'O documento está concluído e pronto para consulta.',
+                    'badge' => 'bg-gray-100 text-gray-700 border-gray-200',
+                ],
+            };
+            $usuarioEhAdmin = auth('interno')->user()?->isAdmin() ?? false;
         @endphp
 
         {{-- Header --}}
@@ -32,350 +54,343 @@
         </div>
 
         {{-- Documento --}}
-        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-            {{-- Cabeçalho do Documento --}}
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-5">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <h1 class="text-xl font-semibold mb-1">{{ $documento->nome ?? $documento->tipoDocumento->nome }}</h1>
-                        <p class="text-blue-100 text-sm">{{ $documento->numero_documento }}</p>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-5 py-5 border-b border-gray-200 bg-white">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="max-w-3xl">
+                        <div class="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-medium">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 {{ $statusInfo['badge'] }}">
+                                {{ $statusInfo['label'] }}
+                            </span>
+                            <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-gray-700">
+                                {{ $documento->tipoDocumento->nome }}
+                            </span>
+                            @if($documento->processo)
+                                <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}"
+                                   class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-gray-700 hover:bg-gray-100 transition">
+                                    Processo {{ $documento->processo->numero_processo }}
+                                </a>
+                            @endif
+                        </div>
+                        <h1 class="text-xl font-semibold leading-tight text-gray-900">{{ $documento->nome ?? $documento->tipoDocumento->nome }}</h1>
+                        <p class="mt-1 text-sm text-gray-500">{{ $documento->numero_documento }}</p>
+                        <p class="mt-3 max-w-2xl text-sm text-gray-600">
+                            {{ $statusInfo['descricao'] }}
+                        </p>
                     </div>
-                    <div class="flex gap-2">
-                        @if($documento->status !== 'rascunho' && $documento->arquivo_pdf)
-                            <a href="{{ route('admin.documentos.pdf', $documento->id) }}" 
-                               class="px-3 py-1.5 text-sm bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                Baixar PDF
-                            </a>
-                        @endif
+
+                    <div class="grid grid-cols-2 gap-3 sm:min-w-[280px]">
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            <p class="text-[11px] uppercase tracking-wide text-gray-500">Assinaturas</p>
+                            <p class="mt-1 text-base font-semibold text-gray-900">{{ $totalAssinaturasFeitas }}/{{ $totalAssinaturas }}</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ $totalAssinaturas > 0 ? $percentualAssinaturas . '% concluído' : 'Sem fluxo de assinatura' }}
+                            </p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            <p class="text-[11px] uppercase tracking-wide text-gray-500">Edição</p>
+                            <p class="mt-1 text-base font-semibold text-gray-900">{{ $documentoPodeEditar ? 'Liberada' : 'Bloqueada' }}</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ $documentoPodeEditar ? 'Ainda aceita ajustes.' : 'Documento preservado para consulta.' }}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Informações do Documento --}}
-            <div class="p-5 border-b border-gray-200 bg-gray-50">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Situação</p>
-                        <p class="mt-1 text-sm font-semibold text-gray-900">
-                            @if($documento->status === 'rascunho')
-                                Rascunho em edição
-                            @elseif($documento->status === 'aguardando_assinatura')
-                                Aguardando assinaturas
-                            @else
-                                Documento finalizado
-                            @endif
-                        </p>
-                        <p class="mt-1 text-xs text-gray-500">
-                            {{ $documentoPodeEditar ? 'Ainda pode ser editado.' : 'Edição bloqueada.' }}
-                        </p>
-                    </div>
-                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Assinaturas</p>
-                        <p class="mt-1 text-sm font-semibold text-gray-900">{{ $totalAssinaturasFeitas }}/{{ $totalAssinaturas }} concluídas</p>
-                        <p class="mt-1 text-xs text-gray-500">
-                            {{ $temAssinaturaFeita ? 'Já existe assinatura realizada.' : 'Ninguém assinou ainda.' }}
-                        </p>
-                    </div>
-                    <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Ações</p>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            <button type="button"
-                                    onclick="abrirModalVisualizacao()"
-                                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                Visualizar
-                            </button>
-                            @if($documentoPodeEditar)
-                                <a href="{{ route('admin.documentos.edit', $documento->id) }}"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                    </svg>
-                                    Editar Documento
-                                </a>
-                            @endif
-                            @if($documento->status !== 'rascunho' && $documento->arquivo_pdf)
-                                <a href="{{ route('admin.documentos.pdf', $documento->id) }}"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    Baixar PDF
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </div>
+            <div class="p-5 bg-gray-50">
+                <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_360px]">
+                    <div class="space-y-6">
+                        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="max-w-2xl">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Próximo passo</p>
+                                    <h2 class="mt-1.5 text-sm font-semibold text-gray-900">
+                                        @if($documento->status === 'rascunho')
+                                            Revise e siga para assinatura quando estiver pronto.
+                                        @elseif($documento->status === 'aguardando_assinatura')
+                                            Acompanhe quem ainda precisa assinar.
+                                        @else
+                                            Consulte a versão final ou baixe o PDF.
+                                        @endif
+                                    </h2>
+                                    <p class="mt-1.5 text-xs text-gray-600 leading-5">
+                                        @if($documento->status === 'rascunho')
+                                            A visualização abre o conteúdo imediatamente. Se precisar ajustar, entre em edição antes da primeira assinatura.
+                                        @elseif($documento->status === 'aguardando_assinatura')
+                                            O documento será concluído quando todas as assinaturas pendentes forem finalizadas.
+                                        @else
+                                            Use a visualização rápida para conferir o documento ou faça o download para compartilhar.
+                                        @endif
+                                    </p>
+                                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {{-- Processo --}}
-                    @if($documento->processo)
-                        <div>
-                            <h3 class="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                Processo Vinculado
-                            </h3>
-                            <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}" 
-                               class="block text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors">
-                                {{ $documento->processo->numero_processo }}
-                            </a>
-                            <p class="text-xs text-gray-600 mt-0.5">
-                                <span class="font-medium">Estabelecimento:</span> {{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social }}
-                            </p>
-                        </div>
-                    @endif
-
-                    {{-- Tipo de Documento --}}
-                    <div>
-                        <h3 class="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                            </svg>
-                            Tipo de Documento
-                        </h3>
-                        <p class="text-sm text-gray-900 font-medium">{{ $documento->tipoDocumento->nome }}</p>
-                    </div>
-
-                    {{-- Criado por --}}
-                    <div>
-                        <h3 class="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                            Criado por
-                        </h3>
-                        <p class="text-sm text-gray-900 font-medium">{{ $documento->usuarioCriador->nome }}</p>
-                        <p class="text-xs text-gray-600">{{ $documento->created_at->format('d/m/Y H:i') }}</p>
-                    </div>
-
-                    {{-- Status --}}
-                    <div>
-                        <h3 class="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Status
-                        </h3>
-                        @if($documento->status === 'rascunho')
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                </svg>
-                                Rascunho
-                            </span>
-                        @elseif($documento->status === 'aguardando_assinatura')
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Aguardando Assinatura
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Finalizado
-                            </span>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Informação de Lote Multi-Processo --}}
-                @if($documento->isLote())
-                <div class="md:col-span-2 mt-2">
-                    <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                        <div class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                            </svg>
-                            <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-purple-900">Documento em Lote — {{ count($documento->processos_ids) }} processos</h4>
-                                <p class="text-xs text-purple-700 mt-0.5">
-                                    @if($documento->status === 'rascunho')
-                                        Ao finalizar e assinar, este documento será distribuído automaticamente para todos os processos abaixo.
-                                    @elseif($documento->status === 'aguardando_assinatura')
-                                        Quando todas as assinaturas forem concluídas, o documento será distribuído para todos os processos abaixo.
-                                    @else
-                                        Este documento foi distribuído para os processos abaixo.
-                                    @endif
-                                </p>
-                                <div class="flex flex-wrap gap-1.5 mt-2">
-                                    @foreach($documento->processosLote() as $procLote)
-                                        <a href="{{ route('admin.estabelecimentos.processos.show', [$procLote->estabelecimento_id, $procLote->id]) }}"
-                                           target="_blank"
-                                           class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                <div class="flex flex-wrap gap-2 lg:max-w-sm lg:justify-end">
+                                    <button type="button"
+                                            onclick="abrirModalVisualizacao()"
+                                            class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        Abrir visualização
+                                    </button>
+                                    @if($documentoPodeEditar)
+                                        <a href="{{ route('admin.documentos.edit', $documento->id) }}"
+                                           class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
-                                            {{ $procLote->numero_processo }}
-                                            <span class="text-gray-500">— {{ $procLote->estabelecimento->nome_fantasia ?? $procLote->estabelecimento->razao_social ?? '' }}</span>
+                                            Editar
                                         </a>
+                                    @endif
+                                    @if($podeBaixarPdf)
+                                        <a href="{{ route('admin.documentos.pdf', $documento->id) }}"
+                                           class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            Baixar PDF
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </section>
+
+                        @if($documento->assinaturas->count() > 0)
+                            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Fluxo de assinatura</p>
+                                        <h2 class="mt-1 text-sm font-semibold text-gray-900">Acompanhe quem já assinou e o que ainda falta</h2>
+                                        <p class="mt-1 text-xs text-gray-600">
+                                            {{ $totalAssinaturas > 0 ? $totalAssinaturasFeitas . ' de ' . $totalAssinaturas . ' assinaturas concluídas.' : 'Nenhuma assinatura configurada.' }}
+                                        </p>
+                                    </div>
+                                    @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
+                                        <button onclick="abrirModalGerenciarAssinantes()"
+                                                class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            Gerenciar assinantes
+                                        </button>
+                                    @endif
+                                </div>
+
+                                <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                    <div class="h-full rounded-full bg-gray-400 transition-all" style="width: {{ $percentualAssinaturas }}%"></div>
+                                </div>
+
+                                <div class="mt-4 space-y-3">
+                                    @foreach($documento->assinaturas as $assinatura)
+                                        <div class="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div class="flex items-center gap-3 min-w-0">
+                                                <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    @if($assinatura->usuarioInterno)
+                                                        <p class="truncate text-sm font-medium text-gray-900">{{ $assinatura->usuarioInterno->nome }}</p>
+                                                        <p class="text-xs text-gray-500">{{ $assinatura->usuarioInterno->cargo ?? 'Cargo não informado' }}</p>
+                                                    @else
+                                                        <p class="text-sm font-medium text-gray-500">Usuário removido</p>
+                                                        <p class="text-xs text-gray-400">Usuário não está mais no sistema</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 self-start sm:self-center">
+                                                @if($assinatura->status === 'assinado')
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-700">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        Assinado
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        Pendente
+                                                    </span>
+                                                    @if((!$temAssinaturaFeita || $usuarioEhAdmin) && $documento->status !== 'assinado')
+                                                        <button onclick="removerAssinante({{ $assinatura->id }})"
+                                                                class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-600 hover:bg-gray-100 transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                            </svg>
+                                                            Remover
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
-                                @if($documento->os_id)
-                                <div class="mt-2 pt-2 border-t border-purple-200">
-                                    <a href="{{ route('admin.ordens-servico.show', $documento->os_id) }}"
-                                       class="inline-flex items-center gap-1 text-xs font-medium text-purple-700 hover:text-purple-900 hover:underline">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                        </svg>
-                                        Ver Ordem de Serviço de origem
-                                    </a>
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endif
-            </div>
-            <div class="p-5 border-t border-gray-100 bg-white">
-                <div class="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                        <h2 class="text-base font-semibold text-gray-900">Documento resumido</h2>
-                        <p class="mt-1 text-sm text-gray-600">
-                            Use os botões acima para visualizar em popup ou editar diretamente quando ainda não houver assinatura realizada.
-                        </p>
-                    </div>
-                    <button type="button"
-                            onclick="abrirModalVisualizacao()"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        Visualizar Documento
-                    </button>
-                </div>
-            </div>
 
-            {{-- Assinaturas --}}
-            @if($documento->assinaturas->count() > 0)
-                <div class="p-5 border-t border-gray-200 bg-gray-50">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                            </svg>
-                            Assinaturas Digitais
-                        </h2>
-                        @php
-                            $usuarioEhAdmin = auth('interno')->user()?->isAdmin() ?? false;
-                        @endphp
-                        @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
-                            <button onclick="abrirModalGerenciarAssinantes()" 
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Gerenciar Assinantes
-                            </button>
+                                @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
+                                    <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-xs text-gray-600">
+                                        Você ainda pode ajustar a lista de assinantes porque nenhuma assinatura foi registrada.
+                                    </div>
+                                @elseif($usuarioEhAdmin && $documento->status !== 'assinado')
+                                    <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-xs text-gray-600">
+                                        Como administrador, você ainda pode remover assinaturas pendentes mesmo após já existir assinatura concluída.
+                                    </div>
+                                @endif
+                            </section>
+                        @endif
+
+                        @if($documento->isLote())
+                            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                <div class="flex items-start gap-3">
+                                    <div class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Distribuição em lote</p>
+                                        <h2 class="mt-1 text-sm font-semibold text-gray-900">{{ count($documento->processos_ids) }} processos vinculados a este documento</h2>
+                                        <p class="mt-1.5 text-xs leading-5 text-gray-600">
+                                            @if($documento->status === 'rascunho')
+                                                O envio para os processos acontecerá após a finalização e assinatura.
+                                            @elseif($documento->status === 'aguardando_assinatura')
+                                                Assim que as assinaturas forem concluídas, a distribuição será feita automaticamente.
+                                            @else
+                                                A distribuição já foi concluída para os processos listados abaixo.
+                                            @endif
+                                        </p>
+
+                                        <details class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                            <summary class="cursor-pointer list-none text-xs font-medium text-gray-700">
+                                                Ver processos envolvidos
+                                            </summary>
+                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                @foreach($documento->processosLote() as $procLote)
+                                                    <a href="{{ route('admin.estabelecimentos.processos.show', [$procLote->estabelecimento_id, $procLote->id]) }}"
+                                                       target="_blank"
+                                                       class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-100 transition">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                        </svg>
+                                                        {{ $procLote->numero_processo }}
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        </details>
+
+                                        @if($documento->os_id)
+                                            <div class="mt-4">
+                                                <a href="{{ route('admin.ordens-servico.show', $documento->os_id) }}"
+                                                   class="inline-flex items-center gap-2 text-xs font-medium text-gray-700 hover:text-gray-900 hover:underline">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                    </svg>
+                                                    Abrir Ordem de Serviço de origem
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </section>
                         @endif
                     </div>
-                    <div class="space-y-2">
-                        @foreach($documento->assinaturas as $assinatura)
-                            <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                    </div>
+
+                    <aside class="space-y-6">
+                        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Resumo rápido</p>
+                            <dl class="mt-4 space-y-4">
+                                @if($documento->processo)
                                     <div>
-                                        @if($assinatura->usuarioInterno)
-                                            <p class="text-sm font-semibold text-gray-900">{{ $assinatura->usuarioInterno->nome }}</p>
-                                            <p class="text-xs text-gray-600">{{ $assinatura->usuarioInterno->cargo ?? 'Cargo não informado' }}</p>
-                                        @else
-                                            <p class="text-sm font-semibold text-gray-500">Usuário removido</p>
-                                            <p class="text-xs text-gray-400">Usuário não está mais no sistema</p>
-                                        @endif
+                                        <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Processo</dt>
+                                        <dd class="mt-1">
+                                            <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}"
+                                               class="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline">
+                                                {{ $documento->processo->numero_processo }}
+                                            </a>
+                                            <p class="mt-1 text-xs text-gray-500 leading-5">
+                                                {{ $documento->processo->estabelecimento->nome_fantasia ?? $documento->processo->estabelecimento->razao_social }}
+                                            </p>
+                                        </dd>
                                     </div>
+                                @endif
+
+                                <div>
+                                    <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tipo</dt>
+                                    <dd class="mt-1 text-sm font-medium text-gray-900">{{ $documento->tipoDocumento->nome }}</dd>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    @if($assinatura->status === 'assinado')
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            Assinado
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            Pendente
-                                        </span>
-                                        @if((!$temAssinaturaFeita || $usuarioEhAdmin) && $documento->status !== 'assinado')
-                                            <button onclick="removerAssinante({{ $assinatura->id }})" 
-                                                    class="text-red-600 hover:text-red-800 transition">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
-                                        @endif
-                                    @endif
+
+                                <div>
+                                    <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Criado por</dt>
+                                    <dd class="mt-1 text-sm font-medium text-gray-900">{{ $documento->usuarioCriador->nome }}</dd>
+                                    <dd class="mt-1 text-xs text-gray-500">{{ $documento->created_at->format('d/m/Y H:i') }}</dd>
                                 </div>
+
+                                <div>
+                                    <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Situação atual</dt>
+                                    <dd class="mt-1 text-xs leading-5 text-gray-600">{{ $statusInfo['descricao'] }}</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Atalhos</p>
+                            <div class="mt-4 space-y-2">
+                                <a href="{{ route('admin.documentos.index') }}"
+                                   class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                                    <span>Voltar para documentos</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </a>
+
+                                @if($documento->processo)
+                                    <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}"
+                                       class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                                        <span>Abrir processo vinculado</span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @endif
+
+                                @if($documentoPodeEditar)
+                                    <a href="{{ route('admin.documentos.edit', $documento->id) }}"
+                                       class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                                        <span>Editar documento</span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @endif
+
+                                <button type="button"
+                                        onclick="abrirModalVisualizacao()"
+                                        class="flex w-full items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-left text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                                    <span>Pré-visualizar documento</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
+
+                                @if($podeBaixarPdf)
+                                    <a href="{{ route('admin.documentos.pdf', $documento->id) }}"
+                                       class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                                        <span>Baixar PDF</span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                    </a>
+                                @endif
                             </div>
-                        @endforeach
-                    </div>
-                    @if(!$temAssinaturaFeita && $documento->status !== 'assinado')
-                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p class="text-xs text-blue-800">
-                                <strong>💡 Dica:</strong> 
-                                Você pode adicionar ou remover assinantes enquanto nenhuma assinatura foi feita.
-                            </p>
-                        </div>
-                    @elseif($usuarioEhAdmin && $documento->status !== 'assinado')
-                        <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                            <p class="text-xs text-amber-800">
-                                <strong>⚠️ Administração:</strong>
-                                Administradores podem remover assinaturas pendentes mesmo após assinaturas já realizadas.
-                            </p>
-                        </div>
-                    @endif
+                        </section>
+                    </aside>
                 </div>
-            @endif
-        </div>
-
-        {{-- Botões de Ação --}}
-        <div class="mt-6 flex flex-wrap gap-3">
-            {{-- Botão Voltar --}}
-            <a href="{{ route('admin.documentos.index') }}" 
-               class="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
-                Voltar
-            </a>
-
-            {{-- Botão Ver Processo (se houver processo vinculado) --}}
-            @if($documento->processo)
-                <a href="{{ route('admin.estabelecimentos.processos.show', [$documento->processo->estabelecimento_id, $documento->processo->id]) }}" 
-                   class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md">
-                    Ver Processo
-                </a>
-            @endif
-
-            {{-- Botão Editar Documento --}}
-            @if($documentoPodeEditar)
-                <a href="{{ route('admin.documentos.edit', $documento->id) }}" 
-                   class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md">
-                    Editar Documento
-                </a>
-            @endif
-
-            <button type="button"
-                    onclick="abrirModalVisualizacao()"
-                    class="px-5 py-2.5 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                Visualizar
-            </button>
+            </div>
         </div>
     </div>
 </div>

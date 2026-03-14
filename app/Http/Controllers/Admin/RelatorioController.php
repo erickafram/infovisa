@@ -20,6 +20,133 @@ use App\Models\PesquisaSatisfacaoResposta;
 
 class RelatorioController extends Controller
 {
+    private function calcularMediaRespostaPesquisa(PesquisaSatisfacaoResposta $resposta): ?float
+    {
+        $perguntasEscalaIds = $resposta->pesquisa?->perguntas
+            ?->where('tipo', 'escala_1_5')
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->all() ?? [];
+
+        if (empty($perguntasEscalaIds)) {
+            return null;
+        }
+
+        $mapPerguntas = array_flip($perguntasEscalaIds);
+        $respostasJson = is_array($resposta->respostas) ? $resposta->respostas : [];
+        $somaNotas = 0;
+        $totalNotas = 0;
+
+        foreach ($respostasJson as $item) {
+            $perguntaId = (int) ($item['pergunta_id'] ?? 0);
+            $valor = $item['valor'] ?? null;
+
+            if (!isset($mapPerguntas[$perguntaId])) {
+                continue;
+            }
+
+            $nota = is_numeric($valor) ? (int) $valor : null;
+
+            if ($nota === null || $nota < 1 || $nota > 5) {
+                continue;
+            }
+
+            $somaNotas += $nota;
+            $totalNotas++;
+        }
+
+        return $totalNotas > 0 ? round($somaNotas / $totalNotas, 1) : null;
+    }
+
+    private function calcularMediaGeralNotasPesquisa($respostasFiltradas): ?float
+    {
+        if ($respostasFiltradas->isEmpty()) {
+            return null;
+        }
+
+        $pesquisaIds = $respostasFiltradas->pluck('pesquisa_id')->filter()->unique()->values();
+
+        if ($pesquisaIds->isEmpty()) {
+            return null;
+        }
+
+        $perguntasEscalaIds = \App\Models\PesquisaSatisfacaoPergunta::whereIn('pesquisa_id', $pesquisaIds)
+            ->where('tipo', 'escala_1_5')
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->all();
+
+        if (empty($perguntasEscalaIds)) {
+            return null;
+        }
+
+        $perguntasEscalaMap = array_flip($perguntasEscalaIds);
+        $somaNotas = 0;
+        $totalNotas = 0;
+
+        foreach ($respostasFiltradas as $resposta) {
+            $respostasJson = is_array($resposta->respostas) ? $resposta->respostas : [];
+
+            foreach ($respostasJson as $item) {
+                $perguntaId = (int) ($item['pergunta_id'] ?? 0);
+                $valor = $item['valor'] ?? null;
+
+                if (!isset($perguntasEscalaMap[$perguntaId])) {
+                    continue;
+                }
+
+                $nota = is_numeric($valor) ? (int) $valor : null;
+
+                if ($nota === null || $nota < 1 || $nota > 5) {
+                    continue;
+                }
+
+                $somaNotas += $nota;
+                $totalNotas++;
+            }
+        }
+
+        return $totalNotas > 0 ? round($somaNotas / $totalNotas, 1) : null;
+    }
+
+    private function montarQueryRespostasPesquisaSatisfacao(Request $request)
+    {
+        $query = PesquisaSatisfacaoResposta::with([
+            'pesquisa.perguntas', 'ordemServico', 'estabelecimento',
+            'usuarioInterno', 'usuarioExterno',
+        ])->orderByDesc('created_at');
+
+        if ($request->filled('pesquisa_id')) {
+            $query->where('pesquisa_id', $request->pesquisa_id);
+        }
+
+        if ($request->filled('tipo_respondente')) {
+            $query->where('tipo_respondente', $request->tipo_respondente);
+        }
+
+        if ($request->filled('ordem_servico_id')) {
+            $query->where('ordem_servico_id', $request->ordem_servico_id);
+        }
+
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('created_at', '>=', $request->data_inicio);
+        }
+
+        if ($request->filled('data_fim')) {
+            $query->whereDate('created_at', '<=', $request->data_fim);
+        }
+
+        if ($request->filled('busca')) {
+            $busca = $request->busca;
+            $query->where(function ($q) use ($busca) {
+                $q->where('respondente_nome', 'ilike', "%{$busca}%")
+                    ->orWhere('respondente_email', 'ilike', "%{$busca}%");
+            });
+        }
+
+        return $query;
+    }
+
     /**
      * Exibe a página principal de relatórios
      */
@@ -377,6 +504,7 @@ class RelatorioController extends Controller
     public function pesquisaSatisfacao(Request $request)
     {
         $pesquisas = PesquisaSatisfacao::withCount('respostas')->orderBy('titulo')->get();
+        $aba = $request->get('aba', 'relatorio');
 
         // Suporta array de IDs (múltiplas) ou ID único (retrocompatível)
         $pesquisaIds = $request->input('pesquisa_ids', []);
@@ -514,7 +642,30 @@ class RelatorioController extends Controller
             }
         }
 
-        return view('admin.relatorios.pesquisa-satisfacao', compact('pesquisas', 'pesquisasSelecionadas', 'dados'));
+        $respostasQuery = $this->montarQueryRespostasPesquisaSatisfacao($request);
+        $respostasFiltradas = (clone $respostasQuery)->get(['id', 'pesquisa_id', 'respostas']);
+        $respostas = $respostasQuery->paginate(20)->withQueryString();
+        $respostas->getCollection()->transform(function ($resposta) {
+            $resposta->media_notas = $this->calcularMediaRespostaPesquisa($resposta);
+            return $resposta;
+        });
+
+        $totalRespostas = PesquisaSatisfacaoResposta::count();
+        $respostasInterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'interno')->count();
+        $respostasExterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'externo')->count();
+        $mediaGeralNotas = $this->calcularMediaGeralNotasPesquisa($respostasFiltradas);
+
+        return view('admin.relatorios.pesquisa-satisfacao', compact(
+            'aba',
+            'pesquisas',
+            'pesquisasSelecionadas',
+            'dados',
+            'respostas',
+            'totalRespostas',
+            'respostasInterno',
+            'respostasExterno',
+            'mediaGeralNotas'
+        ));
     }
 
 }

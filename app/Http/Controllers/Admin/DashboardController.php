@@ -200,6 +200,129 @@ class DashboardController extends Controller
     }
 
     /**
+     * Busca os processos visíveis no dashboard por responsabilidade direta ou do setor.
+     */
+    private function buscarProcessosSobResponsabilidadeDashboard($usuario)
+    {
+        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
+            ->whereNotIn('status', ['arquivado', 'concluido']);
+
+        $query->where(function($q) use ($usuario) {
+            $q->where('responsavel_atual_id', $usuario->id);
+
+            if ($usuario->setor) {
+                $q->orWhere(function($subQ) use ($usuario) {
+                    $subQ->where('setor_atual', $usuario->setor);
+
+                    if ($usuario->isEstadual()) {
+                        $subQ->whereHas('estabelecimento', function($estQ) {
+                            $estQ->where('competencia_manual', 'estadual')
+                                ->orWhereNull('competencia_manual');
+                        });
+                    } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
+                        $subQ->whereHas('estabelecimento', function($estQ) use ($usuario) {
+                            $estQ->where('municipio_id', $usuario->municipio_id);
+                        });
+                    }
+                });
+            }
+        });
+
+        $processos = $query->get()->sortBy([
+            fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
+            fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
+        ])->values();
+
+        if ($usuario->isEstadual()) {
+            $processos = $processos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) {
+                    return true;
+                }
+
+                try {
+                    return $p->estabelecimento->isCompetenciaEstadual();
+                } catch (\Exception $e) {
+                    return false;
+                }
+            })->values();
+        } elseif ($usuario->isMunicipal()) {
+            $processos = $processos->filter(function($p) use ($usuario) {
+                if ($p->responsavel_atual_id == $usuario->id) {
+                    return true;
+                }
+
+                try {
+                    return $p->estabelecimento->isCompetenciaMunicipal();
+                } catch (\Exception $e) {
+                    return false;
+                }
+            })->values();
+        }
+
+        return $processos;
+    }
+
+    /**
+     * Retorna tarefas de documentos com prazo vencido ou a vencer em até 5 dias.
+     */
+    private function buscarTarefasDocumentosComPrazo($usuario)
+    {
+        $processos = $this->buscarProcessosSobResponsabilidadeDashboard($usuario);
+
+        if ($processos->isEmpty()) {
+            return collect();
+        }
+
+        $processosPorId = $processos->keyBy('id');
+
+        return DocumentoDigital::with(['tipoDocumento', 'processo.estabelecimento'])
+            ->whereIn('processo_id', $processosPorId->keys())
+            ->where('status', 'assinado')
+            ->whereNotNull('data_vencimento')
+            ->whereNull('prazo_finalizado_em')
+            ->whereDate('data_vencimento', '<=', now()->copy()->addDays(5)->toDateString())
+            ->orderBy('data_vencimento', 'asc')
+            ->get()
+            ->filter(function($documento) use ($processosPorId) {
+                return $documento->temPrazo()
+                    && $documento->todasAssinaturasCompletas()
+                    && $processosPorId->has($documento->processo_id);
+            })
+            ->map(function($documento) use ($processosPorId, $usuario) {
+                $processo = $processosPorId->get($documento->processo_id);
+                $grupo = $processo->responsavel_atual_id == $usuario->id ? 'para_mim' : 'setor';
+                $nomeDocumento = $documento->tipoDocumento->nome ?? ($documento->nome ?: 'Documento com prazo');
+                $estabelecimento = $processo->estabelecimento->nome_fantasia
+                    ?? $processo->estabelecimento->razao_social
+                    ?? 'Estabelecimento';
+
+                return [
+                    'tipo' => 'prazo_documento',
+                    'id' => $documento->id,
+                    'processo_id' => $processo->id,
+                    'estabelecimento_id' => $processo->estabelecimento_id,
+                    'titulo' => $nomeDocumento,
+                    'subtitulo' => $estabelecimento . ' • ' . $processo->numero_processo,
+                    'numero_processo' => $processo->numero_processo,
+                    'tipo_documento' => $nomeDocumento,
+                    'tipo_processo' => $processo->tipo_nome ?? ucfirst($processo->tipo ?? 'Processo'),
+                    'url' => route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]),
+                    'dias_restantes' => $documento->dias_faltando,
+                    'atrasado' => $documento->vencido,
+                    'prazo_texto' => $documento->texto_status_prazo,
+                    'data_vencimento' => optional($documento->data_vencimento)->format('d/m/Y'),
+                    'ordem' => 1,
+                    'data' => optional($documento->data_vencimento)->format('d/m/Y'),
+                    'created_at' => $documento->data_vencimento
+                        ? $documento->data_vencimento->copy()->startOfDay()
+                        : $documento->created_at,
+                    'grupo' => $grupo,
+                ];
+            })
+            ->values();
+    }
+
+    /**
      * Exibe o dashboard do administrador
      */
     public function index()
@@ -615,6 +738,7 @@ class DashboardController extends Controller
         $usuario = Auth::guard('interno')->user();
         $page = $request->get('page', 1);
         $perPage = 8;
+        $tarefasPrazo = $this->buscarTarefasDocumentosComPrazo($usuario);
 
         // Buscar documentos pendentes de assinatura
         $assinaturas = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
@@ -881,6 +1005,10 @@ class DashboardController extends Controller
             ]);
         }
 
+        foreach ($tarefasPrazo as $tarefaPrazo) {
+            $todasTarefas->push($tarefaPrazo);
+        }
+
         // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
@@ -1092,6 +1220,7 @@ class DashboardController extends Controller
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 20);
         $filtro = $request->get('filtro', 'todos'); // todos, para_mim, aprovacao, resposta, assinatura, os
+        $tarefasPrazo = $this->buscarTarefasDocumentosComPrazo($usuario);
 
         // Buscar documentos pendentes de assinatura
         $assinaturas = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
@@ -1365,6 +1494,10 @@ class DashboardController extends Controller
             ]);
         }
 
+        foreach ($tarefasPrazo as $tarefaPrazo) {
+            $todasTarefasCompleta->push($tarefaPrazo);
+        }
+
         // 3º PRIORIDADE: Aprovações e respostas agrupadas por processo
         $tarefasOrdenadas = collect($tarefasArray)->sortByDesc('dias_pendente');
         foreach($tarefasOrdenadas as $tarefa) {
@@ -1419,6 +1552,9 @@ class DashboardController extends Controller
         $rascunhoLoteCount = $todasTarefasCompleta->where('tipo', 'rascunho_lote')->count();
         $aprovacaoCount = $todasTarefasCompleta->where('tipo', 'aprovacao')->count();
         $respostaCount = $todasTarefasCompleta->where('tipo', 'resposta')->count();
+        $prazoDocumentoCount = $todasTarefasCompleta->where('tipo', 'prazo_documento')->count();
+        $prazoParaMimCount = $todasTarefasCompleta->where('tipo', 'prazo_documento')->where('grupo', 'para_mim')->count();
+        $prazoSetorCount = $todasTarefasCompleta->where('tipo', 'prazo_documento')->where('grupo', 'setor')->count();
         $contadores = [
             'total' => $todasTarefasCompleta->count(),
             'aprovacao' => $aprovacaoCount,
@@ -1426,18 +1562,20 @@ class DashboardController extends Controller
             'assinatura' => $assinaturaCount,
             'rascunho_lote' => $rascunhoLoteCount,
             'os' => $osCount,
-            'para_mim' => $osCount + $assinaturaCount + $rascunhoLoteCount,
-            'setor' => $aprovacaoCount + $respostaCount,
+            'prazo_documento' => $prazoDocumentoCount,
+            'para_mim' => $osCount + $assinaturaCount + $rascunhoLoteCount + $prazoParaMimCount,
+            'setor' => $aprovacaoCount + $respostaCount + $prazoSetorCount,
         ];
 
         // Aplicar filtro
         $todasTarefas = match($filtro) {
-            'para_mim' => $todasTarefasCompleta->whereIn('tipo', ['os', 'assinatura', 'rascunho_lote']),
-            'setor' => $todasTarefasCompleta->whereIn('tipo', ['aprovacao', 'resposta']),
+            'para_mim' => $todasTarefasCompleta->filter(fn($t) => in_array($t['tipo'], ['os', 'assinatura', 'rascunho_lote'], true) || ($t['tipo'] === 'prazo_documento' && ($t['grupo'] ?? null) === 'para_mim')),
+            'setor' => $todasTarefasCompleta->filter(fn($t) => in_array($t['tipo'], ['aprovacao', 'resposta'], true) || ($t['tipo'] === 'prazo_documento' && ($t['grupo'] ?? null) === 'setor')),
             'os' => $todasTarefasCompleta->where('tipo', 'os'),
             'assinatura' => $todasTarefasCompleta->whereIn('tipo', ['assinatura', 'rascunho_lote']),
             'aprovacao' => $todasTarefasCompleta->where('tipo', 'aprovacao'),
             'resposta' => $todasTarefasCompleta->where('tipo', 'resposta'),
+            'prazo_documento' => $todasTarefasCompleta->where('tipo', 'prazo_documento'),
             default => $todasTarefasCompleta,
         };
 

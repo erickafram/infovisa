@@ -16,6 +16,8 @@ class Municipio extends Model
         'uf',
         'slug',
         'logomarca',
+        'rodape_documento',
+        'rodape_texto',
         'ativo',
         'usa_infovisa',
         'data_adesao_infovisa',

@@ -110,6 +110,14 @@ class OrdemServico extends Model
     }
 
     /**
+     * Arquivos externos do processo vinculados a esta OS
+     */
+    public function arquivosExternos()
+    {
+        return $this->hasMany(ProcessoDocumento::class, 'os_id');
+    }
+
+    /**
      * Relacionamento com Tipos de Ação (múltiplos)
      */
     public function tiposAcao()

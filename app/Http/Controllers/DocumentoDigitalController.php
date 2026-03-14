@@ -239,9 +239,28 @@ class DocumentoDigitalController extends Controller
     /**
      * Busca modelos por tipo de documento (AJAX)
      */
-    public function buscarModelos($tipoId)
+    public function buscarModelos(Request $request, $tipoId)
     {
-        $modelos = ModeloDocumento::where('tipo_documento_id', $tipoId)
+        $usuario = auth('interno')->user();
+
+        $query = ModeloDocumento::query();
+
+        $processoId = $request->integer('processo_id');
+        if ($processoId > 0) {
+            $processo = \App\Models\Processo::with('estabelecimento')->find($processoId);
+            $estabelecimento = $processo?->estabelecimento;
+
+            if ($estabelecimento && !$estabelecimento->isCompetenciaEstadual() && $estabelecimento->municipio_id) {
+                $query->doMunicipio($estabelecimento->municipio_id);
+            } else {
+                $query->estaduais();
+            }
+        } else {
+            $query->disponiveisParaUsuario($usuario);
+        }
+
+        $modelos = $query
+            ->where('tipo_documento_id', $tipoId)
             ->where('ativo', true)
             ->orderBy('ordem')
             ->get(['id', 'descricao', 'conteudo']);
