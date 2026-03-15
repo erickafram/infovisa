@@ -244,7 +244,7 @@ function todasTarefas() {
         lastPage: 1,
         totalFiltrado: 0,
         perPage: 20,
-        filtro: 'todos',
+        filtro: @json(request('filtro', 'todos')),
         contadores: { total: 0, aprovacao: 0, resposta: 0, assinatura: 0, prazo_documento: 0, os: 0, para_mim: 0, setor: 0 },
 
         init() { this.load(); },

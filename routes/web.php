@@ -759,6 +759,7 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     // Relatórios
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])->name('index');
+        Route::get('/estabelecimentos-cnae', [\App\Http\Controllers\Admin\RelatorioController::class, 'estabelecimentosPorCnae'])->name('estabelecimentos-cnae');
         Route::get('/documentos-gerados', [\App\Http\Controllers\Admin\RelatorioController::class, 'documentosGerados'])->name('documentos-gerados');
         Route::get('/equipamentos-radiacao', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacao'])->name('equipamentos-radiacao');
         Route::get('/equipamentos-radiacao/export', [\App\Http\Controllers\Admin\RelatorioController::class, 'equipamentosRadiacaoExport'])->name('equipamentos-radiacao.export');

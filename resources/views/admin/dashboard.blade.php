@@ -654,7 +654,7 @@
                         </div>
                         <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'resposta').length || '0'"></span>
                     </div>
-                    <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-emerald-500 hover:text-emerald-700 font-medium transition">ver todos →</a>
+                    <a href="{{ route('admin.dashboard.todas-tarefas', ['filtro' => 'resposta']) }}" class="text-[11px] text-emerald-500 hover:text-emerald-700 font-medium transition">ver todos →</a>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[220px] overflow-y-auto">
                     <template x-if="loading">

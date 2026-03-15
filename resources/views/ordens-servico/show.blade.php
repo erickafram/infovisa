@@ -6,20 +6,22 @@
 <div class="min-h-screen bg-gray-50">
     {{-- Header Clean --}}
     <div class="bg-white border-b border-gray-200">
-        <div class="container-fluid px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
+        <div class="container-fluid px-3 sm:px-6 py-4">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex items-center gap-3 min-w-0">
                     <a href="{{ route('admin.ordens-servico.index') }}" 
-                       class="text-gray-400 hover:text-gray-600 transition-colors">
+                       class="shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                     </a>
-                    <h1 class="text-lg font-semibold text-gray-900">OS #{{ $ordemServico->numero }}</h1>
+                    <h1 class="min-w-0 text-base sm:text-lg font-semibold text-gray-900 break-words">OS #{{ $ordemServico->numero }}</h1>
                 </div>
-                <div class="flex items-center gap-2">
-                    {!! $ordemServico->status_badge !!}
-                    {!! $ordemServico->competencia_badge !!}
+                <div class="flex flex-col gap-2 w-full lg:w-auto lg:items-end">
+                    <div class="flex flex-wrap items-center gap-2">
+                        {!! $ordemServico->status_badge !!}
+                        {!! $ordemServico->competencia_badge !!}
+                    </div>
                     @php
                         $todosEstabPdf = $ordemServico->getTodosEstabelecimentos();
                         $estabPdfInicial = $todosEstabPdf->first();
@@ -27,24 +29,24 @@
                         $pdfInitialUrl = $estabPdfInicial ? ($pdfBaseUrl . '?estabelecimento_id=' . $estabPdfInicial->id) : $pdfBaseUrl;
                     @endphp
                     @if($todosEstabPdf->count() > 1)
-                    <div class="relative" id="dropdownPdfContainer">
-                        <div class="inline-flex rounded-lg overflow-hidden border border-red-200">
+                    <div class="relative w-full sm:w-auto" id="dropdownPdfContainer">
+                        <div class="flex w-full sm:inline-flex rounded-lg overflow-hidden border border-red-200">
                             <a id="btnBaixarPdfOs" href="{{ $pdfInitialUrl }}" data-base-url="{{ $pdfBaseUrl }}"
                                target="_blank"
-                               class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium transition-colors">
+                               class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium transition-colors whitespace-nowrap">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                 </svg>
                                 Baixar PDF
                             </a>
                             <button type="button" onclick="toggleDropdownPdf()" 
-                                    class="inline-flex items-center px-2 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 border-l border-red-200 transition-colors">
+                                    class="shrink-0 inline-flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 border-l border-red-200 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </button>
                         </div>
-                        <div id="dropdownPdfMenu" class="hidden absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                        <div id="dropdownPdfMenu" class="hidden absolute left-0 right-0 sm:left-auto sm:right-0 mt-1 w-full sm:w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                             <div class="py-1">
                                 <a href="{{ route('admin.ordens-servico.pdf-todos', $ordemServico) }}" 
                                    target="_blank"
@@ -61,7 +63,7 @@
                     @else
                     <a id="btnBaixarPdfOs" href="{{ $pdfInitialUrl }}" data-base-url="{{ $pdfBaseUrl }}"
                        target="_blank"
-                       class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors">
+                       class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
@@ -73,7 +75,7 @@
         </div>
     </div>
 
-    <div class="container-fluid px-4 py-6">
+    <div class="container-fluid px-3 sm:px-4 py-4 sm:py-6">
         {{-- Layout de 2 Colunas: Menu Lateral (25%) + Conteúdo (75%) --}}
         <div class="flex flex-col lg:flex-row gap-6">
             

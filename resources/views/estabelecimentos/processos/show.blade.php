@@ -5,6 +5,9 @@
 
 @section('content')
 <div class="max-w-8xl mx-auto" x-data="processoData()">
+    @php
+        $documentoDigitalDirecionadoId = request()->integer('documento_digital') ?: null;
+    @endphp
     {{-- Botão Voltar --}}
     <div class="mb-6">
         <a href="{{ route('admin.estabelecimentos.processos.index', $estabelecimento->id) }}" 
@@ -362,30 +365,30 @@
     </div>
 
     {{-- Card Setor/Responsável Atual --}}
-    <div class="bg-white rounded-xl shadow-sm border {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'border-cyan-200' : 'border-gray-200' }} p-4 mb-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'bg-cyan-100' : 'bg-gray-100' }} flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-sm border {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'border-cyan-200' : 'border-gray-200' }} p-3 sm:p-4 mb-6 overflow-hidden">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-start gap-2.5 sm:gap-3 min-w-0">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'bg-cyan-100' : 'bg-gray-100' }} flex items-center justify-center">
                     <svg class="w-5 h-5 {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'text-cyan-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
-                <div>
+                <div class="min-w-0 flex-1">
                     <p class="text-xs font-medium text-gray-500 uppercase">Com (Setor/Responsável)</p>
                     @if($processo->setor_atual || $processo->responsavel_atual_id)
-                        <div class="flex items-center gap-2 mt-0.5">
+                        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0.5 sm:gap-2 mt-1 min-w-0">
                             @if($processo->setor_atual)
-                                <span class="text-sm font-semibold text-cyan-700">{{ $processo->setor_atual_nome }}</span>
+                                <span class="text-sm font-semibold text-cyan-700 break-words">{{ $processo->setor_atual_nome }}</span>
                             @endif
                             @if($processo->responsavelAtual)
-                                <span class="text-sm text-gray-700">
+                                <span class="text-sm text-gray-700 break-words">
                                     {{ $processo->setor_atual ? '- ' : '' }}{{ $processo->responsavelAtual->nome }}
                                 </span>
                             @endif
                         </div>
-                        <div class="flex items-center gap-3 mt-0.5">
+                        <div class="flex flex-col items-start gap-2 mt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 min-w-0">
                             @if($processo->responsavel_desde)
-                                <p class="text-xs text-gray-500">
+                                <p class="text-xs text-gray-500 break-words leading-5">
                                     desde {{ $processo->responsavel_desde->format('d/m/Y H:i') }} ({{ $processo->responsavel_desde->diffForHumans() }})
                                 </p>
                             @endif
@@ -394,14 +397,14 @@
                                     $prazoVencido = $processo->prazo_atribuicao->isPast();
                                     $prazoProximo = !$prazoVencido && $processo->prazo_atribuicao->diffInDays(now()) <= 3;
                                 @endphp
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ $prazoVencido ? 'bg-red-100 text-red-700' : ($prazoProximo ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700') }}">
+                                <span class="inline-flex max-w-full items-center gap-1 px-2 py-1 rounded text-xs font-medium leading-5 {{ $prazoVencido ? 'bg-red-100 text-red-700' : ($prazoProximo ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700') }}">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
-                                    Prazo: {{ $processo->prazo_atribuicao->format('d/m/Y') }}
+                                    <span class="break-words">Prazo: {{ $processo->prazo_atribuicao->format('d/m/Y') }}
                                     @if($prazoVencido)
                                         (Vencido)
-                                    @endif
+                                    @endif</span>
                                 </span>
                             @endif
                         </div>
@@ -410,10 +413,10 @@
                     @endif
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full lg:w-auto lg:flex lg:items-center">
                 {{-- Botão Ver Histórico de Atribuições --}}
                 <button @click="modalHistoricoAtribuicoes = true" 
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                         title="Ver histórico de atribuições">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -421,7 +424,7 @@
                     Histórico
                 </button>
                 @if($processo->status !== 'arquivado' && $processo->status !== 'parado')
-                <button @click="modalAtribuir = true" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
+                <button @click="modalAtribuir = true" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                     </svg>
@@ -841,10 +844,10 @@
         </div>
 
         {{-- Coluna Direita: Lista de Documentos/Arquivos --}}
-        <div style="flex: 1;">
+        <div class="min-w-0" style="flex: 1;">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200">
                 {{-- Header da Lista de Documentos --}}
-                <div class="p-6 border-b border-gray-200">
+            <div class="p-4 sm:p-6 border-b border-gray-200">
                     @php
                         $pendentesDigitais = $documentosDigitais->filter(function ($docDigital) {
                             return $docDigital->respostas && $docDigital->respostas->where('status', 'pendente')->count() > 0;
@@ -856,17 +859,17 @@
                             ->count();
                         $totalPendentes = $pendentesDigitais + $pendentesArquivos;
                     @endphp
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-3">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-3 min-w-0">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                             </svg>
-                            Lista de Documentos/Arquivos
+                            <span class="break-words">Lista de Documentos/Arquivos</span>
                         </h2>
                         <button type="button"
                                 @click="statusFiltro = statusFiltro === 'pendente' ? null : 'pendente'"
                                 :class="statusFiltro === 'pendente' ? 'text-yellow-700 bg-yellow-100 border-yellow-200' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
-                                class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border rounded-lg transition-colors">
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border rounded-lg transition-colors whitespace-nowrap">
                             <i class="far fa-clock" style="font-size: 12px;"></i>
                             Pendentes
                             <span class="px-2 py-0.5 text-[10px] rounded-full"
@@ -879,10 +882,10 @@
 
                 {{-- Tabs de Documentos --}}
                 <div class="border-b border-gray-200 bg-gray-50">
-                    <nav class="flex px-6 overflow-x-auto" aria-label="Tabs">
+                    <nav class="flex px-3 sm:px-6 overflow-x-auto" aria-label="Tabs">
                         <button @click="pastaAtiva = null" 
                                 :class="pastaAtiva === null ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'"
-                                class="px-4 py-4 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap">
+                                class="px-3 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap">
                             Todos
                             <span class="ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full"
                                   :class="pastaAtiva === null ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'">
@@ -895,7 +898,7 @@
                             <button @click="pastaAtiva = pasta.id"
                                     :class="pastaAtiva === pasta.id ? 'border-b-2' : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'"
                                     :style="pastaAtiva === pasta.id ? `color: ${pasta.cor}; border-color: ${pasta.cor}` : ''"
-                                    class="px-4 py-4 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2">
+                                    class="px-3 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                                 </svg>
@@ -910,7 +913,7 @@
                 </div>
 
                 {{-- Lista de Documentos --}}
-                <div class="p-4">
+                <div class="p-3 sm:p-4">
                     @if($todosDocumentos->isEmpty())
                         <div class="text-center py-16">
                             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1016,15 +1019,18 @@
                                         $statusGeral = 'outros';
                                     }
                                 @endphp
-                                  <div x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: {{ $temRespostasPendentes ? 'true' : 'false' }}, statusPendente: {{ $temRespostasPendentes ? 'true' : 'false' }} }"
+                                  <div id="documento-digital-{{ $docDigital->id }}"
+                                      data-documento-digital-id="{{ $docDigital->id }}"
+                                      x-data="{ pastaDocumento: {{ $docDigital->pasta_id ?? 'null' }}, expanded: {{ $temRespostasPendentes || $documentoDigitalDirecionadoId === $docDigital->id ? 'true' : 'false' }}, statusPendente: {{ $temRespostasPendentes ? 'true' : 'false' }}, destacado: {{ $documentoDigitalDirecionadoId === $docDigital->id ? 'true' : 'false' }} }"
                                       x-show="(pastaAtiva === null || pastaAtiva === pastaDocumento) && (statusFiltro === null || (statusFiltro === 'pendente' && statusPendente))"
-                                     class="bg-white rounded-lg border border-gray-200 border-l-4 {{ $corBorda }} hover:shadow-md transition-all"
+                                     :class="destacado ? 'ring-2 ring-emerald-300 bg-emerald-50/60 shadow-md scroll-mt-24' : ''"
+                                     class="documento-digital-item bg-white rounded-lg border border-gray-200 border-l-4 {{ $corBorda }} hover:shadow-md transition-all"
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex Principal --}}
-                                    <div class="p-3 flex items-center justify-between gap-3">
+                                    <div class="p-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
-                                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                                        <div class="flex items-start gap-2 min-w-0 flex-1">
                                             {{-- Ícone com indicador de status --}}
                                             <div class="relative flex-shrink-0">
                                                 <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
@@ -1054,19 +1060,19 @@
                                             
                                             {{-- Nome, Status e Data --}}
                                             <div class="min-w-0 flex-1">
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
                                                     @if($docDigital->podeEditar())
-                                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</a>
+                                                        <a href="{{ route('admin.documentos.edit', $docDigital->id) }}" class="text-xs sm:text-sm font-semibold text-gray-900 hover:text-blue-600 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</a>
                                                     @elseif($docDigital->status !== 'rascunho')
-                                                        <span @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
+                                                        <span @click="pdfUrl = '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'; modalVisualizador = true" class="text-xs sm:text-sm font-semibold text-gray-900 hover:text-blue-600 cursor-pointer truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
                                                     @else
-                                                        <span class="text-sm font-semibold text-gray-900 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
+                                                        <span class="text-xs sm:text-sm font-semibold text-gray-900 truncate">{{ $docDigital->nome ?? $docDigital->tipoDocumento->nome }}</span>
                                                     @endif
-                                                    <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $docDigital->created_at->format('d/m/Y') }}</span>
+                                                    <span class="text-[10px] sm:text-[11px] text-gray-400 flex-shrink-0">{{ $docDigital->created_at->format('d/m/Y') }}</span>
                                                 </div>
                                                 
                                                 <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                                    <span class="text-xs text-gray-500">{{ $docDigital->numero_documento }}</span>
+                                                    <span class="text-[11px] sm:text-xs text-gray-500">{{ $docDigital->numero_documento }}</span>
                                                     
                                                     {{-- Badge de Status Principal --}}
                                                     @if($statusGeral === 'rascunho')
@@ -1153,7 +1159,7 @@
                                                 </div>
 
                                                 @if(($docDigital->prazo_prorrogado_dias ?? 0) > 0 && ($docDigital->usuarioProrrogouPrazo || $docDigital->prazo_prorrogado_motivo))
-                                                    <p class="mt-1 text-[10px] leading-tight text-gray-500 truncate"
+                                                                     <p class="mt-1 text-[9px] sm:text-[10px] leading-tight text-gray-500 truncate"
                                                        title="{{ $docDigital->usuarioProrrogouPrazo?->nome ? 'Prorrogado por ' . $docDigital->usuarioProrrogouPrazo->nome . '. ' : '' }}{{ $docDigital->prazo_prorrogado_motivo }}">
                                                         @if($docDigital->usuarioProrrogouPrazo)
                                                             <span class="font-medium text-gray-600">{{ Str::words($docDigital->usuarioProrrogouPrazo->nome, 2, '') }}</span>
@@ -1169,7 +1175,7 @@
 
                                                 @if($statusGeral === 'aguardando_assinatura')
                                                     <div class="mt-1 space-y-1">
-                                                        <p class="text-[10px] text-gray-600 leading-tight">
+                                                        <p class="text-[9px] sm:text-[10px] text-gray-600 leading-tight">
                                                             <span class="font-semibold text-green-700">Assinaram:</span>
                                                             @if($assinaturasRealizadasLista->count() > 0)
                                                                 {{ $assinaturasRealizadasLista->map(fn($ass) => Str::upper($ass->usuarioInterno->nome ?? 'Usuário'))->implode(', ') }}
@@ -1177,7 +1183,7 @@
                                                                 <span class="text-gray-400">ninguém ainda</span>
                                                             @endif
                                                         </p>
-                                                        <p class="text-[10px] text-orange-700 leading-tight">
+                                                        <p class="text-[9px] sm:text-[10px] text-orange-700 leading-tight">
                                                             <span class="font-semibold">Faltam assinar:</span>
                                                             @if($assinaturasPendentesLista->count() > 0)
                                                                 {{ $assinaturasPendentesLista->map(fn($ass) => Str::upper($ass->usuarioInterno->nome ?? 'Usuário'))->implode(', ') }}
@@ -1191,7 +1197,7 @@
                                         </div>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-0.5 flex-shrink-0">
+                                        <div class="flex flex-wrap items-center justify-start lg:justify-end gap-1 flex-shrink-0 w-full lg:w-auto">
                                             @php
                                                 $visualizarPrimeiro = in_array($docDigital->status, ['rascunho', 'aguardando_assinatura'], true);
                                             @endphp
@@ -1286,19 +1292,19 @@
                                                         title="Mais opções">
                                                     <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
-                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
-                                                     class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] py-1"
+                                                   <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
+                                                       class="absolute right-0 top-full mt-2 w-[min(12rem,calc(100vw-2rem))] sm:w-48 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] py-1"
                                                      style="display: none;">
                                                     @if($docDigital->podeEditar())
                                                         <a href="{{ route('admin.documentos.edit', $docDigital->id) }}"
-                                                           class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                            class="flex items-center gap-2.5 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                                                             <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                             Editar
                                                         </a>
                                                     @endif
                                                     @if($docDigital->status !== 'rascunho')
                                                         <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
-                                                                class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                                class="w-full flex items-center gap-2.5 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                                                             <i class="far fa-folder fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                             Mover para pasta
                                                         </button>
@@ -1546,29 +1552,29 @@
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
-                                    <div class="flex items-center justify-between gap-3">
+                                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
                                         <a href="{{ route('admin.ordens-servico.show', $os) }}" class="flex items-center gap-2 min-w-0 flex-1">
                                             <div class="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
                                                 <i class="fas fa-clipboard-check fa-fw text-gray-500" style="font-size: 16px;"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="text-sm font-semibold text-gray-900 hover:text-gray-600 truncate">OS #{{ $os->numero }}</span>
-                                                    <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $os->created_at->format('d/m/Y') }}</span>
+                                                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                                    <span class="text-xs sm:text-sm font-semibold text-gray-900 hover:text-gray-600 truncate">OS #{{ $os->numero }}</span>
+                                                    <span class="text-[10px] sm:text-[11px] text-gray-400 flex-shrink-0">{{ $os->created_at->format('d/m/Y') }}</span>
                                                 </div>
                                                 <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
                                                     {!! $os->status_badge !!}
                                                     {!! $os->competencia_badge !!}
                                                     @if($os->municipio)
-                                                    <span class="text-xs text-gray-500">{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
+                                                    <span class="text-[11px] sm:text-xs text-gray-500">{{ $os->municipio->nome }}/{{ $os->municipio->uf }}</span>
                                                     @endif
                                                 </div>
                                             </div>
                                         </a>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-0.5 flex-shrink-0">
+                                        <div class="flex flex-wrap items-center justify-start lg:justify-end gap-1 flex-shrink-0 w-full lg:w-auto">
                                             <a href="{{ route('admin.ordens-servico.show', $os) }}" 
                                                class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                                title="Ver OS">
@@ -1581,24 +1587,24 @@
                                                         title="Mais opções">
                                                     <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
-                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
-                                                     class="absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-xl border z-[9999] py-1"
+                                                   <div x-show="menuAberto" @click.away="menuAberto = false" x-transition
+                                                       class="absolute right-0 top-full mt-1 w-[min(13rem,calc(100vw-2rem))] sm:w-52 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border z-[9999] py-1"
                                                      style="display: none;">
                                                     <button @click="moverParaPasta({{ $os->id }}, 'ordem_servico', null, $el); menuAberto = false"
-                                                            class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                            class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                         <i class="far fa-times-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                         Remover da pasta
                                                     </button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
                                                         <button @click="moverParaPasta({{ $os->id }}, 'ordem_servico', pasta.id, $el); menuAberto = false"
-                                                                class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                                class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                             <span class="w-2 h-2 rounded-full" :style="`background-color: ${pasta.cor}`"></span>
                                                             <span x-text="pasta.nome"></span>
                                                         </button>
                                                     </template>
                                                     <hr class="my-1">
                                                     <a href="{{ route('admin.ordens-servico.edit', $os) }}"
-                                                       class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                       class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                         <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                         Editar OS
                                                     </a>
@@ -1621,7 +1627,7 @@
                                      style="border-top-color: #e5e7eb; border-right-color: #e5e7eb; border-bottom-color: #e5e7eb;">
                                     
                                     {{-- Layout Flex: Título+Data | Opções --}}
-                                    <div class="flex items-start justify-between gap-3">
+                                    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
                                         <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }}, '{{ addslashes($documento->nome_original) }}')" 
                                              class="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
@@ -1642,10 +1648,10 @@
                                             </div>
                                             {{-- Nome, Status e Data --}}
                                             <div class="min-w-0 flex-1">
-                                                <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 break-words leading-tight">{{ $documento->nome_original }}</p>
+                                                <p class="text-xs sm:text-sm font-semibold text-gray-900 hover:text-blue-600 break-words leading-tight">{{ $documento->nome_original }}</p>
                                                 <div class="flex items-center gap-1.5 flex-wrap mt-1">
-                                                    <span class="text-[11px] text-gray-400">{{ $documento->created_at->format('d/m/Y') }}</span>
-                                                    <span class="text-xs text-gray-500">{{ $documento->tamanho_formatado }}</span>
+                                                    <span class="text-[10px] sm:text-[11px] text-gray-400">{{ $documento->created_at->format('d/m/Y') }}</span>
+                                                    <span class="text-[11px] sm:text-xs text-gray-500">{{ $documento->tamanho_formatado }}</span>
                                                     <span class="px-1.5 py-0.5 text-[10px] rounded {{ $documento->tipo_usuario === 'interno' ? 'bg-gray-200 text-gray-700 font-semibold' : 'bg-blue-100 text-blue-700 font-semibold' }}">
                                                         {{ $documento->tipo_usuario === 'interno' ? 'Int' : 'Ext' }}
                                                     </span>
@@ -1698,7 +1704,7 @@
                                         </div>
                                         
                                         {{-- DIREITA: Opções --}}
-                                        <div class="flex items-center gap-1 flex-shrink-0 documento-actions">
+                                        <div class="flex flex-wrap items-center justify-start lg:justify-end gap-1 flex-shrink-0 documento-actions w-full lg:w-auto">
                                             @if($documento->tipo_usuario === 'externo' && $documento->status_aprovacao)
                                             <form action="{{ route('admin.estabelecimentos.processos.documento.aprovar', [$estabelecimento->id, $processo->id, $documento->id]) }}" method="POST" class="inline js-doc-aprovar {{ $documento->status_aprovacao === 'pendente' ? '' : 'hidden' }}" data-doc-id="{{ $documento->id }}">
                                                 @csrf
@@ -1725,25 +1731,25 @@
                                                 <button @click.stop="menuAberto = !menuAberto" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Mais opções">
                                                     <i class="fas fa-ellipsis-h fa-fw text-gray-500" style="font-size: 15px;"></i>
                                                 </button>
-                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl border z-[9999] py-1" style="display: none;">
-                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                <div x-show="menuAberto" @click.away="menuAberto = false" x-transition class="absolute right-0 top-full mt-1 w-[min(12rem,calc(100vw-2rem))] sm:w-48 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border z-[9999] py-1" style="display: none;">
+                                                    <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', null, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                         <i class="far fa-times-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                         Remover da pasta
                                                     </button>
                                                     <template x-for="pasta in pastas" :key="pasta.id">
-                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                        <button @click="moverParaPasta({{ $documento->id }}, 'arquivo', pasta.id, $el); menuAberto = false" class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                             <span class="w-2 h-2 rounded-full" :style="`background-color: ${pasta.cor}`"></span>
                                                             <span x-text="pasta.nome"></span>
                                                         </button>
                                                     </template>
                                                     <hr class="my-1">
-                                                    <button @click="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true; menuAberto = false" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
+                                                    <button @click="documentoEditando = {{ $documento->id }}; nomeEditando = '{{ $documento->nome_original }}'; modalEditarNome = true; menuAberto = false" class="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex items-center gap-2">
                                                         <i class="far fa-edit fa-fw text-gray-400" style="font-size: 13px;"></i>
                                                         Renomear
                                                     </button>
                                                     <button type="button" 
                                                             @click="abrirModalExclusao('documento', {{ $documento->id }}, '{{ addslashes($documento->nome_original) }}', '{{ route('admin.estabelecimentos.processos.deleteArquivo', [$estabelecimento->id, $processo->id, $documento->id]) }}'); menuAberto = false"
-                                                            class="w-full text-left px-3 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-gray-50 flex items-center gap-2">
+                                                            class="w-full text-left px-3 py-2 text-xs sm:text-sm text-red-500 hover:text-red-700 hover:bg-gray-50 flex items-center gap-2">
                                                         <i class="far fa-trash-alt fa-fw" style="font-size: 13px;"></i>
                                                         Excluir
                                                     </button>
@@ -3931,6 +3937,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 pdfUrlAnotacoes: '',
                 documentoIdAnotacoes: null,
                 documentoNomeAnotacoes: '',
+                documentoDigitalDestinoId: @json($documentoDigitalDirecionadoId),
                 documentoPendente: false, // Se o documento é externo e pendente de aprovação
                 documentosPendentesLista: [], // Lista de documentos pendentes para navegação
                 indiceDocumentoPendenteAtual: 0, // Índice do documento atual na lista
@@ -3972,6 +3979,10 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 init() {
                     this.carregarPastas();
 
+                    if (this.documentoDigitalDestinoId) {
+                        this.$nextTick(() => this.destacarDocumentoDigitalDirecionado());
+                    }
+
                     window.addEventListener('documento-avaliado', (event) => {
                         const detalhe = event.detail || {};
                         if (!detalhe.docId || !detalhe.status) return;
@@ -3980,6 +3991,32 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             this.tratarDocumentoAvaliadoNoModal(parseInt(detalhe.docId), detalhe.status);
                         }
                     });
+                },
+
+                destacarDocumentoDigitalDirecionado() {
+                    if (!this.documentoDigitalDestinoId) {
+                        return;
+                    }
+
+                    this.pastaAtiva = null;
+                    this.statusFiltro = null;
+
+                    const seletor = `#documento-digital-${this.documentoDigitalDestinoId}`;
+
+                    setTimeout(() => {
+                        const item = document.querySelector(seletor);
+
+                        if (!item) {
+                            return;
+                        }
+
+                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        item.classList.add('ring-4', 'ring-emerald-200');
+
+                        setTimeout(() => {
+                            item.classList.remove('ring-4', 'ring-emerald-200');
+                        }, 2200);
+                    }, 180);
                 },
 
                 // Função para mostrar notificações

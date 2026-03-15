@@ -904,6 +904,7 @@ class DashboardController extends Controller
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
                     'tipo' => 'resposta',
+                    'documento_digital_id' => $documentoDigital->id,
                     'processo_id' => $documentoDigital->processo_id,
                     'estabelecimento_id' => $processo->estabelecimento_id,
                     'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
@@ -921,6 +922,7 @@ class DashboardController extends Controller
                 $tarefasArray[$key]['total']++;
                 // Usar a resposta mais RECENTE para calcular o prazo (cada nova resposta reinicia o prazo)
                 if ($resposta->created_at > $tarefasArray[$key]['created_at']) {
+                    $tarefasArray[$key]['documento_digital_id'] = $documentoDigital->id;
                     $tarefasArray[$key]['created_at'] = $resposta->created_at;
                     $tarefasArray[$key]['primeiro_arquivo'] = $resposta->nome_original;
                     $diasPendente = (int) $resposta->created_at->diffInDays(now());
@@ -1017,13 +1019,24 @@ class DashboardController extends Controller
             
             // Diferencia respostas de aprovações normais
             if ($tarefa['tipo'] === 'resposta') {
+                $urlResposta = route('admin.estabelecimentos.processos.show', [
+                    $tarefa['estabelecimento_id'],
+                    $tarefa['processo_id'],
+                    'documento_digital' => $tarefa['documento_digital_id'] ?? null,
+                ]);
+
+                if (!empty($tarefa['documento_digital_id'])) {
+                    $urlResposta .= '#documento-digital-' . $tarefa['documento_digital_id'];
+                }
+
                 $todasTarefas->push([
                     'tipo' => 'resposta',
+                    'documento_digital_id' => $tarefa['documento_digital_id'] ?? null,
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
                     'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
                     'subtitulo' => $tarefa['estabelecimento'] . ' • ' . $tarefa['numero_processo'],
-                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'url' => $urlResposta,
                     'total' => $tarefa['total'],
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $tarefa['atrasado'],
@@ -1384,6 +1397,7 @@ class DashboardController extends Controller
                 $diasPendente = (int) $resposta->created_at->diffInDays(now());
                 $tarefasArray[$key] = [
                     'tipo' => 'resposta',
+                    'documento_digital_id' => $documentoDigital->id,
                     'processo_id' => $documentoDigital->processo_id,
                     'estabelecimento_id' => $processo->estabelecimento_id,
                     'estabelecimento' => $processo->estabelecimento->nome_fantasia ?? 'Estabelecimento',
@@ -1401,6 +1415,7 @@ class DashboardController extends Controller
                 $tarefasArray[$key]['total']++;
                 // Usar a resposta mais RECENTE para calcular o prazo (cada nova resposta reinicia o prazo)
                 if ($resposta->created_at > $tarefasArray[$key]['created_at']) {
+                    $tarefasArray[$key]['documento_digital_id'] = $documentoDigital->id;
                     $tarefasArray[$key]['created_at'] = $resposta->created_at;
                     $tarefasArray[$key]['primeiro_arquivo'] = $resposta->nome_original;
                     $diasPendente = (int) $resposta->created_at->diffInDays(now());
@@ -1504,14 +1519,25 @@ class DashboardController extends Controller
             $diasRestantes = $tarefa['is_licenciamento'] ? (5 - $tarefa['dias_pendente']) : null;
             
             if ($tarefa['tipo'] === 'resposta') {
+                $urlResposta = route('admin.estabelecimentos.processos.show', [
+                    $tarefa['estabelecimento_id'],
+                    $tarefa['processo_id'],
+                    'documento_digital' => $tarefa['documento_digital_id'] ?? null,
+                ]);
+
+                if (!empty($tarefa['documento_digital_id'])) {
+                    $urlResposta .= '#documento-digital-' . $tarefa['documento_digital_id'];
+                }
+
                 $todasTarefasCompleta->push([
                     'tipo' => 'resposta',
+                    'documento_digital_id' => $tarefa['documento_digital_id'] ?? null,
                     'processo_id' => $tarefa['processo_id'],
                     'estabelecimento_id' => $tarefa['estabelecimento_id'],
                     'titulo' => 'Resposta - ' . ($tarefa['tipo_documento'] ?? 'Documento'),
                     'subtitulo' => $tarefa['estabelecimento'],
                     'numero_processo' => $tarefa['numero_processo'],
-                    'url' => route('admin.estabelecimentos.processos.show', [$tarefa['estabelecimento_id'], $tarefa['processo_id']]),
+                    'url' => $urlResposta,
                     'total' => $tarefa['total'],
                     'dias_restantes' => $diasRestantes,
                     'atrasado' => $tarefa['atrasado'],

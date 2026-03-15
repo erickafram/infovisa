@@ -14,6 +14,32 @@
 
     {{-- Grid de Relatórios Disponíveis --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        {{-- Relatório: Estabelecimentos por CNAE --}}
+        <a href="{{ route('admin.relatorios.estabelecimentos-cnae') }}"
+           class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-cyan-300 transition-all group">
+            <div class="flex items-start gap-3">
+                <div class="p-2 bg-cyan-100 rounded-lg group-hover:bg-cyan-200 transition-colors flex-shrink-0">
+                    <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M8 7h8M8 11h8M8 15h5"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-semibold text-gray-900 group-hover:text-cyan-600 transition-colors">
+                        Estabelecimentos por CNAE
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Resumo por tipo de estabelecimento com escopo automático por perfil
+                    </p>
+                    <div class="mt-2 flex items-center text-xs text-cyan-600 font-medium">
+                        <span>Ver</span>
+                        <svg class="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </a>
         
         {{-- Relatório: Equipamentos de Imagem --}}
         <a href="{{ route('admin.relatorios.equipamentos-radiacao') }}" 

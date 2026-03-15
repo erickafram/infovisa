@@ -13,13 +13,148 @@ use App\Models\UsuarioInterno;
 use App\Models\Atividade;
 use App\Models\AtividadeEquipamentoRadiacao;
 use App\Models\EquipamentoRadiacao;
+use App\Models\Municipio;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\PesquisaSatisfacao;
 use App\Models\PesquisaSatisfacaoResposta;
 
 class RelatorioController extends Controller
 {
+    private function normalizarCodigoCnae(?string $codigo): ?string
+    {
+        if (!$codigo) {
+            return null;
+        }
+
+        $normalizado = preg_replace('/[^0-9]/', '', (string) $codigo);
+
+        return $normalizado !== '' ? $normalizado : null;
+    }
+
+    private function formatarCodigoCnae(?string $codigo): string
+    {
+        $normalizado = $this->normalizarCodigoCnae($codigo);
+
+        if (!$normalizado) {
+            return '-';
+        }
+
+        if (strlen($normalizado) === 7) {
+            return substr($normalizado, 0, 4) . '-' . substr($normalizado, 4, 1) . '/' . substr($normalizado, 5, 2);
+        }
+
+        return $normalizado;
+    }
+
+    private function estabelecimentoDentroEscopoRelatorio(Estabelecimento $estabelecimento, UsuarioInterno $usuario, ?string $competenciaFiltro = null): bool
+    {
+        if ($usuario->isMunicipal()) {
+            if (!$usuario->municipio_id || (int) $estabelecimento->municipio_id !== (int) $usuario->municipio_id) {
+                return false;
+            }
+
+            return $estabelecimento->isCompetenciaMunicipal();
+        }
+
+        if ($usuario->isEstadual()) {
+            return $estabelecimento->isCompetenciaEstadual();
+        }
+
+        if ($competenciaFiltro === 'estadual') {
+            return $estabelecimento->isCompetenciaEstadual();
+        }
+
+        if ($competenciaFiltro === 'municipal') {
+            return $estabelecimento->isCompetenciaMunicipal();
+        }
+
+        return true;
+    }
+
+    private function obterDescricaoCnaeDoEstabelecimento(Estabelecimento $estabelecimento, string $codigo, array $catalogoAtividades): string
+    {
+        foreach (($estabelecimento->atividades_exercidas ?? []) as $atividade) {
+            if (!is_array($atividade)) {
+                continue;
+            }
+
+            $codigoAtividade = $this->normalizarCodigoCnae($atividade['codigo'] ?? null);
+
+            if ($codigoAtividade !== $codigo) {
+                continue;
+            }
+
+            $descricao = trim((string) ($atividade['descricao'] ?? $atividade['nome'] ?? ''));
+
+            if ($descricao !== '') {
+                return $descricao;
+            }
+        }
+
+        if ($this->normalizarCodigoCnae($estabelecimento->cnae_fiscal) === $codigo && !empty($estabelecimento->cnae_fiscal_descricao)) {
+            return $estabelecimento->cnae_fiscal_descricao;
+        }
+
+        foreach (($estabelecimento->cnaes_secundarios ?? []) as $cnaeSecundario) {
+            if (!is_array($cnaeSecundario)) {
+                continue;
+            }
+
+            $codigoSecundario = $this->normalizarCodigoCnae($cnaeSecundario['codigo'] ?? null);
+
+            if ($codigoSecundario !== $codigo) {
+                continue;
+            }
+
+            $descricao = trim((string) ($cnaeSecundario['descricao'] ?? $cnaeSecundario['nome'] ?? ''));
+
+            if ($descricao !== '') {
+                return $descricao;
+            }
+        }
+
+        return $catalogoAtividades[$codigo] ?? 'CNAE sem descrição cadastrada';
+    }
+
+    private function montarCnaesRelatorioEstabelecimento(Estabelecimento $estabelecimento, array $catalogoAtividades): array
+    {
+        return collect($estabelecimento->getTodasAtividades())
+            ->map(fn($codigo) => $this->normalizarCodigoCnae($codigo))
+            ->filter()
+            ->unique()
+            ->map(function ($codigo) use ($estabelecimento, $catalogoAtividades) {
+                return [
+                    'codigo' => $codigo,
+                    'codigo_formatado' => $this->formatarCodigoCnae($codigo),
+                    'descricao' => $this->obterDescricaoCnaeDoEstabelecimento($estabelecimento, $codigo, $catalogoAtividades),
+                ];
+            })
+            ->sortBy('codigo_formatado')
+            ->values()
+            ->all();
+    }
+
+    private function paginarColecao($itens, int $porPagina, Request $request, string $pageName = 'page'): LengthAwarePaginator
+    {
+        $paginaAtual = LengthAwarePaginator::resolveCurrentPage($pageName);
+        $colecao = $itens instanceof \Illuminate\Support\Collection ? $itens->values() : collect($itens)->values();
+        $fatia = $colecao->slice(($paginaAtual - 1) * $porPagina, $porPagina)->values();
+
+        return new LengthAwarePaginator(
+            $fatia,
+            $colecao->count(),
+            $porPagina,
+            $paginaAtual,
+            [
+                'path' => $request->url(),
+                'pageName' => $pageName,
+                'query' => $request->query(),
+            ]
+        );
+    }
+
     private function calcularMediaRespostaPesquisa(PesquisaSatisfacaoResposta $resposta): ?float
     {
         $perguntasEscalaIds = $resposta->pesquisa?->perguntas
@@ -153,6 +288,139 @@ class RelatorioController extends Controller
     public function index()
     {
         return view('admin.relatorios.index');
+    }
+
+    /**
+     * Relatório de estabelecimentos por CNAE com escopo automático por perfil.
+     */
+    public function estabelecimentosPorCnae(Request $request)
+    {
+        $usuario = auth('interno')->user();
+        $competenciaFiltro = $usuario->isAdmin() ? $request->input('competencia') : null;
+
+        $catalogoAtividades = Atividade::ativas()
+            ->get(['codigo_cnae', 'descricao', 'nome'])
+            ->mapWithKeys(function ($atividade) {
+                $codigo = preg_replace('/[^0-9]/', '', (string) $atividade->codigo_cnae);
+                $descricao = trim((string) ($atividade->descricao ?: $atividade->nome));
+
+                return $codigo !== '' ? [$codigo => $descricao] : [];
+            })
+            ->toArray();
+
+        $query = Estabelecimento::query()
+            ->with('municipio')
+            ->orderByRaw('COALESCE(nome_fantasia, razao_social) asc');
+
+        if ($usuario->isMunicipal() && $usuario->municipio_id) {
+            $query->where('municipio_id', $usuario->municipio_id);
+        }
+
+        if ($usuario->isAdmin() && $request->filled('municipio_id')) {
+            $query->where('municipio_id', $request->integer('municipio_id'));
+        }
+
+        if ($request->filled('busca_estabelecimento')) {
+            $buscaEstabelecimento = trim($request->busca_estabelecimento);
+
+            $query->where(function ($subQuery) use ($buscaEstabelecimento) {
+                $subQuery->where('nome_fantasia', 'ilike', "%{$buscaEstabelecimento}%")
+                    ->orWhere('razao_social', 'ilike', "%{$buscaEstabelecimento}%")
+                    ->orWhere('cnpj', 'ilike', "%{$buscaEstabelecimento}%")
+                    ->orWhere('cpf', 'ilike', "%{$buscaEstabelecimento}%");
+            });
+        }
+
+        $estabelecimentosEscopo = $query->get()
+            ->filter(fn($estabelecimento) => $this->estabelecimentoDentroEscopoRelatorio($estabelecimento, $usuario, $competenciaFiltro))
+            ->map(function ($estabelecimento) use ($catalogoAtividades) {
+                $estabelecimento->cnaes_relatorio = collect($this->montarCnaesRelatorioEstabelecimento($estabelecimento, $catalogoAtividades));
+                return $estabelecimento;
+            })
+            ->filter(fn($estabelecimento) => $estabelecimento->cnaes_relatorio->isNotEmpty())
+            ->values();
+
+        $resumoCompleto = $estabelecimentosEscopo
+            ->flatMap(function ($estabelecimento) {
+                return $estabelecimento->cnaes_relatorio->map(function ($cnae) use ($estabelecimento) {
+                    return [
+                        'codigo' => $cnae['codigo'],
+                        'codigo_formatado' => $cnae['codigo_formatado'],
+                        'descricao' => $cnae['descricao'],
+                        'estabelecimento_id' => $estabelecimento->id,
+                        'municipio_id' => $estabelecimento->municipio_id,
+                        'municipio_nome' => $estabelecimento->municipio->nome ?? ($estabelecimento->municipio ?? '-'),
+                        'competencia' => $estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal',
+                    ];
+                });
+            })
+            ->groupBy('codigo')
+            ->map(function ($itens) {
+                $primeiro = $itens->first();
+
+                return [
+                    'codigo' => $primeiro['codigo'],
+                    'codigo_formatado' => $primeiro['codigo_formatado'],
+                    'descricao' => $primeiro['descricao'],
+                    'total_estabelecimentos' => $itens->pluck('estabelecimento_id')->unique()->count(),
+                    'total_municipios' => $itens->pluck('municipio_id')->filter()->unique()->count(),
+                    'competencias' => $itens->pluck('competencia')->unique()->values(),
+                    'competencias_label' => $itens->pluck('competencia')->unique()->map(fn($competencia) => ucfirst($competencia))->implode(', '),
+                ];
+            })
+            ->sortByDesc('total_estabelecimentos')
+            ->values();
+
+        $cnaeSelecionado = $this->normalizarCodigoCnae($request->input('cnae'));
+        $buscaCnae = trim((string) $request->input('busca_cnae'));
+
+        $resumoCnaes = $resumoCompleto
+            ->when($cnaeSelecionado, fn($colecao) => $colecao->where('codigo', $cnaeSelecionado))
+            ->when($buscaCnae !== '', function ($colecao) use ($buscaCnae) {
+                $buscaNormalizada = mb_strtolower($buscaCnae);
+
+                return $colecao->filter(function ($item) use ($buscaNormalizada) {
+                    return str_contains(mb_strtolower($item['codigo_formatado']), $buscaNormalizada)
+                        || str_contains(mb_strtolower($item['descricao']), $buscaNormalizada);
+                });
+            })
+            ->values();
+
+        $estabelecimentosFiltrados = $estabelecimentosEscopo
+            ->when($cnaeSelecionado, function ($colecao) use ($cnaeSelecionado) {
+                return $colecao->filter(function ($estabelecimento) use ($cnaeSelecionado) {
+                    return $estabelecimento->cnaes_relatorio->contains('codigo', $cnaeSelecionado);
+                });
+            })
+            ->values();
+
+        $totais = [
+            'estabelecimentos' => $estabelecimentosEscopo->count(),
+            'cnaes' => $resumoCompleto->count(),
+            'estadual' => $estabelecimentosEscopo->filter(fn($estabelecimento) => $estabelecimento->isCompetenciaEstadual())->count(),
+            'municipal' => $estabelecimentosEscopo->filter(fn($estabelecimento) => $estabelecimento->isCompetenciaMunicipal())->count(),
+        ];
+
+        $municipios = $usuario->isAdmin()
+            ? Municipio::query()->orderBy('nome')->get(['id', 'nome'])
+            : collect();
+
+        $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados, 15, $request, 'est_page');
+
+        $escopoVisual = $usuario->isAdmin()
+            ? 'Todos os municípios e competências'
+            : ($usuario->isMunicipal()
+                ? 'Município do usuário e competência municipal'
+                : 'Competência estadual');
+
+        return view('admin.relatorios.estabelecimentos-cnae', compact(
+            'resumoCnaes',
+            'estabelecimentos',
+            'totais',
+            'municipios',
+            'escopoVisual',
+            'cnaeSelecionado'
+        ));
     }
 
     /**
