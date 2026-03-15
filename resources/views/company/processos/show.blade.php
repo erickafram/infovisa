@@ -612,16 +612,19 @@
             @php
                 $totalDocumentos = isset($todosDocumentos) ? $todosDocumentos->count() : 0;
             @endphp
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200" x-data="{ pastaAtiva: null }">
-                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="{ pastaAtiva: null }">
+                <div class="px-4 py-3 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-gray-50 to-white">
+                    <div>
                     <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
                         Lista de Documentos/Arquivos
                     </h2>
+                    <p class="text-[11px] text-gray-500 mt-0.5">{{ $totalDocumentos }} item(ns) neste processo</p>
+                    </div>
                     @if($processo->status !== 'arquivado')
-                    <button @click="modalUpload = true" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
+                    <button @click="modalUpload = true" class="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
@@ -633,11 +636,11 @@
                 {{-- Abas de Pastas --}}
                 @if($pastas->count() > 0)
                 <div class="border-b border-gray-200 bg-gray-50">
-                    <nav class="flex px-4 overflow-x-auto" aria-label="Tabs">
+                    <nav class="flex px-3 sm:px-4 overflow-x-auto" aria-label="Tabs">
                         {{-- Aba "Todos" --}}
                         <button @click="pastaAtiva = null" 
                                 :class="pastaAtiva === null ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
-                                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap">
+                                class="px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 transition-colors whitespace-nowrap">
                             Todos
                             <span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full"
                                   :class="pastaAtiva === null ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600'">
@@ -653,7 +656,7 @@
                         <button @click="pastaAtiva = {{ $pasta->id }}"
                                 :class="pastaAtiva === {{ $pasta->id }} ? 'border-b-2' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
                                 :style="pastaAtiva === {{ $pasta->id }} ? 'color: {{ $pasta->cor }}; border-color: {{ $pasta->cor }}' : ''"
-                                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5">
+                                class="px-3 py-2.5 text-[11px] sm:text-xs font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" :style="pastaAtiva === {{ $pasta->id }} ? 'color: {{ $pasta->cor }}' : ''">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                             </svg>
@@ -697,8 +700,8 @@
                         @endphp
 
                         @if($mostrarCabecalhoGrupo)
-                        <div x-show="pastaAtiva === null"
-                             class="px-4 py-2.5 bg-gray-50 border-l-4"
+                            <div x-show="pastaAtiva === null"
+                                class="px-4 py-2.5 bg-gray-50/80 border-l-4"
                              style="display: none; border-left-color: {{ $corGrupo }};">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
@@ -735,26 +738,27 @@
                             @endphp
                             <div x-show="pastaAtiva === null || pastaAtiva === {{ $item['pasta_id'] ?? 'null' }}"
                                  class="px-4 py-3 hover:bg-gray-50 border-l-4 {{ $corBordaDoc }}">
-                                <div class="flex items-center justify-between">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                     <a href="{{ route('company.processos.documento-digital.visualizar', [$processo->id, $docDigital->id]) }}" 
                                        target="_blank"
-                                       class="flex items-center gap-3 flex-1">
+                                       class="flex items-start gap-3 flex-1 min-w-0">
                                         <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 hover:text-blue-600 truncate">
+                                            <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 break-words leading-tight">
                                                 {{ $docDigital->tipoDocumento->nome ?? 'Documento' }}
                                             </p>
-                                            <p class="text-xs text-gray-500">
-                                                Nº {{ $docDigital->numero_documento }} • {{ $docDigital->created_at->format('d/m/Y H:i') }}
-                                                <span class="text-blue-600 font-medium">• Vigilância Sanitária</span>
-                                            </p>
+                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-gray-500">
+                                                <span>Nº {{ $docDigital->numero_documento }}</span>
+                                                <span>{{ $docDigital->created_at->format('d/m/Y H:i') }}</span>
+                                                <span class="text-blue-600 font-medium">Vigilância Sanitária</span>
+                                            </div>
                                         </div>
                                     </a>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                    <div class="flex flex-wrap items-center gap-2 flex-shrink-0 lg:justify-end">
                                         {{-- Badge de Prazo --}}
                                         @if($docDigital->temPrazo())
                                             @php
@@ -769,15 +773,15 @@
                                                 ];
                                                 $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
                                             @endphp
-                                            <span class="px-2 py-0.5 {{ $classeBadge }} border rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1">
+                                            <span class="px-2 py-1 {{ $classeBadge }} border rounded-full text-[11px] font-medium whitespace-nowrap inline-flex items-center gap-1">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
                                                 {{ $textoBadge }}
                                             </span>
                                         @endif
-                                        <a href="{{ route('company.processos.documento-digital.download', [$processo->id, $docDigital->id]) }}" 
-                                           class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded hover:bg-blue-200 transition-colors flex items-center gap-1">
+                                                     <a href="{{ route('company.processos.documento-digital.download', [$processo->id, $docDigital->id]) }}" 
+                                                         class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors inline-flex items-center gap-1">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                             </svg>
@@ -786,14 +790,14 @@
                                         @if($docDigital->permiteResposta())
                                         <button type="button"
                                                 @click="docRespostaId = {{ $docDigital->id }}; docRespostaNome = '{{ $docDigital->tipoDocumento->nome ?? 'Documento' }}'; modalResposta = true"
-                                                class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded hover:bg-green-200 transition-colors flex items-center gap-1">
+                                                class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors inline-flex items-center gap-1">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                                             </svg>
                                             Responder
                                         </button>
                                         @elseif($docDigital->temPrazo() && $docDigital->isPrazoFinalizado())
-                                        <span class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded flex items-center gap-1">
+                                        <span class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded-lg inline-flex items-center gap-1">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                             </svg>
@@ -813,9 +817,9 @@
                                         return $r->historico_rejeicao ? count($r->historico_rejeicao) : 0;
                                     });
                                 @endphp
-                                <div class="mt-3 ml-13 border-l-2 border-green-200 pl-3">
+                                <div class="mt-3 sm:ml-12 border-l-2 border-green-200 pl-3">
                                     {{-- Resumo das respostas --}}
-                                    <div class="flex items-center gap-2 mb-2">
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
                                         <span class="text-xs font-semibold text-gray-700">Respostas ({{ $docDigital->respostas->count() }})</span>
                                         @if($respostasAprovadas->count() > 0)
                                         <span class="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">{{ $respostasAprovadas->count() }} aprovado(s)</span>
@@ -829,13 +833,13 @@
                                     </div>
                                     
                                     @foreach($docDigital->respostas as $resposta)
-                                    <div class="flex items-center justify-between py-2 {{ !$loop->last ? 'border-b border-gray-100' : '' }}">
-                                        <div class="flex items-center gap-2">
+                                    <div class="flex flex-col gap-2 py-2 {{ !$loop->last ? 'border-b border-gray-100' : '' }} sm:flex-row sm:items-center sm:justify-between">
+                                        <div class="flex items-start gap-2 min-w-0">
                                             <svg class="w-4 h-4 {{ $resposta->status === 'aprovado' ? 'text-green-500' : ($resposta->status === 'rejeitado' ? 'text-red-500' : 'text-yellow-500') }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
-                                            <div>
-                                                <p class="text-xs font-medium text-gray-700">{{ $resposta->nome_original }}</p>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-medium text-gray-700 break-words">{{ $resposta->nome_original }}</p>
                                                 <p class="text-[10px] text-gray-500">
                                                     {{ $resposta->tamanho_formatado }}
                                                     <span class="mx-1">•</span>
@@ -849,7 +853,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
                                             <span class="px-2 py-0.5 text-[10px] font-medium rounded-full
                                                 @if($resposta->status === 'pendente') bg-yellow-100 text-yellow-700
                                                 @elseif($resposta->status === 'aprovado') bg-green-100 text-green-700
@@ -959,31 +963,34 @@
                                 }
                             @endphp
                             <div x-show="pastaAtiva === null || pastaAtiva === {{ $item['pasta_id'] ?? 'null' }}"
-                                 class="px-4 py-3 flex items-start justify-between hover:bg-gray-50 border-l-4 {{ $corBordaArquivo }} gap-3">
+                                 class="px-4 py-3 hover:bg-gray-50 border-l-4 {{ $corBordaArquivo }}">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <button type="button" 
                                         @click="documentoUrl = '{{ route('company.processos.documento.visualizar', [$processo->id, $documento->id]) }}'; documentoNome = '{{ $documento->nome_original }}'; documentoExtensao = '{{ $documento->extensao }}'; modalVisualizador = true"
                                         class="flex items-start gap-3 text-left flex-1 min-w-0">
                                     <span class="text-xl flex-shrink-0">{{ $documento->icone }}</span>
                                     <div class="min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 hover:text-blue-600 break-words">{{ $documento->nome_original }}</p>
-                                        <p class="text-xs text-gray-500">
-                                            {{ $documento->tamanho_formatado }} • {{ $documento->created_at->format('d/m/Y H:i') }}
+                                        <p class="text-sm font-semibold text-gray-900 hover:text-blue-600 break-words leading-tight">{{ $documento->nome_original }}</p>
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-gray-500">
+                                            <span>{{ $documento->tamanho_formatado }}</span>
+                                            <span>{{ $documento->created_at->format('d/m/Y H:i') }}</span>
                                             @if($documento->tipo_usuario === 'externo')
-                                            <span class="text-green-600 font-medium">• Usuário Externo</span>
+                                            <span class="text-green-600 font-medium">Usuário Externo</span>
                                             @else
-                                            <span class="text-blue-600 font-medium">• Vigilância Sanitária</span>
+                                            <span class="text-blue-600 font-medium">Vigilância Sanitária</span>
                                             @endif
-                                        </p>
+                                        </div>
                                     </div>
                                 </button>
-                                <div class="flex items-center gap-2 flex-shrink-0">
+                                <div class="flex flex-wrap items-center gap-2 flex-shrink-0 lg:justify-end">
                                     <a href="{{ route('company.processos.download', [$processo->id, $documento->id]) }}" 
-                                       class="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors flex items-center gap-1">
+                                       class="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors inline-flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                         </svg>
                                         Download
                                     </a>
+                                </div>
                                 </div>
                             </div>
                         @endif

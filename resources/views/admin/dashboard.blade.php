@@ -292,7 +292,7 @@
                                                 </p>
                                             </template>
                                         </div>
-                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                        <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                     </a>
                                 </template>
                             </div>
@@ -341,7 +341,7 @@
                                             <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                             <p class="text-[10px] mt-0.5 truncate" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'" x-text="t.prazo_texto"></p>
                                         </div>
-                                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                        <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                     </a>
                                 </template>
                             </div>
@@ -480,7 +480,7 @@
                                                 <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                                 <p class="text-[10px] mt-0.5 truncate" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'" x-text="t.prazo_texto"></p>
                                             </div>
-                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                            <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                         </a>
                                     </template>
                                 </div>
@@ -511,7 +511,7 @@
                                                 <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
                                                 <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                             </div>
-                                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                            <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                         </a>
                                     </template>
                                 </div>
@@ -671,7 +671,7 @@
                                         <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
                                         <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                     </div>
-                                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
+                                    <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
                                 </a>
                             </template>
                         </div>
@@ -736,33 +736,29 @@ function tarefasPaginadas() {
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
             if (t.tipo === 'prazo_documento') {
-                if (t.atrasado) return 'Vencido';
-                if (t.dias_restantes === 0) return 'Hoje';
+                if (t.atrasado) return 'prazo venc.';
+                if (t.dias_restantes === 0) return 'hoje p/ vencer';
                 if (t.dias_restantes === null) return 'Prazo';
-                return t.dias_restantes + 'd';
+                return t.dias_restantes + 'd p/ vencer';
             }
             if (t.tipo === 'os') {
                 const diasOs = t.dias_para_finalizar;
-                if (t.atrasado) return 'Atrasado';
+                if (t.atrasado) return 'finaliz. venc.';
                 if (diasOs === null) return '-';
-                if (t.em_finalizacao) {
-                    if (diasOs === 0) return 'Último dia';
-                    return 'Finalizar ' + diasOs + 'd';
-                }
-                if (diasOs === 0) return 'Último dia';
-                return diasOs + 'd';
+                if (diasOs === 0) return 'hoje p/ finalizar';
+                return diasOs + 'd p/ finalizar';
             }
             if (t.is_licenciamento === false) return 'Verificar';
             if (t.tipo === 'resposta') {
-                if (t.atrasado) return (t.dias_pendente - 5) + 'd';
-                if (t.dias_restantes === 0) return 'Hoje';
+                if (t.atrasado) return (t.dias_pendente - 5) + 'd atras.';
+                if (t.dias_restantes === 0) return 'hoje p/ analisar';
                 if (t.dias_restantes === null) return 'Verificar';
-                return t.dias_restantes + 'd';
+                return t.dias_restantes + 'd p/ analisar';
             }
-            if (t.atrasado) return t.tipo === 'aprovacao' ? (t.dias_pendente - 5) + 'd' : Math.abs(t.dias_restantes) + 'd';
-            if (t.dias_restantes === 0) return 'Hoje';
+            if (t.atrasado) return t.tipo === 'aprovacao' ? (t.dias_pendente - 5) + 'd atras.' : Math.abs(t.dias_restantes) + 'd atras.';
+            if (t.dias_restantes === 0) return 'hoje p/ analisar';
             if (t.dias_restantes === null) return '-';
-            return t.dias_restantes + 'd';
+            return t.dias_restantes + 'd p/ analisar';
         }
     }
 }
