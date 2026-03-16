@@ -433,7 +433,6 @@ function documentoEditor() {
                         font-family: Arial, sans-serif; 
                         font-size: 10pt; 
                         line-height: 1.6; 
-                        white-space: pre-wrap;
                         color: #000; 
                         padding: 15px;
                         margin: 0;
