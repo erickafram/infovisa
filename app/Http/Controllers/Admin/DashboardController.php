@@ -1148,20 +1148,49 @@ class DashboardController extends Controller
         }
 
         if ($escopo === 'setor') {
-            $processos = $processos->sortBy([
-                // Processos tramitados apenas para o setor aparecem primeiro
-                fn($p) => ($p->setor_atual === $usuario->setor && $p->responsavel_atual_id === null) ? 0 : 1,
-                // Os mais recentes tramitados para o setor ficam no topo
-                fn($p) => -($p->data_tramitacao_efetiva?->timestamp ?? 0),
-                // Se houver empate, prioriza o que teve ciência mais recente
-                fn($p) => -($p->responsavel_ciente_em_efetivo?->timestamp ?? 0),
-            ])->values();
+            $processos = $processos->sort(function ($a, $b) use ($usuario) {
+                $aTramitadoParaSetor = $a->setor_atual === $usuario->setor && $a->responsavel_atual_id === null;
+                $bTramitadoParaSetor = $b->setor_atual === $usuario->setor && $b->responsavel_atual_id === null;
+
+                if ($aTramitadoParaSetor !== $bTramitadoParaSetor) {
+                    return $aTramitadoParaSetor ? -1 : 1;
+                }
+
+                $aTramitacao = $a->data_tramitacao_efetiva?->timestamp ?? 0;
+                $bTramitacao = $b->data_tramitacao_efetiva?->timestamp ?? 0;
+
+                if ($aTramitacao !== $bTramitacao) {
+                    return $bTramitacao <=> $aTramitacao;
+                }
+
+                $aCiencia = $a->responsavel_ciente_em_efetivo?->timestamp ?? 0;
+                $bCiencia = $b->responsavel_ciente_em_efetivo?->timestamp ?? 0;
+
+                if ($aCiencia !== $bCiencia) {
+                    return $bCiencia <=> $aCiencia;
+                }
+
+                return strnatcasecmp($a->numero_processo ?? '', $b->numero_processo ?? '');
+            })->values();
         } else {
             // Fora do card do setor, mantém prioridade para processos diretamente atribuídos ao usuário.
-            $processos = $processos->sortBy([
-                fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
-                fn($p) => -(($p->responsavel_ciente_em_efetivo ?? $p->data_tramitacao_efetiva)?->timestamp ?? 0),
-            ])->values();
+            $processos = $processos->sort(function ($a, $b) use ($usuario) {
+                $aMeuDireto = $a->responsavel_atual_id == $usuario->id;
+                $bMeuDireto = $b->responsavel_atual_id == $usuario->id;
+
+                if ($aMeuDireto !== $bMeuDireto) {
+                    return $aMeuDireto ? -1 : 1;
+                }
+
+                $aData = ($a->responsavel_ciente_em_efetivo ?? $a->data_tramitacao_efetiva)?->timestamp ?? 0;
+                $bData = ($b->responsavel_ciente_em_efetivo ?? $b->data_tramitacao_efetiva)?->timestamp ?? 0;
+
+                if ($aData !== $bData) {
+                    return $bData <=> $aData;
+                }
+
+                return strnatcasecmp($a->numero_processo ?? '', $b->numero_processo ?? '');
+            })->values();
         }
 
         $total = $processos->count();
