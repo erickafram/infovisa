@@ -1127,6 +1127,8 @@ class DashboardController extends Controller
         $processos = $query->get()->sortBy([
             // Primeiro: processos diretos (0) antes de processos do setor (1)
             fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
+            // Depois: processos tramitados apenas para o setor sobem antes dos demais itens do setor
+            fn($p) => ($p->setor_atual === $usuario->setor && $p->responsavel_atual_id === null) ? 0 : 1,
             // Segundo: mais recentes primeiro pela ciência; se não houver, usa a tramitação
             fn($p) => -optional($p->responsavel_ciente_em_efetivo ?? $p->responsavel_desde)->timestamp,
         ])->values();
@@ -1181,6 +1183,7 @@ class DashboardController extends Controller
             // Verifica se é processo direto do usuário ou apenas do setor
             $isMeuDireto = $proc->responsavel_atual_id == $usuario->id;
             $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
+            $tramitadoParaSetor = $isDoSetor && !$proc->responsavel_atual_id;
             $dataRecebimento = $proc->responsavel_ciente_em_efetivo;
             $dataTramitacao = $proc->responsavel_desde;
             
@@ -1196,12 +1199,13 @@ class DashboardController extends Controller
                 'status_nome' => $proc->status_nome,
                 'is_meu_direto' => $isMeuDireto,
                 'is_do_setor' => $isDoSetor,
+                'tramitado_para_setor' => $tramitadoParaSetor,
                 'setor_atual' => $proc->setor_atual,
                 'recebido_em' => $dataRecebimento ? $dataRecebimento->format('d/m/Y H:i') : null,
                 'recebido_em_humano' => $dataRecebimento ? $dataRecebimento->locale('pt_BR')->diffForHumans() : null,
                 'tramitado_em' => $dataTramitacao ? $dataTramitacao->format('d/m/Y H:i') : null,
                 'tramitado_em_humano' => $dataTramitacao ? $dataTramitacao->locale('pt_BR')->diffForHumans() : null,
-                'aguardando_ciencia' => $dataRecebimento === null && $dataTramitacao !== null,
+                'aguardando_ciencia' => $proc->responsavel_atual_id !== null && $dataRecebimento === null && $dataTramitacao !== null,
                 'prazo' => $prazoInfo,
                 'docs_total' => $infoDocumentos['total'],
                 'docs_enviados' => $infoDocumentos['enviados'],

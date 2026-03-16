@@ -396,7 +396,11 @@
                             @endif
                         </div>
                         <div class="flex flex-col items-start gap-2 mt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 min-w-0">
-                            @if($responsavelCienteEfetivo)
+                            @if(!$processo->responsavel_atual_id && $processo->responsavel_desde)
+                                <p class="text-xs text-teal-600 break-words leading-5">
+                                    Tramitado para o setor em {{ $processo->responsavel_desde->format('d/m/Y H:i') }}
+                                </p>
+                            @elseif($responsavelCienteEfetivo)
                                 <p class="text-xs text-gray-500 break-words leading-5">
                                     Ciência em {{ $responsavelCienteEfetivo->format('d/m/Y H:i') }} ({{ $responsavelCienteEfetivo->locale('pt_BR')->diffForHumans() }})
                                 </p>

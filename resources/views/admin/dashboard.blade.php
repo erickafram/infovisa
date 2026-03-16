@@ -564,6 +564,9 @@
                                     <div class="flex-1 min-w-0">
                                         <p class="text-[13px] font-medium text-gray-800 flex items-center gap-1">
                                             <span x-text="p.numero_processo"></span>
+                                            <template x-if="p.tramitado_para_setor">
+                                                <span class="text-[9px] px-1 py-0.5 rounded bg-teal-100 text-teal-700">Seu setor</span>
+                                            </template>
                                             <template x-if="p.docs_pendentes > 0">
                                                 <span class="text-[9px] px-1 py-0.5 rounded bg-yellow-50 text-yellow-600" x-text="p.docs_pendentes + ' pend.'"></span>
                                             </template>
@@ -576,6 +579,21 @@
                                             </template>
                                         </p>
                                         <p class="text-[11px] text-gray-400 truncate" x-text="p.estabelecimento"></p>
+                                        <template x-if="p.tramitado_para_setor && p.tramitado_em_humano">
+                                            <p class="text-[10px] text-teal-700 truncate mt-0.5" :title="p.tramitado_em">
+                                                Tramitado para seu setor em <span x-text="p.tramitado_em"></span> (<span x-text="p.tramitado_em_humano"></span>)
+                                            </p>
+                                        </template>
+                                        <template x-if="!p.tramitado_para_setor && p.recebido_em_humano">
+                                            <p class="text-[10px] text-sky-700 truncate mt-0.5" :title="p.recebido_em">
+                                                Recebido em <span x-text="p.recebido_em"></span> (<span x-text="p.recebido_em_humano"></span>)
+                                            </p>
+                                        </template>
+                                        <template x-if="!p.tramitado_para_setor && !p.recebido_em_humano && p.aguardando_ciencia">
+                                            <p class="text-[10px] text-amber-600 truncate mt-0.5" :title="p.tramitado_em">
+                                                Tramitado em <span x-text="p.tramitado_em"></span> (aguardando ciência)
+                                            </p>
+                                        </template>
                                     </div>
                                     <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                                 </a>
