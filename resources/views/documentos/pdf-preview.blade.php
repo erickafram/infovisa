@@ -107,9 +107,7 @@
             font-size: 10pt;
         }
 
-        .content p,
         .content div,
-        .content span,
         .content li,
         .content td,
         .content th,
@@ -121,6 +119,29 @@
         .content h6 {
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+
+        .content p,
+        .content .MsoNormal {
+            margin: 0 0 8px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .content p:last-child,
+        .content .MsoNormal:last-child {
+            margin-bottom: 0;
+        }
+
+        .content ul,
+        .content ol {
+            margin: 0 0 8px 18px;
+            padding-left: 18px;
+        }
+
+        .content li {
+            margin-bottom: 3px;
         }
         
         .preview-notice {

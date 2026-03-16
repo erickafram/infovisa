@@ -4,9 +4,7 @@
 
 @push('styles')
 <style>
-    .documento-conteudo-preservado p,
     .documento-conteudo-preservado div,
-    .documento-conteudo-preservado span,
     .documento-conteudo-preservado li,
     .documento-conteudo-preservado td,
     .documento-conteudo-preservado th,
@@ -18,6 +16,29 @@
     .documento-conteudo-preservado h6 {
         white-space: pre-wrap;
         word-break: break-word;
+    }
+
+    .documento-conteudo-preservado p,
+    .documento-conteudo-preservado .MsoNormal {
+        margin: 0 0 0.85rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .documento-conteudo-preservado p:last-child,
+    .documento-conteudo-preservado .MsoNormal:last-child {
+        margin-bottom: 0;
+    }
+
+    .documento-conteudo-preservado ul,
+    .documento-conteudo-preservado ol {
+        margin: 0 0 0.85rem 1.25rem;
+        padding-left: 1.25rem;
+    }
+
+    .documento-conteudo-preservado li {
+        margin-bottom: 0.25rem;
     }
 </style>
 @endpush

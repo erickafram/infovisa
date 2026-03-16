@@ -31,9 +31,7 @@
         background: #fff !important;
     }
 
-    .documento-conteudo-preservado p,
     .documento-conteudo-preservado div,
-    .documento-conteudo-preservado span,
     .documento-conteudo-preservado li,
     .documento-conteudo-preservado td,
     .documento-conteudo-preservado th,
@@ -45,6 +43,29 @@
     .documento-conteudo-preservado h6 {
         white-space: pre-wrap;
         word-break: break-word;
+    }
+
+    .documento-conteudo-preservado p,
+    .documento-conteudo-preservado .MsoNormal {
+        margin: 0 0 0.85rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .documento-conteudo-preservado p:last-child,
+    .documento-conteudo-preservado .MsoNormal:last-child {
+        margin-bottom: 0;
+    }
+
+    .documento-conteudo-preservado ul,
+    .documento-conteudo-preservado ol {
+        margin: 0 0 0.85rem 1.25rem;
+        padding-left: 1.25rem;
+    }
+
+    .documento-conteudo-preservado li {
+        margin-bottom: 0.25rem;
     }
 </style>
 @endpush
@@ -463,9 +484,7 @@ function documentoEditor() {
                         font-size: inherit !important;
                         padding: 0 !important;
                     }
-                    body p,
                     body div,
-                    body span,
                     body li,
                     body td,
                     body th,
@@ -477,6 +496,25 @@ function documentoEditor() {
                     body h6 {
                         white-space: pre-wrap;
                         word-break: break-word;
+                    }
+                    body p,
+                    body .MsoNormal {
+                        margin: 0 0 0.85rem;
+                        line-height: 1.45;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                    }
+                    body p:last-child,
+                    body .MsoNormal:last-child {
+                        margin-bottom: 0;
+                    }
+                    body ul,
+                    body ol {
+                        margin: 0 0 0.85rem 1.25rem;
+                        padding-left: 1.25rem;
+                    }
+                    body li {
+                        margin-bottom: 0.25rem;
                     }
                 `,
                 images_upload_handler: (blobInfo) => {
