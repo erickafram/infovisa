@@ -1122,18 +1122,9 @@ class DashboardController extends Controller
             }
         });
 
-        // IMPORTANTE: Ordenar processos diretos primeiro, depois por data
-        // Isso garante que processos atribuídos diretamente ao usuário apareçam no topo
-        $processos = $query->get()->sortBy([
-            // Primeiro: processos diretos (0) antes de processos do setor (1)
-            fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
-            // Depois: processos tramitados apenas para o setor sobem antes dos demais itens do setor
-            fn($p) => ($p->setor_atual === $usuario->setor && $p->responsavel_atual_id === null) ? 0 : 1,
-            // Segundo: mais recentes primeiro pela ciência; se não houver, usa a tramitação
-            fn($p) => -optional($p->responsavel_ciente_em_efetivo ?? $p->responsavel_desde)->timestamp,
-        ])->values();
-
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
+        $processos = $query->get();
+
         if ($usuario->isEstadual()) {
             $processos = $processos->filter(function($p) use ($usuario) {
                 if ($p->responsavel_atual_id == $usuario->id) return true;
@@ -1154,6 +1145,23 @@ class DashboardController extends Controller
             } else {
                 $processos = collect();
             }
+        }
+
+        if ($escopo === 'setor') {
+            $processos = $processos->sortBy([
+                // Processos tramitados apenas para o setor aparecem primeiro
+                fn($p) => ($p->setor_atual === $usuario->setor && $p->responsavel_atual_id === null) ? 0 : 1,
+                // Os mais recentes tramitados para o setor ficam no topo
+                fn($p) => -optional($p->responsavel_desde)->timestamp,
+                // Se houver empate, prioriza o que teve ciência mais recente
+                fn($p) => -optional($p->responsavel_ciente_em_efetivo)->timestamp,
+            ])->values();
+        } else {
+            // Fora do card do setor, mantém prioridade para processos diretamente atribuídos ao usuário.
+            $processos = $processos->sortBy([
+                fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
+                fn($p) => -optional($p->responsavel_ciente_em_efetivo ?? $p->responsavel_desde)->timestamp,
+            ])->values();
         }
 
         $total = $processos->count();
