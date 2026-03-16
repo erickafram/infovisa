@@ -56,6 +56,11 @@
         word-break: break-word;
     }
 
+    .documento-conteudo-preservado .MsoNormal {
+        margin-bottom: 1.15rem;
+        line-height: 1.6;
+    }
+
     .documento-conteudo-preservado p:last-child,
     .documento-conteudo-preservado .MsoNormal:last-child {
         margin-bottom: 0;
@@ -1056,6 +1061,10 @@ function documentoEditor() {
                         line-height: 1.45;
                         white-space: pre-wrap;
                         word-break: break-word;
+                    }
+                    body .MsoNormal {
+                        margin-bottom: 1.15rem;
+                        line-height: 1.6;
                     }
                     body p:last-child,
                     body .MsoNormal:last-child {

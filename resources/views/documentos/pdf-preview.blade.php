@@ -129,6 +129,11 @@
             word-wrap: break-word;
         }
 
+        .content .MsoNormal {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
         .content p:last-child,
         .content .MsoNormal:last-child {
             margin-bottom: 0;

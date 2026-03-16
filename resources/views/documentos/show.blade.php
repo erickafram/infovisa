@@ -26,6 +26,11 @@
         word-break: break-word;
     }
 
+    .documento-conteudo-preservado .MsoNormal {
+        margin-bottom: 1.15rem;
+        line-height: 1.6;
+    }
+
     .documento-conteudo-preservado p:last-child,
     .documento-conteudo-preservado .MsoNormal:last-child {
         margin-bottom: 0;
