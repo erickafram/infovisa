@@ -8,6 +8,7 @@
     @php
         $documentoDigitalDirecionadoId = request()->integer('documento_digital') ?: null;
         $responsavelCienteEfetivo = $processo->responsavel_ciente_em_efetivo;
+        $dataTramitacaoEfetiva = $processo->data_tramitacao_efetiva;
     @endphp
     {{-- Botão Voltar --}}
     <div class="mb-6">
@@ -396,22 +397,22 @@
                             @endif
                         </div>
                         <div class="flex flex-col items-start gap-2 mt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 min-w-0">
-                            @if(!$processo->responsavel_atual_id && $processo->responsavel_desde)
+                            @if(!$processo->responsavel_atual_id && $dataTramitacaoEfetiva)
                                 <p class="text-xs text-teal-600 break-words leading-5">
-                                    Tramitado para o setor em {{ $processo->responsavel_desde->format('d/m/Y H:i') }}
+                                    Tramitado para o setor em {{ $dataTramitacaoEfetiva->format('d/m/Y H:i') }}
                                 </p>
                             @elseif($responsavelCienteEfetivo)
                                 <p class="text-xs text-gray-500 break-words leading-5">
                                     Ciência em {{ $responsavelCienteEfetivo->format('d/m/Y H:i') }} ({{ $responsavelCienteEfetivo->locale('pt_BR')->diffForHumans() }})
                                 </p>
-                            @elseif($processo->responsavel_desde)
+                            @elseif($dataTramitacaoEfetiva)
                                 <p class="text-xs text-amber-600 break-words leading-5">
-                                    Tramitado em {{ $processo->responsavel_desde->format('d/m/Y H:i') }} (aguardando ciência)
+                                    Tramitado em {{ $dataTramitacaoEfetiva->format('d/m/Y H:i') }} (aguardando ciência)
                                 </p>
                             @endif
-                            @if($responsavelCienteEfetivo && $processo->responsavel_desde)
+                            @if($responsavelCienteEfetivo && $dataTramitacaoEfetiva)
                                 <p class="text-xs text-gray-400 break-words leading-5">
-                                    tramitado em {{ $processo->responsavel_desde->format('d/m/Y H:i') }}
+                                    tramitado em {{ $dataTramitacaoEfetiva->format('d/m/Y H:i') }}
                                 </p>
                             @endif
                             @if($processo->prazo_atribuicao)

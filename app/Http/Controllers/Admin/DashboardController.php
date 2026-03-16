@@ -1097,7 +1097,7 @@ class DashboardController extends Controller
         // independentemente da competência do estabelecimento. Se alguém tramitou para o usuário, ele deve ver.
         // O filtro de competência se aplica SOMENTE aos processos do setor (setor_atual).
         
-        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
+        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual', 'ultimoEventoAtribuicao'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
 
         // Processos do usuário direto OU do setor (com filtro de competência apenas para setor)
@@ -1152,15 +1152,15 @@ class DashboardController extends Controller
                 // Processos tramitados apenas para o setor aparecem primeiro
                 fn($p) => ($p->setor_atual === $usuario->setor && $p->responsavel_atual_id === null) ? 0 : 1,
                 // Os mais recentes tramitados para o setor ficam no topo
-                fn($p) => -optional($p->responsavel_desde)->timestamp,
+                fn($p) => -($p->data_tramitacao_efetiva?->timestamp ?? 0),
                 // Se houver empate, prioriza o que teve ciência mais recente
-                fn($p) => -optional($p->responsavel_ciente_em_efetivo)->timestamp,
+                fn($p) => -($p->responsavel_ciente_em_efetivo?->timestamp ?? 0),
             ])->values();
         } else {
             // Fora do card do setor, mantém prioridade para processos diretamente atribuídos ao usuário.
             $processos = $processos->sortBy([
                 fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
-                fn($p) => -optional($p->responsavel_ciente_em_efetivo ?? $p->responsavel_desde)->timestamp,
+                fn($p) => -(($p->responsavel_ciente_em_efetivo ?? $p->data_tramitacao_efetiva)?->timestamp ?? 0),
             ])->values();
         }
 
@@ -1193,7 +1193,7 @@ class DashboardController extends Controller
             $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
             $tramitadoParaSetor = $isDoSetor && !$proc->responsavel_atual_id;
             $dataRecebimento = $proc->responsavel_ciente_em_efetivo;
-            $dataTramitacao = $proc->responsavel_desde;
+            $dataTramitacao = $proc->data_tramitacao_efetiva;
             
             // Calcula informações de documentos
             $infoDocumentos = $this->calcularInfoDocumentos($proc);

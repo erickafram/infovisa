@@ -301,6 +301,26 @@ class Processo extends Model
     }
 
     /**
+     * Retorna a data efetiva da última tramitação/atribuição do processo.
+     */
+    public function getDataTramitacaoEfetivaAttribute(): ?Carbon
+    {
+        if ($this->responsavel_desde) {
+            return $this->responsavel_desde->copy();
+        }
+
+        $eventoAtribuicao = $this->relationLoaded('ultimoEventoAtribuicao')
+            ? $this->ultimoEventoAtribuicao
+            : $this->ultimoEventoAtribuicao()->first();
+
+        if ($eventoAtribuicao?->created_at) {
+            return $eventoAtribuicao->created_at->copy();
+        }
+
+        return $this->updated_at?->copy() ?? $this->created_at?->copy();
+    }
+
+    /**
      * Relacionamento com usuário que arquivou o processo
      */
     public function usuarioArquivamento()
