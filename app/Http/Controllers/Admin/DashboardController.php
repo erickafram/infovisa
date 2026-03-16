@@ -323,6 +323,44 @@ class DashboardController extends Controller
     }
 
     /**
+     * Busca os processos mais recentemente tramitados diretamente para o usuário.
+     */
+    private function buscarProcessosTramitadosRecentemente($usuario, int $limite = 5)
+    {
+        return Processo::with(['estabelecimento', 'tipoProcesso'])
+            ->where('responsavel_atual_id', $usuario->id)
+            ->whereNotIn('status', ['arquivado', 'concluido'])
+            ->orderByRaw('CASE WHEN responsavel_desde IS NULL THEN 1 ELSE 0 END')
+            ->orderByDesc('responsavel_desde')
+            ->orderByDesc('updated_at')
+            ->take($limite)
+            ->get()
+            ->map(function ($processo) {
+                $infoDocumentos = $this->calcularInfoDocumentos($processo);
+
+                return [
+                    'id' => $processo->id,
+                    'numero_processo' => $processo->numero_processo,
+                    'tipo_nome' => $processo->tipo_nome,
+                    'estabelecimento' => $processo->estabelecimento->nome_fantasia
+                        ?? $processo->estabelecimento->razao_social
+                        ?? 'Estabelecimento',
+                    'status' => $processo->status,
+                    'status_nome' => $processo->status_nome,
+                    'responsavel_desde' => $processo->responsavel_desde?->diffForHumans()
+                        ?? $processo->updated_at?->diffForHumans(),
+                    'responsavel_desde_data' => $processo->responsavel_desde?->format('d/m/Y H:i')
+                        ?? $processo->updated_at?->format('d/m/Y H:i'),
+                    'docs_total' => $infoDocumentos['total'],
+                    'docs_enviados' => $infoDocumentos['enviados'],
+                    'docs_pendentes' => $infoDocumentos['pendentes_aprovacao'],
+                    'url' => route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]),
+                ];
+            })
+            ->values();
+    }
+
+    /**
      * Exibe o dashboard do administrador
      */
     public function index()
@@ -540,6 +578,8 @@ class DashboardController extends Controller
             // Segundo: mais recentes primeiro (negativo do timestamp)
             fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
         ])->take(10)->values();
+
+        $processos_tramitados_recentes = $this->buscarProcessosTramitadosRecentemente($usuario);
         
         // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
@@ -715,6 +755,7 @@ class DashboardController extends Controller
             'estabelecimentos_pendentes',
             'processos_acompanhados',
             'processos_atribuidos',
+            'processos_tramitados_recentes',
             'documentos_pendentes_assinatura',
             'documentos_rascunho_pendentes',
             'processos_designados',

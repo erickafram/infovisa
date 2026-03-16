@@ -237,6 +237,61 @@
     </a>
     @endif
 
+    {{-- Processos tramitados recentemente para mim --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-sky-50 to-white flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-sm font-semibold text-gray-900">Processos tramitados recentemente para mim</h2>
+                    <p class="text-[11px] text-gray-400">Os recebimentos mais recentes para sua fila</p>
+                </div>
+            </div>
+            <span class="text-[11px] px-2 py-1 bg-sky-100 text-sky-700 rounded-full font-bold flex-shrink-0">{{ $processos_tramitados_recentes->count() }}</span>
+        </div>
+
+        @if($processos_tramitados_recentes->isNotEmpty())
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+            @foreach($processos_tramitados_recentes as $processoRecente)
+            <a href="{{ $processoRecente['url'] }}" class="p-4 hover:bg-sky-50/60 transition min-w-0">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="text-xs font-semibold text-sky-700 truncate">{{ $processoRecente['numero_processo'] }}</span>
+                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $processoRecente['status'] === 'aberto' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                        {{ $processoRecente['status_nome'] }}
+                    </span>
+                </div>
+
+                <p class="text-sm font-medium text-gray-900 line-clamp-2 min-h-[2.5rem]">{{ $processoRecente['estabelecimento'] }}</p>
+                <p class="text-[11px] text-gray-500 mt-1 truncate">{{ $processoRecente['tipo_nome'] }}</p>
+
+                @if($processoRecente['docs_total'] > 0)
+                <div class="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-gray-600">
+                    <span>Docs</span>
+                    <span class="text-gray-900">{{ $processoRecente['docs_enviados'] }}/{{ $processoRecente['docs_total'] }}</span>
+                </div>
+                @endif
+
+                <div class="mt-3 flex items-center gap-1.5 text-[11px] text-sky-700">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="truncate" title="{{ $processoRecente['responsavel_desde_data'] }}">Recebido {{ $processoRecente['responsavel_desde'] }}</span>
+                </div>
+            </a>
+            @endforeach
+        </div>
+        @else
+        <div class="px-4 py-6 text-center">
+            <p class="text-sm font-medium text-gray-500">Nenhum processo tramitado recentemente para você.</p>
+            <p class="text-xs text-gray-300 mt-1">Quando um processo entrar na sua fila, ele aparecerá aqui no topo.</p>
+        </div>
+        @endif
+    </div>
+
     {{-- Layout Principal --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
