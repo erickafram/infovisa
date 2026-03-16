@@ -101,6 +101,7 @@
         .content h5,
         .content h6 {
             white-space: pre-wrap;
+            white-space: break-spaces;
             word-wrap: break-word;
         }
 
@@ -109,6 +110,7 @@
             margin: 0 0 8px;
             line-height: 1.45;
             white-space: pre-wrap;
+            white-space: break-spaces;
             word-wrap: break-word;
         }
 

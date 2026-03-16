@@ -42,6 +42,7 @@
     .documento-conteudo-preservado h5,
     .documento-conteudo-preservado h6 {
         white-space: pre-wrap;
+        white-space: break-spaces;
         word-break: break-word;
     }
 
@@ -50,6 +51,7 @@
         margin: 0 0 0.85rem;
         line-height: 1.45;
         white-space: pre-wrap;
+        white-space: break-spaces;
         word-break: break-word;
     }
 
@@ -500,6 +502,7 @@ function documentoEditor() {
                     body h5,
                     body h6 {
                         white-space: pre-wrap;
+                        white-space: break-spaces;
                         word-break: break-word;
                     }
                     body p,
@@ -507,6 +510,7 @@ function documentoEditor() {
                         margin: 0 0 0.85rem;
                         line-height: 1.45;
                         white-space: pre-wrap;
+                        white-space: break-spaces;
                         word-break: break-word;
                     }
                     body .MsoNormal {

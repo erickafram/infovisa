@@ -303,6 +303,8 @@ class DocumentoDigitalController extends Controller
             'atividade_index' => 'nullable|integer|min:0',
         ]);
 
+        $conteudoNormalizado = $this->preservarEspacamentoConteudoHtml($request->conteudo);
+
         $retornoParaFinalizacaoAtividade = $request->filled('os_id') && $request->filled('atividade_index');
 
         $processosIds = collect($request->input('processos_ids', []))
@@ -396,7 +398,7 @@ class DocumentoDigitalController extends Controller
                     'usuario_criador_id' => Auth::guard('interno')->user()->id,
                     'numero_documento'  => DocumentoDigital::gerarNumeroDocumento(),
                     'nome'              => $tipoDocumento->nome,
-                    'conteudo'          => $request->conteudo, // sem substituição — será feita no fan-out
+                    'conteudo'          => $conteudoNormalizado, // sem substituição — será feita no fan-out
                     'sigiloso'          => $request->sigiloso ?? false,
                     'status'            => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
                     'prazo_dias'        => $request->prazo_dias,
@@ -417,7 +419,7 @@ class DocumentoDigitalController extends Controller
 
                 $documento->salvarVersao(
                     Auth::guard('interno')->user()->id,
-                    $request->conteudo,
+                    $conteudoNormalizado,
                     null
                 );
 
@@ -459,7 +461,9 @@ class DocumentoDigitalController extends Controller
 
             foreach ($destinos as $processoDestino) {
                 $estabelecimento = $processoDestino?->estabelecimento;
-                $conteudoProcessado = $this->substituirVariaveis($request->conteudo, $estabelecimento, $processoDestino);
+                $conteudoProcessado = $this->preservarEspacamentoConteudoHtml(
+                    $this->substituirVariaveis($conteudoNormalizado, $estabelecimento, $processoDestino)
+                );
 
                 $documento = DocumentoDigital::create([
                     'tipo_documento_id' => $request->tipo_documento_id,
@@ -630,6 +634,8 @@ class DocumentoDigitalController extends Controller
             'pasta_id' => 'nullable|integer',
         ]);
 
+        $conteudoNormalizado = $this->preservarEspacamentoConteudoHtml($request->conteudo);
+
         $pastaId = null;
         if ($request->has('pasta_id')) {
             if ($documento->isLote()) {
@@ -673,7 +679,7 @@ class DocumentoDigitalController extends Controller
 
             $dadosAtualizacao = [
                 'tipo_documento_id' => $request->tipo_documento_id,
-                'conteudo' => $request->conteudo,
+                'conteudo' => $conteudoNormalizado,
                 'sigiloso' => $request->sigiloso ?? false,
                 'status' => $request->acao === 'finalizar' ? 'aguardando_assinatura' : 'rascunho',
                 'prazo_notificacao' => $tipoDocumento->prazo_notificacao ?? false, // Herda do tipo de documento
@@ -701,7 +707,7 @@ class DocumentoDigitalController extends Controller
             // Isso garante que cada salvamento seja registrado no histórico
             $documento->salvarVersao(
                 Auth::guard('interno')->user()->id,
-                $request->conteudo,
+                $conteudoNormalizado,
                 null
             );
 
@@ -736,6 +742,90 @@ class DocumentoDigitalController extends Controller
             DB::rollBack();
             return back()->with('error', 'Erro ao atualizar documento: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Preserva espaçamentos manuais em conteúdo HTML transformando sequências de espaços em NBSP.
+     */
+    private function preservarEspacamentoConteudoHtml(?string $conteudo): string
+    {
+        if ($conteudo === null || $conteudo === '') {
+            return '';
+        }
+
+        $internalErrors = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $wrapperId = 'documento-normalizado';
+        $html = '<div id="' . $wrapperId . '">' . $conteudo . '</div>';
+        $flags = LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD;
+
+        $carregado = $dom->loadHTML('<?xml encoding="UTF-8">' . $html, $flags);
+        $erros = libxml_get_errors();
+        libxml_clear_errors();
+        libxml_use_internal_errors($internalErrors);
+
+        if (!$carregado || !empty($erros)) {
+            return $conteudo;
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $wrapper = $xpath->query('//*[@id="' . $wrapperId . '"]')->item(0);
+
+        if (!$wrapper) {
+            return $conteudo;
+        }
+
+        $nbsp = html_entity_decode('&nbsp;', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $this->normalizarEspacosEmNosTexto($wrapper, $nbsp);
+
+        return $this->obterHtmlInterno($wrapper);
+    }
+
+    private function normalizarEspacosEmNosTexto(\DOMNode $node, string $nbsp): void
+    {
+        if (!$node->hasChildNodes()) {
+            return;
+        }
+
+        foreach (iterator_to_array($node->childNodes) as $child) {
+            if ($child->nodeType === XML_TEXT_NODE) {
+                $nomePai = strtolower($child->parentNode?->nodeName ?? '');
+
+                if (in_array($nomePai, ['pre', 'code', 'script', 'style', 'textarea'], true)) {
+                    continue;
+                }
+
+                $texto = $child->nodeValue ?? '';
+                if ($texto === '') {
+                    continue;
+                }
+
+                $texto = str_replace("\t", str_repeat($nbsp, 4), $texto);
+                $texto = preg_replace_callback('/ {2,}/u', static function (array $match) use ($nbsp) {
+                    return str_repeat($nbsp, strlen($match[0]));
+                }, $texto);
+
+                if ($texto !== null) {
+                    $child->nodeValue = $texto;
+                }
+
+                continue;
+            }
+
+            if ($child->nodeType === XML_ELEMENT_NODE) {
+                $this->normalizarEspacosEmNosTexto($child, $nbsp);
+            }
+        }
+    }
+
+    private function obterHtmlInterno(\DOMNode $node): string
+    {
+        $html = '';
+        foreach ($node->childNodes as $child) {
+            $html .= $node->ownerDocument->saveHTML($child);
+        }
+
+        return $html;
     }
 
     /**
