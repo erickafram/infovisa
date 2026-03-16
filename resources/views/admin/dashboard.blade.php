@@ -237,61 +237,6 @@
     </a>
     @endif
 
-    {{-- Processos tramitados recentemente para mim --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-sky-50 to-white flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </div>
-                <div class="min-w-0">
-                    <h2 class="text-sm font-semibold text-gray-900">Processos tramitados recentemente para mim</h2>
-                    <p class="text-[11px] text-gray-400">Os recebimentos mais recentes para sua fila</p>
-                </div>
-            </div>
-            <span class="text-[11px] px-2 py-1 bg-sky-100 text-sky-700 rounded-full font-bold flex-shrink-0">{{ $processos_tramitados_recentes->count() }}</span>
-        </div>
-
-        @if($processos_tramitados_recentes->isNotEmpty())
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-            @foreach($processos_tramitados_recentes as $processoRecente)
-            <a href="{{ $processoRecente['url'] }}" class="p-4 hover:bg-sky-50/60 transition min-w-0">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                    <span class="text-xs font-semibold text-sky-700 truncate">{{ $processoRecente['numero_processo'] }}</span>
-                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $processoRecente['status'] === 'aberto' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
-                        {{ $processoRecente['status_nome'] }}
-                    </span>
-                </div>
-
-                <p class="text-sm font-medium text-gray-900 line-clamp-2 min-h-[2.5rem]">{{ $processoRecente['estabelecimento'] }}</p>
-                <p class="text-[11px] text-gray-500 mt-1 truncate">{{ $processoRecente['tipo_nome'] }}</p>
-
-                @if($processoRecente['docs_total'] > 0)
-                <div class="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 text-[10px] font-medium text-gray-600">
-                    <span>Docs</span>
-                    <span class="text-gray-900">{{ $processoRecente['docs_enviados'] }}/{{ $processoRecente['docs_total'] }}</span>
-                </div>
-                @endif
-
-                <div class="mt-3 flex items-center gap-1.5 text-[11px] text-sky-700">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="truncate" title="{{ $processoRecente['responsavel_desde_data'] }}">Recebido {{ $processoRecente['responsavel_desde'] }}</span>
-                </div>
-            </a>
-            @endforeach
-        </div>
-        @else
-        <div class="px-4 py-6 text-center">
-            <p class="text-sm font-medium text-gray-500">Nenhum processo tramitado recentemente para você.</p>
-            <p class="text-xs text-gray-300 mt-1">Quando um processo entrar na sua fila, ele aparecerá aqui no topo.</p>
-        </div>
-        @endif
-    </div>
-
     {{-- Layout Principal --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
@@ -440,12 +385,13 @@
 
             {{-- Processos atribuídos a mim --}}
             <div class="border-t border-gray-100" x-data="processosAtribuidos('meu_direto')">
-                <div class="px-3 py-1.5 bg-indigo-50/60 border-b border-indigo-100/60">
-                    <span class="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
+                <div class="px-3 py-1.5 bg-indigo-50/60 border-b border-indigo-100/60 flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Processos sob minha responsabilidade
-                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold" x-text="totalMeuDireto"></span>
+                        <span class="truncate">Processos sob minha responsabilidade</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold" x-text="totalMeuDireto"></span>
                     </span>
+                    <a href="{{ route('admin.dashboard.processos-responsabilidade') }}" class="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium transition whitespace-nowrap">ver todos →</a>
                 </div>
                 <div class="divide-y divide-gray-50 max-h-[160px] overflow-y-auto">
                     <template x-if="loading">
@@ -472,6 +418,16 @@
                                             </template>
                                         </p>
                                         <p class="text-[11px] text-gray-400 truncate" x-text="p.estabelecimento"></p>
+                                        <template x-if="p.recebido_em_humano">
+                                            <p class="text-[10px] text-sky-700 truncate mt-0.5" :title="p.recebido_em">
+                                                Recebido em <span x-text="p.recebido_em"></span> (<span x-text="p.recebido_em_humano"></span>)
+                                            </p>
+                                        </template>
+                                        <template x-if="!p.recebido_em_humano && p.aguardando_ciencia">
+                                            <p class="text-[10px] text-amber-600 truncate mt-0.5" :title="p.tramitado_em">
+                                                Tramitado em <span x-text="p.tramitado_em"></span> (aguardando ciência)
+                                            </p>
+                                        </template>
                                     </div>
                                     <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="getStatusClass(p.status)" x-text="p.status_nome"></span>
                                 </a>

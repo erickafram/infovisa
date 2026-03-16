@@ -323,44 +323,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Busca os processos mais recentemente tramitados diretamente para o usuário.
-     */
-    private function buscarProcessosTramitadosRecentemente($usuario, int $limite = 5)
-    {
-        return Processo::with(['estabelecimento', 'tipoProcesso'])
-            ->where('responsavel_atual_id', $usuario->id)
-            ->whereNotIn('status', ['arquivado', 'concluido'])
-            ->orderByRaw('CASE WHEN responsavel_desde IS NULL THEN 1 ELSE 0 END')
-            ->orderByDesc('responsavel_desde')
-            ->orderByDesc('updated_at')
-            ->take($limite)
-            ->get()
-            ->map(function ($processo) {
-                $infoDocumentos = $this->calcularInfoDocumentos($processo);
-
-                return [
-                    'id' => $processo->id,
-                    'numero_processo' => $processo->numero_processo,
-                    'tipo_nome' => $processo->tipo_nome,
-                    'estabelecimento' => $processo->estabelecimento->nome_fantasia
-                        ?? $processo->estabelecimento->razao_social
-                        ?? 'Estabelecimento',
-                    'status' => $processo->status,
-                    'status_nome' => $processo->status_nome,
-                    'responsavel_desde' => $processo->responsavel_desde?->diffForHumans()
-                        ?? $processo->updated_at?->diffForHumans(),
-                    'responsavel_desde_data' => $processo->responsavel_desde?->format('d/m/Y H:i')
-                        ?? $processo->updated_at?->format('d/m/Y H:i'),
-                    'docs_total' => $infoDocumentos['total'],
-                    'docs_enviados' => $infoDocumentos['enviados'],
-                    'docs_pendentes' => $infoDocumentos['pendentes_aprovacao'],
-                    'url' => route('admin.estabelecimentos.processos.show', [$processo->estabelecimento_id, $processo->id]),
-                ];
-            })
-            ->values();
-    }
-
-    /**
      * Exibe o dashboard do administrador
      */
     public function index()
@@ -579,8 +541,6 @@ class DashboardController extends Controller
             fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
         ])->take(10)->values();
 
-        $processos_tramitados_recentes = $this->buscarProcessosTramitadosRecentemente($usuario);
-        
         // Filtrar por competência em memória - APENAS para processos do setor
         if ($usuario->isEstadual()) {
             $processos_atribuidos = $processos_atribuidos->filter(function($p) use ($usuario) {
@@ -755,7 +715,6 @@ class DashboardController extends Controller
             'estabelecimentos_pendentes',
             'processos_acompanhados',
             'processos_atribuidos',
-            'processos_tramitados_recentes',
             'documentos_pendentes_assinatura',
             'documentos_rascunho_pendentes',
             'processos_designados',
@@ -1131,7 +1090,7 @@ class DashboardController extends Controller
     {
         $usuario = Auth::guard('interno')->user();
         $page = $request->get('page', 1);
-        $perPage = 8;
+        $perPage = (int) $request->get('per_page', 8);
         $escopo = $request->get('escopo', 'todos');
 
         // REGRA: Processos diretamente atribuídos ao usuário (responsavel_atual_id) SEMPRE aparecem,
@@ -1168,8 +1127,8 @@ class DashboardController extends Controller
         $processos = $query->get()->sortBy([
             // Primeiro: processos diretos (0) antes de processos do setor (1)
             fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
-            // Segundo: mais recentes primeiro (negativo do timestamp)
-            fn($p) => $p->responsavel_desde ? -$p->responsavel_desde->timestamp : 0,
+            // Segundo: mais recentes primeiro pela ciência; se não houver, usa a tramitação
+            fn($p) => -optional($p->responsavel_ciente_em ?? $p->responsavel_desde)->timestamp,
         ])->values();
 
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
@@ -1222,6 +1181,8 @@ class DashboardController extends Controller
             // Verifica se é processo direto do usuário ou apenas do setor
             $isMeuDireto = $proc->responsavel_atual_id == $usuario->id;
             $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
+            $dataRecebimento = $proc->responsavel_ciente_em;
+            $dataTramitacao = $proc->responsavel_desde;
             
             // Calcula informações de documentos
             $infoDocumentos = $this->calcularInfoDocumentos($proc);
@@ -1236,7 +1197,11 @@ class DashboardController extends Controller
                 'is_meu_direto' => $isMeuDireto,
                 'is_do_setor' => $isDoSetor,
                 'setor_atual' => $proc->setor_atual,
-                'responsavel_desde' => $proc->responsavel_desde ? $proc->responsavel_desde->diffForHumans() : null,
+                'recebido_em' => $dataRecebimento ? $dataRecebimento->format('d/m/Y H:i') : null,
+                'recebido_em_humano' => $dataRecebimento ? $dataRecebimento->locale('pt_BR')->diffForHumans() : null,
+                'tramitado_em' => $dataTramitacao ? $dataTramitacao->format('d/m/Y H:i') : null,
+                'tramitado_em_humano' => $dataTramitacao ? $dataTramitacao->locale('pt_BR')->diffForHumans() : null,
+                'aguardando_ciencia' => $dataRecebimento === null && $dataTramitacao !== null,
                 'prazo' => $prazoInfo,
                 'docs_total' => $infoDocumentos['total'],
                 'docs_enviados' => $infoDocumentos['enviados'],
@@ -1255,6 +1220,14 @@ class DashboardController extends Controller
             'total_do_setor' => $totalDoSetor,
             'per_page' => $perPage,
         ]);
+    }
+
+    /**
+     * Exibe página com todos os processos sob responsabilidade direta do usuário.
+     */
+    public function processosSobMinhaResponsabilidade()
+    {
+        return view('admin.dashboard.processos-responsabilidade');
     }
 
     /**
