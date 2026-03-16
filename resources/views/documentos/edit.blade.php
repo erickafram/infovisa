@@ -30,6 +30,22 @@
     .tox .tox-edit-area__iframe {
         background: #fff !important;
     }
+
+    .documento-conteudo-preservado p,
+    .documento-conteudo-preservado div,
+    .documento-conteudo-preservado span,
+    .documento-conteudo-preservado li,
+    .documento-conteudo-preservado td,
+    .documento-conteudo-preservado th,
+    .documento-conteudo-preservado h1,
+    .documento-conteudo-preservado h2,
+    .documento-conteudo-preservado h3,
+    .documento-conteudo-preservado h4,
+    .documento-conteudo-preservado h5,
+    .documento-conteudo-preservado h6 {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
 </style>
 @endpush
 
@@ -285,7 +301,7 @@
                                 </div>
                             </div>
                             <div x-show="mostrarConteudo" x-transition class="mt-2 pt-2 border-t border-gray-200">
-                                <div class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs" style="font-family: 'Times New Roman', serif;">
+                                <div class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs documento-conteudo-preservado" style="font-family: 'Times New Roman', serif;">
                                     {!! $versao->conteudo !!}
                                 </div>
                             </div>
@@ -446,6 +462,21 @@ function documentoEditor() {
                         font-family: inherit !important;
                         font-size: inherit !important;
                         padding: 0 !important;
+                    }
+                    body p,
+                    body div,
+                    body span,
+                    body li,
+                    body td,
+                    body th,
+                    body h1,
+                    body h2,
+                    body h3,
+                    body h4,
+                    body h5,
+                    body h6 {
+                        white-space: pre-wrap;
+                        word-break: break-word;
                     }
                 `,
                 images_upload_handler: (blobInfo) => {

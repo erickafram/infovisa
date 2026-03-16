@@ -33,6 +33,22 @@
     .tox .tox-edit-area {
         overflow: hidden !important;
     }
+
+    .documento-conteudo-preservado p,
+    .documento-conteudo-preservado div,
+    .documento-conteudo-preservado span,
+    .documento-conteudo-preservado li,
+    .documento-conteudo-preservado td,
+    .documento-conteudo-preservado th,
+    .documento-conteudo-preservado h1,
+    .documento-conteudo-preservado h2,
+    .documento-conteudo-preservado h3,
+    .documento-conteudo-preservado h4,
+    .documento-conteudo-preservado h5,
+    .documento-conteudo-preservado h6 {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
 </style>
 @endpush
 
@@ -736,7 +752,7 @@
                     </div>
 
                     {{-- Conteúdo do Documento --}}
-                    <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border border-gray-200">
+                    <div class="prose prose-sm max-w-none bg-white p-6 rounded-lg border border-gray-200 documento-conteudo-preservado">
                         <div x-html="conteudo || '<p class=\'text-gray-400 italic\'>Nenhum conteúdo digitado ainda...</p>'"></div>
                     </div>
                 </div>
@@ -999,6 +1015,21 @@ function documentoEditor() {
                         font-family: inherit !important;
                         font-size: inherit !important;
                         padding: 0 !important;
+                    }
+                    body p,
+                    body div,
+                    body span,
+                    body li,
+                    body td,
+                    body th,
+                    body h1,
+                    body h2,
+                    body h3,
+                    body h4,
+                    body h5,
+                    body h6 {
+                        white-space: pre-wrap;
+                        word-break: break-word;
                     }
                 `,
                 // Permitir upload de imagem via drag & drop / paste

@@ -89,6 +89,22 @@
             padding-bottom: 2px;
             border-bottom: 1px solid #ccc;
         }
+
+        .content p,
+        .content div,
+        .content span,
+        .content li,
+        .content td,
+        .content th,
+        .content h1,
+        .content h2,
+        .content h3,
+        .content h4,
+        .content h5,
+        .content h6 {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
         
         .info-grid {
             font-size: 10pt;

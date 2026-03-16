@@ -2,6 +2,26 @@
 
 @section('title', 'Visualizar Documento')
 
+@push('styles')
+<style>
+    .documento-conteudo-preservado p,
+    .documento-conteudo-preservado div,
+    .documento-conteudo-preservado span,
+    .documento-conteudo-preservado li,
+    .documento-conteudo-preservado td,
+    .documento-conteudo-preservado th,
+    .documento-conteudo-preservado h1,
+    .documento-conteudo-preservado h2,
+    .documento-conteudo-preservado h3,
+    .documento-conteudo-preservado h4,
+    .documento-conteudo-preservado h5,
+    .documento-conteudo-preservado h6 {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="min-h-screen bg-gray-50">
     <div class="max-w-8xl mx-auto px-4 py-6">
@@ -413,7 +433,7 @@
         <div class="bg-white max-h-[82vh] overflow-y-auto">
             @if($documento->status === 'rascunho')
                 <div class="p-6">
-                    <div class="prose prose-sm max-w-none border border-gray-200 p-4 rounded-xl bg-white shadow-sm">
+                    <div class="prose prose-sm max-w-none border border-gray-200 p-4 rounded-xl bg-white shadow-sm documento-conteudo-preservado">
                         {!! $documento->conteudo !!}
                     </div>
                 </div>

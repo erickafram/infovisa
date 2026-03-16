@@ -106,6 +106,22 @@
             min-height: 150px;
             font-size: 10pt;
         }
+
+        .content p,
+        .content div,
+        .content span,
+        .content li,
+        .content td,
+        .content th,
+        .content h1,
+        .content h2,
+        .content h3,
+        .content h4,
+        .content h5,
+        .content h6 {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
         
         .preview-notice {
             margin-top: 20px;
