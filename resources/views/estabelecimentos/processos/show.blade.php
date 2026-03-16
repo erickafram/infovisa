@@ -7,6 +7,7 @@
 <div class="max-w-8xl mx-auto" x-data="processoData()">
     @php
         $documentoDigitalDirecionadoId = request()->integer('documento_digital') ?: null;
+        $responsavelCienteEfetivo = $processo->responsavel_ciente_em_efetivo;
     @endphp
     {{-- Botão Voltar --}}
     <div class="mb-6">
@@ -43,7 +44,7 @@
     @endif
 
     {{-- Modal de Notificação de Atribuição (aparece apenas para o responsável que ainda não viu) --}}
-    @if($processo->responsavel_atual_id === auth('interno')->id() && !$processo->responsavel_ciente_em && ($processo->motivo_atribuicao || $processo->prazo_atribuicao))
+    @if($processo->responsavel_atual_id === auth('interno')->id() && !$responsavelCienteEfetivo)
     <div x-data="{ 
         showNotificacao: true,
         marcarCiente() {
@@ -89,6 +90,14 @@
                 
                 {{-- Content --}}
                 <div class="px-6 py-5 space-y-4">
+                    @if(!$processo->motivo_atribuicao && !$processo->prazo_atribuicao)
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <p class="text-sm text-gray-700">
+                            Confirme a ciência desta atribuição para remover o aviso e registrar o recebimento do processo.
+                        </p>
+                    </div>
+                    @endif
+
                     @if($processo->motivo_atribuicao)
                     <div class="bg-gray-50 rounded-xl p-4">
                         <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -387,16 +396,16 @@
                             @endif
                         </div>
                         <div class="flex flex-col items-start gap-2 mt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 min-w-0">
-                            @if($processo->responsavel_ciente_em)
+                            @if($responsavelCienteEfetivo)
                                 <p class="text-xs text-gray-500 break-words leading-5">
-                                    Ciência em {{ $processo->responsavel_ciente_em->format('d/m/Y H:i') }} ({{ $processo->responsavel_ciente_em->locale('pt_BR')->diffForHumans() }})
+                                    Ciência em {{ $responsavelCienteEfetivo->format('d/m/Y H:i') }} ({{ $responsavelCienteEfetivo->locale('pt_BR')->diffForHumans() }})
                                 </p>
                             @elseif($processo->responsavel_desde)
                                 <p class="text-xs text-amber-600 break-words leading-5">
                                     Tramitado em {{ $processo->responsavel_desde->format('d/m/Y H:i') }} (aguardando ciência)
                                 </p>
                             @endif
-                            @if($processo->responsavel_ciente_em && $processo->responsavel_desde)
+                            @if($responsavelCienteEfetivo && $processo->responsavel_desde)
                                 <p class="text-xs text-gray-400 break-words leading-5">
                                     tramitado em {{ $processo->responsavel_desde->format('d/m/Y H:i') }}
                                 </p>

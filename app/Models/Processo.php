@@ -273,6 +273,34 @@ class Processo extends Model
     }
 
     /**
+     * Último evento de atribuição do processo.
+     */
+    public function ultimoEventoAtribuicao()
+    {
+        return $this->hasOne(ProcessoEvento::class)
+            ->where('tipo_evento', 'processo_atribuido')
+            ->latestOfMany();
+    }
+
+    /**
+     * Retorna a data de ciência salva no processo ou, em fallback, no último evento de atribuição.
+     */
+    public function getResponsavelCienteEmEfetivoAttribute(): ?Carbon
+    {
+        if ($this->responsavel_ciente_em) {
+            return $this->responsavel_ciente_em->copy();
+        }
+
+        $eventoAtribuicao = $this->relationLoaded('ultimoEventoAtribuicao')
+            ? $this->ultimoEventoAtribuicao
+            : $this->ultimoEventoAtribuicao()->first();
+
+        $cienteEm = data_get($eventoAtribuicao?->dados_adicionais, 'ciente_em');
+
+        return $cienteEm ? Carbon::parse($cienteEm) : null;
+    }
+
+    /**
      * Relacionamento com usuário que arquivou o processo
      */
     public function usuarioArquivamento()

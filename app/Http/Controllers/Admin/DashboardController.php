@@ -204,7 +204,7 @@ class DashboardController extends Controller
      */
     private function buscarProcessosSobResponsabilidadeDashboard($usuario)
     {
-        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual'])
+        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual', 'ultimoEventoAtribuicao'])
             ->whereNotIn('status', ['arquivado', 'concluido']);
 
         $query->where(function($q) use ($usuario) {
@@ -1128,7 +1128,7 @@ class DashboardController extends Controller
             // Primeiro: processos diretos (0) antes de processos do setor (1)
             fn($p) => $p->responsavel_atual_id == $usuario->id ? 0 : 1,
             // Segundo: mais recentes primeiro pela ciência; se não houver, usa a tramitação
-            fn($p) => -optional($p->responsavel_ciente_em ?? $p->responsavel_desde)->timestamp,
+            fn($p) => -optional($p->responsavel_ciente_em_efetivo ?? $p->responsavel_desde)->timestamp,
         ])->values();
 
         // Filtrar por competência em memória - APENAS para processos do setor, não os diretamente atribuídos
@@ -1181,7 +1181,7 @@ class DashboardController extends Controller
             // Verifica se é processo direto do usuário ou apenas do setor
             $isMeuDireto = $proc->responsavel_atual_id == $usuario->id;
             $isDoSetor = $usuario->setor && $proc->setor_atual === $usuario->setor;
-            $dataRecebimento = $proc->responsavel_ciente_em;
+            $dataRecebimento = $proc->responsavel_ciente_em_efetivo;
             $dataTramitacao = $proc->responsavel_desde;
             
             // Calcula informações de documentos
