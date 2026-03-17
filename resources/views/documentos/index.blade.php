@@ -3,18 +3,41 @@
 @section('title', 'Meus Documentos Digitais')
 
 @section('content')
+@php
+    $escopo = $escopo ?? 'meus';
+    $podeVerDocumentosDoSetor = $podeVerDocumentosDoSetor ?? false;
+    $statusAguardandoLabel = $escopo === 'setor' ? 'Aguardando Assinatura' : 'Aguardando Minha Assinatura';
+    $statusAssinadosLabel = $escopo === 'setor' ? 'Assinados do Meu Setor' : 'Assinados por Mim';
+    $tituloPagina = $escopo === 'setor' ? 'Documentos do Meu Setor' : 'Meus Documentos Digitais';
+    $subtituloPagina = $escopo === 'setor'
+        ? 'Acompanhe os documentos criados pelos técnicos do seu setor e identifique o que ficou em rascunho, aguardando assinatura ou com prazo.'
+        : 'Documentos criados por você ou que aguardam sua assinatura';
+@endphp
 <div class="container-fluid px-3 py-4">
     <!-- Header -->
     <div class="mb-4">
-        <h1 class="text-xl font-bold text-gray-900">Meus Documentos Digitais</h1>
-        <p class="text-xs text-gray-600 mt-0.5">Documentos criados por você ou que aguardam sua assinatura</p>
+        <h1 class="text-xl font-bold text-gray-900">{{ $tituloPagina }}</h1>
+        <p class="text-xs text-gray-600 mt-0.5">{{ $subtituloPagina }}</p>
     </div>
 
     <!-- Filtros com Badges -->
     <div class="mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        @if($podeVerDocumentosDoSetor)
+        <div class="mb-3 pb-3 border-b border-gray-200 flex flex-wrap gap-2">
+            <a href="{{ route('admin.documentos.index', ['escopo' => 'meus', 'status' => 'todos']) }}"
+               class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 {{ $escopo === 'meus' ? 'bg-slate-700 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                Meus documentos
+            </a>
+            <a href="{{ route('admin.documentos.index', ['escopo' => 'setor', 'status' => 'todos']) }}"
+               class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 {{ $escopo === 'setor' ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' }}">
+                Todos documentos do meu setor
+            </a>
+        </div>
+        @endif
+
         <div class="flex flex-wrap gap-2">
             <!-- Todos -->
-            <a href="{{ route('admin.documentos.index', ['status' => 'todos']) }}" 
+            <a href="{{ route('admin.documentos.index', ['status' => 'todos', 'escopo' => $escopo]) }}" 
                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
                       {{ $filtroStatus === 'todos' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +47,7 @@
             </a>
 
             <!-- Rascunhos -->
-            <a href="{{ route('admin.documentos.index', ['status' => 'rascunho']) }}" 
+                <a href="{{ route('admin.documentos.index', ['status' => 'rascunho', 'escopo' => $escopo]) }}" 
                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
                       {{ $filtroStatus === 'rascunho' ? 'bg-gray-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,13 +62,13 @@
             </a>
 
             <!-- Aguardando Minha Assinatura -->
-            <a href="{{ route('admin.documentos.index', ['status' => 'aguardando_minha_assinatura']) }}" 
+            <a href="{{ route('admin.documentos.index', ['status' => 'aguardando_minha_assinatura', 'escopo' => $escopo]) }}" 
                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
                       {{ $filtroStatus === 'aguardando_minha_assinatura' ? 'bg-yellow-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Aguardando Minha Assinatura
+                {{ $statusAguardandoLabel }}
                 @if($stats['aguardando_minha_assinatura'] > 0)
                     <span class="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full {{ $filtroStatus === 'aguardando_minha_assinatura' ? 'bg-white text-yellow-600' : 'bg-yellow-600 text-white' }}">
                         {{ $stats['aguardando_minha_assinatura'] }}
@@ -54,13 +77,13 @@
             </a>
 
             <!-- Assinados por Mim -->
-            <a href="{{ route('admin.documentos.index', ['status' => 'assinados_por_mim']) }}" 
+            <a href="{{ route('admin.documentos.index', ['status' => 'assinados_por_mim', 'escopo' => $escopo]) }}" 
                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
                       {{ $filtroStatus === 'assinados_por_mim' ? 'bg-green-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Assinados por Mim
+                {{ $statusAssinadosLabel }}
                 @if($stats['assinados_por_mim'] > 0)
                     <span class="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full {{ $filtroStatus === 'assinados_por_mim' ? 'bg-white text-green-600' : 'bg-green-600 text-white' }}">
                         {{ $stats['assinados_por_mim'] }}
@@ -69,7 +92,7 @@
             </a>
 
             <!-- Documentos com Prazos -->
-            <a href="{{ route('admin.documentos.index', ['status' => 'com_prazos']) }}" 
+                <a href="{{ route('admin.documentos.index', ['status' => 'com_prazos', 'escopo' => $escopo]) }}" 
                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
                       {{ $filtroStatus === 'com_prazos' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                 <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +114,7 @@
                 Filtrar por Tipo de Documento:
             </label>
             <select id="filtro_tipo" 
-                    onchange="window.location.href = '{{ route('admin.documentos.index', ['status' => 'com_prazos']) }}&tipo_documento_id=' + this.value"
+                    onchange="window.location.href = '{{ route('admin.documentos.index', ['status' => 'com_prazos', 'escopo' => $escopo]) }}&tipo_documento_id=' + this.value"
                     class="w-full md:w-80 px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-xs">
                 <option value="">Todos os tipos</option>
                 @foreach($tiposDocumento as $tipo)
@@ -183,7 +206,7 @@
                                     @php
                                         $minhaAssinatura = $documento->assinaturas->where('usuario_interno_id', auth('interno')->id())->first();
                                     @endphp
-                                    @if($minhaAssinatura)
+                                    @if($escopo === 'meus' && $minhaAssinatura)
                                         <div class="mt-1 text-xs">
                                             @if($minhaAssinatura->status === 'assinado')
                                                 <span class="inline-flex items-center text-green-600">

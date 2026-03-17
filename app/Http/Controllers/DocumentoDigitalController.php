@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NivelAcesso;
 use App\Models\DocumentoDigital;
 use App\Models\DocumentoAssinatura;
 use App\Models\TipoDocumento;
@@ -24,39 +25,44 @@ class DocumentoDigitalController extends Controller
     {
         $usuarioLogado = auth('interno')->user();
         $filtroStatus = $request->get('status', 'todos');
-        
-        // Query base: documentos relacionados ao usuário
-        $query = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo', 'assinaturas.usuarioInterno'])
-            ->where(function($q) use ($usuarioLogado) {
-                // Documentos criados pelo usuário
-                $q->where('usuario_criador_id', $usuarioLogado->id)
-                  // OU documentos onde o usuário é assinante
-                  ->orWhereHas('assinaturas', function($query) use ($usuarioLogado) {
-                      $query->where('usuario_interno_id', $usuarioLogado->id);
-                  });
-            });
+        $escopoSolicitado = $request->get('escopo', 'meus');
+        $podeVerDocumentosDoSetor = ($usuarioLogado->isGestor() || $usuarioLogado->isAdmin()) && !empty($usuarioLogado->setor);
+        $escopo = $podeVerDocumentosDoSetor && $escopoSolicitado === 'setor' ? 'setor' : 'meus';
+
+        $query = $this->montarQueryDocumentosIndex($usuarioLogado, $escopo);
         
         // Aplicar filtro de status
         if ($filtroStatus !== 'todos') {
             switch ($filtroStatus) {
                 case 'rascunho':
-                    $query->where('status', 'rascunho')
-                          ->where('usuario_criador_id', $usuarioLogado->id);
+                    $query->where('status', 'rascunho');
+
+                    if ($escopo === 'meus') {
+                        $query->where('usuario_criador_id', $usuarioLogado->id);
+                    }
                     break;
                     
                 case 'aguardando_minha_assinatura':
-                    $query->where('status', 'aguardando_assinatura')
-                          ->whereHas('assinaturas', function($q) use ($usuarioLogado) {
-                              $q->where('usuario_interno_id', $usuarioLogado->id)
-                                ->where('status', 'pendente');
-                          });
+                    if ($escopo === 'setor') {
+                        $query->where('status', 'aguardando_assinatura');
+                    } else {
+                        $query->where('status', 'aguardando_assinatura')
+                            ->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                                $q->where('usuario_interno_id', $usuarioLogado->id)
+                                  ->where('status', 'pendente');
+                            });
+                    }
                     break;
                     
                 case 'assinados_por_mim':
-                    $query->whereHas('assinaturas', function($q) use ($usuarioLogado) {
-                        $q->where('usuario_interno_id', $usuarioLogado->id)
-                          ->where('status', 'assinado');
-                    });
+                    if ($escopo === 'setor') {
+                        $query->where('status', 'assinado');
+                    } else {
+                        $query->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                            $q->where('usuario_interno_id', $usuarioLogado->id)
+                              ->where('status', 'assinado');
+                        });
+                    }
                     break;
                     
                 case 'aguardando_assinatura':
@@ -87,32 +93,79 @@ class DocumentoDigitalController extends Controller
             ->get();
         
         // Estatísticas para badges
+        $statsQuery = $this->montarQueryDocumentosIndex($usuarioLogado, $escopo);
         $stats = [
-            'rascunhos' => DocumentoDigital::where('usuario_criador_id', $usuarioLogado->id)
-                ->where('status', 'rascunho')
-                ->count(),
-            'aguardando_minha_assinatura' => DocumentoDigital::where('status', 'aguardando_assinatura')
-                ->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+            'rascunhos' => (clone $statsQuery)->where('status', 'rascunho')->when($escopo === 'meus', fn($q) => $q->where('usuario_criador_id', $usuarioLogado->id))->count(),
+            'aguardando_minha_assinatura' => $escopo === 'setor'
+                ? (clone $statsQuery)->where('status', 'aguardando_assinatura')->count()
+                : (clone $statsQuery)->where('status', 'aguardando_assinatura')->whereHas('assinaturas', function($q) use ($usuarioLogado) {
                     $q->where('usuario_interno_id', $usuarioLogado->id)
                       ->where('status', 'pendente');
-                })
-                ->count(),
-            'assinados_por_mim' => DocumentoDigital::whereHas('assinaturas', function($q) use ($usuarioLogado) {
-                $q->where('usuario_interno_id', $usuarioLogado->id)
-                  ->where('status', 'assinado');
-            })
-            ->count(),
-            'com_prazos' => DocumentoDigital::where(function($q) use ($usuarioLogado) {
-                $q->where('usuario_criador_id', $usuarioLogado->id)
-                  ->orWhereHas('assinaturas', function($query) use ($usuarioLogado) {
-                      $query->where('usuario_interno_id', $usuarioLogado->id);
-                  });
-            })
-            ->whereNotNull('data_vencimento')
-            ->count(),
+                })->count(),
+            'assinados_por_mim' => $escopo === 'setor'
+                ? (clone $statsQuery)->where('status', 'assinado')->count()
+                : (clone $statsQuery)->whereHas('assinaturas', function($q) use ($usuarioLogado) {
+                    $q->where('usuario_interno_id', $usuarioLogado->id)
+                      ->where('status', 'assinado');
+                })->count(),
+            'com_prazos' => (clone $statsQuery)->whereNotNull('data_vencimento')->count(),
         ];
 
-        return view('documentos.index', compact('documentos', 'filtroStatus', 'stats', 'tiposDocumento'));
+        return view('documentos.index', compact('documentos', 'filtroStatus', 'stats', 'tiposDocumento', 'escopo', 'podeVerDocumentosDoSetor'));
+    }
+
+    private function montarQueryDocumentosIndex(UsuarioInterno $usuarioLogado, string $escopo)
+    {
+        $query = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo', 'assinaturas.usuarioInterno']);
+
+        if ($escopo === 'setor') {
+            $tecnicosDoSetorIds = $this->buscarTecnicosDoSetorIds($usuarioLogado);
+
+            if (empty($tecnicosDoSetorIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('usuario_criador_id', $tecnicosDoSetorIds);
+        }
+
+        return $query->where(function($q) use ($usuarioLogado) {
+            $q->where('usuario_criador_id', $usuarioLogado->id)
+              ->orWhereHas('assinaturas', function($query) use ($usuarioLogado) {
+                  $query->where('usuario_interno_id', $usuarioLogado->id);
+              });
+        });
+    }
+
+    private function buscarTecnicosDoSetorIds(UsuarioInterno $usuarioLogado): array
+    {
+        if (!$usuarioLogado->setor) {
+            return [];
+        }
+
+        $query = UsuarioInterno::where('setor', $usuarioLogado->setor)
+            ->where('ativo', true);
+
+        if ($usuarioLogado->isGestor()) {
+            if ($usuarioLogado->isMunicipal()) {
+                $query->where('nivel_acesso', NivelAcesso::TecnicoMunicipal->value)
+                    ->where('municipio_id', $usuarioLogado->municipio_id);
+            } elseif ($usuarioLogado->isEstadual()) {
+                $query->where('nivel_acesso', NivelAcesso::TecnicoEstadual->value);
+            }
+        } elseif ($usuarioLogado->isAdmin()) {
+            $query->whereIn('nivel_acesso', [
+                NivelAcesso::TecnicoEstadual->value,
+                NivelAcesso::TecnicoMunicipal->value,
+            ]);
+
+            if ($usuarioLogado->municipio_id) {
+                $query->where('municipio_id', $usuarioLogado->municipio_id);
+            }
+        } else {
+            return [];
+        }
+
+        return $query->pluck('id')->all();
     }
 
     /**

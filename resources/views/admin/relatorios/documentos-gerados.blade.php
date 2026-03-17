@@ -117,7 +117,8 @@
                             $estabelecimento = $processo?->estabelecimento;
                             $municipio = $estabelecimento?->municipio;
                             $registroExcluido = method_exists($documento, 'trashed') && $documento->trashed();
-                            $registroApagado = !$registroExcluido && (!$processo || !$estabelecimento);
+                            $processoApagado = $processo && method_exists($processo, 'trashed') && $processo->trashed();
+                            $registroApagado = !$registroExcluido && (!$processo || !$estabelecimento || $processoApagado);
                             $status = $documento->status;
                             $statusClass = match (true) {
                                 $registroExcluido, $registroApagado => 'bg-red-100 text-red-700',
