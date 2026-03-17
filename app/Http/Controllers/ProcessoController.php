@@ -3214,6 +3214,14 @@ class ProcessoController extends Controller
      */
     public function definirPrazoDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId)
     {
+        \Log::info('Iniciando definicao manual de prazo para documento digital', [
+            'estabelecimento_id' => $estabelecimentoId,
+            'processo_id' => $processoId,
+            'documento_id' => $documentoId,
+            'usuario_interno_id' => auth('interno')->id(),
+            'payload' => $request->only(['prazo_dias', 'tipo_prazo']),
+        ]);
+
         $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
         $this->validarPermissaoAcesso($estabelecimento);
 
@@ -3241,30 +3249,68 @@ class ProcessoController extends Controller
             return back()->with('warning', 'Este documento já possui prazo configurado.');
         }
 
-        DB::transaction(function () use ($documento, $processo, $request, $validated) {
+        try {
+            DB::transaction(function () use ($documento, $processo, $request, $validated) {
             $documento->definirPrazoManualmente(
                 (int) $validated['prazo_dias'],
                 $validated['tipo_prazo'],
                 (bool) ($documento->tipoDocumento?->prazo_notificacao ?? false)
             );
 
-            ProcessoEvento::create([
-                'processo_id' => $processo->id,
+                try {
+                    ProcessoEvento::create([
+                        'processo_id' => $processo->id,
+                        'usuario_interno_id' => auth('interno')->id(),
+                        'tipo_evento' => 'prazo_definido_manual',
+                        'titulo' => 'Prazo definido manualmente',
+                        'descricao' => 'Prazo de ' . $documento->prazo_dias . ' dia(s) ' . ($documento->tipo_prazo === 'uteis' ? 'úteis' : 'corridos') . ' definido manualmente para o documento ' . ($documento->numero_documento ?? ('#' . $documento->id)) . '.',
+                        'dados_adicionais' => [
+                            'documento_digital_id' => $documento->id,
+                            'prazo_dias' => $documento->prazo_dias,
+                            'tipo_prazo' => $documento->tipo_prazo,
+                            'data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
+                            'prazo_iniciado_em' => optional($documento->prazo_iniciado_em)->toDateTimeString(),
+                        ],
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+                } catch (\Throwable $eventoException) {
+                    \Log::warning('Prazo definido, mas falha ao registrar evento do processo', [
+                        'processo_id' => $processo->id,
+                        'documento_id' => $documento->id,
+                        'erro' => $eventoException->getMessage(),
+                    ]);
+                }
+            });
+        } catch (\Throwable $exception) {
+            \Log::error('Falha ao definir prazo manualmente para documento digital', [
+                'estabelecimento_id' => $estabelecimentoId,
+                'processo_id' => $processoId,
+                'documento_id' => $documentoId,
                 'usuario_interno_id' => auth('interno')->id(),
-                'tipo_evento' => 'prazo_definido_manual',
-                'titulo' => 'Prazo definido manualmente',
-                'descricao' => 'Prazo de ' . $documento->prazo_dias . ' dia(s) ' . ($documento->tipo_prazo === 'uteis' ? 'úteis' : 'corridos') . ' definido manualmente para o documento ' . ($documento->numero_documento ?? ('#' . $documento->id)) . '.',
-                'dados_adicionais' => [
-                    'documento_digital_id' => $documento->id,
-                    'prazo_dias' => $documento->prazo_dias,
-                    'tipo_prazo' => $documento->tipo_prazo,
-                    'data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
-                    'prazo_iniciado_em' => optional($documento->prazo_iniciado_em)->toDateTimeString(),
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'payload' => $request->only(['prazo_dias', 'tipo_prazo']),
+                'documento_status' => $documento->status,
+                'documento_prazo_dias' => $documento->prazo_dias,
+                'documento_data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
+                'documento_tipo_documento_id' => $documento->tipo_documento_id,
+                'documento_tipo_tem_prazo' => $documento->tipoDocumento?->tem_prazo,
+                'documento_tipo_prazo_notificacao' => $documento->tipoDocumento?->prazo_notificacao,
+                'erro' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
             ]);
-        });
+
+            return back()->with('error', 'Erro ao definir prazo do documento. Verifique o log da aplicação para mais detalhes.');
+        }
+
+        \Log::info('Prazo manual definido com sucesso para documento digital', [
+            'estabelecimento_id' => $estabelecimentoId,
+            'processo_id' => $processoId,
+            'documento_id' => $documento->id,
+            'prazo_dias' => $documento->prazo_dias,
+            'tipo_prazo' => $documento->tipo_prazo,
+            'data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
+            'prazo_iniciado_em' => optional($documento->prazo_iniciado_em)->toDateTimeString(),
+        ]);
 
         return redirect()
             ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
