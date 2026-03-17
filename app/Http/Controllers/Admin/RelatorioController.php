@@ -694,24 +694,40 @@ class RelatorioController extends Controller
     public function documentosGerados(Request $request)
     {
         $usuario = auth('interno')->user();
+        $podeVerApagados = $usuario->isAdmin();
 
         $tiposDocumento = TipoDocumento::orderBy('nome')->get(['id', 'nome']);
 
         $query = DocumentoDigital::query()
+            ->when($podeVerApagados, fn ($q) => $q->withTrashed())
             ->with([
                 'tipoDocumento:id,nome',
-                'usuarioCriador:id,nome',
-                'processo:id,numero_processo,estabelecimento_id',
+                'usuarioCriador:id,nome,municipio_id,nivel_acesso',
+                'processo' => fn ($q) => $podeVerApagados
+                    ? $q->withTrashed()->select(['id', 'numero_processo', 'estabelecimento_id', 'deleted_at'])
+                    : $q->select(['id', 'numero_processo', 'estabelecimento_id']),
                 'processo.estabelecimento:id,nome_fantasia,razao_social,municipio_id',
                 'processo.estabelecimento.municipio:id,nome',
             ])
             ->whereNotNull('numero_documento');
 
-        // Usuários municipais veem apenas documentos do seu município
-        if ($usuario->isMunicipal()) {
-            $query->whereHas('processo.estabelecimento', function ($q) use ($usuario) {
+        if ($usuario->isAdmin()) {
+            // Admin visualiza tudo, inclusive registros excluídos/orfãos.
+        } elseif ($usuario->isEstadual()) {
+            $query->whereHas('usuarioCriador', function ($q) {
+                $q->whereIn('nivel_acesso', [
+                    \App\Enums\NivelAcesso::GestorEstadual->value,
+                    \App\Enums\NivelAcesso::TecnicoEstadual->value,
+                ]);
+            })->whereHas('processo.estabelecimento');
+        } elseif ($usuario->isMunicipal()) {
+            $query->whereHas('usuarioCriador', function ($q) use ($usuario) {
+                $q->where('municipio_id', $usuario->municipio_id);
+            })->whereHas('processo.estabelecimento', function ($q) use ($usuario) {
                 $q->where('municipio_id', $usuario->municipio_id);
             });
+        } else {
+            $query->whereRaw('1 = 0');
         }
 
         // Filtros opcionais
@@ -762,7 +778,7 @@ class RelatorioController extends Controller
             'rascunhos' => (clone $query)->where('status', 'rascunho')->count(),
         ];
 
-        return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais', 'tiposDocumento'));
+        return view('admin.relatorios.documentos-gerados', compact('documentos', 'totais', 'tiposDocumento', 'podeVerApagados'));
     }
 
     /**

@@ -116,12 +116,30 @@
                             $processo = $documento->processo;
                             $estabelecimento = $processo?->estabelecimento;
                             $municipio = $estabelecimento?->municipio;
+                            $registroExcluido = method_exists($documento, 'trashed') && $documento->trashed();
+                            $registroApagado = !$registroExcluido && (!$processo || !$estabelecimento);
+                            $status = $documento->status;
+                            $statusClass = match (true) {
+                                $registroExcluido, $registroApagado => 'bg-red-100 text-red-700',
+                                $status === 'assinado' => 'bg-green-100 text-green-700',
+                                $status === 'aguardando_assinatura' => 'bg-amber-100 text-amber-700',
+                                default => 'bg-gray-100 text-gray-700',
+                            };
+                            $statusLabel = match (true) {
+                                $registroExcluido => 'Excluído',
+                                $registroApagado => 'Apagado',
+                                default => str_replace('_', ' ', ucfirst($status ?? 'não informado')),
+                            };
                         @endphp
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                                <a href="{{ route('admin.documentos.show', $documento->id) }}" class="text-blue-600 hover:text-blue-800 hover:underline transition">
-                                    {{ $documento->numero_documento ?? '-' }}
-                                </a>
+                                @if(!$registroExcluido)
+                                    <a href="{{ route('admin.documentos.show', $documento->id) }}" class="text-blue-600 hover:text-blue-800 hover:underline transition">
+                                        {{ $documento->numero_documento ?? '-' }}
+                                    </a>
+                                @else
+                                    <span>{{ $documento->numero_documento ?? '-' }}</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">{{ $documento->tipoDocumento->nome ?? $documento->nome ?? '-' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-700">
@@ -129,24 +147,18 @@
                                     <a href="{{ route('admin.estabelecimentos.processos.show', [$estabelecimento->id, $processo->id]) }}" class="text-blue-600 hover:text-blue-800 hover:underline transition">
                                         {{ $processo->numero_processo }}
                                     </a>
+                                @elseif($podeVerApagados)
+                                    Apagado
                                 @else
                                     -
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ $estabelecimento?->nome_fantasia ?? $estabelecimento?->razao_social ?? '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ $municipio?->nome ?? '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ $estabelecimento?->nome_fantasia ?? $estabelecimento?->razao_social ?? ($podeVerApagados ? 'Apagado' : '-') }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ $municipio?->nome ?? ($podeVerApagados ? 'Apagado' : '-') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-700">{{ $documento->usuarioCriador->nome ?? '-' }}</td>
                             <td class="px-4 py-3 text-sm">
-                                @php
-                                    $status = $documento->status;
-                                    $statusClass = match($status) {
-                                        'assinado' => 'bg-green-100 text-green-700',
-                                        'aguardando_assinatura' => 'bg-amber-100 text-amber-700',
-                                        default => 'bg-gray-100 text-gray-700',
-                                    };
-                                @endphp
                                 <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium {{ $statusClass }}">
-                                    {{ str_replace('_', ' ', ucfirst($status ?? 'não informado')) }}
+                                    {{ $statusLabel }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">{{ optional($documento->created_at)->format('d/m/Y H:i') }}</td>
