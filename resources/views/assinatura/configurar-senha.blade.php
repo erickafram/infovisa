@@ -34,7 +34,7 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.assinatura.salvar-senha') }}" method="POST" class="space-y-6">
+        <form action="{{ route('admin.assinatura.salvar-senha') }}" method="POST" class="space-y-6" x-data="{ mostrarSenhaAtual: false, mostrarSenhaAssinatura: false, mostrarConfirmacao: false }">
             @csrf
 
             {{-- Senha Atual (Login) --}}
@@ -42,12 +42,19 @@
                 <label for="senha_atual" class="block text-sm font-medium text-gray-700 mb-1">
                     Senha de Login Atual *
                 </label>
-                <input type="password" 
-                       name="senha_atual" 
-                       id="senha_atual"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('senha_atual') border-red-500 @enderror"
-                       placeholder="Digite sua senha de login para confirmar"
-                       required>
+                <div class="relative">
+                    <input x-bind:type="mostrarSenhaAtual ? 'text' : 'password'"
+                           name="senha_atual" 
+                           id="senha_atual"
+                           class="w-full px-4 py-2 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('senha_atual') border-red-500 @enderror"
+                           placeholder="Digite sua senha de login para confirmar"
+                           required>
+                    <button type="button"
+                            @click="mostrarSenhaAtual = !mostrarSenhaAtual"
+                            class="absolute inset-y-0 right-0 px-4 text-sm font-medium text-gray-500 hover:text-blue-600 transition">
+                        <span x-text="mostrarSenhaAtual ? 'Ocultar' : 'Ver senha'"></span>
+                    </button>
+                </div>
                 <p class="mt-1 text-xs text-gray-500">
                     Digite sua senha de login do sistema para confirmar a operação
                 </p>
@@ -61,13 +68,20 @@
                 <label for="senha_assinatura" class="block text-sm font-medium text-gray-700 mb-1">
                     {{ $usuario->temSenhaAssinatura() ? 'Nova Senha de Assinatura Digital *' : 'Senha de Assinatura Digital *' }}
                 </label>
-                <input type="password" 
-                       name="senha_assinatura" 
-                       id="senha_assinatura"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('senha_assinatura') border-red-500 @enderror"
-                       placeholder="Digite a senha de assinatura (mínimo 6 caracteres)"
-                       minlength="6"
-                       required>
+                <div class="relative">
+                    <input x-bind:type="mostrarSenhaAssinatura ? 'text' : 'password'"
+                           name="senha_assinatura" 
+                           id="senha_assinatura"
+                           class="w-full px-4 py-2 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('senha_assinatura') border-red-500 @enderror"
+                           placeholder="Digite a senha de assinatura (mínimo 6 caracteres)"
+                           minlength="6"
+                           required>
+                    <button type="button"
+                            @click="mostrarSenhaAssinatura = !mostrarSenhaAssinatura"
+                            class="absolute inset-y-0 right-0 px-4 text-sm font-medium text-gray-500 hover:text-blue-600 transition">
+                        <span x-text="mostrarSenhaAssinatura ? 'Ocultar' : 'Ver senha'"></span>
+                    </button>
+                </div>
                 <p class="mt-1 text-xs text-gray-500">
                     Mínimo de 6 caracteres. Esta senha será usada apenas para assinar documentos.
                 </p>
@@ -81,13 +95,20 @@
                 <label for="senha_assinatura_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
                     Confirmar Senha de Assinatura *
                 </label>
-                <input type="password" 
-                       name="senha_assinatura_confirmation" 
-                       id="senha_assinatura_confirmation"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="Digite novamente a senha de assinatura"
-                       minlength="6"
-                       required>
+                <div class="relative">
+                    <input x-bind:type="mostrarConfirmacao ? 'text' : 'password'"
+                           name="senha_assinatura_confirmation" 
+                           id="senha_assinatura_confirmation"
+                           class="w-full px-4 py-2 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Digite novamente a senha de assinatura"
+                           minlength="6"
+                           required>
+                    <button type="button"
+                            @click="mostrarConfirmacao = !mostrarConfirmacao"
+                            class="absolute inset-y-0 right-0 px-4 text-sm font-medium text-gray-500 hover:text-blue-600 transition">
+                        <span x-text="mostrarConfirmacao ? 'Ocultar' : 'Ver senha'"></span>
+                    </button>
+                </div>
                 <p class="mt-1 text-xs text-gray-500">
                     Digite a mesma senha para confirmar
                 </p>
