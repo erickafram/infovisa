@@ -3241,7 +3241,7 @@ class ProcessoController extends Controller
             return back()->with('warning', 'Este documento já possui prazo configurado.');
         }
 
-        DB::transaction(function () use ($documento, $processo, $validated) {
+        DB::transaction(function () use ($documento, $processo, $request, $validated) {
             $documento->definirPrazoManualmente(
                 (int) $validated['prazo_dias'],
                 $validated['tipo_prazo'],
@@ -3254,13 +3254,15 @@ class ProcessoController extends Controller
                 'tipo_evento' => 'prazo_definido_manual',
                 'titulo' => 'Prazo definido manualmente',
                 'descricao' => 'Prazo de ' . $documento->prazo_dias . ' dia(s) ' . ($documento->tipo_prazo === 'uteis' ? 'úteis' : 'corridos') . ' definido manualmente para o documento ' . ($documento->numero_documento ?? ('#' . $documento->id)) . '.',
-                'dados_extras' => [
+                'dados_adicionais' => [
                     'documento_digital_id' => $documento->id,
                     'prazo_dias' => $documento->prazo_dias,
                     'tipo_prazo' => $documento->tipo_prazo,
                     'data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
                     'prazo_iniciado_em' => optional($documento->prazo_iniciado_em)->toDateTimeString(),
                 ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
         });
 
