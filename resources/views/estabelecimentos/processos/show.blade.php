@@ -1159,7 +1159,7 @@
                                                         </span>
                                                     @endif
 
-                                                    @if($docDigital->primeiraVisualizacao && $docDigital->temPrazo() && !$docDigital->isPrazoFinalizado())
+                                                    @if($docDigital->temPrazo() && !$docDigital->isPrazoFinalizado() && ($docDigital->prazo_iniciado_em || !$docDigital->prazo_notificacao || $docDigital->primeiraVisualizacao))
                                                         @php
                                                             $classesCorPrazo = [
                                                                 'red' => 'bg-red-100 text-red-700',
