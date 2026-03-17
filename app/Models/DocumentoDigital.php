@@ -389,6 +389,38 @@ class DocumentoDigital extends Model
     }
 
     /**
+     * Define manualmente o prazo e inicia a contagem imediatamente.
+     */
+    public function definirPrazoManualmente(int $prazoDias, string $tipoPrazo, bool $prazoNotificacao = false): void
+    {
+        if ($prazoDias < 1) {
+            throw new \InvalidArgumentException('O prazo deve ser de pelo menos 1 dia.');
+        }
+
+        if ($this->status !== 'assinado' || !$this->todasAssinaturasCompletas()) {
+            throw new \RuntimeException('Só é possível definir prazo manualmente em documentos totalmente assinados.');
+        }
+
+        if ($this->prazo_dias || $this->data_vencimento) {
+            throw new \RuntimeException('Este documento já possui prazo configurado.');
+        }
+
+        $inicioPrazo = now();
+
+        $this->update([
+            'prazo_dias' => $prazoDias,
+            'tipo_prazo' => $tipoPrazo,
+            'prazo_notificacao' => $prazoNotificacao,
+            'prazo_iniciado_em' => $inicioPrazo,
+            'prazo_iniciado_por' => 'definicao_manual_admin',
+            'data_vencimento' => $this->calcularDataVencimento($inicioPrazo, $prazoDias, $tipoPrazo),
+            'prazo_finalizado_em' => null,
+            'prazo_finalizado_por' => null,
+            'prazo_finalizado_motivo' => null,
+        ]);
+    }
+
+    /**
      * Calcula a data de vencimento baseada no tipo de prazo
      */
     private function calcularDataVencimento($dataInicio, $dias, $tipoPrazo): \Carbon\Carbon

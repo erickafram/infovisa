@@ -3210,6 +3210,66 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Define manualmente o prazo de um documento digital já assinado.
+     */
+    public function definirPrazoDocumento(Request $request, $estabelecimentoId, $processoId, $documentoId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->findOrFail($processoId);
+
+        $documento = DocumentoDigital::with('tipoDocumento')
+            ->where('processo_id', $processo->id)
+            ->findOrFail($documentoId);
+
+        $validated = $request->validate([
+            'prazo_dias' => 'required|integer|min:1|max:3650',
+            'tipo_prazo' => 'required|in:corridos,uteis',
+        ]);
+
+        if (!($documento->tipoDocumento?->tem_prazo)) {
+            return back()->with('error', 'O tipo deste documento não permite configuração de prazo.');
+        }
+
+        if ($documento->status !== 'assinado' || !$documento->todasAssinaturasCompletas()) {
+            return back()->with('error', 'Só é possível definir prazo manualmente após o documento estar totalmente assinado.');
+        }
+
+        if ($documento->prazo_dias || $documento->data_vencimento) {
+            return back()->with('warning', 'Este documento já possui prazo configurado.');
+        }
+
+        DB::transaction(function () use ($documento, $processo, $validated) {
+            $documento->definirPrazoManualmente(
+                (int) $validated['prazo_dias'],
+                $validated['tipo_prazo'],
+                (bool) ($documento->tipoDocumento?->prazo_notificacao ?? false)
+            );
+
+            ProcessoEvento::create([
+                'processo_id' => $processo->id,
+                'usuario_interno_id' => auth('interno')->id(),
+                'tipo_evento' => 'prazo_definido_manual',
+                'titulo' => 'Prazo definido manualmente',
+                'descricao' => 'Prazo de ' . $documento->prazo_dias . ' dia(s) ' . ($documento->tipo_prazo === 'uteis' ? 'úteis' : 'corridos') . ' definido manualmente para o documento ' . ($documento->numero_documento ?? ('#' . $documento->id)) . '.',
+                'dados_extras' => [
+                    'documento_digital_id' => $documento->id,
+                    'prazo_dias' => $documento->prazo_dias,
+                    'tipo_prazo' => $documento->tipo_prazo,
+                    'data_vencimento' => optional($documento->data_vencimento)->format('Y-m-d'),
+                    'prazo_iniciado_em' => optional($documento->prazo_iniciado_em)->toDateTimeString(),
+                ],
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+            ->with('success', 'Prazo definido com sucesso. A contagem foi iniciada imediatamente para este documento.');
+    }
+
+    /**
      * Reabre o prazo de um documento digital
      */
     public function reabrirPrazoDocumento($estabelecimentoId, $processoId, $documentoId)

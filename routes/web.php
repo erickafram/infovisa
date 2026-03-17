@@ -374,7 +374,8 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/revalidar', [\App\Http\Controllers\ProcessoController::class, 'revalidarRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.revalidar');
     Route::delete('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/respostas/{resposta}/excluir', [\App\Http\Controllers\ProcessoController::class, 'excluirRespostaDocumento'])->name('estabelecimentos.processos.documento-digital.resposta.excluir');
     
-    // Finalizar/Reabrir prazo de documentos digitais
+    // Definir/Finalizar/Reabrir prazo de documentos digitais
+    Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/definir-prazo', [\App\Http\Controllers\ProcessoController::class, 'definirPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.definir-prazo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/finalizar-prazo', [\App\Http\Controllers\ProcessoController::class, 'finalizarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.finalizar-prazo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/reabrir-prazo', [\App\Http\Controllers\ProcessoController::class, 'reabrirPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.reabrir-prazo');
     Route::post('/estabelecimentos/{id}/processos/{processo}/documentos-digitais/{documento}/prorrogar-prazo', [\App\Http\Controllers\ProcessoController::class, 'prorrogarPrazoDocumento'])->name('estabelecimentos.processos.documento-digital.prorrogar-prazo');

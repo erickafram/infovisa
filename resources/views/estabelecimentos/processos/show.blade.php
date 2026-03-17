@@ -999,6 +999,11 @@
                                         $temAssinaturasPendentes = $assinaturasPendentes > 0;
                                         $podeProrrogarPrazo = $docDigital->podeProrrogarPrazo();
                                         $diasProrrogacaoDisponiveis = $docDigital->dias_prorrogacao_disponiveis;
+                                        $podeDefinirPrazo = ($docDigital->tipoDocumento?->tem_prazo ?? false)
+                                            && !$docDigital->prazo_dias
+                                            && !$docDigital->data_vencimento
+                                            && $docDigital->status === 'assinado'
+                                            && $docDigital->todasAssinaturasCompletas();
                                         
                                         // Verificar se o usuário logado precisa assinar este documento
                                         $usuarioLogado = auth('interno')->user();
@@ -1291,6 +1296,16 @@
                                                     Prorrogar
                                                 </button>
                                             @endif
+
+                                            @if($podeDefinirPrazo)
+                                                <button type="button"
+                                                        @click="abrirModalDefinirPrazo({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.documento-digital.definir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}')"
+                                                        class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-lg transition-colors"
+                                                        title="Definir prazo para documento já assinado">
+                                                    <i class="far fa-clock" style="font-size: 12px;"></i>
+                                                    Definir Prazo
+                                                </button>
+                                            @endif
                                             
                                             {{-- Botão Download PDF --}}
                                             @if($docDigital->status !== 'rascunho' && $docDigital->arquivo_pdf)
@@ -1374,6 +1389,13 @@
                                                                 Finalizar (aguardando)
                                                             </span>
                                                         @endif
+                                                    @elseif($podeDefinirPrazo)
+                                                        <button type="button"
+                                                                @click="abrirModalDefinirPrazo({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }}', '{{ $docDigital->numero_documento }}', '{{ route('admin.estabelecimentos.processos.documento-digital.definir-prazo', [$estabelecimento->id, $processo->id, $docDigital->id]) }}'); menuAberto = false"
+                                                                class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 transition-colors">
+                                                            <i class="far fa-clock fa-fw" style="font-size: 13px;"></i>
+                                                            Definir Prazo
+                                                        </button>
                                                     @endif
                                                     <button @click="excluirDocumentoDigital({{ $docDigital->id }}, '{{ addslashes($docDigital->nome ?? $docDigital->tipoDocumento->nome) }} - {{ $docDigital->numero_documento }}'); menuAberto = false"
                                                             class="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors">
@@ -2061,6 +2083,76 @@
                             <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                                 <i class="far fa-calendar-plus" style="font-size: 12px;"></i>
                                 Confirmar Prorrogação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="modalDefinirPrazo">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-show="modalDefinirPrazo" style="display: none;">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="fixed inset-0 bg-gray-900/50" @click="modalDefinirPrazo = false"></div>
+
+                <div class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
+                    <div class="border-b border-gray-200 px-6 py-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-cyan-600">Definir Prazo</p>
+                                <h3 class="mt-1 text-lg font-semibold text-gray-900" x-text="definirPrazoDocumentoNome"></h3>
+                                <p class="mt-1 text-xs text-gray-500" x-text="definirPrazoDocumentoNumero"></p>
+                            </div>
+                            <button type="button" @click="modalDefinirPrazo = false" class="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form :action="definirPrazoUrl" method="POST" class="px-6 py-5 space-y-4">
+                        @csrf
+                        <div class="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
+                            <p class="font-semibold">O documento já está assinado.</p>
+                            <p class="mt-1">Ao salvar, o prazo começa a contar imediatamente no ambiente admin e no ambiente company.</p>
+                        </div>
+
+                        <div>
+                            <label for="definir_prazo_dias" class="block text-sm font-medium text-gray-700 mb-2">Prazo em dias</label>
+                            <input type="number"
+                                   id="definir_prazo_dias"
+                                   name="prazo_dias"
+                                   x-model="definirPrazoDias"
+                                   min="1"
+                                   max="3650"
+                                   required
+                                   class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                   placeholder="Ex: 30">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de prazo</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center cursor-pointer rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 transition-colors">
+                                    <input type="radio" name="tipo_prazo" value="corridos" x-model="definirPrazoTipo" required class="h-4 w-4 text-cyan-600 focus:ring-cyan-500">
+                                    <span class="ml-2"><strong>Dias corridos</strong> - conta todos os dias</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-700 hover:bg-cyan-50 transition-colors">
+                                    <input type="radio" name="tipo_prazo" value="uteis" x-model="definirPrazoTipo" required class="h-4 w-4 text-cyan-600 focus:ring-cyan-500">
+                                    <span class="ml-2"><strong>Dias úteis</strong> - exclui finais de semana</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 pt-2">
+                            <button type="button" @click="modalDefinirPrazo = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors">
+                                <i class="far fa-clock" style="font-size: 12px;"></i>
+                                Salvar Prazo
                             </button>
                         </div>
                     </form>
@@ -3910,6 +4002,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 modalRespostas: false,
                 modalAssinar: false,
                 modalProrrogarPrazo: false,
+                modalDefinirPrazo: false,
                 
                 // Modal de Assinatura
                 assinarDocumentoId: null,
@@ -3929,6 +4022,14 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 prorrogarPrazoDiasDisponiveis: 0,
                 prorrogarPrazoDias: 1,
                 prorrogarPrazoUrl: '',
+
+                // Modal de Definição de Prazo
+                definirPrazoDocumentoId: null,
+                definirPrazoDocumentoNome: '',
+                definirPrazoDocumentoNumero: '',
+                definirPrazoDias: 1,
+                definirPrazoTipo: 'corridos',
+                definirPrazoUrl: '',
                 
                 // Modal de Respostas
                 respostasDocumentoId: null,
@@ -4401,6 +4502,16 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.prorrogarPrazoDias = this.prorrogarPrazoDiasDisponiveis > 0 ? 1 : 0;
                     this.prorrogarPrazoUrl = url;
                     this.modalProrrogarPrazo = true;
+                },
+
+                abrirModalDefinirPrazo(documentoId, nomeDocumento, numeroDocumento, url) {
+                    this.definirPrazoDocumentoId = documentoId;
+                    this.definirPrazoDocumentoNome = nomeDocumento;
+                    this.definirPrazoDocumentoNumero = numeroDocumento;
+                    this.definirPrazoDias = 1;
+                    this.definirPrazoTipo = 'corridos';
+                    this.definirPrazoUrl = url;
+                    this.modalDefinirPrazo = true;
                 },
 
                 // Processa assinatura via AJAX
