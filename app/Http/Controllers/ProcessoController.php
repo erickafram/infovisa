@@ -3261,7 +3261,7 @@ class ProcessoController extends Controller
                     ProcessoEvento::create([
                         'processo_id' => $processo->id,
                         'usuario_interno_id' => auth('interno')->id(),
-                        'tipo_evento' => 'prazo_definido_manual',
+                        'tipo_evento' => 'movimentacao',
                         'titulo' => 'Prazo definido manualmente',
                         'descricao' => 'Prazo de ' . $documento->prazo_dias . ' dia(s) ' . ($documento->tipo_prazo === 'uteis' ? 'úteis' : 'corridos') . ' definido manualmente para o documento ' . ($documento->numero_documento ?? ('#' . $documento->id)) . '.',
                         'dados_adicionais' => [
