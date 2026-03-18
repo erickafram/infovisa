@@ -313,6 +313,23 @@ class Estabelecimento extends Model
     }
 
     /**
+     * Verifica se o estabelecimento possui ao menos um usuário externo
+     * apto a receber ciência e visualizar documentos vinculados.
+     */
+    public function possuiUsuariosExternosVinculados(): bool
+    {
+        if (!empty($this->usuario_externo_id)) {
+            return true;
+        }
+
+        if ($this->relationLoaded('usuariosVinculados')) {
+            return $this->usuariosVinculados->isNotEmpty();
+        }
+
+        return $this->usuariosVinculados()->exists();
+    }
+
+    /**
      * Verifica se o usuário tem acesso de gestor (pode editar) no estabelecimento
      * Retorna true se:
      * - É o criador do estabelecimento

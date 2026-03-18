@@ -205,7 +205,7 @@ class DocumentoDigitalController extends Controller
 
         $processosSelecionados = collect();
         if (!empty($processosIds)) {
-            $processosSelecionados = \App\Models\Processo::with('estabelecimento.municipioRelacionado')
+            $processosSelecionados = \App\Models\Processo::with(['estabelecimento.municipioRelacionado', 'estabelecimento.usuariosVinculados'])
                 ->whereIn('id', $processosIds)
                 ->get();
         }
@@ -213,12 +213,15 @@ class DocumentoDigitalController extends Controller
         if ($processosSelecionados->isNotEmpty()) {
             $processo = $processosSelecionados->first();
         } elseif ($processoId) {
-            $processo = \App\Models\Processo::with('estabelecimento.municipioRelacionado')->find($processoId);
+            $processo = \App\Models\Processo::with(['estabelecimento.municipioRelacionado', 'estabelecimento.usuariosVinculados'])->find($processoId);
             if ($processo) {
                 $processosSelecionados = collect([$processo]);
                 $processosIds = [$processo->id];
             }
         }
+
+        $processosSemUsuarioExterno = $this->filtrarProcessosSemUsuarioExterno($processosSelecionados);
+        $processosSemUsuarioExternoCount = $processosSemUsuarioExterno->count();
 
         $pastasProcesso = collect();
         if ($processo && $processosSelecionados->count() === 1) {
@@ -249,7 +252,18 @@ class DocumentoDigitalController extends Controller
             }
         }
 
-        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId', 'atividadeIndex', 'assinaturasPreSelecionadas', 'pastasProcesso'));
+        return view('documentos.create', compact('tiposDocumento', 'usuariosInternos', 'processo', 'logomarca', 'processosSelecionados', 'processosIds', 'osId', 'atividadeIndex', 'assinaturasPreSelecionadas', 'pastasProcesso', 'processosSemUsuarioExterno', 'processosSemUsuarioExternoCount'));
+    }
+
+    private function filtrarProcessosSemUsuarioExterno($processos)
+    {
+        return collect($processos)
+            ->filter(function ($processo) {
+                $estabelecimento = $processo?->estabelecimento;
+
+                return $estabelecimento && !$estabelecimento->possuiUsuariosExternosVinculados();
+            })
+            ->values();
     }
 
     /**
@@ -348,6 +362,7 @@ class DocumentoDigitalController extends Controller
             'assinaturas.*' => 'exists:usuarios_internos,id',
             'prazo_dias' => 'nullable|integer|min:1',
             'tipo_prazo' => 'nullable|in:corridos,uteis',
+            'confirmar_sem_usuario_externo' => 'nullable|boolean',
             'processo_id' => 'nullable|exists:processos,id',
             'processos_ids' => 'nullable|array',
             'processos_ids.*' => 'exists:processos,id',
@@ -399,10 +414,22 @@ class DocumentoDigitalController extends Controller
             $tipoDocumento = TipoDocumento::findOrFail($request->tipo_documento_id);
 
             $processosDestino = $processosIds->isNotEmpty()
-                ? \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado'])
+                ? \App\Models\Processo::with(['estabelecimento.responsaveisTecnicos', 'estabelecimento.municipioRelacionado', 'estabelecimento.usuariosVinculados'])
                     ->whereIn('id', $processosIds)
                     ->get()
                 : collect();
+
+            $processosSemUsuarioExterno = $this->filtrarProcessosSemUsuarioExterno($processosDestino);
+
+            if ($request->filled('prazo_dias') && $processosSemUsuarioExterno->isNotEmpty() && !$request->boolean('confirmar_sem_usuario_externo')) {
+                $mensagem = $processosSemUsuarioExterno->count() === 1
+                    ? 'Não existe usuário vinculado a esse estabelecimento para visualizar este documento com prazo. Confirme que deseja criar o documento mesmo assim.'
+                    : 'Existem processos selecionados sem usuário vinculado ao estabelecimento para visualizar o documento com prazo. Confirme que deseja criar os documentos mesmo assim.';
+
+                throw ValidationException::withMessages([
+                    'prazo_dias' => $mensagem,
+                ]);
+            }
             
             // Calcula data de vencimento se prazo foi informado
             $dataVencimento = null;

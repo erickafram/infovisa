@@ -88,6 +88,54 @@
 
 <div class="min-h-screen bg-gray-50" x-data="documentoEditor()" @keydown.escape="modalConfirmarFinalizacao = false">
     <div class="max-w-8xl mx-auto px-4 py-8">
+        <div x-show="popupSemUsuarioExternoVisivel"
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-2"
+             class="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div class="absolute inset-0 bg-black/20"></div>
+            <div class="relative w-full max-w-2xl overflow-hidden rounded-none border border-amber-200 bg-white shadow-2xl">
+                <div class="h-1.5 bg-amber-500"></div>
+                <div class="p-6">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-100">
+                            <svg class="h-5 w-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-3">
+                                <p class="text-sm font-semibold text-amber-900">Não existe usuário vinculado ao estabelecimento para visualizar este documento com prazo.</p>
+                                <button type="button" @click="fecharPopupSemUsuarioExterno()" class="text-gray-400 hover:text-gray-600 transition">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="mt-2 text-sm leading-relaxed text-gray-700">
+                                O técnico ainda pode criar o documento, mas precisa ter ciência de que não há usuário externo vinculado para visualizar o documento ou iniciar a contagem de prazo pela ciência do estabelecimento.
+                            </p>
+                            <div class="mt-3 flex items-center justify-between gap-3">
+                                @if(isset($processo) && $processo->estabelecimento_id)
+                                    <a href="{{ route('admin.estabelecimentos.usuarios.index', $processo->estabelecimento_id) }}" class="inline-flex items-center gap-1 text-sm font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-700">
+                                        Ver usuários vinculados do estabelecimento
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @endif
+                                <span class="text-xs font-medium text-amber-700" x-text="`Fechando em ${popupSemUsuarioExternoSegundos}s`"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Mensagens de Erro --}}
         @if ($errors->any())
             <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
@@ -234,6 +282,7 @@
         
         {{-- Campo hidden para a ação (rascunho ou finalizar) --}}
         <input type="hidden" name="acao" id="inputAcao" value="rascunho">
+        <input type="hidden" name="confirmar_sem_usuario_externo" id="inputConfirmarSemUsuarioExterno" value="{{ old('confirmar_sem_usuario_externo', 0) }}">
         
         {{-- Campo hidden para o conteúdo do editor --}}
         <input type="hidden" name="conteudo" x-model="conteudo">
@@ -472,6 +521,30 @@
                         </div>
                     </div>
                 </div>
+
+                @if(($processosSemUsuarioExternoCount ?? 0) > 0)
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 mb-3 rounded-lg">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="text-sm text-amber-900">
+                                <p class="font-semibold mb-1">Não existe usuário vinculado ao estabelecimento para visualizar este documento com prazo.</p>
+                                <p class="text-xs text-amber-800">
+                                    O técnico ainda pode criar o documento, mas precisa ter ciência de que não há usuário externo vinculado para visualizar o documento ou iniciar a contagem de prazo pela ciência do estabelecimento.
+                                </p>
+                                @if(isset($processo) && $processo->estabelecimento_id)
+                                    <a href="{{ route('admin.estabelecimentos.usuarios.index', $processo->estabelecimento_id) }}" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-amber-900 hover:text-amber-700 underline underline-offset-2">
+                                        Ver usuários vinculados do estabelecimento
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Aviso sobre contagem de prazo (será exibido dinamicamente via JavaScript) --}}
                 <div id="aviso-prazo-container" style="display: none;">
@@ -929,12 +1002,19 @@ function documentoEditor() {
         contadorErros: 0,
         timeoutVerificacao: null,
         chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id") ?: (request()->get("processos_ids") ?: "novo") }}',
+        popupSemUsuarioExternoVisivel: false,
+        popupSemUsuarioExternoSegundos: 15,
+        popupSemUsuarioExternoTimer: null,
+        popupSemUsuarioExternoCountdown: null,
+        ultimoTipoPopupSemUsuarioExterno: null,
         // Campos de prazo
         temPrazo: false,
         prazoDias: @json(old('prazo_dias')),
         tipoPrazo: @json(old('tipo_prazo', 'corridos')),
         dataVencimentoFormatada: '',
         isNotificacao: false, // Se é documento de notificação/fiscalização (§1º)
+        estabelecimentoSemUsuarioExternoParaPrazo: @json(($processosSemUsuarioExternoCount ?? 0) > 0),
+        confirmacaoSemUsuarioExternoRealizada: @json((bool) old('confirmar_sem_usuario_externo', false)),
         // Controle de edição simultânea
         outroUsuarioEditando: false,
         nomeUsuarioEditando: '',
@@ -1002,6 +1082,7 @@ function documentoEditor() {
 
                 this.atualizarAvisoPrazo(this.tipoSelecionado);
                 await this.buscarPrazoTipo(this.tipoSelecionado, true);
+                this.mostrarPopupSemUsuarioExternoSeNecessario(this.tipoSelecionado);
             });
 
             // Inicializa TinyMCE
@@ -1554,6 +1635,7 @@ function documentoEditor() {
 
                 // Busca informações de prazo do tipo
                 await this.buscarPrazoTipo(tipoId);
+                this.mostrarPopupSemUsuarioExternoSeNecessario(tipoId);
                 
             } catch (error) {
                 console.error('Erro ao carregar modelos:', error);
@@ -1567,6 +1649,8 @@ function documentoEditor() {
                 document.getElementById('aviso-notificacao').style.display = 'none';
                 document.getElementById('aviso-licenciamento').style.display = 'none';
                 this.isNotificacao = false;
+                this.ultimoTipoPopupSemUsuarioExterno = null;
+                this.fecharPopupSemUsuarioExterno();
                 return;
             }
 
@@ -1592,57 +1676,151 @@ function documentoEditor() {
             this.calcularDataVencimento();
         },
 
+        mostrarPopupSemUsuarioExternoSeNecessario(tipoId) {
+            const tipoData = tipoId ? tiposDocumentoData[tipoId] : null;
+
+            if (!tipoData || !tipoData.tem_prazo || !this.estabelecimentoSemUsuarioExternoParaPrazo) {
+                this.ultimoTipoPopupSemUsuarioExterno = null;
+                this.fecharPopupSemUsuarioExterno();
+                return;
+            }
+
+            if (this.ultimoTipoPopupSemUsuarioExterno === String(tipoId) && this.popupSemUsuarioExternoVisivel) {
+                return;
+            }
+
+            this.ultimoTipoPopupSemUsuarioExterno = String(tipoId);
+            this.popupSemUsuarioExternoVisivel = true;
+            this.popupSemUsuarioExternoSegundos = 15;
+
+            clearTimeout(this.popupSemUsuarioExternoTimer);
+            clearInterval(this.popupSemUsuarioExternoCountdown);
+
+            this.popupSemUsuarioExternoCountdown = setInterval(() => {
+                if (this.popupSemUsuarioExternoSegundos > 1) {
+                    this.popupSemUsuarioExternoSegundos--;
+                    return;
+                }
+
+                this.fecharPopupSemUsuarioExterno();
+            }, 1000);
+
+            this.popupSemUsuarioExternoTimer = setTimeout(() => {
+                this.fecharPopupSemUsuarioExterno();
+            }, 15000);
+        },
+
+        fecharPopupSemUsuarioExterno() {
+            this.popupSemUsuarioExternoVisivel = false;
+            this.popupSemUsuarioExternoSegundos = 15;
+
+            clearTimeout(this.popupSemUsuarioExternoTimer);
+            clearInterval(this.popupSemUsuarioExternoCountdown);
+
+            this.popupSemUsuarioExternoTimer = null;
+            this.popupSemUsuarioExternoCountdown = null;
+        },
+
         contarPalavras() {
             const texto = this.conteudo.replace(/<[^>]*>/g, '').trim();
             return texto.split(/\s+/).filter(word => word.length > 0).length;
         },
 
-        confirmarFinalizacao() {
-            // Fecha o modal
-            this.modalConfirmarFinalizacao = false;
-            this.confirmandoFinalizacao = true;
-            
-            // Sincroniza conteúdo do TinyMCE
+        sincronizarConteudoEditor() {
             const editor = tinymce.get('editor-tinymce');
             if (editor) {
                 this.conteudo = editor.getContent();
             }
-            
-            // Define a ação como finalizar
-            document.getElementById('inputAcao').value = 'finalizar';
-            
-            // Submete o formulário
-            document.getElementById('formDocumento').submit();
         },
 
-        handleSubmit(event) {
-            // Sincroniza conteúdo do TinyMCE antes de submeter
-            const editor = tinymce.get('editor-tinymce');
-            if (editor) {
-                this.conteudo = editor.getContent();
-            }
-            
+        validarFormularioBasico() {
+            this.sincronizarConteudoEditor();
+
+            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]');
             console.log('Conteúdo:', this.conteudo);
             console.log('Tipo selecionado:', this.tipoSelecionado);
-            
-            const assinaturas = document.querySelectorAll('input[name="assinaturas[]"]');
             console.log('Assinaturas selecionadas:', assinaturas.length);
-            
+
             if (assinaturas.length === 0) {
-                event.preventDefault();
                 alert('Selecione pelo menos um usuário para assinar o documento!');
                 return false;
             }
-            
+
             if (!this.conteudo || this.conteudo.trim() === '' || this.conteudo === '<p>Selecione um tipo de documento para carregar o modelo ou digite o conteúdo do documento aqui...</p>') {
-                event.preventDefault();
                 alert('Digite o conteúdo do documento!');
                 return false;
             }
-            
-            // Limpa o localStorage após enviar (tanto rascunho quanto finalizar)
+
+            if (this.temPrazo) {
+                if (!this.prazoDias || Number(this.prazoDias) < 1) {
+                    alert('Informe o prazo em dias para este documento.');
+                    return false;
+                }
+
+                if (!['corridos', 'uteis'].includes(this.tipoPrazo)) {
+                    alert('Selecione o tipo de prazo do documento.');
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        precisaConfirmarAusenciaUsuarioExterno() {
+            return this.temPrazo
+                && Number(this.prazoDias) > 0
+                && this.estabelecimentoSemUsuarioExternoParaPrazo
+                && !this.confirmacaoSemUsuarioExternoRealizada;
+        },
+
+        confirmarAusenciaUsuarioExterno() {
+            const confirmado = window.confirm(
+                'Não existe usuário vinculado a esse estabelecimento para visualizar esse documento com prazo. Desejo mesmo assim criar o documento?'
+            );
+
+            if (!confirmado) {
+                return false;
+            }
+
+            this.confirmacaoSemUsuarioExternoRealizada = true;
+            document.getElementById('inputConfirmarSemUsuarioExterno').value = '1';
+
+            return true;
+        },
+
+        submeterFormulario(acao) {
+            document.getElementById('inputAcao').value = acao;
+
+            if (!this.validarFormularioBasico()) {
+                return false;
+            }
+
+            if (this.precisaConfirmarAusenciaUsuarioExterno() && !this.confirmarAusenciaUsuarioExterno()) {
+                return false;
+            }
+
             localStorage.removeItem(this.chaveLocalStorage);
             console.log('localStorage limpo após submissão');
+            document.getElementById('formDocumento').submit();
+
+            return true;
+        },
+
+        confirmarFinalizacao() {
+            // Fecha o modal
+            this.modalConfirmarFinalizacao = false;
+
+            if (!this.submeterFormulario('finalizar')) {
+                this.confirmandoFinalizacao = false;
+                return;
+            }
+
+            this.confirmandoFinalizacao = true;
+        },
+
+        handleSubmit(event) {
+            event.preventDefault();
+            return this.submeterFormulario(document.getElementById('inputAcao').value || 'rascunho');
         },
 
         // Busca informações de prazo do tipo de documento
