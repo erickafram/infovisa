@@ -1341,11 +1341,18 @@
                                                         </a>
                                                     @endif
                                                     @if($docDigital->status !== 'rascunho')
-                                                        <button @click="moverDocumentoDigitalParaPasta({{ $docDigital->id }}, null, $el); menuAberto = false"
+                                                        <button @click="moverParaPasta({{ $docDigital->id }}, 'documento', null, $el); menuAberto = false"
                                                                 class="w-full flex items-center gap-2.5 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                                                            <i class="far fa-folder fa-fw text-gray-400" style="font-size: 13px;"></i>
-                                                            Mover para pasta
+                                                            <i class="far fa-times-circle fa-fw text-gray-400" style="font-size: 13px;"></i>
+                                                            Remover da pasta
                                                         </button>
+                                                        <template x-for="pasta in pastas" :key="pasta.id">
+                                                            <button @click="moverParaPasta({{ $docDigital->id }}, 'documento', pasta.id, $el); menuAberto = false"
+                                                                    class="w-full flex items-center gap-2.5 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                                                                <span class="w-2 h-2 rounded-full" :style="`background-color: ${pasta.cor}`"></span>
+                                                                <span x-text="pasta.nome"></span>
+                                                            </button>
+                                                        </template>
                                                     @endif
                                                     @if($docDigital->temPrazo() || $docDigital->data_vencimento)
                                                         @if($docDigital->isPrazoFinalizado())
@@ -4306,7 +4313,8 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             }
                             
                             // Atualizar o array de documentos
-                            const docIndex = this.documentos.findIndex(doc => doc.id === itemId && doc.tipo === tipo);
+                            const tipoDocumento = tipo === 'documento' ? 'digital' : tipo;
+                            const docIndex = this.documentos.findIndex(doc => doc.id === itemId && doc.tipo === tipoDocumento);
                             if (docIndex !== -1) {
                                 this.documentos[docIndex].pasta_id = pastaId;
                             }
