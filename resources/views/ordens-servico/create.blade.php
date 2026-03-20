@@ -71,7 +71,7 @@
                                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
-                                    Buscar e Adicionar Estabelecimentos <span class="text-red-500">*</span>
+                                    Buscar Estabelecimentos <span class="text-red-500">*</span>
                                 </label>
                                 <div class="flex gap-2">
                                     <div class="flex-1 relative group">
@@ -92,7 +92,7 @@
                                 </div>
                                 <p class="mt-2 text-xs text-gray-500 flex items-center gap-1">
                                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Você pode adicionar vários estabelecimentos à mesma OS. Busque e clique em "Adicionar" para cada um.
+                                    Ao selecionar um estabelecimento na busca ele será adicionado automaticamente. O botão "Adicionar" continua disponível como apoio.
                                 </p>
                                 @error('estabelecimentos_ids')
                                     <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
@@ -784,7 +784,7 @@
         // ==========================================
         // Múltiplos Estabelecimentos
         // ==========================================
-        let estabelecimentosSelecionados = []; // [{id, text, cnpj, nome}]
+        let estabelecimentosSelecionados = []; // [{id, text, cnpj, nome, processo_id, continuar_sem_processo}]
 
         function toggleEstabelecimentoField() {
             if (comEstabelecimentoRadio.checked) {
@@ -876,6 +876,10 @@
             });
         }
 
+        estabelecimentoBuscaSelect.on('select2:select', function () {
+            setTimeout(() => adicionarEstabelecimento(), 0);
+        });
+
         // Adicionar estabelecimento à lista
         window.adicionarEstabelecimento = function() {
             const select = $('#estabelecimento_busca');
@@ -893,10 +897,31 @@
                 id: data.id,
                 text: data.text,
                 cnpj: data.cnpj || '',
-                nome: data.nome || data.text
+                nome: data.nome || data.text,
+                processo_id: null,
+                continuar_sem_processo: false
             });
             select.val(null).trigger('change');
             atualizarListaEstabelecimentos();
+        };
+
+        window.definirContinuarSemProcesso = function(estId, continuar) {
+            const estabelecimento = estabelecimentosSelecionados.find(e => e.id == estId);
+            if (!estabelecimento) {
+                return;
+            }
+
+            estabelecimento.continuar_sem_processo = !!continuar;
+            const hiddenInput = document.getElementById(`continuar-sem-processo-est-${estId}`);
+            if (hiddenInput) {
+                hiddenInput.value = continuar ? '1' : '0';
+            }
+        };
+
+        window.confirmarContinuarSemProcesso = function(estId) {
+            const confirmou = window.confirm('Este estabelecimento não possui processos abertos. Deseja continuar e cadastrar a OS sem processo?');
+            definirContinuarSemProcesso(estId, confirmou);
+            return confirmou;
         };
 
         // Remover estabelecimento da lista
@@ -961,10 +986,6 @@
                                     class="w-full text-sm border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
                                 <option value="">Carregando processos...</option>
                             </select>
-                            <div id="processo-alerta-${est.id}" class="hidden mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                                <span>Este estabelecimento não possui processos abertos.</span>
-                            </div>
                         </div>
                     </div>
                 `;
@@ -984,6 +1005,13 @@
                 inputProcesso.id = `processo-hidden-est-${est.id}`;
                 inputProcesso.value = est.processo_id || '';
                 hiddenContainer.appendChild(inputProcesso);
+
+                const inputContinuarSemProcesso = document.createElement('input');
+                inputContinuarSemProcesso.type = 'hidden';
+                inputContinuarSemProcesso.name = `continuar_sem_processo_estabelecimentos[${est.id}]`;
+                inputContinuarSemProcesso.id = `continuar-sem-processo-est-${est.id}`;
+                inputContinuarSemProcesso.value = est.continuar_sem_processo ? '1' : '0';
+                hiddenContainer.appendChild(inputContinuarSemProcesso);
 
                 // Carrega processos para este estabelecimento
                 carregarProcessosEstabelecimento(est.id, est.processo_id || null);
@@ -1018,6 +1046,11 @@
             const est = estabelecimentosSelecionados.find(e => e.id == estId);
             if (est) {
                 est.processo_id = processoId;
+                est.continuar_sem_processo = false;
+                const continuarInput = document.getElementById(`continuar-sem-processo-est-${estId}`);
+                if (continuarInput) {
+                    continuarInput.value = '0';
+                }
             }
             // Atualiza processo_id principal (compatibilidade) = processo do primeiro estabelecimento
             if (estabelecimentosSelecionados.length > 0 && estabelecimentosSelecionados[0].id == estId) {
@@ -1028,13 +1061,11 @@
         // Carregar processos de um estabelecimento específico (por card)
         function carregarProcessosEstabelecimento(estId, processoIdPreSelecionado) {
             const processoSelect = document.getElementById(`processo-est-${estId}`);
-            const alertaDiv = document.getElementById(`processo-alerta-${estId}`);
             
             if (!processoSelect) return;
 
             processoSelect.innerHTML = '<option value="">Carregando...</option>';
             processoSelect.disabled = true;
-            if (alertaDiv) alertaDiv.classList.add('hidden');
 
             fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/${estId}`)
                 .then(r => r.json())
@@ -1064,7 +1095,13 @@
                     } else {
                         processoSelect.innerHTML = '<option value="">Sem processos abertos</option>';
                         processoSelect.disabled = true;
-                        if (alertaDiv) alertaDiv.classList.remove('hidden');
+                        selecionarProcessoEstabelecimento(estId, '');
+
+                        const estabelecimento = estabelecimentosSelecionados.find(e => e.id == estId);
+                        if (estabelecimento && !estabelecimento.popupSemProcessoExibido && !estabelecimento.continuar_sem_processo) {
+                            estabelecimento.popupSemProcessoExibido = true;
+                            confirmarContinuarSemProcesso(estId);
+                        }
                     }
                 })
                 .catch(() => {
@@ -1565,16 +1602,31 @@
 
             // Validação de processo por estabelecimento (obrigatório para todos)
             if (comEstabelecimentoRadio.checked && estabelecimentosSelecionados.length > 0) {
+                let confirmacoesPendentes = [];
                 let estabelecimentosSemProcesso = [];
                 estabelecimentosSelecionados.forEach(est => {
                     const hiddenInput = document.getElementById(`processo-hidden-est-${est.id}`);
-                    if (!hiddenInput || !hiddenInput.value) {
+                    const continuarSemProcesso = document.getElementById(`continuar-sem-processo-est-${est.id}`)?.value === '1';
+                    const processoSelect = document.getElementById(`processo-est-${est.id}`);
+                    const semProcessosDisponiveis = !!processoSelect && processoSelect.disabled;
+
+                    if ((!hiddenInput || !hiddenInput.value) && semProcessosDisponiveis && !continuarSemProcesso) {
+                        confirmacoesPendentes.push(est.id);
+                    } else if ((!hiddenInput || !hiddenInput.value) && !continuarSemProcesso) {
                         estabelecimentosSemProcesso.push(est.nome);
                     }
                 });
+
+                for (const estId of confirmacoesPendentes) {
+                    if (!confirmarContinuarSemProcesso(estId)) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+
                 if (estabelecimentosSemProcesso.length > 0) {
                     e.preventDefault();
-                    alert('Os seguintes estabelecimentos não possuem processo selecionado:\n\n' + estabelecimentosSemProcesso.join('\n') + '\n\nÉ obrigatório selecionar um processo para cada estabelecimento.');
+                    alert('Revise os estabelecimentos abaixo:\n\n' + estabelecimentosSemProcesso.join('\n') + '\n\nSelecione um processo quando houver processo disponível.');
                     return;
                 }
             }
@@ -1593,34 +1645,11 @@
                 id: {{ $estabelecimentoPreSelecionado->id }},
                 text: '{{ $estabelecimentoPreSelecionado->cnpj }} - {{ $estabelecimentoPreSelecionado->nome_fantasia }}',
                 cnpj: '{{ $estabelecimentoPreSelecionado->cnpj }}',
-                nome: '{{ $estabelecimentoPreSelecionado->nome_fantasia }}'
+                nome: '{{ $estabelecimentoPreSelecionado->nome_fantasia }}',
+                processo_id: @json($processoPreSelecionado?->id),
+                continuar_sem_processo: false
             });
             atualizarListaEstabelecimentos();
-            
-            // Carrega os processos do estabelecimento e pré-seleciona o processo
-            @if(isset($processoPreSelecionado) && $processoPreSelecionado)
-            setTimeout(function() {
-                fetch(`{{ url('/admin/ordens-servico/api/processos-estabelecimento') }}/{{ $estabelecimentoPreSelecionado->id }}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if(data.success && data.processos.length > 0) {
-                            processoSelect.innerHTML = '<option value="">Selecione um processo</option>';
-                            data.processos.forEach(p => {
-                                const opt = document.createElement('option');
-                                opt.value = p.id;
-                                opt.textContent = `${p.numero_processo} - ${p.tipo_label}`;
-                                if (p.id == {{ $processoPreSelecionado->id }}) {
-                                    opt.selected = true;
-                                }
-                                processoSelect.appendChild(opt);
-                            });
-                            processoSelect.disabled = false;
-                            document.getElementById('processo-count').textContent = `${data.total} processo(s) encontrado(s)`;
-                            processoInfo.classList.remove('hidden');
-                        }
-                    });
-            }, 100);
-            @endif
         })();
         @endif
     });

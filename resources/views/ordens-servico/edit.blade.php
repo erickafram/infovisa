@@ -79,14 +79,10 @@
                         <label class="block text-sm font-semibold text-gray-900 mb-2">
                             Estabelecimentos <span class="text-gray-500">(Opcional)</span>
                         </label>
-                        <div class="flex gap-2 mb-2">
+                        <div class="mb-2">
                             <select id="estabelecimento_busca_edit" class="w-full">
                                 <option value="">Buscar estabelecimento...</option>
                             </select>
-                            <button type="button" onclick="adicionarEstabelecimentoEdit()" 
-                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
-                                + Adicionar
-                            </button>
                         </div>
                         @error('estabelecimentos_ids')
                             <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
@@ -100,7 +96,7 @@
                             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                            Digite para buscar por <strong>CNPJ</strong>, <strong>CPF</strong>, <strong>Nome Fantasia</strong> ou <strong>Razão Social</strong>. Você pode adicionar vários.
+                            Ao selecionar, o estabelecimento é vinculado automaticamente. Busque por <strong>CNPJ</strong>, <strong>CPF</strong>, <strong>Nome Fantasia</strong> ou <strong>Razão Social</strong>. Você pode adicionar vários.
                         </p>
 
                         {{-- Lista de estabelecimentos adicionados --}}
@@ -574,7 +570,7 @@
         // ==========================================
         // Múltiplos Estabelecimentos - Edit
         // ==========================================
-        let estabelecimentosSelecionadosEdit = []; // [{id, text, cnpj, nome}]
+        let estabelecimentosSelecionadosEdit = []; // [{id, text, cnpj, nome, processo_id, continuar_sem_processo}]
 
         // Inicializa Select2 para busca de Estabelecimento
         $('#estabelecimento_busca_edit').select2({
@@ -627,6 +623,10 @@
             }
         });
 
+        $('#estabelecimento_busca_edit').on('select2:select', function() {
+            adicionarEstabelecimentoEdit();
+        });
+
         // Adicionar estabelecimento à lista
         window.adicionarEstabelecimentoEdit = function() {
             const select = $('#estabelecimento_busca_edit');
@@ -652,7 +652,9 @@
                 id: parseInt(data.id),
                 text: data.text,
                 cnpj: cnpj.trim(),
-                nome: nome.trim()
+                nome: nome.trim(),
+                processo_id: null,
+                continuar_sem_processo: false
             });
 
             // Limpa select
@@ -667,6 +669,26 @@
             estabelecimentosSelecionadosEdit = estabelecimentosSelecionadosEdit.filter(e => e.id != id);
             atualizarListaEstabelecimentosEdit();
             atualizarInterfaceTecnicosEdit();
+        };
+
+        window.definirContinuarSemProcessoEdit = function(estId, continuar) {
+            const estabelecimento = estabelecimentosSelecionadosEdit.find(e => e.id == estId);
+            if (!estabelecimento) {
+                return;
+            }
+
+            estabelecimento.continuar_sem_processo = !!continuar;
+
+            const hiddenInput = document.getElementById(`continuar-sem-processo-est-edit-${estId}`);
+            if (hiddenInput) {
+                hiddenInput.value = continuar ? '1' : '0';
+            }
+        };
+
+        window.confirmarContinuarSemProcessoEdit = function(estId) {
+            const confirmou = window.confirm('Este estabelecimento não possui processos abertos. Deseja continuar e cadastrar a OS sem processo?');
+            definirContinuarSemProcessoEdit(estId, confirmou);
+            return confirmou;
         };
 
         // Atualizar lista visual e hidden inputs
@@ -718,9 +740,9 @@
                                     class="w-full text-sm border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
                                 <option value="">Carregando processos...</option>
                             </select>
-                            <div id="processo-alerta-edit-${est.id}" class="hidden mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                                <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                                <span>Este estabelecimento não possui processos abertos.</span>
+                            <div id="processo-alerta-edit-${est.id}" class="hidden mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p id="processo-alerta-titulo-edit-${est.id}" class="font-semibold">Nenhum processo vinculado</p>
+                                <p id="processo-alerta-texto-edit-${est.id}">Este estabelecimento possui processos disponíveis. Selecione um processo acima para vincular à OS.</p>
                             </div>
                         </div>
                     </div>
@@ -741,6 +763,13 @@
                 inputProcesso.id = `processo-hidden-est-edit-${est.id}`;
                 inputProcesso.value = est.processo_id || '';
                 hiddenContainer.appendChild(inputProcesso);
+
+                const inputContinuarSemProcesso = document.createElement('input');
+                inputContinuarSemProcesso.type = 'hidden';
+                inputContinuarSemProcesso.name = `continuar_sem_processo_estabelecimentos[${est.id}]`;
+                inputContinuarSemProcesso.id = `continuar-sem-processo-est-edit-${est.id}`;
+                inputContinuarSemProcesso.value = est.continuar_sem_processo ? '1' : '0';
+                hiddenContainer.appendChild(inputContinuarSemProcesso);
 
                 // Carrega processos para este estabelecimento
                 carregarProcessosEstabelecimentoEdit(est.id, est.processo_id || null);
@@ -775,6 +804,11 @@
             const est = estabelecimentosSelecionadosEdit.find(e => e.id == estId);
             if (est) {
                 est.processo_id = processoId;
+                est.continuar_sem_processo = false;
+                const continuarInput = document.getElementById(`continuar-sem-processo-est-edit-${estId}`);
+                if (continuarInput) {
+                    continuarInput.value = '0';
+                }
             }
             // Atualiza processo_id principal (compatibilidade) = processo do primeiro estabelecimento
             if (estabelecimentosSelecionadosEdit.length > 0 && estabelecimentosSelecionadosEdit[0].id == estId) {
@@ -813,6 +847,17 @@
                             processoSelect.appendChild(opt);
                         });
                         processoSelect.disabled = false;
+                        if (alertaDiv) {
+                            if (processoSelect.value) {
+                                alertaDiv.classList.add('hidden');
+                            } else {
+                                alertaDiv.classList.remove('hidden');
+                                const titulo = document.getElementById(`processo-alerta-titulo-edit-${estId}`);
+                                const texto = document.getElementById(`processo-alerta-texto-edit-${estId}`);
+                                if (titulo) titulo.textContent = 'Nenhum processo vinculado';
+                                if (texto) texto.textContent = 'Este estabelecimento possui processos disponíveis. Selecione um processo acima para vincular à OS.';
+                            }
+                        }
                         
                         // Se tinha pré-seleção e deu match, atualiza hidden
                         if (processoIdPreSelecionado && processoSelect.value) {
@@ -822,11 +867,21 @@
                         if (data.processos.length === 1) {
                             processoSelect.value = data.processos[0].id;
                             selecionarProcessoEstabelecimentoEdit(estId, data.processos[0].id);
+                            if (alertaDiv) alertaDiv.classList.add('hidden');
                         }
                     } else {
                         processoSelect.innerHTML = '<option value="">Sem processos abertos</option>';
                         processoSelect.disabled = true;
-                        if (alertaDiv) alertaDiv.classList.remove('hidden');
+                        selecionarProcessoEstabelecimentoEdit(estId, '');
+                        if (alertaDiv) {
+                            alertaDiv.classList.add('hidden');
+                        }
+
+                        const estabelecimento = estabelecimentosSelecionadosEdit.find(e => e.id == estId);
+                        if (estabelecimento && !estabelecimento.popupSemProcessoExibido && !estabelecimento.continuar_sem_processo) {
+                            estabelecimento.popupSemProcessoExibido = true;
+                            confirmarContinuarSemProcessoEdit(estId);
+                        }
                     }
                 })
                 .catch(() => {
@@ -1052,7 +1107,8 @@
                         text: `${est.cnpj || est.cpf} - ${est.nome_fantasia}`,
                         cnpj: est.cnpj || est.cpf || '',
                         nome: est.nome_fantasia || est.razao_social || '',
-                        processo_id: est.pivot ? est.pivot.processo_id : null
+                        processo_id: est.pivot ? est.pivot.processo_id : null,
+                        continuar_sem_processo: !(est.pivot && est.pivot.processo_id)
                     });
                 });
             } else if ({{ $ordemServico->estabelecimento_id ?? 'null' }}) {
@@ -1063,7 +1119,8 @@
                     text: '{{ ($ordemServico->estabelecimento->cnpj ?? $ordemServico->estabelecimento->cpf) }} - {{ $ordemServico->estabelecimento->nome_fantasia }}',
                     cnpj: '{{ $ordemServico->estabelecimento->cnpj ?? $ordemServico->estabelecimento->cpf }}',
                     nome: '{{ $ordemServico->estabelecimento->nome_fantasia }}',
-                    processo_id: {{ $ordemServico->processo_id ?? 'null' }}
+                    processo_id: {{ $ordemServico->processo_id ?? 'null' }},
+                    continuar_sem_processo: {{ $ordemServico->processo_id ? 'false' : 'true' }}
                 });
                 @endif
             }
@@ -1473,16 +1530,30 @@
         // Validação de formulário: processo obrigatório por estabelecimento
         document.querySelector('form').addEventListener('submit', function(e) {
             if (estabelecimentosSelecionadosEdit.length > 0) {
+                let confirmacoesPendentes = [];
                 let estabelecimentosSemProcesso = [];
                 estabelecimentosSelecionadosEdit.forEach(est => {
                     const hiddenInput = document.getElementById(`processo-hidden-est-edit-${est.id}`);
-                    if (!hiddenInput || !hiddenInput.value) {
+                    const continuarSemProcesso = document.getElementById(`continuar-sem-processo-est-edit-${est.id}`)?.value === '1';
+                    const processoSelect = document.getElementById(`processo-est-edit-${est.id}`);
+                    const semProcessosDisponiveis = !!processoSelect && processoSelect.disabled;
+                    if ((!hiddenInput || !hiddenInput.value) && semProcessosDisponiveis && !continuarSemProcesso) {
+                        confirmacoesPendentes.push(est.id);
+                    } else if ((!hiddenInput || !hiddenInput.value) && !continuarSemProcesso) {
                         estabelecimentosSemProcesso.push(est.nome);
                     }
                 });
+
+                for (const estId of confirmacoesPendentes) {
+                    if (!confirmarContinuarSemProcessoEdit(estId)) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+
                 if (estabelecimentosSemProcesso.length > 0) {
                     e.preventDefault();
-                    alert('Os seguintes estabelecimentos não possuem processo selecionado:\n\n' + estabelecimentosSemProcesso.join('\n') + '\n\nÉ obrigatório selecionar um processo para cada estabelecimento.');
+                    alert('Revise os estabelecimentos abaixo:\n\n' + estabelecimentosSemProcesso.join('\n') + '\n\nSelecione um processo quando houver processo disponível.');
                     return;
                 }
             }

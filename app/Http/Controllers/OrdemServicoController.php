@@ -183,6 +183,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'estabelecimentos_ids' => 'nullable|array',
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
+            'continuar_sem_processo_estabelecimentos' => 'nullable|array',
             'pasta_id' => 'nullable|integer',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
@@ -205,12 +206,11 @@ class OrdemServicoController extends Controller
         // Validação de processos por estabelecimento
         if (!empty($estabelecimentosIds)) {
             $rules['processos_estabelecimentos'] = 'required|array';
-            $rules['processos_estabelecimentos.*'] = 'required|exists:processos,id';
+            $rules['processos_estabelecimentos.*'] = 'nullable|exists:processos,id';
         }
         
         $messages = [
-            'processos_estabelecimentos.required' => 'Selecione um processo para cada estabelecimento.',
-            'processos_estabelecimentos.*.required' => 'Cada estabelecimento deve ter um processo vinculado.',
+            'processos_estabelecimentos.required' => 'Revise os processos vinculados aos estabelecimentos selecionados.',
             'processo_id.required' => 'Selecione um processo vinculado ao estabelecimento.',
             'atividades_tecnicos.required' => 'Atribua técnicos para todas as atividades selecionadas.',
             'atividades_tecnicos.json' => 'Estrutura de técnicos por atividade inválida.',
@@ -274,6 +274,13 @@ class OrdemServicoController extends Controller
         // Coleta IDs de estabelecimentos múltiplos e mapeamento de processos
         $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
         $processosEstabelecimentos = $request->input('processos_estabelecimentos', []);
+        $continuarSemProcesso = $request->input('continuar_sem_processo_estabelecimentos', []);
+
+        $this->validarSelecaoProcessosPorEstabelecimento(
+            $estabelecimentosIds,
+            $processosEstabelecimentos,
+            $continuarSemProcesso
+        );
         
         // Se tem múltiplos, usa o primeiro como referência para competência
         $estabelecimentoRef = null;
@@ -293,10 +300,7 @@ class OrdemServicoController extends Controller
             
             // Se não foi especificado processo_id e não veio de processosEstabelecimentos, tenta vincular ao processo ativo
             if (empty($validated['processo_id'])) {
-                $processoAtivo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
-                    ->whereIn('status', ['aberto', 'em_andamento'])
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+                $processoAtivo = $this->buscarProcessosDisponiveisEstabelecimento($estabelecimento->id)->first();
                 
                 if ($processoAtivo) {
                     $validated['processo_id'] = $processoAtivo->id;
@@ -486,6 +490,7 @@ class OrdemServicoController extends Controller
             'estabelecimento_id' => 'nullable|exists:estabelecimentos,id',
             'estabelecimentos_ids' => 'nullable|array',
             'estabelecimentos_ids.*' => 'exists:estabelecimentos,id',
+            'continuar_sem_processo_estabelecimentos' => 'nullable|array',
             'pasta_id' => 'nullable|integer',
             'tipos_acao_ids' => 'required|array|min:1',
             'tipos_acao_ids.*' => 'exists:tipo_acoes,id',
@@ -501,12 +506,11 @@ class OrdemServicoController extends Controller
         
         if (!empty($estabelecimentosIds)) {
             $rules['processos_estabelecimentos'] = 'required|array';
-            $rules['processos_estabelecimentos.*'] = 'required|exists:processos,id';
+            $rules['processos_estabelecimentos.*'] = 'nullable|exists:processos,id';
         }
         
         $validated = $request->validate($rules, [
-            'processos_estabelecimentos.required' => 'Selecione um processo para cada estabelecimento.',
-            'processos_estabelecimentos.*.required' => 'Cada estabelecimento deve ter um processo vinculado.',
+            'processos_estabelecimentos.required' => 'Revise os processos vinculados aos estabelecimentos selecionados.',
         ]);
         
         // Processa e valida a estrutura de atividades com técnicos
@@ -552,6 +556,13 @@ class OrdemServicoController extends Controller
         // Coleta IDs de estabelecimentos múltiplos e mapeamento de processos
         $estabelecimentosIds = $request->input('estabelecimentos_ids', []);
         $processosEstabelecimentos = $request->input('processos_estabelecimentos', []);
+        $continuarSemProcesso = $request->input('continuar_sem_processo_estabelecimentos', []);
+
+        $this->validarSelecaoProcessosPorEstabelecimento(
+            $estabelecimentosIds,
+            $processosEstabelecimentos,
+            $continuarSemProcesso
+        );
         
         // Se tem múltiplos, usa o primeiro como referência
         if (!empty($estabelecimentosIds)) {
@@ -575,10 +586,7 @@ class OrdemServicoController extends Controller
             $estabelecimento = Estabelecimento::findOrFail($validated['estabelecimento_id']);
             
             // Busca processo ativo do estabelecimento
-            $processo = \App\Models\Processo::where('estabelecimento_id', $estabelecimento->id)
-                ->whereIn('status', ['aberto', 'em_analise', 'pendente'])
-                ->orderBy('created_at', 'desc')
-                ->first();
+            $processo = $this->buscarProcessosDisponiveisEstabelecimento($estabelecimento->id)->first();
             
             if ($processo) {
                 $validated['processo_id'] = $processo->id;
@@ -1053,7 +1061,7 @@ class OrdemServicoController extends Controller
         }
         
         // Busca processos do estabelecimento (exceto arquivados)
-        $processos = \App\Models\Processo::where('estabelecimento_id', $estabelecimentoId)
+        $processos = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->where('status', '!=', 'arquivado')
             ->orderBy('numero_processo', 'desc')
             ->get(['id', 'numero_processo', 'tipo', 'status'])
@@ -1070,7 +1078,9 @@ class OrdemServicoController extends Controller
         return response()->json([
             'success' => true,
             'processos' => $processos,
-            'total' => $processos->count()
+            'total' => $processos->count(),
+            'permite_continuar_sem_processo' => $processos->isEmpty(),
+            'mensagem_sem_processos' => 'Este estabelecimento não possui processos abertos. Deseja continuar sem vincular processo?'
         ]);
     }
 
@@ -1530,57 +1540,92 @@ class OrdemServicoController extends Controller
     public function getProcessosEstabelecimento($estabelecimentoId, Request $request = null)
     {
         try {
-            $statusLabels = [
-                'aberto' => 'Aberto',
-                'em_analise' => 'Em Análise',
-                'pendente' => 'Pendente',
-                'deferido' => 'Deferido',
-                'indeferido' => 'Indeferido',
-                'arquivado' => 'Arquivado',
-            ];
-
             // Pega o processo atual da OS (se estiver editando)
             $processoAtualId = request()->query('processo_atual_id');
 
-            $processos = \App\Models\Processo::where('estabelecimento_id', $estabelecimentoId)
-                ->where(function($query) use ($processoAtualId) {
-                    // Busca processos ativos OU o processo atual da OS
-                    $query->whereIn('status', ['aberto', 'em_analise', 'pendente']);
-                    
-                    if ($processoAtualId) {
-                        $query->orWhere('id', $processoAtualId);
-                    }
-                })
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function($processo) use ($statusLabels) {
-                    // Formata número do processo (ex: 2025/00004)
-                    $numeroProcesso = $processo->numero_processo ?? "Processo #{$processo->id}";
-                    
-                    // Tipo de processo
-                    $tipoProcesso = $processo->tipo ?? 'Não informado';
-                    
+            $processos = $this->buscarProcessosDisponiveisEstabelecimento($estabelecimentoId, $processoAtualId)
+                ->map(function ($processo) {
                     return [
                         'id' => $processo->id,
-                        'numero' => $numeroProcesso,
-                        'tipo' => $tipoProcesso,
-                        'texto_completo' => $numeroProcesso . ' - ' . $tipoProcesso,
+                        'numero' => $processo->numero_processo ?? "Processo #{$processo->id}",
+                        'tipo' => $processo->tipo ?? 'Não informado',
+                        'texto_completo' => ($processo->numero_processo ?? "Processo #{$processo->id}") . ' - ' . ($processo->tipo ?? 'Não informado'),
                         'status' => $processo->status,
-                        'status_label' => $statusLabels[$processo->status] ?? ucfirst($processo->status),
+                        'status_label' => $this->getStatusProcessoLabel($processo->status),
                         'data_abertura' => $processo->created_at ? $processo->created_at->format('d/m/Y') : '-',
                     ];
-                });
+                })
+                ->values();
 
             return response()->json([
-                'processos' => $processos
+                'processos' => $processos,
+                'total' => $processos->count(),
+                'permite_continuar_sem_processo' => $processos->isEmpty(),
+                'mensagem_sem_processos' => 'Este estabelecimento não possui processos abertos. Deseja continuar sem vincular processo?'
             ]);
         } catch (\Exception $e) {
             \Log::error('Erro ao buscar processos do estabelecimento: ' . $e->getMessage());
             return response()->json([
                 'processos' => [],
+                'total' => 0,
+                'permite_continuar_sem_processo' => true,
                 'error' => 'Erro ao buscar processos'
             ], 500);
         }
+    }
+
+    private function validarSelecaoProcessosPorEstabelecimento(array $estabelecimentosIds, array $processosEstabelecimentos, array $continuarSemProcesso): void
+    {
+        if (empty($estabelecimentosIds)) {
+            return;
+        }
+
+        $errors = [];
+
+        foreach ($estabelecimentosIds as $estabelecimentoId) {
+            $processoSelecionado = $processosEstabelecimentos[$estabelecimentoId] ?? null;
+            $confirmouContinuarSemProcesso = (string) ($continuarSemProcesso[$estabelecimentoId] ?? '0') === '1';
+            $temProcessosDisponiveis = $this->buscarProcessosDisponiveisEstabelecimento((int) $estabelecimentoId)->isNotEmpty();
+
+            if ($temProcessosDisponiveis && empty($processoSelecionado)) {
+                $errors["processos_estabelecimentos.$estabelecimentoId"] = 'Selecione um processo para este estabelecimento.';
+                continue;
+            }
+
+            if (!$temProcessosDisponiveis && !$confirmouContinuarSemProcesso) {
+                $errors["continuar_sem_processo_estabelecimentos.$estabelecimentoId"] = 'Confirme que deseja continuar sem processo para este estabelecimento.';
+            }
+        }
+
+        if (!empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function buscarProcessosDisponiveisEstabelecimento(int $estabelecimentoId, $processoAtualId = null)
+    {
+        return Processo::where('estabelecimento_id', $estabelecimentoId)
+            ->where(function ($query) use ($processoAtualId) {
+                $query->whereIn('status', ['aberto', 'em_analise', 'pendente']);
+
+                if ($processoAtualId) {
+                    $query->orWhere('id', $processoAtualId);
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    private function getStatusProcessoLabel(?string $status): string
+    {
+        return [
+            'aberto' => 'Aberto',
+            'em_analise' => 'Em Análise',
+            'pendente' => 'Pendente',
+            'deferido' => 'Deferido',
+            'indeferido' => 'Indeferido',
+            'arquivado' => 'Arquivado',
+        ][$status] ?? ucfirst((string) $status);
     }
 
     private function resolverPastaIdValida(?int $pastaId, ?int $processoId): ?int
