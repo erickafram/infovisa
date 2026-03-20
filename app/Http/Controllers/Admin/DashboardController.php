@@ -322,6 +322,79 @@ class DashboardController extends Controller
             ->values();
     }
 
+    private function aplicarFiltroVisibilidadeRespostasPendentes($query, $usuario): void
+    {
+        if ($usuario->isAdmin()) {
+            return;
+        }
+
+        $query->where(function ($mainQuery) use ($usuario) {
+            $mainQuery->whereHas('documentoDigital.processo', function ($q) use ($usuario) {
+                $q->where(function ($sub) use ($usuario) {
+                    $sub->where('responsavel_atual_id', $usuario->id);
+
+                    if ($usuario->setor) {
+                        $sub->orWhere('setor_atual', $usuario->setor);
+                    }
+                });
+            })->orWhereHas('documentoDigital.assinaturas', function ($signQuery) use ($usuario) {
+                $signQuery->where('usuario_interno_id', $usuario->id)
+                    ->where('status', 'assinado');
+            });
+        });
+    }
+
+    private function filtrarRespostasPendentesVisiveis($respostas, $usuario)
+    {
+        if ($usuario->isAdmin()) {
+            return $respostas->values();
+        }
+
+        return $respostas->filter(function ($resposta) use ($usuario) {
+            $documentoDigital = $resposta->documentoDigital;
+            $processo = $documentoDigital?->processo;
+
+            if (!$documentoDigital || !$processo) {
+                return false;
+            }
+
+            $assinaturas = $documentoDigital->relationLoaded('assinaturas')
+                ? $documentoDigital->assinaturas
+                : $documentoDigital->assinaturas()->get();
+
+            $assinouDocumento = $assinaturas->contains(function ($assinatura) use ($usuario) {
+                return (int) $assinatura->usuario_interno_id === (int) $usuario->id
+                    && $assinatura->status === 'assinado';
+            });
+
+            if ($assinouDocumento) {
+                return true;
+            }
+
+            if ((int) $processo->responsavel_atual_id === (int) $usuario->id) {
+                return true;
+            }
+
+            if (!$usuario->setor || $processo->setor_atual !== $usuario->setor) {
+                return false;
+            }
+
+            try {
+                if ($usuario->isEstadual()) {
+                    return $processo->estabelecimento->isCompetenciaEstadual();
+                }
+
+                if ($usuario->isMunicipal()) {
+                    return $processo->estabelecimento->isCompetenciaMunicipal();
+                }
+
+                return true;
+            } catch (\Exception $e) {
+                return false;
+            }
+        })->values();
+    }
+
     /**
      * Exibe o dashboard do administrador
      */
@@ -592,7 +665,7 @@ class DashboardController extends Controller
         
         // DocumentoResposta: respostas a documentos com prazo (segue regra do setor atual)
         $respostas_pendentes_aprovacao_query = DocumentoResposta::where('status', 'pendente')
-            ->with(['documentoDigital.processo.estabelecimento', 'usuarioExterno']);
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.assinaturas', 'usuarioExterno']);
 
         // Filtrar por setor/responsável do processo + competência do usuário
         if ($usuario->isAdmin()) {
@@ -625,15 +698,7 @@ class DashboardController extends Controller
                 });
             });
             
-            // Respostas a documentos com prazo: segue regra do setor atual do processo
-            $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                    }
-                });
-            });
+            $this->aplicarFiltroVisibilidadeRespostasPendentes($respostas_pendentes_aprovacao_query, $usuario);
 
             // Filtrar também por competência
             if ($usuario->isEstadual()) {
@@ -641,16 +706,9 @@ class DashboardController extends Controller
                     $q->where('competencia_manual', 'estadual')
                       ->orWhereNull('competencia_manual');
                 });
-                $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) {
-                    $q->where('competencia_manual', 'estadual')
-                      ->orWhereNull('competencia_manual');
-                });
             } elseif ($usuario->isMunicipal()) {
                 $municipioId = $usuario->municipio_id;
                 $documentos_pendentes_aprovacao_query->whereHas('processo.estabelecimento', function($q) use ($municipioId) {
-                    $q->where('municipio_id', $municipioId);
-                });
-                $respostas_pendentes_aprovacao_query->whereHas('documentoDigital.processo.estabelecimento', function($q) use ($municipioId) {
                     $q->where('municipio_id', $municipioId);
                 });
             }
@@ -664,17 +722,12 @@ class DashboardController extends Controller
             $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
-            });
         } elseif ($usuario->isMunicipal()) {
             $documentos_pendentes_aprovacao = $documentos_pendentes_aprovacao->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes_aprovacao = $respostas_pendentes_aprovacao->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
-            });
         }
+        $respostas_pendentes_aprovacao = $this->filtrarRespostasPendentesVisiveis($respostas_pendentes_aprovacao, $usuario);
         
         $stats['documentos_pendentes_aprovacao'] = $documentos_pendentes_aprovacao->count();
         $stats['respostas_pendentes_aprovacao'] = $respostas_pendentes_aprovacao->count();
@@ -766,7 +819,7 @@ class DashboardController extends Controller
             ->with(['processo.estabelecimento']);
 
         $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
-            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento', 'documentoDigital.assinaturas']);
 
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
@@ -797,26 +850,14 @@ class DashboardController extends Controller
                 });
             });
             
-            // Respostas a documentos com prazo: segue regra do setor atual do processo
-            $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                    }
-                });
-            });
+            $this->aplicarFiltroVisibilidadeRespostasPendentes($respostas_pendentes_query, $usuario);
 
             // Filtrar também por competência
             if ($usuario->isEstadual()) {
                 $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
                     $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
             } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
                 $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                    $q->where('municipio_id', $usuario->municipio_id));
-                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
                     $q->where('municipio_id', $usuario->municipio_id));
             }
         }
@@ -829,17 +870,12 @@ class DashboardController extends Controller
             $documentos_pendentes = $documentos_pendentes->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
-            });
         } elseif ($usuario->isMunicipal()) {
             $documentos_pendentes = $documentos_pendentes->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
-            });
         }
+        $respostas_pendentes = $this->filtrarRespostasPendentesVisiveis($respostas_pendentes, $usuario);
 
         // Agrupar documentos por processo
         $tarefasArray = [];
@@ -1223,6 +1259,9 @@ class DashboardController extends Controller
             $tramitadoParaSetor = $isDoSetor && !$proc->responsavel_atual_id;
             $dataRecebimento = $proc->responsavel_ciente_em_efetivo;
             $dataTramitacao = $proc->data_tramitacao_efetiva;
+            $ultimoEventoAtribuicao = $proc->ultimoEventoAtribuicao;
+            $motivoAtribuicao = data_get($ultimoEventoAtribuicao?->dados_adicionais, 'motivo')
+                ?? $proc->motivo_atribuicao;
             
             // Calcula informações de documentos
             $infoDocumentos = $this->calcularInfoDocumentos($proc);
@@ -1243,6 +1282,7 @@ class DashboardController extends Controller
                 'tramitado_em' => $dataTramitacao ? $dataTramitacao->format('d/m/Y H:i') : null,
                 'tramitado_em_humano' => $dataTramitacao ? $dataTramitacao->locale('pt_BR')->diffForHumans() : null,
                 'aguardando_ciencia' => $proc->responsavel_atual_id !== null && $dataRecebimento === null && $dataTramitacao !== null,
+                'motivo_atribuicao' => $motivoAtribuicao,
                 'prazo' => $prazoInfo,
                 'docs_total' => $infoDocumentos['total'],
                 'docs_enviados' => $infoDocumentos['enviados'],
@@ -1316,7 +1356,7 @@ class DashboardController extends Controller
             ->with(['processo.estabelecimento']);
 
         $respostas_pendentes_query = DocumentoResposta::where('status', 'pendente')
-            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento']);
+            ->with(['documentoDigital.processo.estabelecimento', 'documentoDigital.tipoDocumento', 'documentoDigital.assinaturas']);
 
         // Filtrar por setor/responsável do processo + competência
         if (!$usuario->isAdmin()) {
@@ -1347,26 +1387,14 @@ class DashboardController extends Controller
                 });
             });
             
-            // Respostas a documentos com prazo: segue regra do setor atual do processo
-            $respostas_pendentes_query->whereHas('documentoDigital.processo', function($q) use ($usuario) {
-                $q->where(function($sub) use ($usuario) {
-                    $sub->where('responsavel_atual_id', $usuario->id);
-                    if ($usuario->setor) {
-                        $sub->orWhere('setor_atual', $usuario->setor);
-                    }
-                });
-            });
+            $this->aplicarFiltroVisibilidadeRespostasPendentes($respostas_pendentes_query, $usuario);
 
             // Filtrar também por competência
             if ($usuario->isEstadual()) {
                 $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
                     $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
-                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
-                    $q->where('competencia_manual', 'estadual')->orWhereNull('competencia_manual'));
             } elseif ($usuario->isMunicipal() && $usuario->municipio_id) {
                 $documentos_pendentes_query->whereHas('processo.estabelecimento', fn($q) => 
-                    $q->where('municipio_id', $usuario->municipio_id));
-                $respostas_pendentes_query->whereHas('documentoDigital.processo.estabelecimento', fn($q) => 
                     $q->where('municipio_id', $usuario->municipio_id));
             }
         }
@@ -1379,17 +1407,12 @@ class DashboardController extends Controller
             $documentos_pendentes = $documentos_pendentes->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual(); } catch (\Exception $e) { return false; }
-            });
         } elseif ($usuario->isMunicipal()) {
             $documentos_pendentes = $documentos_pendentes->filter(function($d) {
                 try { return $d->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
             });
-            $respostas_pendentes = $respostas_pendentes->filter(function($r) {
-                try { return $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal(); } catch (\Exception $e) { return false; }
-            });
         }
+        $respostas_pendentes = $this->filtrarRespostasPendentesVisiveis($respostas_pendentes, $usuario);
 
         // Agrupar documentos por processo
         $tarefasArray = [];
