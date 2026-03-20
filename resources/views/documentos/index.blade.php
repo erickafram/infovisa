@@ -182,6 +182,17 @@
                                             </svg>
                                             {{ $documento->processo->numero_processo }}
                                         </a>
+                                        @php
+                                            $estabelecimentoDocumento = $documento->processo->estabelecimento;
+                                            $nomeEstabelecimentoDocumento = $estabelecimentoDocumento->nome_fantasia
+                                                ?? $estabelecimentoDocumento->razao_social
+                                                ?? null;
+                                        @endphp
+                                        @if($nomeEstabelecimentoDocumento)
+                                            <div class="mt-1 text-xs text-gray-500 max-w-xs truncate" title="{{ $nomeEstabelecimentoDocumento }}">
+                                                {{ $nomeEstabelecimentoDocumento }}
+                                            </div>
+                                        @endif
                                     @else
                                         <span class="text-sm text-gray-400">-</span>
                                     @endif

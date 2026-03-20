@@ -81,7 +81,7 @@
             <h1 class="text-lg font-bold text-gray-900">Olá, {{ Str::words(auth('interno')->user()->nome, 1, '') }}!</h1>
             <p class="text-[11px] text-gray-400">{{ now()->locale('pt_BR')->isoFormat('dddd, D [de] MMMM') }}</p>
         </div>
-        @if($docsAtrasados > 0)
+        @if($isGestorOuAdmin && $docsAtrasados > 0)
         <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
             {{ $docsAtrasados }} documento(s) atrasado(s)
@@ -533,17 +533,17 @@
 
         {{-- Coluna 3: ACOMPANHAMENTO --}}
         <div class="space-y-4">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="tarefasPaginadas()" x-show="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length > 0" x-cloak>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="tarefasPaginadas()" x-show="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length > 0" x-cloak>
                 <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <div class="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
                             <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         </div>
                         <div>
-                            <h3 class="text-sm font-semibold text-gray-900">Documentos Pendentes</h3>
-                            <p class="text-[10px] text-gray-400">{{ $isGestorOuAdmin ? 'Assinaturas, prazos, respostas e rascunhos para controle' : 'Pendentes de assinatura, prazo, respostas e rascunhos' }}</p>
+                            <h3 class="text-sm font-semibold text-gray-900">{{ $isGestorOuAdmin ? 'Acoes em Documentos' : 'Minhas Ações em Documentos' }}</h3>
+                            <p class="text-[10px] text-gray-400">{{ $isGestorOuAdmin ? 'Assinaturas, prazos, respostas e rascunhos para acompanhamento' : 'Assinar, responder, revisar prazos e rascunhos' }}</p>
                         </div>
-                        <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length || '0'"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length || '0'"></span>
                     </div>
                     <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-amber-500 hover:text-amber-700 font-medium transition">ver todos →</a>
                 </div>
@@ -618,7 +618,7 @@
                         </div>
                     </template>
 
-                    <template x-if="tarefas.filter(t => t.tipo === 'rascunho_lote').length > 0">
+                    <template x-if="tarefas.filter(t => t.tipo === 'rascunho' || t.tipo === 'rascunho_lote').length > 0">
                         <div>
                             <div class="px-3 py-1.5 bg-purple-50/60 border-b border-purple-100/60">
                                 <span class="text-[11px] font-semibold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
@@ -626,7 +626,7 @@
                                     Documentos em Rascunho
                                 </span>
                             </div>
-                            <template x-for="t in tarefas.filter(t => t.tipo === 'rascunho_lote')" :key="'rascunho-card-' + t.id">
+                            <template x-for="t in tarefas.filter(t => t.tipo === 'rascunho' || t.tipo === 'rascunho_lote')" :key="'rascunho-card-' + t.id + '-' + t.tipo">
                                 <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50/50 transition">
                                     <div class="w-6 h-6 rounded-md bg-purple-100 flex items-center justify-center flex-shrink-0">
                                         <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -635,7 +635,7 @@
                                         <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
                                         <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
                                     </div>
-                                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Editar</span>
+                                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700" x-text="t.tipo === 'rascunho_lote' ? 'Editar' : 'Abrir'"></span>
                                 </a>
                             </template>
                         </div>
@@ -716,6 +716,7 @@ function tarefasPaginadas() {
         prevPage() { if (this.currentPage > 1) { this.currentPage--; this.load(); } },
         nextPage() { if (this.currentPage < this.lastPage) { this.currentPage++; this.load(); } },
         getBadgeClass(t) {
+            if (t.tipo === 'rascunho' || t.tipo === 'rascunho_lote') return 'bg-purple-100 text-purple-700';
             if (t.tipo === 'prazo_documento') {
                 if (t.atrasado) return 'bg-red-100 text-red-700';
                 if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
@@ -743,6 +744,8 @@ function tarefasPaginadas() {
         },
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return 'Assinar';
+            if (t.tipo === 'rascunho_lote') return 'Editar';
+            if (t.tipo === 'rascunho') return 'Abrir';
             if (t.tipo === 'prazo_documento') {
                 if (t.atrasado) return 'prazo venc.';
                 if (t.dias_restantes === 0) return 'hoje p/ vencer';

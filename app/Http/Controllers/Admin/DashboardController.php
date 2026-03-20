@@ -824,14 +824,21 @@ class DashboardController extends Controller
     {
         $usuario = Auth::guard('interno')->user();
         $page = $request->get('page', 1);
-        $perPage = 8;
+        $perPage = max(1, min((int) $request->get('per_page', 20), 50));
         $tarefasPrazo = $this->buscarTarefasDocumentosComPrazo($usuario);
 
         // Buscar documentos pendentes de assinatura
         $assinaturas = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
             ->where('status', 'pendente')
             ->whereHas('documentoDigital', fn($q) => $q->where('status', '!=', 'rascunho'))
-            ->with(['documentoDigital.tipoDocumento'])
+            ->with(['documentoDigital.tipoDocumento', 'documentoDigital.processo.estabelecimento'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $rascunhosPendentes = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
+            ->where('status', 'pendente')
+            ->whereHas('documentoDigital', fn($q) => $q->where('status', 'rascunho'))
+            ->with(['documentoDigital.tipoDocumento', 'documentoDigital.processo.estabelecimento', 'documentoDigital.ordemServico'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1051,6 +1058,25 @@ class DashboardController extends Controller
                 'atrasado' => false,
                 'is_lote' => $isLote,
                 'ordem' => 1, // SEGUNDA PRIORIDADE - Assinaturas
+            ]);
+        }
+
+        foreach($rascunhosPendentes as $ass) {
+            $doc = $ass->documentoDigital;
+            $subtituloRascunho = $doc->processo->estabelecimento->nome_fantasia
+                ?? $doc->processo->estabelecimento->razao_social
+                ?? ($doc->ordemServico ? 'OS #' . $doc->ordemServico->numero : 'Rascunho');
+
+            $todasTarefas->push([
+                'tipo' => 'rascunho',
+                'id' => $doc->id,
+                'titulo' => $doc->tipoDocumento->nome ?? 'Documento',
+                'subtitulo' => $subtituloRascunho,
+                'url' => route('admin.documentos.show', $doc->id),
+                'badge' => 'Rascunho',
+                'atrasado' => false,
+                'is_lote' => false,
+                'ordem' => 1,
             ]);
         }
 
@@ -1372,6 +1398,13 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $rascunhosPendentes = DocumentoAssinatura::where('usuario_interno_id', $usuario->id)
+            ->where('status', 'pendente')
+            ->whereHas('documentoDigital', fn($q) => $q->where('status', 'rascunho'))
+            ->with(['documentoDigital.tipoDocumento', 'documentoDigital.processo.estabelecimento', 'documentoDigital.ordemServico'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         // Buscar OSs em andamento do usuário
         $ordensServico = OrdemServico::with(['estabelecimento'])
             ->whereIn('status', ['aberta', 'em_andamento'])
@@ -1595,6 +1628,29 @@ class DashboardController extends Controller
             ]);
         }
 
+        foreach($rascunhosPendentes as $ass) {
+            $doc = $ass->documentoDigital;
+            $subtituloRascunho = $doc->processo->estabelecimento->nome_fantasia
+                ?? $doc->processo->estabelecimento->razao_social
+                ?? ($doc->ordemServico ? 'OS #' . $doc->ordemServico->numero : 'Rascunho');
+
+            $todasTarefasCompleta->push([
+                'tipo' => 'rascunho',
+                'id' => $doc->id,
+                'titulo' => $doc->tipoDocumento->nome ?? 'Documento',
+                'subtitulo' => $subtituloRascunho,
+                'numero_processo' => $doc->processo->numero_processo ?? null,
+                'url' => route('admin.documentos.show', $doc->id),
+                'badge' => 'Rascunho',
+                'atrasado' => false,
+                'is_lote' => false,
+                'ordem' => 1,
+                'data' => $ass->created_at->format('d/m/Y H:i'),
+                'created_at' => $ass->created_at,
+                'grupo' => 'para_mim',
+            ]);
+        }
+
         // 2.5º PRIORIDADE: Documentos em lote (rascunho) criados pelo usuário
         $documentosLoteRascunhoTodos = \App\Models\DocumentoDigital::where('usuario_criador_id', $usuario->id)
             ->where('status', 'rascunho')
@@ -1687,6 +1743,7 @@ class DashboardController extends Controller
         // Contadores GLOBAIS (sempre completos, independente do filtro ativo)
         $osCount = $todasTarefasCompleta->where('tipo', 'os')->count();
         $assinaturaCount = $todasTarefasCompleta->where('tipo', 'assinatura')->count();
+        $rascunhoCount = $todasTarefasCompleta->where('tipo', 'rascunho')->count();
         $rascunhoLoteCount = $todasTarefasCompleta->where('tipo', 'rascunho_lote')->count();
         $aprovacaoCount = $todasTarefasCompleta->where('tipo', 'aprovacao')->count();
         $respostaCount = $todasTarefasCompleta->where('tipo', 'resposta')->count();
@@ -1698,19 +1755,20 @@ class DashboardController extends Controller
             'aprovacao' => $aprovacaoCount,
             'resposta' => $respostaCount,
             'assinatura' => $assinaturaCount,
+            'rascunho' => $rascunhoCount,
             'rascunho_lote' => $rascunhoLoteCount,
             'os' => $osCount,
             'prazo_documento' => $prazoDocumentoCount,
-            'para_mim' => $osCount + $assinaturaCount + $rascunhoLoteCount + $prazoParaMimCount,
+            'para_mim' => $osCount + $assinaturaCount + $rascunhoCount + $rascunhoLoteCount + $prazoParaMimCount,
             'setor' => $aprovacaoCount + $respostaCount + $prazoSetorCount,
         ];
 
         // Aplicar filtro
         $todasTarefas = match($filtro) {
-            'para_mim' => $todasTarefasCompleta->filter(fn($t) => in_array($t['tipo'], ['os', 'assinatura', 'rascunho_lote'], true) || ($t['tipo'] === 'prazo_documento' && ($t['grupo'] ?? null) === 'para_mim')),
+            'para_mim' => $todasTarefasCompleta->filter(fn($t) => in_array($t['tipo'], ['os', 'assinatura', 'rascunho', 'rascunho_lote'], true) || ($t['tipo'] === 'prazo_documento' && ($t['grupo'] ?? null) === 'para_mim')),
             'setor' => $todasTarefasCompleta->filter(fn($t) => in_array($t['tipo'], ['aprovacao', 'resposta'], true) || ($t['tipo'] === 'prazo_documento' && ($t['grupo'] ?? null) === 'setor')),
             'os' => $todasTarefasCompleta->where('tipo', 'os'),
-            'assinatura' => $todasTarefasCompleta->whereIn('tipo', ['assinatura', 'rascunho_lote']),
+            'assinatura' => $todasTarefasCompleta->whereIn('tipo', ['assinatura', 'rascunho', 'rascunho_lote']),
             'aprovacao' => $todasTarefasCompleta->where('tipo', 'aprovacao'),
             'resposta' => $todasTarefasCompleta->where('tipo', 'resposta'),
             'prazo_documento' => $todasTarefasCompleta->where('tipo', 'prazo_documento'),

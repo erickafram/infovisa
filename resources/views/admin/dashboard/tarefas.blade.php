@@ -128,7 +128,7 @@
                                      'bg-blue-100': !t.atrasado && t.tipo === 'os',
                                      'bg-amber-100': !t.atrasado && t.tipo === 'assinatura',
                                      'bg-rose-100': !t.atrasado && t.tipo === 'prazo_documento',
-                                     'bg-purple-100': !t.atrasado && (t.tipo === 'aprovacao' || t.tipo === 'rascunho_lote'),
+                                     'bg-purple-100': !t.atrasado && (t.tipo === 'aprovacao' || t.tipo === 'rascunho' || t.tipo === 'rascunho_lote'),
                                      'bg-green-100': !t.atrasado && t.tipo === 'resposta'
                                  }">
                                 <template x-if="t.tipo === 'os'">
@@ -146,7 +146,7 @@
                                 <template x-if="t.tipo === 'resposta'">
                                     <svg class="w-3.5 h-3.5" :class="t.atrasado ? 'text-red-600' : 'text-green-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                 </template>
-                                <template x-if="t.tipo === 'rascunho_lote'">
+                                <template x-if="t.tipo === 'rascunho' || t.tipo === 'rascunho_lote'">
                                     <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </template>
                             </div>
@@ -159,10 +159,10 @@
                                               'bg-blue-100 text-blue-700': t.tipo === 'os',
                                               'bg-amber-100 text-amber-700': t.tipo === 'assinatura',
                                               'bg-rose-100 text-rose-700': t.tipo === 'prazo_documento',
-                                              'bg-purple-100 text-purple-700': t.tipo === 'aprovacao' || t.tipo === 'rascunho_lote',
+                                              'bg-purple-100 text-purple-700': t.tipo === 'aprovacao' || t.tipo === 'rascunho' || t.tipo === 'rascunho_lote',
                                               'bg-green-100 text-green-700': t.tipo === 'resposta'
                                           }"
-                                          x-text="{'os':'OS','assinatura':'Assinatura','prazo_documento':'Prazo','aprovacao':'Aprovação','resposta':'Resposta','rascunho_lote':'Rascunho'}[t.tipo]"></span>
+                                          x-text="{'os':'OS','assinatura':'Assinatura','prazo_documento':'Prazo','aprovacao':'Aprovação','resposta':'Resposta','rascunho':'Rascunho','rascunho_lote':'Rascunho'}[t.tipo]"></span>
                                     <template x-if="t.numero_processo">
                                         <span class="text-[10px] text-gray-400" x-text="t.numero_processo"></span>
                                     </template>
@@ -245,7 +245,7 @@ function todasTarefas() {
         totalFiltrado: 0,
         perPage: 20,
         filtro: @json(request('filtro', 'todos')),
-        contadores: { total: 0, aprovacao: 0, resposta: 0, assinatura: 0, prazo_documento: 0, os: 0, para_mim: 0, setor: 0 },
+        contadores: { total: 0, aprovacao: 0, resposta: 0, assinatura: 0, rascunho: 0, prazo_documento: 0, os: 0, para_mim: 0, setor: 0 },
 
         init() { this.load(); },
 
@@ -282,6 +282,7 @@ function todasTarefas() {
 
         getBadgeClass(t) {
             if (t.tipo === 'assinatura') return 'bg-amber-100 text-amber-700';
+            if (t.tipo === 'rascunho' || t.tipo === 'rascunho_lote') return 'bg-purple-100 text-purple-700';
             if (t.tipo === 'prazo_documento') {
                 if (t.atrasado) return 'bg-red-100 text-red-700';
                 if (t.dias_restantes === 0) return 'bg-orange-100 text-orange-700';
@@ -310,6 +311,8 @@ function todasTarefas() {
 
         getBadgeText(t) {
             if (t.tipo === 'assinatura') return t.is_lote ? 'Lote' : 'Assinar';
+            if (t.tipo === 'rascunho_lote') return 'Editar';
+            if (t.tipo === 'rascunho') return 'Abrir';
             if (t.tipo === 'prazo_documento') {
                 if (t.atrasado) return 'Vencido';
                 if (t.dias_restantes === 0) return 'Hoje';

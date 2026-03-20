@@ -116,7 +116,7 @@ class DocumentoDigitalController extends Controller
 
     private function montarQueryDocumentosIndex(UsuarioInterno $usuarioLogado, string $escopo)
     {
-        $query = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo', 'assinaturas.usuarioInterno']);
+        $query = DocumentoDigital::with(['tipoDocumento', 'usuarioCriador', 'processo.estabelecimento', 'assinaturas.usuarioInterno']);
 
         if ($escopo === 'setor') {
             $tecnicosDoSetorIds = $this->buscarTecnicosDoSetorIds($usuarioLogado);

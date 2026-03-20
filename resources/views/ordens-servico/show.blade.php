@@ -616,6 +616,9 @@
                             $usuarioLogadoAtribuido = in_array(auth('interno')->id(), $tecnicosIds);
                             $usuarioLogadoResponsavel = $responsavelId && auth('interno')->id() == $responsavelId;
                             $podeFinalizarAtividade = $usuarioLogadoAtribuido && (count($tecnicosIds) <= 1 || !$responsavelId || $usuarioLogadoResponsavel);
+                            $documentosDigitaisAtividade = $ordemServico->documentosDigitais->where('atividade_index', $index)->sortByDesc('created_at')->values();
+                            $arquivosExternosAtividade = $ordemServico->arquivosExternos->where('atividade_index', $index)->sortByDesc('created_at')->values();
+                            $totalItensAtividade = $documentosDigitaisAtividade->count() + $arquivosExternosAtividade->count();
                         @endphp
                         
                         <div class="border rounded-xl overflow-hidden {{ $statusAtividade === 'finalizada' ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-white' }}">
@@ -755,6 +758,85 @@
                                                         </p>
                                                     @endif
                                                 </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if($totalItensAtividade > 0)
+                                    <div class="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/50 overflow-hidden">
+                                        <div class="px-3 py-2 border-b border-indigo-100 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            <p class="text-xs font-semibold text-indigo-900">Documentos da atividade</p>
+                                            <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-white text-indigo-700 rounded-full">{{ $totalItensAtividade }}</span>
+                                        </div>
+                                        <div class="px-3 py-2.5 space-y-2">
+                                            @foreach($documentosDigitaisAtividade as $documentoAtividade)
+                                                @php
+                                                    $statusDocumentoAtividade = match($documentoAtividade->status) {
+                                                        'rascunho' => ['label' => 'Rascunho', 'class' => 'bg-gray-100 text-gray-600'],
+                                                        'aguardando_assinatura' => ['label' => 'Ag. assinatura', 'class' => 'bg-yellow-100 text-yellow-700'],
+                                                        'assinado' => ['label' => 'Assinado', 'class' => 'bg-green-100 text-green-700'],
+                                                        'cancelado' => ['label' => 'Cancelado', 'class' => 'bg-red-100 text-red-700'],
+                                                        default => ['label' => ucfirst($documentoAtividade->status), 'class' => 'bg-gray-100 text-gray-600'],
+                                                    };
+                                                @endphp
+                                                <a href="{{ route('admin.documentos.show', $documentoAtividade->id) }}"
+                                                   target="_blank"
+                                                   class="flex items-center justify-between gap-3 rounded-lg border border-indigo-100 bg-white px-3 py-2 hover:border-indigo-200 hover:bg-indigo-50/50 transition">
+                                                    <div class="min-w-0 flex items-center gap-2.5">
+                                                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <p class="text-xs font-medium text-gray-900 truncate">{{ $documentoAtividade->nome ?? $documentoAtividade->tipoDocumento->nome ?? 'Documento' }}</p>
+                                                            <div class="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                                                                <span>#{{ $documentoAtividade->numero_documento }}</span>
+                                                                <span>{{ $documentoAtividade->created_at->format('d/m/Y H:i') }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-shrink-0 flex items-center gap-2">
+                                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded {{ $statusDocumentoAtividade['class'] }}">{{ $statusDocumentoAtividade['label'] }}</span>
+                                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-indigo-100 text-indigo-700">Digital</span>
+                                                    </div>
+                                                </a>
+                                            @endforeach
+                                            @foreach($arquivosExternosAtividade as $arquivoAtividade)
+                                                @php
+                                                    $processoArquivoAtividade = $arquivoAtividade->processo;
+                                                    $linkArquivoAtividade = $arquivoAtividade->processo_id && $processoArquivoAtividade?->estabelecimento_id
+                                                        ? route('admin.estabelecimentos.processos.visualizar', [$processoArquivoAtividade->estabelecimento_id, $arquivoAtividade->processo_id, $arquivoAtividade->id])
+                                                        : route('admin.ordens-servico.arquivos-externos.visualizar', [$ordemServico, $arquivoAtividade]);
+                                                @endphp
+                                                <a href="{{ $linkArquivoAtividade }}"
+                                                   target="_blank"
+                                                   class="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-white px-3 py-2 hover:border-blue-200 hover:bg-blue-50/50 transition">
+                                                    <div class="min-w-0 flex items-center gap-2.5">
+                                                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <p class="text-xs font-medium text-gray-900 truncate">{{ $arquivoAtividade->nome_original }}</p>
+                                                            <div class="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                                                                <span>{{ $arquivoAtividade->created_at->format('d/m/Y H:i') }}</span>
+                                                                <span>{{ $arquivoAtividade->tamanho_formatado }}</span>
+                                                                @if($processoArquivoAtividade)
+                                                                    <span>Proc. {{ $processoArquivoAtividade->numero_processo ?? '#' . $processoArquivoAtividade->id }}</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-shrink-0 flex items-center gap-2">
+                                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">Arquivo</span>
+                                                    </div>
+                                                </a>
                                             @endforeach
                                         </div>
                                     </div>
@@ -941,6 +1023,16 @@
                 $totalDocumentosOs = $documentosOs->count();
                 $totalArquivosExternosOs = $arquivosExternosOs->count();
                 $totalItensDocumentosOs = $totalDocumentosOs + $totalArquivosExternosOs;
+                $atividadesOs = collect($ordemServico->atividades_tecnicos ?? [])->values();
+                $resolverNomeAtividadeOs = function ($atividadeIndex) use ($atividadesOs) {
+                    if ($atividadeIndex === null || $atividadeIndex === '') {
+                        return null;
+                    }
+
+                    $atividade = $atividadesOs->get((int) $atividadeIndex);
+
+                    return $atividade['nome_atividade'] ?? null;
+                };
 
                 // Processos vinculados para criação de documentos
                 $processosVinculadosOs = $ordemServico->getTodosEstabelecimentos()
@@ -975,135 +1067,6 @@
 
                 $linkCriarDocumentoOs = route('admin.documentos.create') . '?' . http_build_query($parametrosCriacaoDocumentoOs);
             @endphp
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
-                    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Documentos da OS
-                        @if($totalItensDocumentosOs > 0)
-                        <span class="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-700 rounded-full">{{ $totalItensDocumentosOs }}</span>
-                        @endif
-                    </h2>
-                    
-                </div>
-                <div class="px-5 py-5 space-y-5">
-                    @if($totalItensDocumentosOs > 0)
-                        @if($documentosOs->isNotEmpty())
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Documentos Digitais</p>
-                            <div class="space-y-2">
-                                @foreach($documentosOs as $documentoOs)
-                                @php
-                                    $statusDocumentoOs = match($documentoOs->status) {
-                                        'rascunho' => ['label' => 'Rascunho', 'class' => 'bg-gray-100 text-gray-600'],
-                                        'aguardando_assinatura' => ['label' => 'Aguardando assinatura', 'class' => 'bg-yellow-100 text-yellow-700'],
-                                        'assinado' => ['label' => 'Assinado', 'class' => 'bg-green-100 text-green-700'],
-                                        'cancelado' => ['label' => 'Cancelado', 'class' => 'bg-red-100 text-red-700'],
-                                        default => ['label' => ucfirst($documentoOs->status), 'class' => 'bg-gray-100 text-gray-600'],
-                                    };
-                                @endphp
-                                <a href="{{ route('admin.documentos.show', $documentoOs->id) }}"
-                                   target="_blank"
-                                   class="flex items-center justify-between gap-3 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition">
-                                    <div class="min-w-0 flex items-center gap-3">
-                                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
-                                                {{ $documentoOs->nome ?? $documentoOs->tipoDocumento->nome ?? 'Documento' }}
-                                            </p>
-                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
-                                                <span>#{{ $documentoOs->numero_documento }}</span>
-                                                <span>{{ $documentoOs->created_at->format('d/m/Y H:i') }}</span>
-                                                @if($documentoOs->usuarioCriador)
-                                                <span>por {{ $documentoOs->usuarioCriador->nome }}</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex-shrink-0 flex items-center gap-2">
-                                        <span class="px-2 py-1 text-[11px] font-semibold rounded {{ $statusDocumentoOs['class'] }}">{{ $statusDocumentoOs['label'] }}</span>
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                        </svg>
-                                    </div>
-                                </a>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
-
-                        @if($arquivosExternosOs->isNotEmpty())
-                        <div class="{{ $documentosOs->isNotEmpty() ? 'pt-5 border-t border-gray-100' : '' }}">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Arquivos Externos</p>
-                            <div class="space-y-2">
-                                @foreach($arquivosExternosOs as $arquivoOs)
-                                @php
-                                    $processoArquivoOs = $arquivoOs->processo;
-                                    $linkArquivoOs = $arquivoOs->processo_id && $processoArquivoOs?->estabelecimento_id
-                                        ? route('admin.estabelecimentos.processos.visualizar', [$processoArquivoOs->estabelecimento_id, $arquivoOs->processo_id, $arquivoOs->id])
-                                        : route('admin.ordens-servico.arquivos-externos.visualizar', [$ordemServico, $arquivoOs]);
-                                @endphp
-                                <a href="{{ $linkArquivoOs }}"
-                                   target="_blank"
-                                   class="flex items-center justify-between gap-3 bg-blue-50 rounded-lg p-4 border border-blue-100 hover:border-blue-200 hover:bg-blue-100/70 transition">
-                                    <div class="min-w-0 flex items-center gap-3">
-                                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $arquivoOs->nome_original }}</p>
-                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
-                                                <span>{{ $arquivoOs->created_at->format('d/m/Y H:i') }}</span>
-                                                <span>{{ $arquivoOs->tamanho_formatado }}</span>
-                                                @if($arquivoOs->usuario)
-                                                <span>por {{ $arquivoOs->usuario->nome }}</span>
-                                                @endif
-                                            </div>
-                                            <div class="mt-2">
-                                                @if($processoArquivoOs)
-                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white border border-blue-200 rounded px-2 py-0.5">
-                                                    Processo {{ $processoArquivoOs->numero_processo ?? '#' . $processoArquivoOs->id }}
-                                                </span>
-                                                @else
-                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-white border border-amber-200 rounded px-2 py-0.5">
-                                                    Vinculado apenas à OS
-                                                </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex-shrink-0 flex items-center gap-2">
-                                        <span class="px-2 py-1 text-[11px] font-semibold bg-blue-100 text-blue-700 rounded">Arquivo Externo</span>
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                        </svg>
-                                    </div>
-                                </a>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
-                    @else
-                    <div class="text-center py-6">
-                        <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                            <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                        </div>
-                        <p class="text-sm font-semibold text-gray-900">Nenhum documento vinculado</p>
-                        <p class="text-xs text-gray-500 mt-1 max-w-md mx-auto">Esta OS ainda não possui documentos digitais nem arquivos externos vinculados.</p>
-                    </div>
-                    @endif
-                </div>
-            </div>
 
             {{-- Documento Anexo --}}
             @if($ordemServico->documento_anexo_path)
