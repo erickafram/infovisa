@@ -6,8 +6,6 @@
 @section('content')
 @php
     $isGestorOuAdmin = auth('interno')->user()->isGestor() || auth('interno')->user()->isAdmin();
-    $mostrarRespostasEmDocumentosPendentes = true;
-    $mostrarPrazosSetorEmDocumentosPendentes = $isGestorOuAdmin;
     $docsAtrasados = 0;
     // Prazo de 5 dias aplica-se APENAS a processos de licenciamento
     foreach($documentos_pendentes_aprovacao ?? [] as $doc) {
@@ -255,7 +253,7 @@
                         <h3 class="text-sm font-semibold text-gray-900">Minhas demandas</h3>
                         <p class="text-[10px] text-gray-400">Tarefas atribuídas a você</p>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os' || (t.tipo === 'prazo_documento' && t.grupo === 'para_mim')).length || '0'"></span>
+                    <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'os').length || '0'"></span>
                 </div>
                 <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-blue-500 hover:text-blue-700 font-medium transition">ver todos →</a>
             </div>
@@ -265,7 +263,7 @@
                         <svg class="animate-spin h-5 w-5 text-blue-300 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || (t.tipo === 'prazo_documento' && t.grupo === 'para_mim')).length > 0">
+                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os').length > 0">
                     <div>
                         {{-- Ordens de Serviço --}}
                         <template x-if="tarefas.filter(t => t.tipo === 'os').length > 0">
@@ -302,34 +300,9 @@
                             </div>
                         </template>
 
-                        {{-- Documentos com Prazo --}}
-                        <template x-if="tarefas.filter(t => t.tipo === 'prazo_documento' && t.grupo === 'para_mim').length > 0">
-                            <div>
-                                <div class="px-3 py-1.5 bg-rose-50/60 border-b border-rose-100/60">
-                                    <span class="text-[11px] font-semibold text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Documentos com prazo
-                                    </span>
-                                </div>
-                                <template x-for="t in tarefas.filter(t => t.tipo === 'prazo_documento' && t.grupo === 'para_mim')" :key="'prazo-meu-' + t.id">
-                                    <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-rose-50/50 transition" :class="t.atrasado ? 'bg-red-50/40' : 'bg-amber-50/20'">
-                                        <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-rose-100'">
-                                            <svg class="w-3 h-3" :class="t.atrasado ? 'text-red-600' : 'text-rose-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-[13px] font-medium text-gray-800 truncate" x-text="t.titulo"></p>
-                                            <p class="text-[11px] text-gray-400 truncate" x-text="t.subtitulo"></p>
-                                            <p class="text-[10px] mt-0.5 truncate" :class="t.atrasado ? 'text-red-500' : 'text-amber-600'" x-text="t.prazo_texto"></p>
-                                        </div>
-                                        <span class="text-[9px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="getBadgeClass(t)" x-text="getBadgeText(t)"></span>
-                                    </a>
-                                </template>
-                            </div>
-                        </template>
-
                     </div>
                 </template>
-                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os' || (t.tipo === 'prazo_documento' && t.grupo === 'para_mim')).length === 0">
+                <template x-if="!loading && tarefas.filter(t => t.tipo === 'os').length === 0">
                     <div class="p-8 text-center">
                         <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
                             <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -560,7 +533,7 @@
 
         {{-- Coluna 3: ACOMPANHAMENTO --}}
         <div class="space-y-4">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="tarefasPaginadas()" x-show="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || {{ $mostrarRespostasEmDocumentosPendentes ? "t.tipo === 'resposta'" : 'false' }} || {{ $mostrarPrazosSetorEmDocumentosPendentes ? "(t.tipo === 'prazo_documento' && t.grupo === 'setor')" : 'false' }}).length > 0" x-cloak>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" x-data="tarefasPaginadas()" x-show="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length > 0" x-cloak>
                 <div class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <div class="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
@@ -568,9 +541,9 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-semibold text-gray-900">Documentos Pendentes</h3>
-                            <p class="text-[10px] text-gray-400">{{ $isGestorOuAdmin ? 'Assinaturas, prazos, respostas e rascunhos do setor' : 'Pendentes de assinatura, respostas e rascunhos' }}</p>
+                            <p class="text-[10px] text-gray-400">{{ $isGestorOuAdmin ? 'Assinaturas, prazos, respostas e rascunhos para controle' : 'Pendentes de assinatura, prazo, respostas e rascunhos' }}</p>
                         </div>
-                        <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || {{ $mostrarRespostasEmDocumentosPendentes ? "t.tipo === 'resposta'" : 'false' }} || {{ $mostrarPrazosSetorEmDocumentosPendentes ? "(t.tipo === 'prazo_documento' && t.grupo === 'setor')" : 'false' }}).length || '0'"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length || '0'"></span>
                     </div>
                     <a href="{{ route('admin.dashboard.todas-tarefas') }}" class="text-[11px] text-amber-500 hover:text-amber-700 font-medium transition">ver todos →</a>
                 </div>
@@ -598,17 +571,15 @@
                         </div>
                     </template>
 
-                    @if($mostrarRespostasEmDocumentosPendentes)
-                    @if($mostrarPrazosSetorEmDocumentosPendentes)
-                    <template x-if="tarefas.filter(t => t.tipo === 'prazo_documento' && t.grupo === 'setor').length > 0">
+                    <template x-if="tarefas.filter(t => t.tipo === 'prazo_documento').length > 0">
                         <div>
                             <div class="px-3 py-1.5 bg-rose-50/60 border-b border-rose-100/60">
                                 <span class="text-[11px] font-semibold text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Prazos do Setor
+                                    Documentos com Prazo
                                 </span>
                             </div>
-                            <template x-for="t in tarefas.filter(t => t.tipo === 'prazo_documento' && t.grupo === 'setor')" :key="'prazo-docs-' + t.id">
+                            <template x-for="t in tarefas.filter(t => t.tipo === 'prazo_documento')" :key="'prazo-docs-' + t.id">
                                 <a :href="t.url" class="flex items-center gap-2.5 px-3 py-2 hover:bg-rose-50/50 transition" :class="t.atrasado ? 'bg-red-50/40' : 'bg-amber-50/20'">
                                     <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" :class="t.atrasado ? 'bg-red-100' : 'bg-rose-100'">
                                         <svg class="w-3 h-3" :class="t.atrasado ? 'text-red-600' : 'text-rose-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -623,7 +594,6 @@
                             </template>
                         </div>
                     </template>
-                    @endif
 
                     <template x-if="tarefas.filter(t => t.tipo === 'resposta').length > 0">
                         <div>
@@ -647,7 +617,6 @@
                             </template>
                         </div>
                     </template>
-                    @endif
 
                     <template x-if="tarefas.filter(t => t.tipo === 'rascunho_lote').length > 0">
                         <div>

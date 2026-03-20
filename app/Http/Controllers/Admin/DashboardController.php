@@ -267,30 +267,64 @@ class DashboardController extends Controller
      */
     private function buscarTarefasDocumentosComPrazo($usuario)
     {
-        $processos = $this->buscarProcessosSobResponsabilidadeDashboard($usuario);
+        $processosPorId = collect();
 
-        if ($processos->isEmpty()) {
-            return collect();
-        }
-
-        $processosPorId = $processos->keyBy('id');
-
-        return DocumentoDigital::with(['tipoDocumento', 'processo.estabelecimento'])
-            ->whereIn('processo_id', $processosPorId->keys())
+        $query = DocumentoDigital::with(['tipoDocumento', 'processo.estabelecimento', 'assinaturas'])
             ->where('status', 'assinado')
             ->whereNotNull('data_vencimento')
             ->whereNull('prazo_finalizado_em')
             ->whereDate('data_vencimento', '<=', now()->copy()->addDays(5)->toDateString())
-            ->orderBy('data_vencimento', 'asc')
+            ->orderBy('data_vencimento', 'asc');
+
+        if ($usuario->isAdmin()) {
+            // Admin vê todos para controle.
+        } elseif ($usuario->isGestor()) {
+            $processos = $this->buscarProcessosSobResponsabilidadeDashboard($usuario);
+
+            if ($processos->isEmpty()) {
+                return collect();
+            }
+
+            $processosPorId = $processos->keyBy('id');
+            $query->whereIn('processo_id', $processosPorId->keys());
+        } else {
+            $query->whereHas('assinaturas', function ($assinaturasQuery) use ($usuario) {
+                $assinaturasQuery->where('usuario_interno_id', $usuario->id)
+                    ->where('status', 'assinado');
+            });
+        }
+
+        return $query
             ->get()
-            ->filter(function($documento) use ($processosPorId) {
-                return $documento->temPrazo()
-                    && $documento->todasAssinaturasCompletas()
-                    && $processosPorId->has($documento->processo_id);
+            ->filter(function($documento) use ($processosPorId, $usuario) {
+                if (!$documento->temPrazo() || !$documento->todasAssinaturasCompletas() || !$documento->processo) {
+                    return false;
+                }
+
+                if ($usuario->isAdmin()) {
+                    return true;
+                }
+
+                if ($usuario->isGestor()) {
+                    return $processosPorId->has($documento->processo_id);
+                }
+
+                return $documento->assinaturas->contains(function ($assinatura) use ($usuario) {
+                    return (int) $assinatura->usuario_interno_id === (int) $usuario->id
+                        && $assinatura->status === 'assinado';
+                });
             })
             ->map(function($documento) use ($processosPorId, $usuario) {
-                $processo = $processosPorId->get($documento->processo_id);
-                $grupo = $processo->responsavel_atual_id == $usuario->id ? 'para_mim' : 'setor';
+                $processo = $documento->processo;
+                $grupo = 'para_mim';
+
+                if ($usuario->isAdmin()) {
+                    $grupo = 'setor';
+                } elseif ($usuario->isGestor()) {
+                    $processoDashboard = $processosPorId->get($documento->processo_id);
+                    $grupo = $processoDashboard && $processoDashboard->responsavel_atual_id == $usuario->id ? 'para_mim' : 'setor';
+                }
+
                 $nomeDocumento = $documento->tipoDocumento->nome ?? ($documento->nome ?: 'Documento com prazo');
                 $estabelecimento = $processo->estabelecimento->nome_fantasia
                     ?? $processo->estabelecimento->razao_social
