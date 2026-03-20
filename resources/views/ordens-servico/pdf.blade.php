@@ -193,6 +193,94 @@
             color: #666;
             margin-bottom: 2px;
         }
+
+        .checklist-box {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #fafafa;
+        }
+
+        .checklist-stats {
+            margin-bottom: 6px;
+            font-size: 9px;
+            color: #444;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 7px;
+            background-color: #e5e7eb;
+            margin: 4px 0 6px;
+        }
+
+        .progress-bar-fill {
+            height: 7px;
+            background-color: #2563eb;
+        }
+
+        .checklist-item {
+            padding: 4px 6px;
+            margin-bottom: 4px;
+            border-left: 3px solid #9ca3af;
+            background-color: #fff;
+            font-size: 9px;
+        }
+
+        .checklist-item.ok {
+            border-left-color: #16a34a;
+            background-color: #f0fdf4;
+        }
+
+        .checklist-item.alerta {
+            border-left-color: #dc2626;
+            background-color: #fef2f2;
+        }
+
+        .checklist-item.aviso {
+            border-left-color: #d97706;
+            background-color: #fffbeb;
+        }
+
+        .badge-inline {
+            display: inline-block;
+            padding: 1px 5px;
+            font-size: 8px;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .badge-green {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-red {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-amber {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-gray {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .mini-list {
+            margin-top: 4px;
+            padding-left: 14px;
+            font-size: 8.5px;
+            color: #555;
+        }
+
+        .mini-list li {
+            margin-bottom: 2px;
+        }
         
         .footer {
             margin-top: 20px;
@@ -263,6 +351,16 @@
     @php
         $estabelecimentoPdf = $estabelecimentoPdf ?? $ordemServico->estabelecimento;
         $processoPdf = $processoPdf ?? $ordemServico->processo;
+        $checklistPdf = $checklistPdf ?? [];
+        $documentosObrigatoriosPdf = collect($checklistPdf['documentos_obrigatorios'] ?? []);
+        $documentosPendentesPdf = collect($checklistPdf['documentos_pendentes'] ?? []);
+        $atividadesExigemRtPdf = collect($checklistPdf['atividades_exigem_rt'] ?? []);
+        $totalDocumentosPdf = $checklistPdf['total_documentos'] ?? 0;
+        $totalAprovadosPdf = $checklistPdf['total_aprovados'] ?? 0;
+        $totalPendentesPdf = $checklistPdf['total_pendentes'] ?? 0;
+        $totalRejeitadosPdf = $checklistPdf['total_rejeitados'] ?? 0;
+        $totalNaoEnviadosPdf = $checklistPdf['total_nao_enviados'] ?? 0;
+        $percentualChecklistPdf = $totalDocumentosPdf > 0 ? (int) round(($totalAprovadosPdf / $totalDocumentosPdf) * 100) : 0;
     @endphp
     <div class="page">
         {{-- Logomarca --}}
@@ -406,6 +504,103 @@
             </div>
         </div>
         @endif
+
+        <div class="section">
+            <div class="section-title">CHECKLIST DOCUMENTAL E RESPONSÁVEIS</div>
+            <div class="section-content">
+                <div class="checklist-box">
+                    <div class="checklist-stats">
+                        <strong>{{ $checklistPdf['titulo_documentos'] ?? 'Docs. Licenciamento' }}:</strong>
+                        {{ $totalAprovadosPdf }}/{{ $totalDocumentosPdf }} aprovados
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: {{ $percentualChecklistPdf }}%;"></div>
+                    </div>
+                    <div class="checklist-stats">
+                        {{ $percentualChecklistPdf }}% concluído
+                        @if($totalPendentesPdf > 0)
+                            | {{ $totalPendentesPdf }} pendente(s)
+                        @endif
+                        @if($totalRejeitadosPdf > 0)
+                            | {{ $totalRejeitadosPdf }} rejeitado(s)
+                        @endif
+                        @if($totalNaoEnviadosPdf > 0)
+                            | {{ $totalNaoEnviadosPdf }} não enviado(s)
+                        @endif
+                    </div>
+
+                    @if($documentosPendentesPdf->isEmpty() && $totalDocumentosPdf > 0)
+                        <div class="checklist-item ok">
+                            <strong>Documentação obrigatória regular.</strong> Todos os documentos obrigatórios deste processo estão aprovados.
+                        </div>
+                    @elseif($documentosPendentesPdf->isEmpty())
+                        <div class="checklist-item aviso">
+                            <strong>Nenhum documento obrigatório configurado</strong> para este processo no momento.
+                        </div>
+                    @else
+                        <div class="checklist-item alerta">
+                            <strong>Documentos pendentes para análise/entrega:</strong>
+                            <ul class="mini-list">
+                                @foreach($documentosPendentesPdf as $documento)
+                                    @php
+                                        $statusDocumento = $documento['status'] ?? null;
+                                        $rotuloStatus = match($statusDocumento) {
+                                            'pendente' => 'Pendente de aprovação',
+                                            'rejeitado' => 'Rejeitado',
+                                            default => 'Não enviado',
+                                        };
+                                    @endphp
+                                    <li>{{ $documento['nome'] }} ({{ $rotuloStatus }})</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="checklist-box">
+                    <div class="checklist-item {{ ($checklistPdf['responsavel_legal_ok'] ?? false) ? 'ok' : 'alerta' }}">
+                        <strong>Responsável legal:</strong>
+                        @if($checklistPdf['responsavel_legal_ok'] ?? false)
+                            cadastrado(s) {{ $checklistPdf['responsavel_legal_total'] ?? 0 }}
+                            <span class="badge-inline badge-green">OK</span>
+                        @else
+                            nenhum responsável legal vinculado
+                            <span class="badge-inline badge-red">PENDENTE</span>
+                        @endif
+                    </div>
+
+                    <div class="checklist-item {{ ($checklistPdf['responsavel_tecnico_ok'] ?? false) || !($checklistPdf['responsavel_tecnico_obrigatorio'] ?? false) ? 'ok' : 'alerta' }}">
+                        <strong>Responsável técnico:</strong>
+                        @if($checklistPdf['responsavel_tecnico_obrigatorio'] ?? false)
+                            obrigatório para este estabelecimento
+                            @if($checklistPdf['responsavel_tecnico_ok'] ?? false)
+                                , com {{ $checklistPdf['responsavel_tecnico_total'] ?? 0 }} vinculado(s)
+                                <span class="badge-inline badge-green">OK</span>
+                            @else
+                                , mas ainda não vinculado
+                                <span class="badge-inline badge-red">PENDENTE</span>
+                            @endif
+                        @else
+                            opcional no momento
+                            @if($checklistPdf['responsavel_tecnico_ok'] ?? false)
+                                , com {{ $checklistPdf['responsavel_tecnico_total'] ?? 0 }} vinculado(s)
+                                <span class="badge-inline badge-green">CADASTRADO</span>
+                            @else
+                                <span class="badge-inline badge-gray">NÃO OBRIGATÓRIO</span>
+                            @endif
+                        @endif
+
+                        @if($atividadesExigemRtPdf->isNotEmpty())
+                            <ul class="mini-list">
+                                @foreach($atividadesExigemRtPdf as $atividadeRt)
+                                    <li>{{ $atividadeRt }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {{-- Status de Equipamentos de Imagem --}}
         @php

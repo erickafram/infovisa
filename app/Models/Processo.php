@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -237,6 +238,174 @@ class Processo extends Model
     public function documentos()
     {
         return $this->hasMany(ProcessoDocumento::class);
+    }
+
+    /**
+     * Busca os documentos obrigatórios e seus status para este processo.
+     */
+    public function getDocumentosObrigatoriosChecklist(): Collection
+    {
+        $estabelecimento = $this->estabelecimento;
+        $tipoProcesso = $this->tipoProcesso;
+        $tipoProcessoId = $tipoProcesso->id ?? null;
+
+        if (!$tipoProcessoId || !$estabelecimento) {
+            return collect();
+        }
+
+        $isProcessoEspecial = $tipoProcesso && in_array($tipoProcesso->codigo, ['projeto_arquitetonico', 'analise_rotulagem']);
+        $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+
+        if (!$isProcessoEspecial && empty($atividadesExercidas)) {
+            return collect();
+        }
+
+        $atividadeIds = collect();
+
+        if (!$isProcessoEspecial && !empty($atividadesExercidas)) {
+            $codigosCnae = collect($atividadesExercidas)
+                ->map(function ($atividade) {
+                    $codigo = is_array($atividade) ? ($atividade['codigo'] ?? null) : $atividade;
+                    return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+
+            if (!empty($codigosCnae)) {
+                $atividadeIds = Atividade::where('ativo', true)
+                    ->where(function ($query) use ($codigosCnae) {
+                        foreach ($codigosCnae as $codigo) {
+                            $query->orWhere('codigo_cnae', $codigo);
+                        }
+                    })
+                    ->pluck('id');
+            }
+        }
+
+        $query = ListaDocumento::where('ativo', true)
+            ->where('tipo_processo_id', $tipoProcessoId)
+            ->with(['tiposDocumentoObrigatorio' => function ($query) {
+                $query->orderBy('lista_documento_tipo.ordem');
+            }]);
+
+        if ($isProcessoEspecial) {
+            $query->whereDoesntHave('atividades');
+        } else {
+            if ($atividadeIds->isEmpty()) {
+                return collect();
+            }
+
+            $query->whereHas('atividades', function ($query) use ($atividadeIds) {
+                $query->whereIn('atividades.id', $atividadeIds);
+            });
+        }
+
+        $query->where(function ($query) use ($estabelecimento) {
+            $query->where('escopo', 'estadual');
+
+            if ($estabelecimento->municipio_id) {
+                $query->orWhere(function ($nestedQuery) use ($estabelecimento) {
+                    $nestedQuery->where('escopo', 'municipal')
+                        ->where('municipio_id', $estabelecimento->municipio_id);
+                });
+            }
+        });
+
+        $listas = $query->get();
+        $documentos = collect();
+
+        $documentosEnviadosInfo = $this->documentos
+            ->whereNotNull('tipo_documento_obrigatorio_id')
+            ->groupBy('tipo_documento_obrigatorio_id')
+            ->map(function ($docs) {
+                $docRecente = $docs->sortByDesc('created_at')->first();
+
+                return [
+                    'status' => $docRecente->status_aprovacao,
+                    'documento' => $docRecente,
+                ];
+            });
+
+        $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+
+        $documentosComuns = TipoDocumentoObrigatorio::where('ativo', true)
+            ->where('documento_comum', true)
+            ->where(function ($query) use ($tipoProcessoId) {
+                $query->whereNull('tipo_processo_id')
+                    ->orWhere('tipo_processo_id', $tipoProcessoId);
+            })
+            ->where(function ($query) use ($escopoCompetencia) {
+                $query->where('escopo_competencia', 'todos')
+                    ->orWhere('escopo_competencia', $escopoCompetencia);
+            })
+            ->where(function ($query) use ($tipoSetor) {
+                $query->where('tipo_setor', 'todos')
+                    ->orWhere('tipo_setor', $tipoSetor);
+            })
+            ->ordenado()
+            ->get();
+
+        foreach ($documentosComuns as $doc) {
+            $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+
+            $documentos->push([
+                'id' => $doc->id,
+                'nome' => $doc->nome,
+                'descricao' => $doc->descricao,
+                'obrigatorio' => true,
+                'ordem' => 0,
+                'observacao' => null,
+                'lista_nome' => 'Documentos Comuns',
+                'status' => $infoEnviado['status'] ?? null,
+                'documento_enviado' => $infoEnviado['documento'] ?? null,
+                'documento_comum' => true,
+            ]);
+        }
+
+        foreach ($listas as $lista) {
+            foreach ($lista->tiposDocumentoObrigatorio as $doc) {
+                $aplicaEscopo = $doc->escopo_competencia === 'todos' || $doc->escopo_competencia === $escopoCompetencia;
+                $aplicaTipoSetor = $doc->tipo_setor === 'todos' || $doc->tipo_setor === $tipoSetor;
+
+                if (!$aplicaEscopo || !$aplicaTipoSetor) {
+                    continue;
+                }
+
+                if (!$documentos->contains('id', $doc->id)) {
+                    $infoEnviado = $documentosEnviadosInfo->get($doc->id);
+
+                    $documentos->push([
+                        'id' => $doc->id,
+                        'nome' => $doc->nome,
+                        'descricao' => $doc->descricao,
+                        'obrigatorio' => $doc->pivot->obrigatorio,
+                        'ordem' => $doc->pivot->ordem,
+                        'observacao' => $doc->pivot->observacao,
+                        'lista_nome' => $lista->nome,
+                        'status' => $infoEnviado['status'] ?? null,
+                        'documento_enviado' => $infoEnviado['documento'] ?? null,
+                        'documento_comum' => false,
+                    ]);
+                } else {
+                    $documentos = $documentos->map(function ($item) use ($doc) {
+                        if ($item['id'] === $doc->id && $doc->pivot->obrigatorio) {
+                            $item['obrigatorio'] = true;
+                        }
+
+                        return $item;
+                    });
+                }
+            }
+        }
+
+        return $documentos->sortBy([
+            ['documento_comum', 'desc'],
+            ['obrigatorio', 'desc'],
+            ['nome', 'asc'],
+        ])->values();
     }
 
     /**

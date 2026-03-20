@@ -2265,7 +2265,17 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para gerar PDF desta ordem de serviço.');
         }
 
-        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
+        $ordemServico->load([
+            'estabelecimento.municipio',
+            'estabelecimento.responsaveisLegais',
+            'estabelecimento.responsaveisTecnicos',
+            'estabelecimentos.municipio',
+            'estabelecimentos.responsaveisLegais',
+            'estabelecimentos.responsaveisTecnicos',
+            'municipio',
+            'processo.tipoProcesso',
+            'processo.documentos',
+        ]);
 
         $estabelecimentoPdf = $ordemServico->estabelecimento;
         $processoPdf = $ordemServico->processo;
@@ -2282,7 +2292,7 @@ class OrdemServicoController extends Controller
 
             $processoIdPivot = $estabelecimentoPdf?->pivot?->processo_id;
             if ($processoIdPivot) {
-                $processoPdf = Processo::find($processoIdPivot) ?? $processoPdf;
+                $processoPdf = Processo::with(['tipoProcesso', 'documentos'])->find($processoIdPivot) ?? $processoPdf;
             }
         }
 
@@ -2294,6 +2304,8 @@ class OrdemServicoController extends Controller
             $ordemServico->setRelation('processo', $processoPdf);
             $ordemServico->processo_id = $processoPdf->id;
         }
+
+        $checklistPdf = $this->montarChecklistPdfOs($estabelecimentoPdf, $processoPdf);
 
         // Determina logomarca para o PDF da OS (mesma regra dos documentos)
         $logomarca = \App\Models\ConfiguracaoSistema::logomarcaEstadual();
@@ -2389,7 +2401,7 @@ class OrdemServicoController extends Controller
         // Renderiza a view para PDF
         $html = view('ordens-servico.pdf', compact(
             'ordemServico', 'estabelecimentoPdf', 'processoPdf',
-            'qrCodePesquisaBase64', 'linkPesquisaExterna', 'logomarca'
+            'qrCodePesquisaBase64', 'linkPesquisaExterna', 'logomarca', 'checklistPdf'
         ))->render();
 
         // Gera PDF usando DomPDF
@@ -2414,7 +2426,17 @@ class OrdemServicoController extends Controller
             abort(403, 'Você não tem permissão para gerar PDF desta ordem de serviço.');
         }
 
-        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo']);
+        $ordemServico->load([
+            'estabelecimento.municipio',
+            'estabelecimento.responsaveisLegais',
+            'estabelecimento.responsaveisTecnicos',
+            'estabelecimentos.municipio',
+            'estabelecimentos.responsaveisLegais',
+            'estabelecimentos.responsaveisTecnicos',
+            'municipio',
+            'processo.tipoProcesso',
+            'processo.documentos',
+        ]);
 
         $todosEstabelecimentos = $ordemServico->getTodosEstabelecimentos();
 
@@ -2429,7 +2451,7 @@ class OrdemServicoController extends Controller
 
             $processoIdPivot = $estabelecimentoPdf?->pivot?->processo_id;
             if ($processoIdPivot) {
-                $processoPdf = Processo::find($processoIdPivot) ?? $processoPdf;
+                $processoPdf = Processo::with(['tipoProcesso', 'documentos'])->find($processoIdPivot) ?? $processoPdf;
             }
 
             // Clona a OS para não afetar as iterações seguintes
@@ -2517,6 +2539,8 @@ class OrdemServicoController extends Controller
                 }
             }
 
+            $checklistPdf = $this->montarChecklistPdfOs($estabelecimentoPdf, $processoPdf);
+
             $ordemServicoView = $osClone;
             $htmlPages[] = view('ordens-servico.pdf', [
                 'ordemServico' => $ordemServicoView,
@@ -2525,6 +2549,7 @@ class OrdemServicoController extends Controller
                 'qrCodePesquisaBase64' => $qrCodePesquisaBase64,
                 'linkPesquisaExterna' => $linkPesquisaExterna,
                 'logomarca' => $logomarca,
+                'checklistPdf' => $checklistPdf,
             ])->render();
         }
 
@@ -2566,6 +2591,62 @@ class OrdemServicoController extends Controller
             ->setOption('margin-right', 10);
 
         return $pdf->download('OS-' . str_pad($ordemServico->numero, 5, '0', STR_PAD_LEFT) . '-TODOS.pdf');
+    }
+
+    private function montarChecklistPdfOs(?Estabelecimento $estabelecimento, ?Processo $processo): array
+    {
+        if ($estabelecimento) {
+            $estabelecimento->loadMissing(['responsaveisLegais', 'responsaveisTecnicos']);
+        }
+
+        if ($processo) {
+            $processo->loadMissing(['tipoProcesso', 'documentos']);
+        }
+
+        $documentosObrigatorios = $processo
+            ? $processo->getDocumentosObrigatoriosChecklist()->where('obrigatorio', true)->values()
+            : collect();
+
+        $documentosPendentes = $documentosObrigatorios
+            ->filter(fn ($documento) => ($documento['status'] ?? null) !== 'aprovado')
+            ->values();
+
+        $atividadesExigemRt = $estabelecimento
+            ? collect($estabelecimento->getAtividadesQueExigemResponsavelTecnico())
+                ->map(function ($atividade) {
+                    if (is_array($atividade)) {
+                        $codigo = $atividade['codigo'] ?? null;
+                        $descricao = $atividade['descricao'] ?? $atividade['nome'] ?? null;
+
+                        return trim(collect([$codigo, $descricao])->filter()->implode(' - '));
+                    }
+
+                    return (string) $atividade;
+                })
+                ->filter()
+                ->values()
+            : collect();
+
+        return [
+            'titulo_documentos' => match($processo?->tipoProcesso?->codigo ?? $processo?->tipo ?? 'licenciamento') {
+                'projeto_arquitetonico' => 'Docs. Projeto Arq.',
+                'analise_rotulagem' => 'Docs. Rotulagem',
+                default => 'Docs. Licenciamento',
+            },
+            'documentos_obrigatorios' => $documentosObrigatorios,
+            'documentos_pendentes' => $documentosPendentes,
+            'total_documentos' => $documentosObrigatorios->count(),
+            'total_aprovados' => $documentosObrigatorios->where('status', 'aprovado')->count(),
+            'total_pendentes' => $documentosObrigatorios->where('status', 'pendente')->count(),
+            'total_rejeitados' => $documentosObrigatorios->where('status', 'rejeitado')->count(),
+            'total_nao_enviados' => $documentosObrigatorios->whereNull('status')->count(),
+            'responsavel_legal_ok' => $estabelecimento ? $estabelecimento->responsaveisLegais->count() > 0 : false,
+            'responsavel_legal_total' => $estabelecimento ? $estabelecimento->responsaveisLegais->count() : 0,
+            'responsavel_tecnico_ok' => $estabelecimento ? $estabelecimento->responsaveisTecnicos->count() > 0 : false,
+            'responsavel_tecnico_total' => $estabelecimento ? $estabelecimento->responsaveisTecnicos->count() : 0,
+            'responsavel_tecnico_obrigatorio' => $atividadesExigemRt->isNotEmpty(),
+            'atividades_exigem_rt' => $atividadesExigemRt,
+        ];
     }
     
     /**
