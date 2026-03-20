@@ -465,6 +465,10 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
     Route::post('ordens-servico/{ordemServico}/finalizar-atividade/upload-arquivo',
         [\App\Http\Controllers\OrdemServicoController::class, 'uploadArquivoExternoAtividade']
     )->name('ordens-servico.upload-arquivo-atividade');
+
+    Route::get('ordens-servico/{ordemServico}/arquivos-externos/{documento}/visualizar',
+        [\App\Http\Controllers\OrdemServicoController::class, 'visualizarArquivoExternoAtividade']
+    )->name('ordens-servico.arquivos-externos.visualizar');
     
     // Obter minhas atividades na OS
     Route::get('ordens-servico/{ordemServico}/minhas-atividades', 

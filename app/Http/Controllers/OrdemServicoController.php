@@ -406,7 +406,17 @@ class OrdemServicoController extends Controller
                 'lida_em' => now(),
             ]);
         
-        $ordemServico->load(['estabelecimento.municipio', 'estabelecimentos.municipio', 'municipio', 'processo', 'documentosDigitais.tipoDocumento', 'documentosDigitais.assinaturas', 'documentosDigitais.usuarioCriador']);
+        $ordemServico->load([
+            'estabelecimento.municipio',
+            'estabelecimentos.municipio',
+            'municipio',
+            'processo',
+            'documentosDigitais.tipoDocumento',
+            'documentosDigitais.assinaturas',
+            'documentosDigitais.usuarioCriador',
+            'arquivosExternos.usuario',
+            'arquivosExternos.processo.estabelecimento',
+        ]);
 
         $pesquisaInterna = $this->buscarPesquisaInternaPendente($ordemServico, $usuario);
 
@@ -1719,7 +1729,7 @@ class OrdemServicoController extends Controller
             ->sortByDesc('created_at')
             ->values();
         $arquivosExternosOs = $ordemServico->arquivosExternos()
-            ->with(['usuario', 'ordemServico'])
+            ->with(['usuario', 'ordemServico', 'processo.estabelecimento'])
             ->where('atividade_index', $atividadeIndex)
             ->when($processosVinculadosOs->isNotEmpty(), function ($query) use ($processosVinculadosOs) {
                 $query->whereIn('processo_id', $processosVinculadosOs->all());
@@ -1998,10 +2008,19 @@ class OrdemServicoController extends Controller
                 'justificativa' => $statusExecucaoFinal === 'nao_concluido' ? $observacoesFinalizacao : null,
             ];
         } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Não há estabelecimentos vinculados para esta atividade.'
-            ], 422);
+            if (empty($statusExecucaoFinal)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selecione o status da execução.'
+                ], 422);
+            }
+
+            if (mb_strlen($observacoesFinalizacao) < 10) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Informe as observações da atividade (mínimo 10 caracteres).'
+                ], 422);
+            }
         }
         
         // Atualiza o status da atividade
@@ -2015,14 +2034,25 @@ class OrdemServicoController extends Controller
         }
 
         // Registra informação sobre documentos da OS
-        $temDocumentosOs = $ordemServico->documentosDigitais()
+        $processosVinculadosOs = $this->obterProcessosVinculadosOs($ordemServico, $todosEstabelecimentosOs);
+
+        $quantidadeDocumentosDigitaisOs = $ordemServico->documentosDigitais()
             ->where('atividade_index', $atividadeIndex)
-            ->exists();
-        if ($temDocumentosOs) {
+            ->count();
+
+        $quantidadeArquivosExternosOs = $ordemServico->arquivosExternos()
+            ->where('atividade_index', $atividadeIndex)
+            ->when($processosVinculadosOs->isNotEmpty(), function ($query) use ($processosVinculadosOs) {
+                $query->whereIn('processo_id', $processosVinculadosOs->all());
+            })
+            ->count();
+
+        $quantidadeTotalDocumentosOs = $quantidadeDocumentosDigitaisOs + $quantidadeArquivosExternosOs;
+
+        if ($quantidadeTotalDocumentosOs > 0) {
             $atividades[$atividadeIndex]['tem_documentos_os'] = true;
-            $atividades[$atividadeIndex]['qtd_documentos_os'] = $ordemServico->documentosDigitais()
-                ->where('atividade_index', $atividadeIndex)
-                ->count();
+            $atividades[$atividadeIndex]['qtd_documentos_os'] = $quantidadeTotalDocumentosOs;
+            $atividades[$atividadeIndex]['qtd_arquivos_externos_os'] = $quantidadeArquivosExternosOs;
         } elseif ($request->boolean('confirmou_sem_documentos')) {
             $atividades[$atividadeIndex]['confirmou_sem_documentos'] = true;
             $atividades[$atividadeIndex]['confirmou_sem_documentos_por'] = $usuario->id;
@@ -2116,11 +2146,10 @@ class OrdemServicoController extends Controller
 
         $validated = $request->validate([
             'atividade_index' => 'required|integer|min:0',
-            'processo_id' => 'required|integer|exists:processos,id',
+            'processo_id' => 'nullable|integer|exists:processos,id',
             'tipo_documento' => 'required|string|max:255',
             'arquivo' => 'required|file|mimes:pdf|max:10240',
         ], [
-            'processo_id.required' => 'Selecione o processo que receberá o arquivo.',
             'tipo_documento.required' => 'Selecione o tipo de documento.',
             'arquivo.required' => 'Selecione um arquivo para upload.',
             'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
@@ -2154,24 +2183,43 @@ class OrdemServicoController extends Controller
 
         $todosEstabelecimentosOs = $ordemServico->getTodosEstabelecimentos();
         $processosVinculadosOs = $this->obterProcessosVinculadosOs($ordemServico, $todosEstabelecimentosOs);
-        $processoId = (int) $validated['processo_id'];
 
-        if (!$processosVinculadosOs->contains($processoId)) {
+        $processo = null;
+        $processoId = isset($validated['processo_id']) ? (int) $validated['processo_id'] : null;
+
+        if ($processosVinculadosOs->isNotEmpty()) {
+            if (!$processoId) {
+                return redirect()
+                    ->route('admin.ordens-servico.show-finalizar-atividade', [$ordemServico, $atividadeIndex])
+                    ->withErrors(['processo_id' => 'Selecione o processo que receberá o arquivo.'])
+                    ->withInput();
+            }
+
+            if (!$processosVinculadosOs->contains($processoId)) {
+                return redirect()
+                    ->route('admin.ordens-servico.show-finalizar-atividade', [$ordemServico, $atividadeIndex])
+                    ->with('error', 'O processo selecionado não está vinculado a esta OS.');
+            }
+
+            $processo = Processo::findOrFail($processoId);
+        } elseif ($processoId) {
             return redirect()
                 ->route('admin.ordens-servico.show-finalizar-atividade', [$ordemServico, $atividadeIndex])
-                ->with('error', 'O processo selecionado não está vinculado a esta OS.');
+                ->with('error', 'Esta OS não possui processo vinculado para receber o arquivo.');
         }
 
-        $processo = Processo::findOrFail($processoId);
         $arquivo = $request->file('arquivo');
 
         try {
             $nomeOriginal = $arquivo->getClientOriginalName();
             $extensao = strtolower($arquivo->getClientOriginalExtension());
             $tamanho = $arquivo->getSize();
-            $nomeArquivo = Str::slug(pathinfo($nomeOriginal, PATHINFO_FILENAME)) . '_' . time() . '.' . $extensao;
+            $nomeBase = Str::slug(pathinfo($nomeOriginal, PATHINFO_FILENAME));
+            $nomeArquivo = ($nomeBase !== '' ? $nomeBase : 'arquivo') . '_' . time() . '.' . $extensao;
 
-            $diretorio = 'processos' . DIRECTORY_SEPARATOR . $processoId;
+            $diretorio = $processo
+                ? 'processos' . DIRECTORY_SEPARATOR . $processo->id
+                : 'ordens-servico' . DIRECTORY_SEPARATOR . $ordemServico->id . DIRECTORY_SEPARATOR . 'arquivos-externos';
             $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . $diretorio;
 
             if (!file_exists($caminhoCompleto)) {
@@ -2195,15 +2243,15 @@ class OrdemServicoController extends Controller
             }
 
             ProcessoDocumento::create([
-                'processo_id' => $processo->id,
+                'processo_id' => $processo?->id,
                 'os_id' => $ordemServico->id,
                 'atividade_index' => $atividadeIndex,
-                'pasta_id' => $this->resolverPastaParaProcesso($ordemServico, $processo->id),
+                'pasta_id' => $processo ? $this->resolverPastaParaProcesso($ordemServico, $processo->id) : null,
                 'usuario_id' => $usuario->id,
                 'tipo_usuario' => 'interno',
                 'nome_arquivo' => $nomeArquivo,
                 'nome_original' => $nomeVisual,
-                'caminho' => 'processos/' . $processoId . '/' . $nomeArquivo,
+                'caminho' => str_replace(DIRECTORY_SEPARATOR, '/', $diretorio . DIRECTORY_SEPARATOR . $nomeArquivo),
                 'extensao' => $extensao,
                 'tamanho' => $tamanho,
                 'tipo_documento' => $tipoSlug,
@@ -2211,12 +2259,43 @@ class OrdemServicoController extends Controller
 
             return redirect()
                 ->route('admin.ordens-servico.show-finalizar-atividade', [$ordemServico, $atividadeIndex])
-                ->with('success', 'Arquivo externo vinculado à OS e ao processo com sucesso!');
+                ->with('success', $processo
+                    ? 'Arquivo externo vinculado à OS e ao processo com sucesso!'
+                    : 'Arquivo externo vinculado à OS com sucesso!');
         } catch (\Throwable $e) {
             return redirect()
                 ->route('admin.ordens-servico.show-finalizar-atividade', [$ordemServico, $atividadeIndex])
                 ->with('error', 'Erro ao fazer upload do arquivo: ' . $e->getMessage());
         }
+    }
+
+    public function visualizarArquivoExternoAtividade(OrdemServico $ordemServico, ProcessoDocumento $documento)
+    {
+        $usuario = Auth::guard('interno')->user();
+
+        if (!$this->podeVisualizarOS($usuario, $ordemServico)) {
+            abort(403, 'Você não tem permissão para visualizar este arquivo.');
+        }
+
+        $documento = ProcessoDocumento::where('os_id', $ordemServico->id)
+            ->findOrFail($documento->id);
+
+        if ($documento->tipo_documento === 'documento_digital' || $documento->tipo_usuario === 'externo') {
+            $caminhoCompleto = storage_path('app/public') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        } else {
+            $caminhoCompleto = storage_path('app') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $documento->caminho);
+        }
+
+        if (!file_exists($caminhoCompleto)) {
+            abort(404, 'Arquivo não encontrado.');
+        }
+
+        $mimeType = mime_content_type($caminhoCompleto) ?: 'application/octet-stream';
+
+        return response()->file($caminhoCompleto, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"'
+        ]);
     }
 
     private function obterProcessosVinculadosOs(OrdemServico $ordemServico, $todosEstabelecimentosOs = null)

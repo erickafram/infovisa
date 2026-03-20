@@ -1001,7 +1001,7 @@ function documentoEditor() {
         confirmandoFinalizacao: false,
         contadorErros: 0,
         timeoutVerificacao: null,
-        chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id") ?: (request()->get("processos_ids") ?: "novo") }}',
+        chaveLocalStorage: 'documento_rascunho_{{ request()->get("processo_id") ?: (request()->get("processos_ids") ?: (request()->get("os_id") ? "os_" . request()->get("os_id") . "_atividade_" . request()->get("atividade_index", "sem_atividade") : "novo")) }}',
         popupSemUsuarioExternoVisivel: false,
         popupSemUsuarioExternoSegundos: 15,
         popupSemUsuarioExternoTimer: null,

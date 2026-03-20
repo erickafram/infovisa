@@ -937,7 +937,10 @@
             ======================================== --}}
             @php
                 $documentosOs = $ordemServico->documentosDigitais->sortByDesc('created_at');
+                $arquivosExternosOs = $ordemServico->arquivosExternos->sortByDesc('created_at');
                 $totalDocumentosOs = $documentosOs->count();
+                $totalArquivosExternosOs = $arquivosExternosOs->count();
+                $totalItensDocumentosOs = $totalDocumentosOs + $totalArquivosExternosOs;
 
                 // Processos vinculados para criação de documentos
                 $processosVinculadosOs = $ordemServico->getTodosEstabelecimentos()
@@ -957,7 +960,151 @@
                 }
 
                 $temProcessoVinculado = $processosVinculadosOs->isNotEmpty();
+
+                $parametrosCriacaoDocumentoOs = [
+                    'os_id' => $ordemServico->id,
+                ];
+
+                if ($temProcessoVinculado) {
+                    if ($processosVinculadosOs->count() > 1) {
+                        $parametrosCriacaoDocumentoOs['processos_ids'] = $processosVinculadosOs->implode(',');
+                    } else {
+                        $parametrosCriacaoDocumentoOs['processo_id'] = $processosVinculadosOs->first();
+                    }
+                }
+
+                $linkCriarDocumentoOs = route('admin.documentos.create') . '?' . http_build_query($parametrosCriacaoDocumentoOs);
             @endphp
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+                    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Documentos da OS
+                        @if($totalItensDocumentosOs > 0)
+                        <span class="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-700 rounded-full">{{ $totalItensDocumentosOs }}</span>
+                        @endif
+                    </h2>
+                    
+                </div>
+                <div class="px-5 py-5 space-y-5">
+                    @if($totalItensDocumentosOs > 0)
+                        @if($documentosOs->isNotEmpty())
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Documentos Digitais</p>
+                            <div class="space-y-2">
+                                @foreach($documentosOs as $documentoOs)
+                                @php
+                                    $statusDocumentoOs = match($documentoOs->status) {
+                                        'rascunho' => ['label' => 'Rascunho', 'class' => 'bg-gray-100 text-gray-600'],
+                                        'aguardando_assinatura' => ['label' => 'Aguardando assinatura', 'class' => 'bg-yellow-100 text-yellow-700'],
+                                        'assinado' => ['label' => 'Assinado', 'class' => 'bg-green-100 text-green-700'],
+                                        'cancelado' => ['label' => 'Cancelado', 'class' => 'bg-red-100 text-red-700'],
+                                        default => ['label' => ucfirst($documentoOs->status), 'class' => 'bg-gray-100 text-gray-600'],
+                                    };
+                                @endphp
+                                <a href="{{ route('admin.documentos.show', $documentoOs->id) }}"
+                                   target="_blank"
+                                   class="flex items-center justify-between gap-3 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 transition">
+                                    <div class="min-w-0 flex items-center gap-3">
+                                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                                {{ $documentoOs->nome ?? $documentoOs->tipoDocumento->nome ?? 'Documento' }}
+                                            </p>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
+                                                <span>#{{ $documentoOs->numero_documento }}</span>
+                                                <span>{{ $documentoOs->created_at->format('d/m/Y H:i') }}</span>
+                                                @if($documentoOs->usuarioCriador)
+                                                <span>por {{ $documentoOs->usuarioCriador->nome }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0 flex items-center gap-2">
+                                        <span class="px-2 py-1 text-[11px] font-semibold rounded {{ $statusDocumentoOs['class'] }}">{{ $statusDocumentoOs['label'] }}</span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </div>
+                                </a>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        @if($arquivosExternosOs->isNotEmpty())
+                        <div class="{{ $documentosOs->isNotEmpty() ? 'pt-5 border-t border-gray-100' : '' }}">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Arquivos Externos</p>
+                            <div class="space-y-2">
+                                @foreach($arquivosExternosOs as $arquivoOs)
+                                @php
+                                    $processoArquivoOs = $arquivoOs->processo;
+                                    $linkArquivoOs = $arquivoOs->processo_id && $processoArquivoOs?->estabelecimento_id
+                                        ? route('admin.estabelecimentos.processos.visualizar', [$processoArquivoOs->estabelecimento_id, $arquivoOs->processo_id, $arquivoOs->id])
+                                        : route('admin.ordens-servico.arquivos-externos.visualizar', [$ordemServico, $arquivoOs]);
+                                @endphp
+                                <a href="{{ $linkArquivoOs }}"
+                                   target="_blank"
+                                   class="flex items-center justify-between gap-3 bg-blue-50 rounded-lg p-4 border border-blue-100 hover:border-blue-200 hover:bg-blue-100/70 transition">
+                                    <div class="min-w-0 flex items-center gap-3">
+                                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $arquivoOs->nome_original }}</p>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
+                                                <span>{{ $arquivoOs->created_at->format('d/m/Y H:i') }}</span>
+                                                <span>{{ $arquivoOs->tamanho_formatado }}</span>
+                                                @if($arquivoOs->usuario)
+                                                <span>por {{ $arquivoOs->usuario->nome }}</span>
+                                                @endif
+                                            </div>
+                                            <div class="mt-2">
+                                                @if($processoArquivoOs)
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white border border-blue-200 rounded px-2 py-0.5">
+                                                    Processo {{ $processoArquivoOs->numero_processo ?? '#' . $processoArquivoOs->id }}
+                                                </span>
+                                                @else
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-white border border-amber-200 rounded px-2 py-0.5">
+                                                    Vinculado apenas à OS
+                                                </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0 flex items-center gap-2">
+                                        <span class="px-2 py-1 text-[11px] font-semibold bg-blue-100 text-blue-700 rounded">Arquivo Externo</span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </div>
+                                </a>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+                    @else
+                    <div class="text-center py-6">
+                        <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-900">Nenhum documento vinculado</p>
+                        <p class="text-xs text-gray-500 mt-1 max-w-md mx-auto">Esta OS ainda não possui documentos digitais nem arquivos externos vinculados.</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
             {{-- Documento Anexo --}}
             @if($ordemServico->documento_anexo_path)
             <div class="bg-white rounded-lg border border-gray-200">
@@ -1389,7 +1536,7 @@
         btnFinalizar.disabled = true;
         btnFinalizar.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Finalizando...';
 
-        const temDocumentosOs = {{ $totalDocumentosOs > 0 ? 'true' : 'false' }};
+        const temDocumentosOs = {{ $totalItensDocumentosOs > 0 ? 'true' : 'false' }};
         const payloadFinalizacao = {
             atividade_index: index,
             status_execucao: isMulti ? null : statusSelecionado.value,
@@ -1682,20 +1829,19 @@
             </div>
 
             {{-- Documentos da OS --}}
-            @if($temProcessoVinculado)
             <div id="avisoDocumentosProcesso" class="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                     <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                     <h4 class="text-sm font-semibold text-gray-800">Documentos da OS</h4>
-                    @if($totalDocumentosOs > 0)
-                    <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700 rounded">{{ $totalDocumentosOs }}</span>
+                    @if($totalItensDocumentosOs > 0)
+                    <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700 rounded">{{ $totalItensDocumentosOs }}</span>
                     @endif
                 </div>
 
                 <div class="px-4 py-3 space-y-3">
-                    @if($totalDocumentosOs > 0)
+                    @if($totalItensDocumentosOs > 0)
                     {{-- Lista resumida de documentos --}}
                     <div class="space-y-1.5 max-h-32 overflow-y-auto">
                         @foreach($documentosOs as $docModal)
@@ -1718,12 +1864,24 @@
                             {!! $statusBadgeModal !!}
                         </div>
                         @endforeach
+                        @foreach($arquivosExternosOs as $arquivoOsModal)
+                        <div class="flex items-center justify-between px-2.5 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <span class="text-xs font-medium text-blue-800 truncate">{{ $arquivoOsModal->nome_original }}</span>
+                                <span class="text-[10px] text-blue-600">Arquivo externo</span>
+                            </div>
+                            <span class="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">PDF</span>
+                        </div>
+                        @endforeach
                     </div>
                     <p class="text-[11px] text-green-700 font-medium flex items-center gap-1">
                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
-                        Documentos vinculados à OS estão em dia.
+                        Documentos vinculados à OS estão disponíveis para esta finalização.
                     </p>
                     @else
                     {{-- Sem documentos — precisa de confirmação --}}
@@ -1732,7 +1890,7 @@
                             <strong>⚠️</strong> Nenhum documento foi criado para esta OS.
                             Você pode criar um documento antes de finalizar ou confirmar que não há documentos a serem criados.
                         </p>
-                        <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}"
+                        <a href="{{ $linkCriarDocumentoOs }}"
                            target="_blank"
                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-300 rounded-lg hover:bg-indigo-100 transition-all mb-2">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1754,7 +1912,6 @@
                     @endif
                 </div>
             </div>
-            @endif
 
             {{-- Aviso geral --}}
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5">

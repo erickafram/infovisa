@@ -94,7 +94,11 @@
                                             </span>
                                             @endif
                                         @else
-                                            <span class="text-xs text-gray-500">{{ $estabelecimentosAtividade->count() }} estabelecimentos</span>
+                                            @if($estabelecimentosAtividade->count() > 0)
+                                                <span class="text-xs text-gray-500">{{ $estabelecimentosAtividade->count() }} estabelecimentos</span>
+                                            @else
+                                                <span class="text-xs text-amber-600">Sem estabelecimento vinculado</span>
+                                            @endif
                                         @endif
                                         <span class="text-xs text-gray-400">•</span>
                                         <span class="text-xs text-gray-500">{{ $tecnicos->count() }} {{ $tecnicos->count() === 1 ? 'técnico' : 'técnicos' }}</span>
@@ -246,9 +250,23 @@
                         </div>
 
                         {{-- Card: Documentos da OS --}}
-                        @if($processosVinculadosOs->isNotEmpty())
                         @php
                             $totalDocumentosVinculados = $documentosOs->count() + $arquivosExternosOs->count();
+                            $temProcessosVinculados = $processosVinculadosOs->isNotEmpty();
+                            $parametrosCriacaoDocumento = [
+                                'os_id' => $ordemServico->id,
+                                'atividade_index' => $atividadeIndex,
+                            ];
+
+                            if ($temProcessosVinculados) {
+                                if ($processosVinculadosOs->count() > 1) {
+                                    $parametrosCriacaoDocumento['processos_ids'] = $processosVinculadosOs->implode(',');
+                                } else {
+                                    $parametrosCriacaoDocumento['processo_id'] = $processosVinculadosOs->first();
+                                }
+                            }
+
+                            $linkCriarDocumentoOs = route('admin.documentos.create') . '?' . http_build_query($parametrosCriacaoDocumento);
                         @endphp
                         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden order-1">
                             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -270,7 +288,7 @@
                                         </svg>
                                         Upload Externo
                                     </button>
-                                    <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
+                                                <a href="{{ $linkCriarDocumentoOs }}"
                                        target="_blank"
                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,12 +308,17 @@
                                         </div>
                                         <div>
                                             <h4 class="text-sm font-semibold text-gray-900">Upload de Arquivo Externo</h4>
-                                            <p class="text-xs text-gray-600 mt-0.5">Envie um PDF para o processo e vincule este arquivo à OS e à atividade atual.</p>
+                                            <p class="text-xs text-gray-600 mt-0.5">
+                                                {{ $temProcessosVinculados
+                                                    ? 'Envie um PDF para o processo e vincule este arquivo à OS e à atividade atual.'
+                                                    : 'Envie um PDF e vincule este arquivo diretamente à OS e à atividade atual.' }}
+                                            </p>
                                         </div>
                                     </div>
 
                                     <div class="space-y-4">
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            @if($temProcessosVinculados)
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     Processo <span class="text-red-500">*</span>
@@ -312,7 +335,8 @@
                                                     @endforeach
                                                 </select>
                                             </div>
-                                            <div>
+                                            @endif
+                                            <div class="{{ $temProcessosVinculados ? '' : 'md:col-span-2' }}">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     Tipo de Documento <span class="text-red-500">*</span>
                                                 </label>
@@ -325,6 +349,12 @@
                                                 </select>
                                             </div>
                                         </div>
+
+                                        @unless($temProcessosVinculados)
+                                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                                            Esta OS não possui processo vinculado. O arquivo será salvo apenas na ordem de serviço e ficará disponível nesta atividade.
+                                        </div>
+                                        @endunless
 
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -343,7 +373,9 @@
                                         </div>
 
                                         <div class="bg-white border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                                            O documento será salvo no processo selecionado e aparecerá também na lista desta atividade da OS.
+                                            {{ $temProcessosVinculados
+                                                ? 'O documento será salvo no processo selecionado e aparecerá também na lista desta atividade da OS.'
+                                                : 'O arquivo será salvo apenas na OS e aparecerá também na lista desta atividade.' }}
                                         </div>
 
                                         <div class="flex items-center justify-end gap-3">
@@ -503,9 +535,12 @@
                                     <div class="space-y-2">
                                         @foreach($arquivosExternosOs as $arquivoOs)
                                             @php
-                                                $processoArquivoOs = $processosInfo->firstWhere('id', $arquivoOs->processo_id);
+                                                $processoArquivoOs = $arquivoOs->processo ?? $processosInfo->firstWhere('id', $arquivoOs->processo_id);
+                                                $linkArquivoOs = $arquivoOs->processo_id && $processoArquivoOs?->estabelecimento_id
+                                                    ? route('admin.estabelecimentos.processos.visualizar', [$processoArquivoOs->estabelecimento_id, $arquivoOs->processo_id, $arquivoOs->id])
+                                                    : route('admin.ordens-servico.arquivos-externos.visualizar', [$ordemServico, $arquivoOs]);
                                             @endphp
-                                            <a href="{{ route('admin.estabelecimentos.processos.visualizar', [$processoArquivoOs?->estabelecimento_id ?? $ordemServico->estabelecimento_id, $arquivoOs->processo_id, $arquivoOs->id]) }}"
+                                            <a href="{{ $linkArquivoOs }}"
                                                target="_blank"
                                                class="flex items-center justify-between p-3 bg-blue-50/60 rounded-lg border border-blue-100 hover:bg-blue-100/70 hover:border-blue-200 transition-all group">
                                                 <div class="flex items-center gap-3 min-w-0">
@@ -529,6 +564,12 @@
                                                             <div class="mt-1">
                                                                 <span class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white border border-blue-200 rounded px-2 py-0.5">
                                                                     Processo {{ $processoArquivoOs->numero_processo ?? '#' . $processoArquivoOs->id }}
+                                                                </span>
+                                                            </div>
+                                                        @else
+                                                            <div class="mt-1">
+                                                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-white border border-amber-200 rounded px-2 py-0.5">
+                                                                    Vinculado apenas à OS
                                                                 </span>
                                                             </div>
                                                         @endif
@@ -588,7 +629,7 @@
                                             </svg>
                                             Upload de Arquivo Externo
                                         </button>
-                                        <a href="{{ route('admin.documentos.create') }}?{{ $processosVinculadosOs->count() > 1 ? 'processos_ids=' . $processosVinculadosOs->implode(',') : 'processo_id=' . $processosVinculadosOs->first() }}&os_id={{ $ordemServico->id }}&atividade_index={{ $atividadeIndex }}"
+                                        <a href="{{ $linkCriarDocumentoOs }}"
                                        target="_blank"
                                        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl hover:bg-indigo-100 transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,7 +655,6 @@
                                 @endif
                             </div>
                         </div>
-                        @endif
 
                         {{-- Botões de ação --}}
                         <div class="flex items-center justify-between gap-4 order-3">
@@ -1359,7 +1399,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', function () {
-        const deveAbrirUploadExterno = @json(old('processo_id') || old('tipo_documento'));
+        const deveAbrirUploadExterno = @json(old('processo_id') || old('tipo_documento') || old('arquivo'));
         if (deveAbrirUploadExterno) {
             toggleUploadArquivoExterno(true);
         }

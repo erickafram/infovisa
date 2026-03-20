@@ -132,7 +132,9 @@ class TipoProcesso extends Model
         return match ($this->competencia) {
             'municipal' => 'municipal',
             'estadual_exclusivo' => 'estadual',
-            'estadual' => $this->municipioDescentralizadoPara($estabelecimento) ? 'municipal' : 'estadual',
+            'estadual' => $estabelecimento->isCompetenciaEstadual()
+                ? 'estadual'
+                : ($this->municipioDescentralizadoPara($estabelecimento) ? 'municipal' : 'estadual'),
             default => $estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal',
         };
     }
