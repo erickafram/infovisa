@@ -114,7 +114,7 @@ class MunicipioController extends Controller
             }
             
             $arquivo = $request->file('logomarca');
-            $nomeArquivo = 'logomarca_' . Str::slug($request->nome) . '_' . time() . '.' . $arquivo->getClientOriginalExtension();
+            $nomeArquivo = 'logomarca_' . Str::slug($request->nome) . '_' . time() . '.' . $this->determinarExtensaoImagem($arquivo);
             $caminho = $arquivo->storeAs('municipios/logomarcas', $nomeArquivo, 'public');
             $dados['logomarca'] = 'storage/' . $caminho;
         }
@@ -332,8 +332,6 @@ class MunicipioController extends Controller
                 \Log::info('Logomarca antiga removida', ['caminho' => $caminhoAntigo]);
             }
             
-            $nomeArquivo = 'logomarca_' . Str::slug($request->nome) . '_' . time() . '.' . $arquivo->getClientOriginalExtension();
-            
             try {
                 $dados['logomarca'] = $this->armazenarImagemMunicipio(
                     $arquivo,
@@ -505,7 +503,7 @@ class MunicipioController extends Controller
             $this->removerImagemMunicipio($caminhoAnterior);
         }
 
-        $nomeArquivo = $prefixo . '_' . time() . '.' . $arquivo->getClientOriginalExtension();
+        $nomeArquivo = $prefixo . '_' . time() . '.' . $this->determinarExtensaoImagem($arquivo);
         $caminho = $arquivo->storeAs($diretorio, $nomeArquivo, 'public');
 
         if (!$caminho) {
@@ -523,5 +521,15 @@ class MunicipioController extends Controller
 
         $caminhoRelativo = str_replace('storage/', '', $caminhoPublico);
         Storage::disk('public')->delete($caminhoRelativo);
+    }
+
+    private function determinarExtensaoImagem(UploadedFile $arquivo): string
+    {
+        return match ($arquivo->getMimeType()) {
+            'image/jpeg', 'image/pjpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/svg+xml' => 'svg',
+            default => strtolower($arquivo->guessExtension() ?: $arquivo->extension() ?: $arquivo->getClientOriginalExtension()),
+        };
     }
 }

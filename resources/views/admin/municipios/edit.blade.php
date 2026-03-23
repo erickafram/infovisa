@@ -75,7 +75,7 @@
                     @if($municipio->logomarca)
                         <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex items-start gap-4">
-                                <img src="{{ asset($municipio->logomarca) }}" 
+                                <img src="{{ $municipio->logomarca_url }}" 
                                      alt="Logomarca de {{ $municipio->nome }}"
                                      class="w-32 h-32 object-contain bg-white border border-gray-300 rounded-lg p-2">
                                 <div class="flex-1">
@@ -132,7 +132,7 @@
                     @if($municipio->rodape_documento)
                         <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex items-start gap-4">
-                                <img src="{{ asset($municipio->rodape_documento) }}"
+                                <img src="{{ $municipio->rodape_documento_url }}"
                                      alt="Rodapé de {{ $municipio->nome }}"
                                      class="w-full max-w-md h-auto object-contain bg-white border border-gray-300 rounded-lg p-2">
                                 <div class="flex-1">

@@ -29,6 +29,16 @@ class Municipio extends Model
         'data_adesao_infovisa' => 'date',
     ];
 
+    public function getLogomarcaUrlAttribute(): ?string
+    {
+        return $this->gerarUrlArquivoPublico($this->logomarca);
+    }
+
+    public function getRodapeDocumentoUrlAttribute(): ?string
+    {
+        return $this->gerarUrlArquivoPublico($this->rodape_documento);
+    }
+
     /**
      * Relacionamento com estabelecimentos
      */
@@ -105,6 +115,23 @@ class Municipio extends Model
     {
         $slug = Str::slug($nome);
         return self::where('slug', $slug)->first();
+    }
+
+    private function gerarUrlArquivoPublico(?string $caminho): ?string
+    {
+        if (!$caminho) {
+            return null;
+        }
+
+        if (Str::startsWith($caminho, ['http://', 'https://', '//'])) {
+            return $caminho;
+        }
+
+        $caminhoNormalizado = Str::startsWith($caminho, 'storage/')
+            ? $caminho
+            : 'storage/' . ltrim($caminho, '/');
+
+        return asset($caminhoNormalizado);
     }
 
     /**
