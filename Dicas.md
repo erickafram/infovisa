@@ -34,8 +34,18 @@ sudo chown -R apache:apache storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 
 # garantir link da logo
+# se public/storage existir como pasta comum, remove para recriar como symlink
+if [ -d public/storage ] && [ ! -L public/storage ]; then
+	sudo rm -rf public/storage
+fi
+
+# recria o symlink correto caso ele não exista
 [ -L public/storage ] || sudo ln -s ../storage/app/public public/storage
 sudo chown -h apache:apache public/storage
+
+# conferência rápida do link
+ls -ld public/storage
+ls -l public/storage/municipios/logomarcas | head
 
 sudo systemctl restart httpd php-fpm
 
