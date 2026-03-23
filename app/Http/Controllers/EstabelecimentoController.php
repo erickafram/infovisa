@@ -80,7 +80,7 @@ class EstabelecimentoController extends Controller
             $perPage,
             $page,
             [
-                'path' => $request->url(),
+                'path' => url($request->path()),
                 'pageName' => $pageName,
                 'query' => $request->except($pageName),
             ]

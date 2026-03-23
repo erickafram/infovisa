@@ -148,7 +148,7 @@ class RelatorioController extends Controller
             $porPagina,
             $paginaAtual,
             [
-                'path' => $request->url(),
+                'path' => url($request->path()),
                 'pageName' => $pageName,
                 'query' => $request->query(),
             ]
