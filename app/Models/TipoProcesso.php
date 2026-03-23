@@ -149,23 +149,11 @@ class TipoProcesso extends Model
             return true;
         }
 
-        if ($estabelecimento->isCompetenciaEstadual()) {
-            return in_array($this->competencia, ['estadual', 'estadual_exclusivo'], true);
-        }
-
-        if ($this->competencia === 'municipal') {
-            return true;
-        }
-
-        if ($this->competencia === 'estadual_exclusivo') {
+        if ($estabelecimento->possuiSomenteAtividadesEspeciais()) {
             return false;
         }
 
-        if ($this->competencia !== 'estadual') {
-            return false;
-        }
-
-        return $this->municipioDescentralizadoPara($estabelecimento);
+        return true;
     }
 
     public function resolverSetorInicial(Estabelecimento $estabelecimento): ?TipoSetor

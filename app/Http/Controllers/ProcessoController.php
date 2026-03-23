@@ -35,6 +35,62 @@ class ProcessoController extends Controller
         return $processo->getDocumentosObrigatoriosChecklist();
     }
 
+    private function processoPertenceAoEscopoUsuario(Processo $processo, $usuario): bool
+    {
+        if ($usuario->isAdmin()) {
+            return true;
+        }
+
+        $estabelecimento = $processo->relationLoaded('estabelecimento')
+            ? $processo->estabelecimento
+            : $processo->estabelecimento()->first();
+
+        if (!$estabelecimento) {
+            return false;
+        }
+
+        $escopoCompetencia = $processo->resolverEscopoCompetencia();
+
+        if ($usuario->isEstadual()) {
+            return $escopoCompetencia === 'estadual';
+        }
+
+        if ($usuario->isMunicipal()) {
+            if (!$usuario->municipio_id || (int) $estabelecimento->municipio_id !== (int) $usuario->municipio_id) {
+                return false;
+            }
+
+            return $escopoCompetencia === 'municipal';
+        }
+
+        return false;
+    }
+
+    private function tipoProcessoVisivelParaUsuarioNoEstabelecimento(TipoProcesso $tipoProcesso, Estabelecimento $estabelecimento, $usuario): bool
+    {
+        if (!$tipoProcesso->disponivelParaEstabelecimento($estabelecimento)) {
+            return false;
+        }
+
+        if ($usuario->isAdmin()) {
+            return true;
+        }
+
+        $escopoCompetencia = $tipoProcesso->resolverEscopoCompetencia($estabelecimento);
+
+        if ($usuario->isEstadual()) {
+            return $escopoCompetencia === 'estadual';
+        }
+
+        if ($usuario->isMunicipal()) {
+            return $escopoCompetencia === 'municipal'
+                && $usuario->municipio_id
+                && (int) $estabelecimento->municipio_id === (int) $usuario->municipio_id;
+        }
+
+        return false;
+    }
+
     /**
      * Exibe todos os processos do sistema com filtros
      */
@@ -150,15 +206,9 @@ class ProcessoController extends Controller
             
             // Filtra por competência
             if ($usuario->isEstadual()) {
-                // Usuário estadual: só vê processos de competência estadual
-                $processosCollection = $processosCollection->filter(function ($processo) {
-                    return $processo->estabelecimento && $processo->estabelecimento->isCompetenciaEstadual();
-                })->values();
+                $processosCollection = $processosCollection->filter(fn ($processo) => $this->processoPertenceAoEscopoUsuario($processo, $usuario))->values();
             } elseif ($usuario->isMunicipal()) {
-                // Usuário municipal: só vê processos de competência municipal
-                $processosCollection = $processosCollection->filter(function ($processo) {
-                    return $processo->estabelecimento && !$processo->estabelecimento->isCompetenciaEstadual();
-                })->values();
+                $processosCollection = $processosCollection->filter(fn ($processo) => $this->processoPertenceAoEscopoUsuario($processo, $usuario))->values();
             }
         }
 
@@ -396,25 +446,11 @@ class ProcessoController extends Controller
 
         if (!$usuario->isAdmin()) {
             $alertasCollection = $alertasCollection->filter(function ($alerta) use ($usuario) {
-                $estabelecimento = $alerta->processo?->estabelecimento;
-
-                if (!$estabelecimento) {
+                if (!$alerta->processo) {
                     return false;
                 }
 
-                if ($usuario->isEstadual()) {
-                    return $estabelecimento->isCompetenciaEstadual();
-                }
-
-                if ($usuario->isMunicipal()) {
-                    if (!$usuario->municipio_id || $estabelecimento->municipio_id != $usuario->municipio_id) {
-                        return false;
-                    }
-
-                    return !$estabelecimento->isCompetenciaEstadual();
-                }
-
-                return false;
+                return $this->processoPertenceAoEscopoUsuario($alerta->processo, $usuario);
             })->values();
         }
 
@@ -533,11 +569,11 @@ class ProcessoController extends Controller
         
         // Filtrar por competência em memória (lógica complexa baseada em atividades)
         if ($usuario->isEstadual()) {
-            $documentosPendentes = $documentosPendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaEstadual());
-            $respostasPendentes = $respostasPendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaEstadual());
+            $documentosPendentes = $documentosPendentes->filter(fn($d) => $this->processoPertenceAoEscopoUsuario($d->processo, $usuario));
+            $respostasPendentes = $respostasPendentes->filter(fn($r) => $this->processoPertenceAoEscopoUsuario($r->documentoDigital->processo, $usuario));
         } elseif ($usuario->isMunicipal()) {
-            $documentosPendentes = $documentosPendentes->filter(fn($d) => $d->processo->estabelecimento->isCompetenciaMunicipal());
-            $respostasPendentes = $respostasPendentes->filter(fn($r) => $r->documentoDigital->processo->estabelecimento->isCompetenciaMunicipal());
+            $documentosPendentes = $documentosPendentes->filter(fn($d) => $this->processoPertenceAoEscopoUsuario($d->processo, $usuario));
+            $respostasPendentes = $respostasPendentes->filter(fn($r) => $this->processoPertenceAoEscopoUsuario($r->documentoDigital->processo, $usuario));
         }
         
         // Buscar tipos de processo ativos para o filtro
@@ -556,14 +592,16 @@ class ProcessoController extends Controller
         $processos = Processo::where('estabelecimento_id', $estabelecimentoId)
             ->with(['usuario', 'tipoProcesso'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(fn ($processo) => $this->processoPertenceAoEscopoUsuario($processo, auth('interno')->user()))
+            ->values();
         
         // Busca tipos de processo ativos e ordenados (filtrados por usuário)
         $tiposProcesso = TipoProcesso::ativos()
             ->paraUsuario(auth('interno')->user())
             ->ordenado()
             ->get()
-            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->filter(fn ($tipo) => $this->tipoProcessoVisivelParaUsuarioNoEstabelecimento($tipo, $estabelecimento, auth('interno')->user()))
             ->values();
         
         return view('estabelecimentos.processos.index', compact('estabelecimento', 'processos', 'tiposProcesso'));
@@ -579,7 +617,7 @@ class ProcessoController extends Controller
             ->paraUsuario(auth('interno')->user())
             ->ordenado()
             ->get()
-            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->filter(fn ($tipo) => $this->tipoProcessoVisivelParaUsuarioNoEstabelecimento($tipo, $estabelecimento, auth('interno')->user()))
             ->values();
 
         return view('estabelecimentos.processos.create', compact('estabelecimento', 'tiposProcesso'));
@@ -597,7 +635,7 @@ class ProcessoController extends Controller
             ->paraUsuario(auth('interno')->user())
             ->ordenado()
             ->get()
-            ->filter(fn ($tipo) => $tipo->disponivelParaEstabelecimento($estabelecimento))
+            ->filter(fn ($tipo) => $this->tipoProcessoVisivelParaUsuarioNoEstabelecimento($tipo, $estabelecimento, auth('interno')->user()))
             ->pluck('codigo')
             ->toArray();
         

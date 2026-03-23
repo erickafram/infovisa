@@ -232,6 +232,25 @@ class Processo extends Model
         return $this->belongsTo(TipoProcesso::class, 'tipo', 'codigo');
     }
 
+    public function resolverEscopoCompetencia(): ?string
+    {
+        $estabelecimento = $this->relationLoaded('estabelecimento')
+            ? $this->estabelecimento
+            : $this->estabelecimento()->first();
+
+        if (!$estabelecimento) {
+            return null;
+        }
+
+        $tipoProcesso = $this->relationLoaded('tipoProcesso')
+            ? $this->tipoProcesso
+            : $this->tipoProcesso()->first();
+
+        return $tipoProcesso
+            ? $tipoProcesso->resolverEscopoCompetencia($estabelecimento)
+            : ($estabelecimento->isCompetenciaEstadual() ? 'estadual' : 'municipal');
+    }
+
     /**
      * Relacionamento com documentos
      */

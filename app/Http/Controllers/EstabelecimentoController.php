@@ -21,16 +21,47 @@ class EstabelecimentoController extends Controller
 
         return $estabelecimentos->filter(function ($estabelecimento) use ($usuario) {
             if ($usuario->isEstadual()) {
-                return $estabelecimento->isCompetenciaEstadual();
+                return $estabelecimento->possuiEscopoCompetencia('estadual');
             }
 
             if ($usuario->isMunicipal()) {
                 return (int) $estabelecimento->municipio_id === (int) $usuario->municipio_id
-                    && $estabelecimento->isCompetenciaMunicipal();
+                    && $estabelecimento->possuiEscopoCompetencia('municipal');
             }
 
             return false;
         })->values();
+    }
+
+    private function autorizarAcessoEstabelecimentoInterno(Estabelecimento $estabelecimento, string $acao): void
+    {
+        if (!auth('interno')->check()) {
+            return;
+        }
+
+        $usuario = auth('interno')->user();
+
+        if ($usuario->isAdmin()) {
+            return;
+        }
+
+        if ($usuario->isEstadual()) {
+            if (!$estabelecimento->possuiEscopoCompetencia('estadual')) {
+                abort(403, "Acesso negado. Este estabelecimento não possui escopo estadual disponível e você não tem permissão para {$acao}.");
+            }
+
+            return;
+        }
+
+        if ($usuario->isMunicipal()) {
+            if (!$usuario->municipio_id || (int) $estabelecimento->municipio_id !== (int) $usuario->municipio_id) {
+                abort(403, 'Acesso negado. Este estabelecimento pertence a outro município.');
+            }
+
+            if (!$estabelecimento->possuiEscopoCompetencia('municipal')) {
+                abort(403, "Acesso negado. Este estabelecimento não possui escopo municipal disponível e você não tem permissão para {$acao}.");
+            }
+        }
     }
 
     private function contarEstabelecimentosPorEscopo($query, $usuario): int
@@ -441,21 +472,8 @@ class EstabelecimentoController extends Controller
     public function show(string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
-        
-        // Verifica se o usuário tem permissão para acessar este estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            // Usuários MUNICIPAIS só podem acessar estabelecimentos MUNICIPAIS
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para acessá-lo.');
-            }
-            
-            // Usuários ESTADUAIS só podem acessar estabelecimentos ESTADUAIS
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para acessá-lo.');
-            }
-        }
+
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'acessá-lo');
         
         // Verifica se o estabelecimento exige equipamentos de radiação
         $exigeEquipamentosRadiacao = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);
@@ -483,21 +501,8 @@ class EstabelecimentoController extends Controller
     public function edit(string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
-        
-        // Verifica se o usuário tem permissão para editar este estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            // Usuários MUNICIPAIS só podem editar estabelecimentos MUNICIPAIS
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para editá-lo.');
-            }
-            
-            // Usuários ESTADUAIS só podem editar estabelecimentos ESTADUAIS
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para editá-lo.');
-            }
-        }
+
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'editá-lo');
         
         // Redireciona para view específica baseado no tipo de pessoa
         if ($estabelecimento->tipo_pessoa === 'fisica') {
@@ -513,21 +518,8 @@ class EstabelecimentoController extends Controller
     public function update(Request $request, string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
-        
-        // Verifica se o usuário tem permissão para atualizar este estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            // Usuários MUNICIPAIS só podem atualizar estabelecimentos MUNICIPAIS
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para atualizá-lo.');
-            }
-            
-            // Usuários ESTADUAIS só podem atualizar estabelecimentos ESTADUAIS
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para atualizá-lo.');
-            }
-        }
+
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'atualizá-lo');
         
         $rules = [
             'tipo_setor' => 'required|in:publico,privado',
@@ -751,20 +743,7 @@ class EstabelecimentoController extends Controller
             ];
         });
         
-        // Verifica se o usuário tem permissão para editar atividades deste estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            // Usuários MUNICIPAIS só podem editar atividades de estabelecimentos MUNICIPAIS
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para editar suas atividades.');
-            }
-            
-            // Usuários ESTADUAIS só podem editar atividades de estabelecimentos ESTADUAIS
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para editar suas atividades.');
-            }
-        }
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'editar suas atividades');
         
         // Para pessoa física, usa view específica com API IBGE
         if ($estabelecimento->tipo_pessoa === 'fisica') {
@@ -885,21 +864,8 @@ class EstabelecimentoController extends Controller
     public function updateAtividades(Request $request, string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
-        
-        // Verifica se o usuário tem permissão para atualizar atividades deste estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            // Usuários MUNICIPAIS só podem atualizar atividades de estabelecimentos MUNICIPAIS
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual e você não tem permissão para atualizar suas atividades.');
-            }
-            
-            // Usuários ESTADUAIS só podem atualizar atividades de estabelecimentos ESTADUAIS
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal e você não tem permissão para atualizar suas atividades.');
-            }
-        }
+
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'atualizar suas atividades');
         
         $validated = $request->validate([
             'atividades_exercidas' => 'nullable|string',
@@ -1599,19 +1565,8 @@ class EstabelecimentoController extends Controller
     public function equipamentosRadiacaoIndex(string $id)
     {
         $estabelecimento = Estabelecimento::findOrFail($id);
-        
-        // Verifica se o usuário tem permissão para acessar este estabelecimento
-        if (auth('interno')->check()) {
-            $usuario = auth('interno')->user();
-            
-            if ($usuario->isMunicipal() && $estabelecimento->isCompetenciaEstadual()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência estadual.');
-            }
-            
-            if ($usuario->isEstadual() && $estabelecimento->isCompetenciaMunicipal()) {
-                abort(403, 'Acesso negado. Este estabelecimento é de competência municipal.');
-            }
-        }
+
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'acessar este estabelecimento');
         
         // Verifica se o estabelecimento exige equipamentos de radiação
         $exigeEquipamentos = \App\Models\AtividadeEquipamentoRadiacao::estabelecimentoExigeEquipamentos($estabelecimento);

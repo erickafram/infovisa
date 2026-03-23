@@ -853,6 +853,45 @@ class Estabelecimento extends Model
     {
         return !$this->isCompetenciaEstadual();
     }
+
+    public function possuiEscopoCompetencia(string $escopo): bool
+    {
+        $escopoNormalizado = strtolower(trim($escopo));
+
+        if (!in_array($escopoNormalizado, ['estadual', 'municipal'], true)) {
+            return false;
+        }
+
+        if ($escopoNormalizado === 'estadual' && $this->isCompetenciaEstadual()) {
+            return true;
+        }
+
+        if ($escopoNormalizado === 'municipal' && $this->isCompetenciaMunicipal()) {
+            return true;
+        }
+
+        foreach (\App\Models\TipoProcesso::ativos()->get() as $tipoProcesso) {
+            if (!$tipoProcesso->disponivelParaEstabelecimento($this)) {
+                continue;
+            }
+
+            if ($tipoProcesso->resolverEscopoCompetencia($this) === $escopoNormalizado) {
+                return true;
+            }
+        }
+
+        $processos = $this->relationLoaded('processos')
+            ? $this->processos
+            : $this->processos()->with('tipoProcesso')->get();
+
+        foreach ($processos as $processo) {
+            if ($processo->resolverEscopoCompetencia() === $escopoNormalizado) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     
     /**
      * Retorna APENAS as atividades que o estabelecimento REALMENTE EXERCE
