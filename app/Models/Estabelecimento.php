@@ -870,16 +870,6 @@ class Estabelecimento extends Model
             return true;
         }
 
-        foreach (\App\Models\TipoProcesso::ativos()->get() as $tipoProcesso) {
-            if (!$tipoProcesso->disponivelParaEstabelecimento($this)) {
-                continue;
-            }
-
-            if ($tipoProcesso->resolverEscopoCompetencia($this) === $escopoNormalizado) {
-                return true;
-            }
-        }
-
         $processos = $this->relationLoaded('processos')
             ? $this->processos
             : $this->processos()->with('tipoProcesso')->get();
