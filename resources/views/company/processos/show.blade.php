@@ -239,7 +239,7 @@
     </div>
     @endif
 
-    {{-- Alerta de Documentos com Prazo --}}
+    {{-- Alerta de Documentos com Prazo + Upload Inline --}}
     @php
         $documentosComPrazo = collect();
         if(isset($todosDocumentos)) {
@@ -253,32 +253,108 @@
         }
     @endphp
     @if($documentosComPrazo->count() > 0)
-    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
-        <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+    <div x-data="{ uploadAberto: null, enviando: false }" class="bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
+        <div class="px-4 py-3 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="flex-1">
-                <h3 class="text-sm font-semibold text-orange-800">
-                    {{ $documentosComPrazo->count() }} documento(s) com prazo pendente
-                </h3>
-                <div class="mt-2 space-y-1">
-                    @foreach($documentosComPrazo as $item)
-                        @php $doc = $item['documento']; @endphp
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-orange-700">
-                                • {{ $doc->tipoDocumento->nome ?? 'Documento' }} - 
-                                <span class="font-medium">{{ $doc->texto_status_prazo }}</span>
+                <h3 class="text-sm font-semibold text-orange-800">{{ $documentosComPrazo->count() }} documento(s) com prazo pendente</h3>
+                <p class="text-[11px] text-orange-600">Anexe sua resposta diretamente abaixo</p>
+            </div>
+        </div>
+
+        <div class="bg-white divide-y divide-gray-100">
+            @foreach($documentosComPrazo as $itemPrazo)
+                @php $docPrazo = $itemPrazo['documento']; @endphp
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900">{{ $docPrazo->tipoDocumento->nome ?? 'Documento' }}</p>
+                                <p class="text-[11px] text-gray-400">Nº {{ $docPrazo->numero_documento }} · {{ $docPrazo->created_at->format('d/m/Y') }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            @php
+                                $corBadge = $docPrazo->cor_status_prazo;
+                                $textoBadge = $docPrazo->texto_status_prazo;
+                                $classesCor = [
+                                    'red' => 'bg-red-100 text-red-700',
+                                    'yellow' => 'bg-yellow-100 text-yellow-700',
+                                    'green' => 'bg-green-100 text-green-700',
+                                    'blue' => 'bg-blue-100 text-blue-700',
+                                    'gray' => 'bg-gray-100 text-gray-700',
+                                ];
+                                $classeBadge = $classesCor[$corBadge] ?? $classesCor['gray'];
+                            @endphp
+                            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full {{ $classeBadge }}">{{ $textoBadge }}</span>
+                            <a href="{{ route('company.processos.documento-digital.visualizar', [$processo->id, $docPrazo->id]) }}" target="_blank"
+                               class="text-[11px] text-blue-600 hover:text-blue-700 font-medium">Ver</a>
+                            @if($docPrazo->permiteResposta())
+                            <button @click="uploadAberto = uploadAberto === {{ $docPrazo->id }} ? null : {{ $docPrazo->id }}"
+                                    class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition inline-flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                <span x-text="uploadAberto === {{ $docPrazo->id }} ? 'Fechar' : 'Anexar Resposta'"></span>
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Formulário de upload inline --}}
+                    @if($docPrazo->permiteResposta())
+                    <div x-show="uploadAberto === {{ $docPrazo->id }}" x-cloak x-transition class="mt-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <form action="{{ route('company.processos.documento-digital.resposta', [$processo->id, $docPrazo->id]) }}" method="POST" enctype="multipart/form-data"
+                              @submit="enviando = true">
+                            @csrf
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs font-medium text-gray-700">Arquivo PDF (máx. 30MB)</label>
+                                    <input type="file" name="arquivo" accept=".pdf" required
+                                           class="mt-1 block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 file:cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-700">Observações (opcional)</label>
+                                    <input type="text" name="observacoes" maxlength="1000" placeholder="Ex: Segue resposta à notificação..."
+                                           class="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="submit" :disabled="enviando"
+                                            class="px-4 py-2 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 inline-flex items-center gap-1.5">
+                                        <svg x-show="!enviando" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        <svg x-show="enviando" x-cloak class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                        <span x-text="enviando ? 'Enviando...' : 'Enviar Resposta'"></span>
+                                    </button>
+                                    <button type="button" @click="uploadAberto = null" class="px-3 py-2 text-xs text-gray-500 hover:text-gray-700">Cancelar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    @endif
+
+                    {{-- Respostas já enviadas para este documento --}}
+                    @if($docPrazo->respostas->count() > 0)
+                    <div class="mt-2 ml-11 space-y-1">
+                        @foreach($docPrazo->respostas as $resp)
+                        <div class="flex items-center gap-2 text-[11px]">
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0
+                                {{ $resp->status === 'aprovado' ? 'bg-green-500' : ($resp->status === 'rejeitado' ? 'bg-red-500' : 'bg-yellow-500') }}"></span>
+                            <span class="text-gray-600 truncate">{{ $resp->nome_original }}</span>
+                            <span class="text-gray-400">·</span>
+                            <span class="{{ $resp->status === 'aprovado' ? 'text-green-600' : ($resp->status === 'rejeitado' ? 'text-red-600' : 'text-yellow-600') }} font-medium">
+                                {{ $resp->status === 'aprovado' ? 'Aprovado' : ($resp->status === 'rejeitado' ? 'Rejeitado' : 'Pendente') }}
                             </span>
                         </div>
-                    @endforeach
+                        @endforeach
+                    </div>
+                    @endif
                 </div>
-                <p class="mt-3 text-xs text-orange-600">
-                    Clique em "Responder" no documento para anexar sua resposta.
-                </p>
-            </div>
+            @endforeach
         </div>
     </div>
     @endif
