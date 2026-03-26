@@ -18,7 +18,8 @@ class DashboardController extends Controller
         $usuarioId = auth('externo')->id();
         
         // Buscar estabelecimentos do usuário (próprios e vinculados)
-        $estabelecimentos = Estabelecimento::where('usuario_externo_id', $usuarioId)
+        $estabelecimentos = Estabelecimento::with('municipio')
+            ->where('usuario_externo_id', $usuarioId)
             ->orWhereHas('usuariosVinculados', function($q) use ($usuarioId) {
                 $q->where('usuario_externo_id', $usuarioId);
             })
@@ -48,6 +49,7 @@ class DashboardController extends Controller
         // Estatísticas de processos
         $estatisticasProcessos = [
             'total' => $processos->count(),
+            'abertos' => $processos->where('status', 'aberto')->count(),
             'em_andamento' => $processos->where('status', 'em_andamento')->count(),
             'concluidos' => $processos->where('status', 'concluido')->count(),
             'arquivados' => $processos->where('status', 'arquivado')->count(),
