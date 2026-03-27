@@ -190,8 +190,11 @@ class HomeController extends Controller
         $docsObrigatorios = collect();
         foreach ($listas as $lista) {
             foreach ($lista->tiposDocumentoObrigatorio as $tipoDoc) {
-                // Só adiciona se for obrigatório (pivot)
-                if ($tipoDoc->pivot->obrigatorio && !$docsObrigatorios->contains('id', $tipoDoc->id)) {
+                // Só adiciona se for obrigatório (pivot) e aplicável ao tipo de setor do estabelecimento
+                $tipoSetorEnum = $estabelecimento->tipo_setor;
+                $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+                
+                if ($tipoDoc->pivot->obrigatorio && $tipoDoc->aplicaAoTipoSetor($tipoSetor) && !$docsObrigatorios->contains('id', $tipoDoc->id)) {
                     $docsObrigatorios->push($tipoDoc);
                 }
             }
