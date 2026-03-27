@@ -25,21 +25,30 @@
         </div>
     </div>
 
-    {{-- Aviso Sistema Antigo --}}
-    <div x-data="{ mostrarAviso: localStorage.getItem('ocultarAvisoInfovisa') !== 'true' }" x-show="mostrarAviso" x-cloak>
-        <div class="flex items-start gap-3 p-3 rounded-xl border bg-amber-50 border-amber-200">
-            <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    {{-- Avisos do Sistema --}}
+    @if(isset($avisos_sistema) && $avisos_sistema->count() > 0)
+    <div class="space-y-2">
+        @foreach($avisos_sistema as $aviso)
+        <div class="flex items-start gap-3 p-3 rounded-xl border {{ $aviso->tipo_color }}">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $aviso->tipo_icone }}"/>
             </svg>
             <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-amber-900">Processos até 2025 → <a href="https://sistemas.saude.to.gov.br/infovisa2/" target="_blank" class="text-blue-600 hover:underline font-bold">Acessar sistema antigo</a></p>
-                <p class="text-xs mt-0.5 text-amber-700">Processos a partir de 2026 devem ser feitos neste novo sistema (InfoVISA 3.0)</p>
+                <p class="text-sm font-medium">{{ $aviso->titulo }}</p>
+                <p class="text-xs mt-0.5 opacity-80">{{ $aviso->mensagem }}</p>
+                @if($aviso->link)
+                <a href="{{ $aviso->link }}" target="_blank" class="inline-flex items-center gap-1 text-xs mt-1 font-semibold underline hover:opacity-80">
+                    Acessar
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                </a>
+                @endif
             </div>
-            <button @click="localStorage.setItem('ocultarAvisoInfovisa', 'true'); mostrarAviso = false" class="p-1 text-amber-500 hover:text-amber-700 hover:bg-amber-100 rounded-full transition-all flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
         </div>
+        @endforeach
     </div>
+    @endif
 
     {{-- Cards de resumo clicáveis --}}
     <div id="tour-stats-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3">

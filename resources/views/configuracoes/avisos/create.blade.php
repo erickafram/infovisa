@@ -85,19 +85,32 @@
             {{-- Níveis de Acesso --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Exibir para *</label>
-                <div class="grid grid-cols-2 gap-2">
-                    @foreach($niveisAcesso as $value => $label)
-                    @if($value !== 'administrador')
-                    <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" name="niveis_acesso[]" value="{{ $value }}"
-                               {{ in_array($value, old('niveis_acesso', [])) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600">
-                        <span class="text-sm text-gray-700">{{ $label }}</span>
-                    </label>
-                    @endif
-                    @endforeach
+                <div class="space-y-3">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Usuários Internos</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach($niveisAcesso as $value => $label)
+                        @if($value !== 'administrador')
+                        <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="niveis_acesso[]" value="{{ $value }}"
+                                   {{ in_array($value, old('niveis_acesso', [])) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600">
+                            <span class="text-sm text-gray-700">{{ $label }}</span>
+                        </label>
+                        @endif
+                        @endforeach
+                    </div>
+
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-2">Usuários Externos (Empresas)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="niveis_acesso[]" value="usuario_externo"
+                                   {{ in_array('usuario_externo', old('niveis_acesso', [])) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-600">
+                            <span class="text-sm text-gray-700">Usuário Externo (Empresa)</span>
+                        </label>
+                    </div>
                 </div>
-                <p class="mt-1 text-xs text-gray-500">Selecione os níveis de acesso que verão este aviso</p>
+                <p class="mt-2 text-xs text-gray-500">Selecione os níveis de acesso que verão este aviso</p>
                 @error('niveis_acesso')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror

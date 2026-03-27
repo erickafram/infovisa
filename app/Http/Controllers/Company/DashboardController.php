@@ -97,6 +97,12 @@ class DashboardController extends Controller
             ->orderBy('data_vencimento', 'asc')
             ->get()
             ->filter(fn ($doc) => $doc->todasAssinaturasCompletas());
+
+        // Avisos do sistema para usuários externos
+        $avisos_sistema = \App\Models\Aviso::ativos()
+            ->paraNivel('usuario_externo')
+            ->orderBy('tipo', 'desc')
+            ->get();
         
         return view('company.dashboard', compact(
             'estatisticasEstabelecimentos',
@@ -106,7 +112,8 @@ class DashboardController extends Controller
             'alertasPendentes',
             'documentosPendentesVisualizacao',
             'documentosRejeitados',
-            'documentosComPrazo'
+            'documentosComPrazo',
+            'avisos_sistema'
         ));
     }
 

@@ -88,6 +88,9 @@ class Aviso extends Model
     public function getNiveisLabelsAttribute(): array
     {
         return collect($this->niveis_acesso)->map(function ($nivel) {
+            if ($nivel === 'usuario_externo') {
+                return 'Usuário Externo (Empresa)';
+            }
             return NivelAcesso::tryFrom($nivel)?->label() ?? $nivel;
         })->toArray();
     }
