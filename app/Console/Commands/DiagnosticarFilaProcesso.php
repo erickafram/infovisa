@@ -118,10 +118,19 @@ class DiagnosticarFilaProcesso extends Command
 
         // Coleta docs obrigatórios
         $docsObrigatorios = collect();
+        $tipoSetorEnum = $estabelecimento->tipo_setor;
+        $tipoSetor = $tipoSetorEnum instanceof \App\Enums\TipoSetor ? $tipoSetorEnum->value : ($tipoSetorEnum ?? 'privado');
+        $this->info("Tipo de setor do estabelecimento: {$tipoSetor}");
+        
         foreach ($listas as $lista) {
             foreach ($lista->tiposDocumentoObrigatorio as $tipoDoc) {
                 if ($tipoDoc->pivot->obrigatorio && !$docsObrigatorios->contains('id', $tipoDoc->id)) {
-                    $docsObrigatorios->push($tipoDoc);
+                    $aplicavel = $tipoDoc->aplicaAoTipoSetor($tipoSetor);
+                    if ($aplicavel) {
+                        $docsObrigatorios->push($tipoDoc);
+                    } else {
+                        $this->warn("  ⊘ {$tipoDoc->nome} (ID: {$tipoDoc->id}) — tipo_setor: {$tipoDoc->tipo_setor} — IGNORADO (não se aplica a '{$tipoSetor}')");
+                    }
                 }
             }
         }
