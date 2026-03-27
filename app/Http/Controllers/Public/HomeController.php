@@ -37,7 +37,7 @@ class HomeController extends Controller
         foreach ($tiposComFilaPublica as $tipo) {
             $processos = Processo::where('tipo', $tipo->codigo)
                 ->whereIn('status', ['aberto', 'em_analise', 'pendente', 'parado'])
-                ->with(['estabelecimento:id,nome_fantasia,razao_social,cnpj,cpf,nome_completo,atividades_exercidas'])
+                ->with(['estabelecimento:id,nome_fantasia,razao_social,cnpj,cpf,nome_completo,atividades_exercidas,tipo_setor,municipio_id'])
                 ->orderBy('created_at', 'asc') // Mais antigo primeiro
                 ->get();
 
