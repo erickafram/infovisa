@@ -1051,8 +1051,8 @@ class DashboardController extends Controller
                 'id' => $doc->id,
                 'titulo' => ($doc->tipoDocumento->nome ?? 'Documento') . ($isLote ? ' (Lote)' : ''),
                 'subtitulo' => $isLote
-                    ? 'Lote p/ ' . count($doc->processos_ids) . ' processos • ' . $ass->created_at->diffForHumans()
-                    : 'Assinatura • ' . $ass->created_at->diffForHumans(),
+                    ? 'Lote p/ ' . count($doc->processos_ids) . ' processos • ' . $ass->created_at->locale('pt_BR')->diffForHumans()
+                    : 'Assinatura • ' . $ass->created_at->locale('pt_BR')->diffForHumans(),
                 'url' => route('admin.assinatura.assinar', $doc->id),
                 'badge' => null,
                 'atrasado' => false,
@@ -1094,7 +1094,7 @@ class DashboardController extends Controller
                 'tipo' => 'rascunho_lote',
                 'id' => $docLote->id,
                 'titulo' => ($docLote->tipoDocumento->nome ?? 'Documento') . ' (Lote)',
-                'subtitulo' => 'Rascunho p/ ' . count($docLote->processos_ids) . ' processos • ' . $docLote->created_at->diffForHumans(),
+                'subtitulo' => 'Rascunho p/ ' . count($docLote->processos_ids) . ' processos • ' . $docLote->created_at->locale('pt_BR')->diffForHumans(),
                 'url' => route('admin.documentos.edit', $docLote->id),
                 'badge' => 'Rascunho',
                 'atrasado' => false,

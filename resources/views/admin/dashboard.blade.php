@@ -84,7 +84,7 @@
         @if($isGestorOuAdmin && $docsAtrasados > 0)
         <a href="{{ route('admin.documentos-pendentes.index') }}" class="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-            {{ $docsAtrasados }} documento(s) atrasado(s)
+            {{ $docsAtrasados }} {{ $docsAtrasados == 1 ? 'documento atrasado' : 'documentos atrasados' }}
         </a>
         @endif
     </div>
@@ -114,67 +114,49 @@
     </div>
     @endif
 
-    {{-- Aniversariantes do Mês --}}
+    {{-- Aniversariantes do Mês (discreto) --}}
     @if(isset($aniversariantes_mes) && $aniversariantes_mes->count() > 0)
     @php
         $hojeDiaMes = now()->format('d/m');
         $aniversariantesHojeLista = $aniversariantes_mes->filter(function($anv) use ($hojeDiaMes) {
-            $ehHojeFlag = (bool)($anv->eh_hoje ?? false);
-            $ehHojePorDiaMes = !empty($anv->dia_aniversario) && $anv->dia_aniversario === $hojeDiaMes;
-            return $ehHojeFlag || $ehHojePorDiaMes;
+            return (bool)($anv->eh_hoje ?? false) || (!empty($anv->dia_aniversario) && $anv->dia_aniversario === $hojeDiaMes);
         });
-        $aniversariantesRestantes = $aniversariantes_mes->filter(function($anv) use ($hojeDiaMes) {
-            $ehHojeFlag = (bool)($anv->eh_hoje ?? false);
-            $ehHojePorDiaMes = !empty($anv->dia_aniversario) && $anv->dia_aniversario === $hojeDiaMes;
-            return !($ehHojeFlag || $ehHojePorDiaMes);
+        $aniversariantesRestantes = $aniversariantes_mes->reject(function($anv) use ($hojeDiaMes) {
+            return (bool)($anv->eh_hoje ?? false) || (!empty($anv->dia_aniversario) && $anv->dia_aniversario === $hojeDiaMes);
         });
     @endphp
-    <div x-data="{ aberto: false }" class="bg-white rounded-lg border border-pink-100 shadow-sm overflow-hidden">
-        <button type="button"
-                @click="aberto = !aberto"
-                class="w-full flex items-center gap-3 px-4 py-2.5 bg-pink-50/70 border-b border-pink-100 hover:bg-pink-100 transition group text-left">
-            <div class="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9V5a3 3 0 00-6 0v4M7 9h10l1 11H6L7 9z"/>
-                </svg>
+    <div x-data="{ aberto: false }" class="bg-white rounded-xl border border-pink-100 shadow-sm overflow-hidden">
+        <button @click="aberto = !aberto" class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-pink-50/50 transition text-left">
+            <div class="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-sm">🎂</span>
             </div>
             <div class="flex-1 min-w-0">
-                <span class="text-sm font-semibold text-pink-900">Aniversariantes de {{ now()->locale('pt_BR')->isoFormat('MMMM') }}</span>
-                <span class="text-xs text-pink-700 ml-2">{{ $escopoAniversariantes ?? 'Geral' }}</span>
+                @if($aniversariantesHojeLista->count() > 0)
+                    <p class="text-sm font-semibold text-pink-800">
+                        🎉 {{ $aniversariantesHojeLista->map(fn($a) => Str::words($a->nome, 2, ''))->implode(', ') }} faz{{ $aniversariantesHojeLista->count() > 1 ? 'em' : '' }} aniversário hoje!
+                    </p>
+                    <p class="text-[11px] text-pink-500">+ {{ $aniversariantesRestantes->count() }} outro(s) neste mês</p>
+                @else
+                    <p class="text-sm font-medium text-gray-700">Aniversariantes de {{ now()->locale('pt_BR')->isoFormat('MMMM') }}</p>
+                    <p class="text-[11px] text-gray-400">{{ $aniversariantes_mes->count() }} pessoa(s) · {{ $escopoAniversariantes ?? 'Geral' }}</p>
+                @endif
             </div>
-            <span class="text-xs px-2 py-1 bg-pink-100 text-pink-700 rounded-full font-bold">{{ $aniversariantes_mes->count() }}</span>
-            <svg class="w-4 h-4 text-pink-400 group-hover:text-pink-600 transition-transform" :class="aberto ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
+            <span class="text-xs px-2 py-0.5 bg-pink-100 text-pink-700 rounded-full font-bold">{{ $aniversariantes_mes->count() }}</span>
+            <svg class="w-4 h-4 text-gray-300 transition-transform" :class="aberto ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
-
-        @if($aniversariantesHojeLista->count() > 0)
-        <div class="bg-green-50/80 border-b border-green-100 overflow-hidden">
+        <div x-show="aberto" x-cloak x-transition class="border-t border-pink-100 divide-y divide-gray-50 max-h-44 overflow-y-auto">
             @foreach($aniversariantesHojeLista as $anv)
-            <div class="px-3 py-2 flex items-center justify-between {{ !$loop->last ? 'border-b border-green-100' : '' }}">
-                <p class="text-xs font-semibold text-green-800 truncate">
-                    🎉 {{ Str::words($anv->nome, 2, '') }}
-                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Hoje</span>
-                </p>
-                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">{{ $anv->dia_aniversario }}</span>
+            <div class="px-4 py-2 flex items-center justify-between bg-green-50/60">
+                <span class="text-xs font-semibold text-green-800">🎉 {{ Str::words($anv->nome, 2, '') }}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Hoje</span>
             </div>
             @endforeach
-        </div>
-        @endif
-
-        <div x-show="aberto" class="divide-y divide-gray-100 max-h-36 overflow-y-auto">
-            @forelse($aniversariantesRestantes as $anv)
-            <div class="px-3 py-1.5 flex items-center justify-between">
-                <div class="min-w-0">
-                    <p class="text-xs font-medium text-gray-900 truncate">{{ Str::words($anv->nome, 2, '') }}</p>
-                </div>
-                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">{{ $anv->dia_aniversario }}</span>
+            @foreach($aniversariantesRestantes as $anv)
+            <div class="px-4 py-1.5 flex items-center justify-between">
+                <span class="text-xs text-gray-700">{{ Str::words($anv->nome, 2, '') }}</span>
+                <span class="text-[10px] text-gray-400 font-medium">{{ $anv->dia_aniversario }}</span>
             </div>
-            @empty
-            <div class="px-3 py-3 text-center">
-                <p class="text-xs text-gray-500">Sem outros aniversariantes neste mês.</p>
-            </div>
-            @endforelse
+            @endforeach
         </div>
     </div>
     @endif
@@ -444,7 +426,10 @@
                         </div>
                     </template>
                     <template x-if="!loading && tarefas.filter(t => t.tipo === 'aprovacao').length === 0">
-                        <div class="p-5 text-center text-[11px] text-gray-300">Nenhum documento pendente no setor</div>
+                        <div class="p-5 text-center text-[11px] text-gray-400">
+                            <p>Nenhum documento pendente no setor</p>
+                            <p class="text-gray-300 mt-0.5">Documentos enviados por empresas para aprovação aparecerão aqui</p>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -515,7 +500,10 @@
                         </div>
                     </template>
                     <template x-if="!loading && processos.length === 0">
-                        <div class="p-3 text-center text-[11px] text-gray-300">Nenhum processo no setor</div>
+                        <div class="p-3 text-center text-[11px] text-gray-400">
+                            <p>Nenhum processo no setor</p>
+                            <p class="text-gray-300 mt-0.5">Processos tramitados para sua gerência aparecerão aqui</p>
+                        </div>
                     </template>
                 </div>
                 <template x-if="lastPage > 1">
@@ -540,7 +528,7 @@
                             <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         </div>
                         <div>
-                            <h3 class="text-sm font-semibold text-gray-900">{{ $isGestorOuAdmin ? 'Acoes em Documentos' : 'Minhas Ações em Documentos' }}</h3>
+                            <h3 class="text-sm font-semibold text-gray-900">{{ $isGestorOuAdmin ? 'Ações em Documentos' : 'Minhas Ações em Documentos' }}</h3>
                             <p class="text-[10px] text-gray-400">{{ $isGestorOuAdmin ? 'Assinaturas, prazos, respostas e rascunhos para acompanhamento' : 'Assinar, responder, revisar prazos e rascunhos' }}</p>
                         </div>
                         <span class="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold" x-text="tarefas.filter(t => t.tipo === 'assinatura' || t.tipo === 'rascunho' || t.tipo === 'rascunho_lote' || t.tipo === 'resposta' || t.tipo === 'prazo_documento').length || '0'"></span>
@@ -697,6 +685,7 @@
 
         </div>
     </div>
+
 </div>
 
 <script>
@@ -807,7 +796,7 @@ function processosAtribuidos(escopo = 'todos') {
 function ordensServicoVencidas() {
     return {
         ordens: [],
-        aberto: false,
+        aberto: true,
         init() { 
             console.log('Carregando OSs vencidas...');
             this.load(); 
