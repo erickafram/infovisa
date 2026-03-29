@@ -13,9 +13,23 @@ class TipoDocumentoController extends Controller
      */
     public function index()
     {
-        $tipos = TipoDocumento::ordenado()->paginate(15);
+        $tipos = TipoDocumento::ordenado()->get();
         
         return view('configuracoes.tipos-documento.index', compact('tipos'));
+    }
+
+    /**
+     * Reordena tipos via drag-and-drop (AJAX)
+     */
+    public function reordenar(Request $request)
+    {
+        $request->validate(['ordem' => 'required|array', 'ordem.*' => 'integer']);
+
+        foreach ($request->ordem as $posicao => $id) {
+            TipoDocumento::where('id', $id)->update(['ordem' => $posicao + 1]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Ordem atualizada!']);
     }
 
     /**

@@ -465,40 +465,42 @@
         });
     @endphp
     @if($documentosComPrazoAberto->count() > 0)
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-        <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-            </div>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold text-amber-800">
-                    {{ $documentosComPrazoAberto->count() }} documento(s) com prazo em aberto
-                </h3>
-                <p class="text-xs text-amber-700 mt-1">
-                    Existem documentos aguardando resposta do estabelecimento ou que precisam ser marcados como resolvidos.
-                </p>
-                <div class="mt-3 space-y-1.5">
-                    @foreach($documentosComPrazoAberto as $doc)
-                        @php
-                            $temResposta = $doc->respostas->where('status', '!=', 'rejeitado')->count() > 0;
-                        @endphp
-                        <div class="flex items-center justify-between text-xs bg-white/60 rounded-lg px-3 py-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-amber-800 font-medium">{{ $doc->tipoDocumento->nome ?? 'Documento' }}</span>
-                                <span class="text-amber-600">- {{ $doc->texto_status_prazo }}</span>
-                                @if($temResposta)
-                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">Respondido</span>
-                                @endif
-                            </div>
-                            @if($temResposta)
-                                <span class="text-amber-600 text-[10px]">Aguardando marcar como resolvido</span>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+    <div class="bg-white border border-amber-200 rounded-xl overflow-hidden mb-6">
+        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-sm font-semibold text-amber-800">{{ $documentosComPrazoAberto->count() }} {{ $documentosComPrazoAberto->count() === 1 ? 'documento com prazo' : 'documentos com prazo' }}</span>
+        </div>
+        <div class="divide-y divide-gray-100">
+            @foreach($documentosComPrazoAberto as $doc)
+                @php
+                    $temResposta = $doc->respostas->where('status', '!=', 'rejeitado')->count() > 0;
+                    $corBadge = $doc->cor_status_prazo ?? 'gray';
+                    $classesBadge = [
+                        'red' => 'bg-red-100 text-red-700',
+                        'yellow' => 'bg-amber-100 text-amber-700',
+                        'green' => 'bg-green-100 text-green-700',
+                        'blue' => 'bg-blue-100 text-blue-700',
+                        'gray' => 'bg-gray-100 text-gray-600',
+                    ];
+                    $classeBadge = $classesBadge[$corBadge] ?? $classesBadge['gray'];
+                @endphp
+                <a href="#documento-digital-{{ $doc->id }}" onclick="scrollParaDocumento({{ $doc->id }})"
+                   class="flex items-center gap-3 px-4 py-3 hover:bg-amber-50/50 transition cursor-pointer group">
+                    <div class="w-8 h-8 rounded-lg {{ str_contains($classeBadge, 'red') ? 'bg-red-100' : 'bg-amber-100' }} flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 {{ str_contains($classeBadge, 'red') ? 'text-red-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition">{{ $doc->tipoDocumento->nome ?? 'Documento' }}</p>
+                        <p class="text-[11px] text-gray-400">Nº {{ $doc->numero_documento }} · Clique para ir ao documento</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        @if($temResposta)
+                            <span class="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Respondido</span>
+                        @endif
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {{ $classeBadge }}">{{ $doc->texto_status_prazo }}</span>
+                    </div>
+                </a>
+            @endforeach
         </div>
     </div>
     @endif
@@ -5902,6 +5904,15 @@ function mostrarNotificacao(mensagem, tipo = 'success') {
             notificacao.remove();
         }, 300);
     }, 3000);
+}
+
+function scrollParaDocumento(docId) {
+    const el = document.getElementById('documento-digital-' + docId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-amber-400', 'bg-amber-50/60', 'shadow-md');
+        setTimeout(() => { el.classList.remove('ring-2', 'ring-amber-400', 'bg-amber-50/60', 'shadow-md'); }, 3000);
+    }
 }
 </script>
 @endpush

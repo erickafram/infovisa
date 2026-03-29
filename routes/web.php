@@ -563,6 +563,7 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         Route::resource('tipos-documento', \App\Http\Controllers\TipoDocumentoController::class)->parameters([
             'tipos-documento' => 'tipoDocumento'
         ]);
+        Route::post('tipos-documento/reordenar', [\App\Http\Controllers\TipoDocumentoController::class, 'reordenar'])->name('tipos-documento.reordenar');
         
         // Avisos do Sistema - Admin e Gestor Estadual
         Route::resource('avisos', \App\Http\Controllers\Admin\AvisoController::class);
