@@ -83,6 +83,45 @@
                     @enderror
                 </div>
 
+                {{-- Visibilidade por Nível (somente admin) --}}
+                @if(auth('interno')->user()->isAdmin())
+                <div class="border border-indigo-200 rounded-lg p-4 bg-indigo-50">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-5 h-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <label class="text-sm font-semibold text-gray-900">Visibilidade por Nível</label>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-3">Define quais usuários podem ver e usar este tipo de documento.</p>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-indigo-300 transition">
+                            <input type="radio" name="visibilidade" value="todos" {{ old('visibilidade', $tipoDocumento->visibilidade) === 'todos' ? 'checked' : '' }} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Todos</span>
+                                <p class="text-[11px] text-gray-500">Visível para estadual e municipal</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-indigo-300 transition">
+                            <input type="radio" name="visibilidade" value="estadual" {{ old('visibilidade', $tipoDocumento->visibilidade) === 'estadual' ? 'checked' : '' }} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Somente Estadual</span>
+                                <p class="text-[11px] text-gray-500">Gestor Estadual e Técnico Estadual</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-indigo-300 transition">
+                            <input type="radio" name="visibilidade" value="municipal" {{ old('visibilidade', $tipoDocumento->visibilidade) === 'municipal' ? 'checked' : '' }} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Somente Municipal</span>
+                                <p class="text-[11px] text-gray-500">Gestor Municipal e Técnico Municipal</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                @else
+                <input type="hidden" name="visibilidade" value="{{ $tipoDocumento->visibilidade }}">
+                @endif
+
                 {{-- Descrição --}}
                 <div>
                     <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">

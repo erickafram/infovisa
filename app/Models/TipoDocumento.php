@@ -12,6 +12,7 @@ class TipoDocumento extends Model
         'codigo',
         'descricao',
         'ativo',
+        'visibilidade',
         'ordem',
         'tem_prazo',
         'prazo_padrao_dias',
@@ -51,5 +52,25 @@ class TipoDocumento extends Model
     public function scopeOrdenado($query)
     {
         return $query->orderBy('ordem')->orderBy('nome');
+    }
+
+    /**
+     * Scope para filtrar por visibilidade do usuário logado
+     */
+    public function scopeVisivelParaUsuario($query, $usuario = null)
+    {
+        if (!$usuario) {
+            $usuario = auth('interno')->user();
+        }
+        if (!$usuario || $usuario->isAdmin()) {
+            return $query; // Admin vê todos
+        }
+        if ($usuario->isEstadual()) {
+            return $query->whereIn('visibilidade', ['todos', 'estadual']);
+        }
+        if ($usuario->isMunicipal()) {
+            return $query->whereIn('visibilidade', ['todos', 'municipal']);
+        }
+        return $query;
     }
 }

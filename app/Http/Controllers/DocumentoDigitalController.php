@@ -174,6 +174,7 @@ class DocumentoDigitalController extends Controller
     public function create(Request $request)
     {
         $tiposDocumento = TipoDocumento::where('ativo', true)
+            ->visivelParaUsuario()
             ->orderBy('ordem')
             ->orderBy('nome')
             ->get();
@@ -668,7 +669,7 @@ class DocumentoDigitalController extends Controller
                 ->with('error', 'Este documento já possui assinaturas e não pode mais ser editado.');
         }
 
-        $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
+        $tiposDocumento = TipoDocumento::ativo()->visivelParaUsuario()->ordenado()->get();
         
         // Busca usuários internos do mesmo município do usuário logado
         $usuarioLogado = auth('interno')->user();

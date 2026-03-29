@@ -55,9 +55,10 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 grid grid-cols-12 gap-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
             <div class="col-span-1">#</div>
-            <div class="col-span-5">Nome</div>
+            <div class="col-span-4">Nome</div>
             <div class="col-span-2">Código</div>
             <div class="col-span-1">Status</div>
+            <div class="col-span-1">Nível</div>
             <div class="col-span-1">Prazo</div>
             <div class="col-span-2 text-right">Ações</div>
         </div>
@@ -71,7 +72,7 @@
                     <span class="text-[11px] text-gray-400 font-mono ordem-label">{{ $tipo->ordem }}</span>
                 </div>
                 {{-- Nome --}}
-                <div class="col-span-5 min-w-0">
+                <div class="col-span-4 min-w-0">
                     <p class="text-sm font-medium text-gray-900 truncate">{{ $tipo->nome }}</p>
                     @if($tipo->descricao)
                     <p class="text-[11px] text-gray-400 truncate">{{ Str::limit($tipo->descricao, 50) }}</p>
@@ -87,6 +88,16 @@
                         {{ $tipo->ativo ? 'Ativo' : 'Inativo' }}
                     </span>
                 </div>
+                {{-- Nível/Visibilidade --}}
+                <div class="col-span-1">
+                    @if($tipo->visibilidade === 'estadual')
+                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Estadual</span>
+                    @elseif($tipo->visibilidade === 'municipal')
+                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Municipal</span>
+                    @else
+                    <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Todos</span>
+                    @endif
+                </div>
                 {{-- Prazo --}}
                 <div class="col-span-1">
                     @if($tipo->tem_prazo)
@@ -95,7 +106,6 @@
                     <span class="text-[10px] text-gray-300">—</span>
                     @endif
                 </div>
-                {{-- Ações --}}
                 <div class="col-span-2 flex items-center justify-end gap-1">
                     <a href="{{ route('admin.configuracoes.tipos-documento.edit', $tipo->id) }}"
                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar">

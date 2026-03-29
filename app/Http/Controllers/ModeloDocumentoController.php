@@ -34,7 +34,7 @@ class ModeloDocumentoController extends Controller
     public function create()
     {
         $usuario = auth('interno')->user();
-        $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
+        $tiposDocumento = TipoDocumento::ativo()->visivelParaUsuario($usuario)->ordenado()->get();
         $municipios = $this->getMunicipiosDisponiveis($usuario);
         
         return view('configuracoes.modelos-documento.create', compact('tiposDocumento', 'municipios'));
@@ -80,7 +80,7 @@ class ModeloDocumentoController extends Controller
         $usuario = auth('interno')->user();
         $this->autorizarGerenciamento($modeloDocumento, $usuario);
 
-        $tiposDocumento = TipoDocumento::ativo()->ordenado()->get();
+        $tiposDocumento = TipoDocumento::ativo()->visivelParaUsuario($usuario)->ordenado()->get();
         $municipios = $this->getMunicipiosDisponiveis($usuario);
         
         return view('configuracoes.modelos-documento.edit', compact('modeloDocumento', 'tiposDocumento', 'municipios'));
