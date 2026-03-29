@@ -3,16 +3,66 @@
 @section('title', 'Cadastro de Usuário Externo')
 
 @section('content')
-<div x-data="registroForm()" class="max-w-5xl mx-auto px-4 py-8 sm:py-10">
-    <!-- Card de Cadastro -->
-    <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
+<div x-data="registroForm()" class="min-h-screen flex">
+    <!-- Painel lateral (branding) -->
+    <div class="hidden lg:flex lg:w-1/3 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+            <svg class="w-full h-full" viewBox="0 0 400 800" fill="none"><circle cx="200" cy="400" r="300" stroke="white" stroke-width="0.5"/><circle cx="200" cy="400" r="200" stroke="white" stroke-width="0.5"/><circle cx="200" cy="400" r="100" stroke="white" stroke-width="0.5"/></svg>
+        </div>
+        <div class="relative z-10 flex flex-col justify-center px-12 py-16">
+            <div class="mb-8">
+                <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-3">InfoVISA</h2>
+                <p class="text-blue-200 text-sm leading-relaxed">Sistema de Vigilância Sanitária do Estado do Tocantins</p>
+            </div>
+            <div class="space-y-5">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white text-sm font-medium">Cadastre seus estabelecimentos</p>
+                        <p class="text-blue-300 text-xs">Gerencie todos os seus CNPJs em um só lugar</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white text-sm font-medium">Acompanhe processos</p>
+                        <p class="text-blue-300 text-xs">Licenciamento, projetos e documentação online</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white text-sm font-medium">100% digital</p>
+                        <p class="text-blue-300 text-xs">Envie documentos e acompanhe tudo online</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="flex-1 overflow-y-auto">
+        <div class="max-w-3xl mx-auto px-5 py-8 sm:py-12">
+
         <!-- Header -->
-        <div class="text-center mb-6 sm:mb-8">
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 mb-3">
-                Cadastro de Usuário Externo
-            </span>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Criar Conta</h1>
-            <p class="text-gray-600 text-sm sm:text-base">Informe seu CPF para iniciar o cadastro e completar os dados restantes.</p>
+        <div class="mb-6">
+            <div class="flex items-center gap-2 mb-4 lg:hidden">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <span class="text-lg font-bold text-gray-900">InfoVISA</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Criar Conta</h1>
+            <p class="text-sm text-gray-500 mt-1">Informe seu CPF para iniciar o cadastro</p>
         </div>
 
         <!-- Mensagem de CPF Habilitado (query string) -->
@@ -431,6 +481,8 @@
 
         <!-- Link para Login -->
         <div class="mt-7 text-center border-t border-gray-100 pt-5">
+        <!-- Link para Login -->
+        <div class="mt-7 text-center border-t border-gray-100 pt-5">
             <p class="text-sm text-gray-600">
                 Já tem uma conta?
                 <a href="{{ route('login') }}" class="text-blue-600 hover:text-blue-700 font-semibold">
@@ -438,8 +490,10 @@
                 </a>
             </p>
         </div>
-    </div>
-</div>
+
+        </div>{{-- max-w-2xl --}}
+    </div>{{-- flex-1 --}}
+</div>{{-- outer flex --}}
 
 <script>
 function registroForm() {
