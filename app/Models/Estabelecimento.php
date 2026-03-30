@@ -794,8 +794,14 @@ class Estabelecimento extends Model
             return $this->competencia_manual === 'estadual';
         }
         
-        // PRIORIDADE 2: Verifica pela pactuação (lógica normal)
-        // Pega todas as atividades do estabelecimento
+        // PRIORIDADE 2: Se possui SOMENTE atividades especiais (PROJ_ARQ, ANAL_ROT), é estadual
+        // Essas atividades são sempre de competência estadual (não descentralizadas)
+        if ($this->possuiSomenteAtividadesEspeciais()) {
+            return true;
+        }
+        
+        // PRIORIDADE 3: Verifica pela pactuação (lógica normal)
+        // Pega todas as atividades do estabelecimento (excluindo as especiais)
         $atividades = array_values(array_filter(
             $this->getTodasAtividades(),
             fn ($cnae) => !in_array($cnae, ['PROJ_ARQ', 'ANAL_ROT'], true)
