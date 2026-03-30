@@ -119,7 +119,7 @@
                         <span class="ml-2 text-sm text-gray-700">Lembrar-me</span>
                     </label>
 
-                    <a href="#" onclick="abrirModalRecuperacao(event)" class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                    <a href="{{ route('recuperar-senha.form') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
                         Esqueci minha senha
                     </a>
                 </div>

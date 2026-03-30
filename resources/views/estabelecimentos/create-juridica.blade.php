@@ -1471,7 +1471,7 @@ function estabelecimentoForm() {
                     @endif
                     
                     // Verifica situação cadastral
-                    if (result.data.descricao_situacao_cadastral && result.data.descricao_situacao_cadastral !== 'ATIVA') {
+                    if (result.data.descricao_situacao_cadastral && result.data.descricao_situacao_cadastral.toUpperCase() !== 'ATIVA') {
                         const situacao = result.data.descricao_situacao_cadastral;
                         const motivo = result.data.descricao_motivo_situacao_cadastral || 'Não informado';
                         

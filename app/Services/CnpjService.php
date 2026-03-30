@@ -15,6 +15,7 @@ class CnpjService
     private const MINHA_RECEITA_URL = 'https://minhareceita.org';
     private const BRASIL_API_URL = 'https://brasilapi.com.br/api/cnpj/v1';
     private const RECEITA_WS_URL = 'https://www.receitaws.com.br/v1/cnpj';
+    private const PUBLICA_CNPJ_URL = 'https://publica.cnpj.ws/cnpj';
 
     /**
      * Cliente HTTP padronizado para consultas externas.
@@ -68,6 +69,14 @@ class CnpjService
             $dados = $this->consultarReceitaWs($cnpjLimpo);
             if ($dados !== null) {
                 Log::info('CNPJ encontrado na ReceitaWS', ['cnpj' => $cnpjLimpo]);
+                return $dados;
+            }
+
+            // Tenta API 4: Publica CNPJ WS (backup 3 - dados mais atualizados)
+            Log::info('ReceitaWS falhou, tentando Publica CNPJ WS', ['cnpj' => $cnpjLimpo]);
+            $dados = $this->consultarPublicaCnpjWs($cnpjLimpo);
+            if ($dados !== null) {
+                Log::info('CNPJ encontrado na Publica CNPJ WS', ['cnpj' => $cnpjLimpo]);
                 return $dados;
             }
 
@@ -207,6 +216,125 @@ class CnpjService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Consulta na API Publica CNPJ WS (dados atualizados da Receita Federal)
+     */
+    private function consultarPublicaCnpjWs(string $cnpj): ?array
+    {
+        try {
+            $response = $this->httpClient()
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'InfoVISA/3.0'
+                ])
+                ->get(self::PUBLICA_CNPJ_URL . '/' . $cnpj);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if (isset($data['razao_social'])) {
+                    return $this->formatarPublicaCnpjWs($data);
+                }
+            }
+
+            return null;
+
+        } catch (Exception $e) {
+            Log::warning('Erro ao consultar Publica CNPJ WS', [
+                'cnpj' => $cnpj,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Formata dados da API Publica CNPJ WS
+     */
+    private function formatarPublicaCnpjWs(array $data): array
+    {
+        $estabelecimento = $data['estabelecimento'] ?? [];
+        $cnaePrincipal = $estabelecimento['atividade_principal'] ?? [];
+        $cnaesSecundarios = [];
+
+        if (isset($estabelecimento['atividades_secundarias']) && is_array($estabelecimento['atividades_secundarias'])) {
+            foreach ($estabelecimento['atividades_secundarias'] as $cnae) {
+                $cnaesSecundarios[] = [
+                    'codigo' => $cnae['id'] ?? '',
+                    'descricao' => $cnae['descricao'] ?? '',
+                ];
+            }
+        }
+
+        $qsa = [];
+        if (isset($data['socios']) && is_array($data['socios'])) {
+            foreach ($data['socios'] as $socio) {
+                $qsa[] = [
+                    'nome_socio' => $socio['nome'] ?? '',
+                    'qualificacao_socio' => $socio['qualificacao'] ?? '',
+                ];
+            }
+        }
+
+        $logradouro = trim(($estabelecimento['tipo_logradouro'] ?? '') . ' ' . ($estabelecimento['logradouro'] ?? ''));
+        $natureza = ($data['natureza_juridica']['id'] ?? '') . ' - ' . ($data['natureza_juridica']['descricao'] ?? '');
+        $telefone1 = ($estabelecimento['ddd1'] ?? '') . ($estabelecimento['telefone1'] ?? '');
+        $telefone2 = ($estabelecimento['ddd2'] ?? '') . ($estabelecimento['telefone2'] ?? '');
+
+        return [
+            'cnpj' => preg_replace('/[^0-9]/', '', $data['estabelecimento']['cnpj'] ?? ''),
+            'razao_social' => $data['razao_social'] ?? null,
+            'nome_fantasia' => $estabelecimento['nome_fantasia'] ?? $data['razao_social'] ?? null,
+
+            'logradouro' => $logradouro ?: null,
+            'endereco' => $logradouro ?: null,
+            'numero' => $estabelecimento['numero'] ?? 'S/N',
+            'complemento' => $estabelecimento['complemento'] ?? null,
+            'bairro' => $estabelecimento['bairro'] ?? null,
+            'cidade' => $estabelecimento['cidade']['nome'] ?? null,
+            'estado' => $estabelecimento['estado']['sigla'] ?? null,
+            'cep' => $estabelecimento['cep'] ?? null,
+            'codigo_municipio_ibge' => $estabelecimento['cidade']['ibge_id'] ?? null,
+
+            'telefone' => $telefone1 ?: ($telefone2 ?: null),
+            'email' => $estabelecimento['email'] ?? null,
+            'ddd_telefone_1' => $telefone1,
+            'ddd_telefone_2' => $telefone2,
+            'ddd_fax' => '',
+
+            'natureza_juridica' => $natureza,
+            'tipo_setor' => $this->isPublico($natureza),
+            'porte' => $data['porte']['descricao'] ?? null,
+            'situacao_cadastral' => strtoupper($estabelecimento['situacao_cadastral'] ?? ''),
+            'descricao_situacao_cadastral' => strtoupper($estabelecimento['situacao_cadastral'] ?? ''),
+            'data_situacao_cadastral' => $this->formatarData($estabelecimento['data_situacao_cadastral'] ?? null),
+            'data_inicio_atividade' => $this->formatarData($estabelecimento['data_inicio_atividade'] ?? null),
+
+            'cnae_fiscal' => $cnaePrincipal['id'] ?? null,
+            'cnae_fiscal_descricao' => $cnaePrincipal['descricao'] ?? null,
+            'cnaes_secundarios' => $cnaesSecundarios,
+            'atividade_principal' => $cnaePrincipal['descricao'] ?? null,
+
+            'qsa' => $qsa,
+
+            'capital_social' => $data['capital_social'] ?? null,
+            'opcao_pelo_mei' => $data['simei']['optante'] ?? false,
+            'opcao_pelo_simples' => $data['simples']['optante'] ?? false,
+            'data_opcao_pelo_simples' => $this->formatarData($data['simples']['data_opcao'] ?? null),
+            'data_exclusao_do_simples' => $this->formatarData($data['simples']['data_exclusao'] ?? null),
+            'regime_tributario' => [],
+            'situacao_especial' => '',
+            'motivo_situacao_cadastral' => '',
+            'descricao_motivo_situacao_cadastral' => '',
+            'identificador_matriz_filial' => $estabelecimento['tipo'] ?? '',
+            'qualificacao_do_responsavel' => $data['qualificacao_do_responsavel']['descricao'] ?? '',
+
+            'tipo_pessoa' => 'juridica',
+            'ativo' => strtoupper($estabelecimento['situacao_cadastral'] ?? '') === 'ATIVA' || ($estabelecimento['situacao_cadastral'] ?? '') === 'Ativa',
+            'api_source' => 'publica_cnpj_ws',
+        ];
     }
 
     /**

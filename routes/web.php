@@ -67,6 +67,12 @@ Route::middleware('guest:externo,interno')->group(function () {
 // Logout (funciona para ambos os guards)
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Recuperação de Senha (usuário externo)
+Route::get('/recuperar-senha', [\App\Http\Controllers\Auth\RecuperarSenhaController::class, 'showForm'])->name('recuperar-senha.form');
+Route::post('/recuperar-senha', [\App\Http\Controllers\Auth\RecuperarSenhaController::class, 'enviarLink'])->name('recuperar-senha.enviar');
+Route::get('/recuperar-senha/redefinir', [\App\Http\Controllers\Auth\RecuperarSenhaController::class, 'showRedefinir'])->name('recuperar-senha.redefinir.form');
+Route::post('/recuperar-senha/redefinir', [\App\Http\Controllers\Auth\RecuperarSenhaController::class, 'redefinir'])->name('recuperar-senha.redefinir');
+
 /*
 |--------------------------------------------------------------------------
 | Rotas Protegidas - Área da Empresa

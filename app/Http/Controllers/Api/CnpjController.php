@@ -69,7 +69,8 @@ class CnpjController extends Controller
             $apiNames = [
                 'minha_receita' => 'Receita Federal',
                 'brasil_api' => 'BrasilAPI',
-                'receita_ws' => 'ReceitaWS'
+                'receita_ws' => 'ReceitaWS',
+                'publica_cnpj_ws' => 'Publica CNPJ WS',
             ];
 
             return response()->json([
