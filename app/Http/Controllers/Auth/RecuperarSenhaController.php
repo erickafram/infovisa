@@ -51,23 +51,25 @@ class RecuperarSenhaController extends Controller
             'created_at' => Carbon::now(),
         ]);
 
-        // Envia email
+        // Envia email em background (defer) para não travar o request
         $link = url('/recuperar-senha/redefinir?token=' . $token . '&email=' . urlencode($usuario->email));
         $nomeUsuario = $usuario->nome;
+        $emailDestinatario = $usuario->email;
         $emailMascarado = $this->mascararEmail($usuario->email);
 
-        try {
-            Mail::send('emails.recuperar-senha', [
-                'nome' => $nomeUsuario,
-                'link' => $link,
-            ], function ($message) use ($usuario) {
-                $message->to($usuario->email, $usuario->nome)
-                        ->subject('Recuperação de Senha - InfoVISA');
-            });
-        } catch (\Exception $e) {
-            \Log::error('Erro ao enviar email de recuperação: ' . $e->getMessage());
-            return back()->with('error', 'Erro ao enviar e-mail. Tente novamente em alguns minutos.');
-        }
+        defer(function () use ($emailDestinatario, $nomeUsuario, $link) {
+            try {
+                Mail::send('emails.recuperar-senha', [
+                    'nome' => $nomeUsuario,
+                    'link' => $link,
+                ], function ($message) use ($emailDestinatario, $nomeUsuario) {
+                    $message->to($emailDestinatario, $nomeUsuario)
+                            ->subject('Recuperação de Senha - InfoVISA');
+                });
+            } catch (\Exception $e) {
+                \Log::error('Erro ao enviar email de recuperação: ' . $e->getMessage());
+            }
+        });
 
         return back()->with('success', "Link de recuperação enviado para {$emailMascarado}. Verifique sua caixa de entrada e spam.");
     }
