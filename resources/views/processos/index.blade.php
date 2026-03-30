@@ -328,6 +328,12 @@
                                         @if(!empty($processo->estabelecimento->municipio))
                                             <p class="text-[10px] text-gray-400 truncate" title="{{ $processo->estabelecimento->municipio }}">
                                                 {{ $processo->estabelecimento->municipio }}
+                                                <span class="mx-1">·</span>
+                                                Criado em: {{ $processo->created_at->format('d/m/Y') }}
+                                            </p>
+                                        @else
+                                            <p class="text-[10px] text-gray-400">
+                                                Criado em: {{ $processo->created_at->format('d/m/Y') }}
                                             </p>
                                         @endif
                                     </div>

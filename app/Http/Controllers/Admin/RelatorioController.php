@@ -952,5 +952,67 @@ class RelatorioController extends Controller
         ));
     }
 
+    /**
+     * Relatório de Processos
+     */
+    public function processos(Request $request)
+    {
+        $usuario = auth('interno')->user();
+
+        // Tipos de processo disponíveis
+        $tiposProcesso = \App\Models\TipoProcesso::ativos()->paraUsuario($usuario)->ordenado()->get();
+        $statusDisponiveis = Processo::statusDisponiveis();
+        $anos = Processo::select('ano')->distinct()->orderBy('ano', 'desc')->pluck('ano');
+        $municipios = Municipio::where('usa_infovisa', true)->orderBy('nome')->get();
+
+        // Query base
+        $query = Processo::with(['estabelecimento', 'tipoProcesso', 'responsavelAtual']);
+
+        // Filtro por escopo do usuário
+        if (!$usuario->isAdmin()) {
+            if ($usuario->isMunicipal() && $usuario->municipio_id) {
+                $query->whereHas('estabelecimento', function ($q) use ($usuario) {
+                    $q->where('municipio_id', $usuario->municipio_id);
+                });
+            }
+        }
+
+        // Filtros
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('ano')) {
+            $query->where('ano', $request->ano);
+        }
+        if ($request->filled('municipio_id')) {
+            $query->whereHas('estabelecimento', function ($q) use ($request) {
+                $q->where('municipio_id', $request->municipio_id);
+            });
+        }
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('created_at', '>=', $request->data_inicio);
+        }
+        if ($request->filled('data_fim')) {
+            $query->whereDate('created_at', '<=', $request->data_fim);
+        }
+
+        $totalProcessos = (clone $query)->count();
+
+        // Contagem por status
+        $porStatus = (clone $query)->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')->pluck('total', 'status')->toArray();
+
+        // Listagem paginada
+        $processos = (clone $query)->orderByDesc('created_at')->paginate(15)->withQueryString();
+
+        return view('admin.relatorios.processos', compact(
+            'processos', 'tiposProcesso', 'statusDisponiveis', 'anos', 'municipios',
+            'totalProcessos', 'porStatus'
+        ));
+    }
+
 }
 
