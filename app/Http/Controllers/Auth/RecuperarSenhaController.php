@@ -38,6 +38,26 @@ class RecuperarSenhaController extends Controller
             return back()->with('error', 'CPF não encontrado ou sem e-mail cadastrado. Entre em contato com a Vigilância Sanitária.');
         }
 
+        // Rate limiting: máximo 1 solicitação por hora
+        $ultimaSolicitacao = DB::table('password_reset_tokens_externos')
+            ->where('email', $usuario->email)
+            ->first();
+
+        if ($ultimaSolicitacao && Carbon::parse($ultimaSolicitacao->created_at)->diffInMinutes(now()) < 60) {
+            $minutosRestantes = 60 - (int) Carbon::parse($ultimaSolicitacao->created_at)->diffInMinutes(now());
+            return back()->with('error', "Você já solicitou a recuperação recentemente. Aguarde {$minutosRestantes} minuto(s) para solicitar novamente.");
+        }
+
+        // Rate limiting: máximo 3 solicitações por dia (por IP)
+        $cacheKey = 'recuperar_senha_' . $request->ip() . '_' . now()->format('Y-m-d');
+        $tentativasHoje = (int) \Cache::get($cacheKey, 0);
+
+        if ($tentativasHoje >= 3) {
+            return back()->with('error', 'Limite de 3 solicitações por dia atingido. Tente novamente amanhã.');
+        }
+
+        \Cache::put($cacheKey, $tentativasHoje + 1, now()->endOfDay());
+
         // Gera token
         $token = Str::random(64);
 
