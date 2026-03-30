@@ -30,7 +30,7 @@
             </div>
             @endif
 
-            <form action="{{ route('recuperar-senha.enviar') }}" method="POST" x-data="{ cpf: '', loading: false }">
+            <form action="{{ route('recuperar-senha.enviar') }}" method="POST" x-data="{ cpf: '', loading: false }" @submit="loading = true">
                 @csrf
                 <div class="mb-5">
                     <label for="cpf" class="block text-sm font-medium text-gray-700 mb-1.5">CPF</label>
@@ -42,7 +42,7 @@
                     @enderror
                 </div>
 
-                <button type="submit" :disabled="loading || cpf.length < 14" @click="loading = true"
+                <button type="submit" :disabled="loading || cpf.length < 14"
                         class="w-full px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
                     <svg x-show="!loading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     <svg x-show="loading" x-cloak class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
