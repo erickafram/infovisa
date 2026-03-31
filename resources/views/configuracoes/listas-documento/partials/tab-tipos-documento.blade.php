@@ -55,7 +55,7 @@
     </form>
 </div>
 
-{{-- Tabela --}}
+{{-- Conteúdo --}}
 @if($tiposDocumento->isEmpty())
 <div class="text-center py-8">
     <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,105 +64,75 @@
     <p class="text-gray-500">Nenhum tipo de documento encontrado</p>
 </div>
 @else
-<div class="overflow-x-auto">
-    <table class="w-full">
-        <thead class="bg-gray-50 border-y border-gray-200">
-            <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Descrição</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Tipo</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Escopo</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Setor</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-            @foreach($tiposDocumento as $tipo)
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium text-gray-900">{{ $tipo->nome }}</span>
-                        @if($tipo->prazo_validade_dias)
-                        <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded" title="Validade: {{ $tipo->prazo_validade_dias }} dias">
-                            {{ $tipo->prazo_validade_dias }}d
-                        </span>
-                        @endif
-                    </div>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="text-sm text-gray-600">{{ Str::limit($tipo->descricao, 40) ?: '-' }}</span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    @if($tipo->documento_comum)
-                    <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full" title="Documento comum a todos os serviços">
-                        Comum
-                    </span>
-                    @else
-                    <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full" title="Documento específico por atividade">
-                        Específico
-                    </span>
-                    @endif
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full
-                        @if($tipo->escopo_competencia === 'estadual') bg-blue-100 text-blue-800
-                        @elseif($tipo->escopo_competencia === 'municipal') bg-green-100 text-green-800
-                        @else bg-gray-100 text-gray-600 @endif">
-                        {{ $tipo->escopo_competencia_label }}
-                    </span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full
-                        @if($tipo->tipo_setor === 'publico') bg-indigo-100 text-indigo-800
-                        @elseif($tipo->tipo_setor === 'privado') bg-orange-100 text-orange-800
-                        @else bg-gray-100 text-gray-600 @endif">
-                        {{ $tipo->tipo_setor_label }}
-                    </span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    @if($tipo->ativo)
-                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Ativo</span>
-                    @else
-                    <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Inativo</span>
-                    @endif
-                </td>
-                <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.edit', $tipo) }}" 
-                           class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </a>
-                        <form action="{{ route('admin.configuracoes.tipos-documento-obrigatorio.destroy', $tipo) }}" method="POST" class="inline"
-                              onsubmit="return confirm('Excluir este tipo de documento?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Excluir">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+
+@php
+    $filtroEscopo = request('escopo_competencia');
+    $tiposEstaduais = $tiposDocumento->filter(fn($t) => $t->escopo_competencia === 'estadual');
+    $tiposTodos = $tiposDocumento->filter(fn($t) => $t->escopo_competencia === 'todos');
+    $tiposMunicipais = $tiposDocumento->filter(fn($t) => $t->escopo_competencia === 'municipal');
+    $tiposMunAgrupados = $tiposMunicipais->groupBy('municipio_id');
+@endphp
+
+{{-- SEÇÃO ESTADUAL + TODOS --}}
+@if(!$filtroEscopo || $filtroEscopo === 'estadual' || $filtroEscopo === 'todos')
+@php $estaduaisETodos = $tiposEstaduais->merge($tiposTodos)->sortBy('ordem'); @endphp
+@if($estaduaisETodos->count() > 0)
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-3">
+        <span class="text-base">🏛️</span>
+        <span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Estadual</span>
+        <span class="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold">{{ $estaduaisETodos->count() }}</span>
+        <div class="flex-1 h-px bg-blue-100"></div>
+    </div>
+    <div class="bg-white rounded-xl border border-blue-200 overflow-hidden">
+        @include('configuracoes.listas-documento.partials.tabela-tipos-documento', ['tiposTabela' => $estaduaisETodos])
+    </div>
 </div>
+@endif
+@endif
+
+{{-- SEÇÃO MUNICIPAL --}}
+@if(!$filtroEscopo || $filtroEscopo === 'municipal')
+@if($tiposMunicipais->count() > 0)
+<div class="mb-4">
+    <div class="flex items-center gap-2 mb-3">
+        <span class="text-base">🏘️</span>
+        <span class="text-xs font-bold text-green-800 uppercase tracking-wide">Municipal</span>
+        <span class="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">{{ $tiposMunicipais->count() }}</span>
+        <div class="flex-1 h-px bg-green-100"></div>
+    </div>
+
+    @foreach($tiposMunAgrupados as $munId => $tiposDoMun)
+    @php $munNome = $tiposDoMun->first()->municipio->nome ?? 'Município'; @endphp
+    <div class="mb-3">
+        <div class="flex items-center gap-2 mb-2 ml-2">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span class="text-xs font-semibold text-green-700">{{ $munNome }}</span>
+            <span class="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded-full font-medium">{{ $tiposDoMun->count() }}</span>
+        </div>
+        <div class="bg-white rounded-xl border border-green-200 overflow-hidden">
+            @include('configuracoes.listas-documento.partials.tabela-tipos-documento', ['tiposTabela' => $tiposDoMun])
+        </div>
+    </div>
+    @endforeach
+</div>
+@elseif($filtroEscopo === 'municipal')
+<div class="text-center py-8 bg-green-50 rounded-xl border border-green-200">
+    <p class="text-sm text-green-700">Nenhum tipo de documento municipal cadastrado</p>
+</div>
+@endif
+@endif
 
 {{-- Paginação --}}
 @if($tiposDocumento->hasPages())
-<div class="mt-4 flex justify-center">
-    {{ $tiposDocumento->appends(request()->query())->links() }}
+<div class="mt-4">
+    {{ $tiposDocumento->appends(request()->query())->links('pagination.tailwind-clean') }}
 </div>
 @endif
 @endif
 
 {{-- Modal Novo Tipo de Documento --}}
-<div x-data="{ open: false }" 
+<div x-data="{ open: false, escopo: 'estadual' }" 
      @open-modal-tipo-documento.window="open = true"
      x-show="open" 
      x-cloak
@@ -210,8 +180,8 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Escopo de Competência</label>
-                                <select name="escopo_competencia"
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Escopo de Competência *</label>
+                                <select name="escopo_competencia" x-model="escopo"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                                     <option value="todos">Todos (Estadual + Municipal)</option>
                                     <option value="estadual" selected>Apenas Estadual</option>
@@ -230,6 +200,18 @@
                             </div>
                         </div>
 
+                        {{-- Município (só aparece quando escopo = municipal) --}}
+                        <div x-show="escopo === 'municipal'" x-cloak class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Município *</label>
+                            <select name="municipio_id" :required="escopo === 'municipal'"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">Selecione...</option>
+                                @foreach(\App\Models\Municipio::orderBy('nome')->get() as $mun)
+                                <option value="{{ $mun->id }}">{{ $mun->nome }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Prazo de Validade (dias)</label>
@@ -244,13 +226,13 @@
                             </div>
                         </div>
 
-                        <div>
+                        <div class="mt-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Observação para Estabelecimentos Públicos</label>
                             <textarea name="observacao_publica" rows="2" placeholder="Ex: Isento para estabelecimentos públicos"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"></textarea>
                         </div>
 
-                        <div>
+                        <div class="mt-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Observação para Estabelecimentos Privados</label>
                             <textarea name="observacao_privada" rows="2" placeholder="Ex: Apenas para empresas privadas"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"></textarea>

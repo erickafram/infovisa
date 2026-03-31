@@ -56,6 +56,7 @@ class TipoDocumentoObrigatorioController extends Controller
             'documento_comum' => 'boolean',
             'tipo_processo_id' => 'nullable|exists:tipo_processos,id',
             'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
+            'municipio_id' => 'nullable|required_if:escopo_competencia,municipal|exists:municipios,id',
             'tipo_setor' => 'required|string|in:todos,publico,privado',
             'observacao_publica' => 'nullable|string',
             'observacao_privada' => 'nullable|string',
@@ -69,6 +70,11 @@ class TipoDocumentoObrigatorioController extends Controller
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
             $validated['tipo_processo_id'] = null;
+        }
+
+        // Se escopo não é municipal, limpa municipio_id
+        if ($validated['escopo_competencia'] !== 'municipal') {
+            $validated['municipio_id'] = null;
         }
 
         TipoDocumentoObrigatorio::create($validated);
@@ -95,6 +101,7 @@ class TipoDocumentoObrigatorioController extends Controller
             'documento_comum' => 'boolean',
             'tipo_processo_id' => 'nullable|exists:tipo_processos,id',
             'escopo_competencia' => 'required|string|in:todos,estadual,municipal',
+            'municipio_id' => 'nullable|required_if:escopo_competencia,municipal|exists:municipios,id',
             'tipo_setor' => 'required|string|in:todos,publico,privado',
             'observacao_publica' => 'nullable|string',
             'observacao_privada' => 'nullable|string',
@@ -108,6 +115,11 @@ class TipoDocumentoObrigatorioController extends Controller
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
             $validated['tipo_processo_id'] = null;
+        }
+
+        // Se escopo não é municipal, limpa municipio_id
+        if ($validated['escopo_competencia'] !== 'municipal') {
+            $validated['municipio_id'] = null;
         }
 
         $tipos_documento_obrigatorio->update($validated);

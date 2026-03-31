@@ -23,6 +23,7 @@ class TipoDocumentoObrigatorio extends Model
         'documento_comum',
         'tipo_processo_id',
         'escopo_competencia',
+        'municipio_id',
         'tipo_setor',
         'observacao_publica',
         'observacao_privada',
@@ -42,6 +43,14 @@ class TipoDocumentoObrigatorio extends Model
     public function tipoProcesso()
     {
         return $this->belongsTo(TipoProcesso::class);
+    }
+
+    /**
+     * Relacionamento com município (para escopo municipal)
+     */
+    public function municipio()
+    {
+        return $this->belongsTo(Municipio::class);
     }
 
     /**

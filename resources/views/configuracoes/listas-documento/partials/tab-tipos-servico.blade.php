@@ -24,8 +24,8 @@
 @else
 <div class="space-y-3" x-data="{ expandedTipo: null }">
     @php
-        $tiposEstaduais = $tiposServico->where('escopo', 'estadual');
-        $tiposMunicipais = $tiposServico->where('escopo', 'municipal');
+        $tiposEstaduais = $tiposServico->getCollection()->where('escopo', 'estadual');
+        $tiposMunicipais = $tiposServico->getCollection()->where('escopo', 'municipal');
         $tiposMunAgrupados = $tiposMunicipais->groupBy('municipio_id');
     @endphp
 
@@ -68,6 +68,13 @@
     </div>
     @endif
 </div>
+
+{{-- Paginação --}}
+@if($tiposServico->hasPages())
+<div class="mt-4">
+    {{ $tiposServico->appends(request()->query())->links('pagination.tailwind-clean') }}
+</div>
+@endif
 @endif
 
 {{-- Modal Novo Tipo de Serviço --}}

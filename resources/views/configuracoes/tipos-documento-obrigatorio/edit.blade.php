@@ -83,6 +83,7 @@
                             <div>
                                 <label for="escopo_competencia" class="block text-sm font-medium text-gray-700 mb-1">Escopo de Competência</label>
                                 <select name="escopo_competencia" id="escopo_competencia"
+                                        onchange="document.getElementById('municipio_container').style.display = this.value === 'municipal' ? 'block' : 'none'"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="todos" {{ old('escopo_competencia', $tipo->escopo_competencia) === 'todos' ? 'selected' : '' }}>Todos (Estadual + Municipal)</option>
                                     <option value="estadual" {{ old('escopo_competencia', $tipo->escopo_competencia) === 'estadual' ? 'selected' : '' }}>Apenas Estadual</option>
@@ -101,6 +102,18 @@
                                 </select>
                                 <p class="text-xs text-gray-500 mt-1">Define se aplica a estabelecimentos públicos, privados ou ambos</p>
                             </div>
+                        </div>
+
+                        <div id="municipio_container" style="display: {{ old('escopo_competencia', $tipo->escopo_competencia) === 'municipal' ? 'block' : 'none' }}" class="mt-4">
+                            <label for="municipio_id" class="block text-sm font-medium text-gray-700 mb-1">Município *</label>
+                            <select name="municipio_id" id="municipio_id"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Selecione...</option>
+                                @foreach(\App\Models\Municipio::orderBy('nome')->get() as $mun)
+                                <option value="{{ $mun->id }}" {{ old('municipio_id', $tipo->municipio_id) == $mun->id ? 'selected' : '' }}>{{ $mun->nome }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Selecione o município ao qual este documento se aplica</p>
                         </div>
 
                         <div>
