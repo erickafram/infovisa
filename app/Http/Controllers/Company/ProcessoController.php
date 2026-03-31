@@ -424,7 +424,7 @@ class ProcessoController extends Controller
         $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
         
         $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
-            ->with(['estabelecimento', 'tipoProcesso', 'documentos.usuarioExterno', 'alertas', 'pastas'])
+            ->with(['estabelecimento', 'tipoProcesso', 'documentos.usuarioExterno', 'alertas', 'pastas', 'unidades'])
             ->findOrFail($id);
         
         // Documentos separados por status
@@ -489,6 +489,7 @@ class ProcessoController extends Controller
                 'documento' => $doc,
                 'data' => $doc->created_at,
                 'pasta_id' => $doc->pasta_id,
+                'unidade_id' => $doc->unidade_id ?? null,
             ]);
         }
         
@@ -499,6 +500,7 @@ class ProcessoController extends Controller
                 'documento' => $doc,
                 'data' => $doc->created_at,
                 'pasta_id' => $doc->pasta_id,
+                'unidade_id' => $doc->unidade_id ?? null,
             ]);
         }
 
@@ -509,6 +511,7 @@ class ProcessoController extends Controller
                 'documento' => $doc,
                 'data' => $doc->created_at,
                 'pasta_id' => $doc->pasta_id,
+                'unidade_id' => $doc->unidade_id ?? null,
             ]);
         }
         
@@ -545,6 +548,42 @@ class ProcessoController extends Controller
 
         // Busca documentos obrigatórios baseados nas atividades exercidas
         $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
+
+        // Monta documentos obrigatórios por pasta de unidade
+        $documentosObrigatoriosPorUnidade = collect();
+        $pastasUnidade = $processo->pastas()->whereNotNull('unidade_id')->orderBy('ordem')->get();
+        if ($pastasUnidade->count() > 0) {
+            foreach ($pastasUnidade as $pasta) {
+                // Para cada pasta de unidade, replica os docs obrigatórios com status de envio específico
+                $docsUnidade = $documentosObrigatorios->map(function ($doc) use ($processo, $pasta) {
+                    // Busca se já foi enviado para ESTA pasta
+                    $docEnviado = $processo->documentos
+                        ->where('tipo_documento_obrigatorio_id', $doc['id'])
+                        ->where('pasta_id', $pasta->id)
+                        ->sortByDesc('created_at')
+                        ->first();
+
+                    $statusEnvio = $docEnviado ? $docEnviado->status_aprovacao : null;
+                    $jaEnviado = in_array($statusEnvio, ['pendente', 'aprovado']);
+
+                    return array_merge($doc, [
+                        'ja_enviado' => $jaEnviado,
+                        'status_envio' => $statusEnvio,
+                        'pasta_id' => $pasta->id,
+                        'unidade_id' => $pasta->unidade_id,
+                    ]);
+                })->values();
+
+                $documentosObrigatoriosPorUnidade[$pasta->id] = [
+                    'unidade' => $pasta->unidade,
+                    'pasta' => $pasta,
+                    'nome' => $pasta->nome,
+                    'documentos' => $docsUnidade,
+                    'total' => $docsUnidade->where('obrigatorio', true)->count(),
+                    'enviados' => $docsUnidade->where('obrigatorio', true)->where('ja_enviado', true)->count(),
+                ];
+            }
+        }
         
         // Busca documentos de ajuda vinculados ao tipo de processo
         $documentosAjuda = \App\Models\DocumentoAjuda::ativos()
@@ -556,6 +595,17 @@ class ProcessoController extends Controller
         // Verifica se o estabelecimento precisa cadastrar equipamentos de imagem para este tipo de processo
         $precisaCadastrarEquipamentos = $processo->estabelecimento->precisaCadastrarEquipamentosImagemParaProcesso($processo->tipo);
         $precisaCadastrarResponsavelTecnico = $processo->estabelecimento->precisaCadastrarResponsavelTecnicoPorAtividade();
+
+        // Unidades disponíveis para adicionar (todas do tipo de processo)
+        $unidadesDisponiveis = collect();
+        $tipoProcessoTemUnidades = false;
+        if ($processo->tipoProcesso && $processo->tipoProcesso->unidades()->ativas()->count() > 0) {
+            $tipoProcessoTemUnidades = true;
+            $unidadesDisponiveis = $processo->tipoProcesso->unidades()
+                ->ativas()
+                ->ordenadas()
+                ->get();
+        }
         
         return view('company.processos.show', compact(
             'processo',
@@ -566,11 +616,74 @@ class ProcessoController extends Controller
             'todosDocumentos',
             'alertas',
             'documentosObrigatorios',
+            'documentosObrigatoriosPorUnidade',
             'pastas',
             'documentosAjuda',
             'precisaCadastrarEquipamentos',
-            'precisaCadastrarResponsavelTecnico'
+            'precisaCadastrarResponsavelTecnico',
+            'unidadesDisponiveis',
+            'tipoProcessoTemUnidades'
         ));
+    }
+
+    /**
+     * Adicionar nova unidade ao processo em andamento
+     */
+    public function adicionarUnidade(Request $request, $id)
+    {
+        $estabelecimentoIds = $this->estabelecimentoIdsDoUsuario();
+        $processo = Processo::whereIn('estabelecimento_id', $estabelecimentoIds)
+            ->with(['tipoProcesso'])
+            ->findOrFail($id);
+
+        // Só permite em processos abertos
+        if ($processo->status !== 'aberto') {
+            return back()->with('error', 'Só é possível adicionar unidades em processos abertos.');
+        }
+
+        // Verifica se o tipo de processo tem unidades
+        $unidadesDoTipo = $processo->tipoProcesso->unidades()->ativas()->pluck('unidades.id')->toArray();
+        if (empty($unidadesDoTipo)) {
+            return back()->with('error', 'Este tipo de processo não possui unidades configuradas.');
+        }
+
+        $request->validate([
+            'unidade_id' => 'required|exists:unidades,id',
+        ]);
+
+        $unidadeId = $request->unidade_id;
+
+        // Verifica se a unidade pertence ao tipo de processo
+        if (!in_array((int) $unidadeId, $unidadesDoTipo)) {
+            return back()->with('error', 'Esta unidade não está disponível para este tipo de processo.');
+        }
+
+        // Vincula a unidade (permite duplicatas - syncWithoutDetaching não duplica no pivot)
+        $processo->unidades()->syncWithoutDetaching([$unidadeId]);
+
+        // Conta quantas pastas desta unidade já existem para nomear incrementalmente
+        $unidade = \App\Models\Unidade::find($unidadeId);
+        $pastasExistentes = $processo->pastas()->where('unidade_id', $unidadeId)->count();
+        $nomePasta = $unidade->nome;
+        if ($pastasExistentes > 0) {
+            $nomePasta = $unidade->nome . ' (' . ($pastasExistentes + 1) . ')';
+        }
+
+        // Cria a pasta automática
+        $cores = ['#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B', '#10B981', '#EF4444'];
+        $ultimaOrdem = $processo->pastas()->max('ordem') ?? 0;
+
+        \App\Models\ProcessoPasta::create([
+            'processo_id' => $processo->id,
+            'nome' => $nomePasta,
+            'descricao' => 'Documentos da unidade ' . $nomePasta,
+            'cor' => $cores[($pastasExistentes + 1) % count($cores)],
+            'ordem' => $ultimaOrdem + 1,
+            'unidade_id' => $unidade->id,
+            'protegida' => true,
+        ]);
+
+        return back()->with('success', 'Unidade "' . $nomePasta . '" adicionada com sucesso! Envie os documentos obrigatórios.');
     }
 
     public function uploadDocumento(Request $request, $id)
@@ -596,6 +709,8 @@ class ProcessoController extends Controller
             'observacoes' => 'nullable|string|max:500',
             'tipo_documento_obrigatorio_id' => 'nullable|exists:tipos_documento_obrigatorio,id',
             'documento_id' => 'nullable|integer|exists:processo_documentos,id',
+            'unidade_id' => 'nullable|exists:unidades,id',
+            'pasta_id_unidade' => 'nullable|integer|exists:processo_pastas,id',
         ], [
             'arquivo.required' => 'Selecione um arquivo para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 30MB.',
@@ -687,6 +802,23 @@ class ProcessoController extends Controller
             
             $documento = $documentoExistente;
         } else {
+            // Determina a pasta: usa pasta_id_unidade se informado, senão busca pela unidade_id
+            $pastaUnidadeId = null;
+            if ($request->pasta_id_unidade) {
+                $pastaUnidadeId = (int) $request->pasta_id_unidade;
+                // Busca o unidade_id da pasta
+                $pastaObj = \App\Models\ProcessoPasta::find($pastaUnidadeId);
+                $unidadeIdDoc = $pastaObj?->unidade_id;
+            } elseif ($request->unidade_id) {
+                $pastaUnidade = \App\Models\ProcessoPasta::where('processo_id', $processo->id)
+                    ->where('unidade_id', $request->unidade_id)
+                    ->first();
+                $pastaUnidadeId = $pastaUnidade?->id;
+                $unidadeIdDoc = $request->unidade_id;
+            } else {
+                $unidadeIdDoc = null;
+            }
+
             // Cria o registro do documento com status pendente
             $documento = \App\Models\ProcessoDocumento::create([
                 'processo_id' => $processo->id,
@@ -701,6 +833,8 @@ class ProcessoController extends Controller
                 'tipo_documento_obrigatorio_id' => $tipoDocumentoId,
                 'observacoes' => $observacoes,
                 'status_aprovacao' => 'pendente',
+                'unidade_id' => $unidadeIdDoc,
+                'pasta_id' => $pastaUnidadeId,
             ]);
         }
 

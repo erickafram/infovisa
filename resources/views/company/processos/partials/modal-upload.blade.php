@@ -50,7 +50,8 @@
                  handleFileObrigatorio(e, docId, docNome) {
                      const file = e.target.files[0];
                      if (file) {
-                         this.arquivosObrigatorios[docId] = {
+                         const key = String(docId);
+                         this.arquivosObrigatorios[key] = {
                              file: file,
                              nome: docNome,
                              nomeOriginal: file.name,
@@ -59,7 +60,8 @@
                      }
                  },
                  removeFileObrigatorio(docId) {
-                     delete this.arquivosObrigatorios[docId];
+                     const key = String(docId);
+                     delete this.arquivosObrigatorios[key];
                      this.arquivosObrigatorios = {...this.arquivosObrigatorios};
                      const input = document.getElementById('file_doc_' + docId);
                      if (input) input.value = '';
@@ -73,6 +75,12 @@
                      formData.append('tipo_documento_obrigatorio_id', docId);
                      formData.append('observacoes', this.arquivosObrigatorios[docId].nome);
                      formData.append('_token', '{{ csrf_token() }}');
+                     
+                     // Adiciona unidade_id se selecionada
+                     const unidadeSelect = document.getElementById('unidade_upload_id');
+                     if (unidadeSelect && unidadeSelect.value) {
+                         formData.append('unidade_id', unidadeSelect.value);
+                     }
                      
                      try {
                          const response = await fetch('{{ route('company.processos.upload', $processo->id) }}', {
@@ -119,6 +127,46 @@
                      }
                      
                      this.enviandoTodos = false;
+                 },
+                 async enviarObrigatorioUnidade(docKey, docId, pastaId) {
+                     if (!this.arquivosObrigatorios[docKey] || this.enviando[docKey]) return;
+                     
+                     this.enviando[docKey] = true;
+                     const formData = new FormData();
+                     formData.append('arquivo', this.arquivosObrigatorios[docKey].file);
+                     formData.append('tipo_documento_obrigatorio_id', docId);
+                     formData.append('observacoes', this.arquivosObrigatorios[docKey].nome);
+                     formData.append('pasta_id_unidade', pastaId);
+                     formData.append('_token', '{{ csrf_token() }}');
+                     
+                     try {
+                         const response = await fetch('{{ route('company.processos.upload', $processo->id) }}', {
+                             method: 'POST',
+                             body: formData,
+                             headers: {
+                                 'X-Requested-With': 'XMLHttpRequest',
+                                 'Accept': 'application/json'
+                             }
+                         });
+                         
+                         if (response.ok) {
+                             const data = await response.json();
+                             if (data && data.documento) {
+                                 this.notificarUpload(data.documento);
+                             }
+                             this.documentosEnviados[docKey] = true;
+                             delete this.arquivosObrigatorios[docKey];
+                             this.arquivosObrigatorios = {...this.arquivosObrigatorios};
+                         } else {
+                             const data = await response.json();
+                             alert(data.message || 'Erro ao enviar documento');
+                         }
+                     } catch (error) {
+                         console.error('Erro:', error);
+                         alert('Erro ao enviar documento. Tente novamente.');
+                     } finally {
+                         this.enviando[docKey] = false;
+                     }
                  },
                  get totalArquivosSelecionados() {
                      return Object.keys(this.arquivosObrigatorios).length;
@@ -569,6 +617,155 @@
                         </svg>
                         <p class="text-gray-500 text-sm">Nenhum documento obrigatório configurado para este tipo de processo.</p>
                         <p class="text-gray-400 text-xs mt-1">Use a aba "Documentos Diversos" para enviar outros arquivos.</p>
+                    </div>
+                    @endif
+
+                    {{-- SEÇÃO DE UNIDADES (adicional, aparece abaixo dos docs base) --}}
+                    @if(!empty($documentosObrigatoriosPorUnidade) && count($documentosObrigatoriosPorUnidade) > 0)
+                    <div class="mt-6 pt-4 border-t border-gray-200" x-data="{ unidadeAtiva: null }">
+                        <div class="mb-4 p-3 bg-violet-50 border border-violet-200 rounded-xl">
+                            <label class="block text-sm font-medium text-violet-800 mb-2">Documentos por Unidade</label>
+                            <p class="text-xs text-violet-600">Cada unidade requer seus próprios documentos obrigatórios.</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            @foreach($documentosObrigatoriosPorUnidade as $pastaId => $info)
+                            <div class="p-2 rounded-lg border cursor-pointer transition-all text-center"
+                                 :class="unidadeAtiva == '{{ $pastaId }}' ? 'border-violet-400 bg-violet-50' : 'border-gray-200 bg-white hover:border-gray-300'"
+                                 @click="unidadeAtiva = '{{ $pastaId }}'">
+                                <p class="text-xs font-medium text-gray-700">{{ $info['nome'] }}</p>
+                                <p class="text-lg font-bold {{ $info['enviados'] === $info['total'] ? 'text-green-600' : 'text-amber-600' }}">
+                                    {{ $info['enviados'] }}/{{ $info['total'] }}
+                                </p>
+                            </div>
+                            @endforeach
+                        </div>
+
+                        <template x-if="!unidadeAtiva">
+                            <div class="text-center py-4 text-gray-400">
+                                <p class="text-sm">Selecione uma unidade para ver os documentos.</p>
+                            </div>
+                        </template>
+
+                        @foreach($documentosObrigatoriosPorUnidade as $pastaId => $info)
+                        <div x-show="unidadeAtiva == '{{ $pastaId }}'" x-cloak>
+                            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                                <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
+                                </svg>
+                                <span class="text-sm font-semibold text-gray-800">{{ $info['nome'] }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full {{ $info['enviados'] === $info['total'] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }}">
+                                    {{ $info['enviados'] }}/{{ $info['total'] }}
+                                </span>
+                            </div>
+                            <div class="space-y-3">
+                                @foreach($info['documentos'] as $doc)
+                                @php
+                                    $statusEnvio = $doc['status_envio'] ?? null;
+                                    $jaEnviado = $doc['ja_enviado'] ?? false;
+                                    $isPendente = $statusEnvio === 'pendente';
+                                    $isAprovado = $statusEnvio === 'aprovado';
+                                    $isRejeitado = $statusEnvio === 'rejeitado';
+                                    $docKey = $doc['id'] . '_' . $pastaId;
+                                @endphp
+                                <div class="border border-gray-200 rounded-xl p-4 hover:border-blue-300 transition-colors"
+                                     :class="{
+                                         'bg-green-50 border-green-200': {{ $isAprovado ? 'true' : 'false' }} || documentosEnviados['{{ $docKey }}'],
+                                         'bg-amber-50 border-amber-200': {{ $isPendente ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'],
+                                         'bg-red-50 border-red-200': {{ $isRejeitado ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'],
+                                         'bg-white': !{{ $jaEnviado ? 'true' : 'false' }} && !{{ $isRejeitado ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}']
+                                     }">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                                 :class="{
+                                                     'bg-green-100': {{ $isAprovado ? 'true' : 'false' }} || documentosEnviados['{{ $docKey }}'],
+                                                     'bg-amber-100': {{ $isPendente ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'],
+                                                     'bg-red-100': {{ $isRejeitado ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'],
+                                                     'bg-red-100': !{{ $jaEnviado ? 'true' : 'false' }} && !{{ $isRejeitado ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'] && {{ $doc['obrigatorio'] ? 'true' : 'false' }},
+                                                     'bg-gray-100': !{{ $jaEnviado ? 'true' : 'false' }} && !{{ $isRejeitado ? 'true' : 'false' }} && !documentosEnviados['{{ $docKey }}'] && !{{ $doc['obrigatorio'] ? 'true' : 'false' }}
+                                                 }">
+                                                <template x-if="{{ $isAprovado ? 'true' : 'false' }} || documentosEnviados['{{ $docKey }}']">
+                                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                </template>
+                                                @if($isPendente)
+                                                <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                </template>
+                                                @elseif($isRejeitado)
+                                                <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </template>
+                                                @elseif(!$jaEnviado)
+                                                <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                    <svg class="w-5 h-5 {{ $doc['obrigatorio'] ? 'text-red-600' : 'text-gray-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                </template>
+                                                @endif
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="text-sm font-semibold text-gray-900">{{ $doc['nome'] }}</span>
+                                                    @if($doc['obrigatorio'])
+                                                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded">Obrigatório</span>
+                                                    @endif
+                                                    @if($isPendente)
+                                                    <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">Aguardando Aprovação</span>
+                                                    </template>
+                                                    @elseif($isAprovado)
+                                                    <span class="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">Aprovado</span>
+                                                    @elseif($isRejeitado)
+                                                    <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded">Rejeitado - Reenvie</span>
+                                                    </template>
+                                                    @endif
+                                                    <template x-if="documentosEnviados['{{ $docKey }}']">
+                                                        <span class="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">Enviado</span>
+                                                    </template>
+                                                </div>
+                                                @if($doc['descricao'])
+                                                <p class="text-xs text-gray-500 mt-0.5 truncate">{{ $doc['descricao'] }}</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <template x-if="{{ $isAprovado ? 'true' : 'false' }} || documentosEnviados['{{ $docKey }}']">
+                                                <span class="text-xs text-green-600 font-medium whitespace-nowrap">✓ OK</span>
+                                            </template>
+                                            @if($isPendente)
+                                            <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                <span class="text-xs text-amber-600 font-medium whitespace-nowrap">Pendente</span>
+                                            </template>
+                                            @elseif($isRejeitado || !$jaEnviado)
+                                            <template x-if="!documentosEnviados['{{ $docKey }}']">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="file" id="file_unidade_{{ $docKey }}" class="hidden" accept=".pdf"
+                                                           @change="handleFileObrigatorio($event, '{{ $docKey }}', '{{ addslashes($doc['nome']) }}')">
+                                                    <template x-if="!arquivosObrigatorios['{{ $docKey }}'] && !enviando['{{ $docKey }}']">
+                                                        <button type="button" @click="document.getElementById('file_unidade_{{ $docKey }}').click()"
+                                                                class="px-3 py-1.5 text-xs font-medium rounded-lg transition {{ $isRejeitado ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-blue-600 bg-blue-50 hover:bg-blue-100' }}">
+                                                            {{ $isRejeitado ? 'Reenviar' : 'Selecionar' }}
+                                                        </button>
+                                                    </template>
+                                                    <template x-if="arquivosObrigatorios['{{ $docKey }}'] && !enviando['{{ $docKey }}']">
+                                                        <button type="button" @click="enviarObrigatorioUnidade('{{ $docKey }}', {{ $doc['id'] }}, {{ $pastaId }})"
+                                                                class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
+                                                            Enviar
+                                                        </button>
+                                                    </template>
+                                                    <template x-if="enviando['{{ $docKey }}']">
+                                                        <span class="text-xs text-gray-500">Enviando...</span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
                     </div>
                     @endif
                 </div>

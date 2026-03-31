@@ -81,6 +81,14 @@ class ProcessoPastaController extends Controller
         $pasta = ProcessoPasta::where('processo_id', $processoId)
             ->findOrFail($pastaId);
 
+        // Não permite excluir pastas protegidas (criadas automaticamente por unidades)
+        if ($pasta->protegida) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta pasta não pode ser excluída pois está vinculada a uma unidade do processo.',
+            ], 422);
+        }
+
         // Move todos os documentos e arquivos para "Todos" (pasta_id = null)
         $pasta->documentos()->update(['pasta_id' => null]);
         $pasta->documentosDigitais()->update(['pasta_id' => null]);

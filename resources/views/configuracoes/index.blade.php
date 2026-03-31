@@ -169,6 +169,24 @@
                 </div>
             </div>
         </a>
+
+        {{-- Unidades - Apenas Admin --}}
+        <a href="{{ route('admin.configuracoes.unidades.index') }}" 
+           class="block bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-bold text-gray-900 mb-1">Unidades</h3>
+                    <p class="text-xs text-gray-600">Cadastre unidades para vincular aos tipos de processo</p>
+                </div>
+            </div>
+        </a>
         @endif
 
         @if($isAdmin || $isGestorEstadual)

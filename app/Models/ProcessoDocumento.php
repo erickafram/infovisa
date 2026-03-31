@@ -47,6 +47,11 @@ class ProcessoDocumento extends Model
         return $this->belongsTo(Processo::class);
     }
 
+    public function unidade(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Unidade::class);
+    }
+
     public function ordemServico(): BelongsTo
     {
         return $this->belongsTo(OrdemServico::class, 'os_id');

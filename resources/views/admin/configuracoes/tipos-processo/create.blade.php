@@ -165,6 +165,33 @@
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                {{-- Unidades --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidades</label>
+                    <p class="text-xs text-gray-500 mb-2">Selecione as unidades que o estabelecimento poderá escolher ao abrir este tipo de processo.</p>
+                    @php
+                        $unidadesDisponiveis = \App\Models\Unidade::ativas()->ordenadas()->get();
+                        $unidadesSelecionadas = old('unidades', []);
+                    @endphp
+                    @if($unidadesDisponiveis->count() > 0)
+                        <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                            @foreach($unidadesDisponiveis as $unidade)
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="unidades[]" value="{{ $unidade->id }}"
+                                           {{ in_array($unidade->id, $unidadesSelecionadas) ? 'checked' : '' }}
+                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm text-gray-700">{{ $unidade->nome }}</span>
+                                    @if($unidade->descricao)
+                                        <span class="text-xs text-gray-400">- {{ $unidade->descricao }}</span>
+                                    @endif
+                                </label>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-xs text-gray-400 italic">Nenhuma unidade cadastrada. <a href="{{ route('admin.configuracoes.unidades.index') }}" class="text-blue-600 hover:underline">Cadastrar unidades</a></p>
+                    @endif
+                </div>
             </div>
         </div>
 

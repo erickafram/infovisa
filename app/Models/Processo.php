@@ -232,6 +232,11 @@ class Processo extends Model
         return $this->belongsTo(TipoProcesso::class, 'tipo', 'codigo');
     }
 
+    public function unidades()
+    {
+        return $this->belongsToMany(Unidade::class, 'processo_unidades');
+    }
+
     public function resolverEscopoCompetencia(): ?string
     {
         $estabelecimento = $this->relationLoaded('estabelecimento')

@@ -52,6 +52,11 @@ class TipoProcesso extends Model
         return $this->hasMany(TipoProcessoSetorMunicipio::class, 'tipo_processo_id');
     }
 
+    public function unidades()
+    {
+        return $this->belongsToMany(Unidade::class, 'tipo_processo_unidade');
+    }
+
     /**
      * Scope para tipos ativos
      */

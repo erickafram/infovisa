@@ -82,6 +82,9 @@ class TipoProcessoController extends Controller
         $tipoProcesso = TipoProcesso::create($validated);
         $this->sincronizarSetoresMunicipais($tipoProcesso, $request->input('setores_municipais', []), $validated['competencia']);
 
+        // Sincroniza unidades
+        $tipoProcesso->unidades()->sync($request->input('unidades', []));
+
         return redirect()
             ->route('admin.configuracoes.tipos-processo.index')
             ->with('success', 'Tipo de processo criado com sucesso!');
@@ -165,6 +168,9 @@ class TipoProcessoController extends Controller
 
         $tipoProcesso->update($validated);
         $this->sincronizarSetoresMunicipais($tipoProcesso, $request->input('setores_municipais', []), $validated['competencia']);
+
+        // Sincroniza unidades
+        $tipoProcesso->unidades()->sync($request->input('unidades', []));
 
         return redirect()
             ->route('admin.configuracoes.tipos-processo.index')

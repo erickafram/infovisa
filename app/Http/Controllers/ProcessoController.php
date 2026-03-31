@@ -848,6 +848,42 @@ class ProcessoController extends Controller
         
         // Busca documentos obrigatórios baseados nas atividades do estabelecimento
         $documentosObrigatorios = $this->buscarDocumentosObrigatoriosParaProcesso($processo);
+
+        // Monta documentos obrigatórios por pasta de unidade
+        $documentosObrigatoriosPorUnidade = collect();
+        $pastasUnidade = $processo->pastas()->whereNotNull('unidade_id')->orderBy('ordem')->get();
+        if ($pastasUnidade->count() > 0) {
+            foreach ($pastasUnidade as $pasta) {
+                $docsUnidade = $documentosObrigatorios->map(function ($doc) use ($processo, $pasta) {
+                    $docEnviado = $processo->documentos
+                        ->where('tipo_documento_obrigatorio_id', $doc['id'])
+                        ->where('pasta_id', $pasta->id)
+                        ->sortByDesc('created_at')
+                        ->first();
+
+                    $statusEnvio = $docEnviado ? $docEnviado->status_aprovacao : null;
+                    $jaEnviado = in_array($statusEnvio, ['pendente', 'aprovado']);
+
+                    return array_merge($doc, [
+                        'status' => $statusEnvio,
+                        'ja_enviado' => $jaEnviado,
+                        'status_envio' => $statusEnvio,
+                        'pasta_id' => $pasta->id,
+                        'unidade_id' => $pasta->unidade_id,
+                    ]);
+                })->values();
+
+                $documentosObrigatoriosPorUnidade[$pasta->id] = [
+                    'unidade' => $pasta->unidade,
+                    'pasta' => $pasta,
+                    'nome' => $pasta->nome,
+                    'documentos' => $docsUnidade,
+                    'total' => $docsUnidade->where('obrigatorio', true)->count(),
+                    'enviados' => $docsUnidade->where('obrigatorio', true)->where('ja_enviado', true)->count(),
+                    'aprovados' => $docsUnidade->where('obrigatorio', true)->where('status', 'aprovado')->count(),
+                ];
+            }
+        }
         
         // Calcula informações do prazo de fila pública se aplicável
         $avisoFilaPublica = null;
@@ -911,7 +947,7 @@ class ProcessoController extends Controller
             }
         }
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios', 'avisoFilaPublica'));
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios', 'documentosObrigatoriosPorUnidade', 'avisoFilaPublica'));
     }
 
     /**

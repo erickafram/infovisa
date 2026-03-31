@@ -138,6 +138,7 @@ Route::middleware(['auth:externo', 'no-cache-auth'])->prefix('company')->name('c
     Route::get('/processos', [\App\Http\Controllers\Company\ProcessoController::class, 'index'])->name('processos.index');
     Route::get('/processos/{id}', [\App\Http\Controllers\Company\ProcessoController::class, 'show'])->name('processos.show');
     Route::post('/processos/{id}/upload', [\App\Http\Controllers\Company\ProcessoController::class, 'uploadDocumento'])->name('processos.upload');
+    Route::post('/processos/{id}/adicionar-unidade', [\App\Http\Controllers\Company\ProcessoController::class, 'adicionarUnidade'])->name('processos.adicionar-unidade');
     Route::get('/processos/{id}/documentos/{documento}/download', [\App\Http\Controllers\Company\ProcessoController::class, 'downloadDocumento'])->name('processos.download');
     Route::get('/processos/{id}/documentos/{documento}/visualizar', [\App\Http\Controllers\Company\ProcessoController::class, 'visualizarDocumento'])->name('processos.documento.visualizar');
     Route::delete('/processos/{id}/documentos/{documento}', [\App\Http\Controllers\Company\ProcessoController::class, 'deleteDocumento'])->name('processos.documento.delete');
@@ -662,6 +663,12 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         Route::resource('tipos-processo', \App\Http\Controllers\TipoProcessoController::class)->parameters([
             'tipos-processo' => 'tipoProcesso'
         ]);
+
+        // Unidades - Apenas Admin
+        Route::resource('unidades', \App\Http\Controllers\Admin\UnidadeController::class)->parameters([
+            'unidades' => 'unidade'
+        ]);
+        Route::post('unidades/{unidade}/toggle-status', [\App\Http\Controllers\Admin\UnidadeController::class, 'toggleStatus'])->name('unidades.toggle-status');
         
         // Tipos de Setor - Apenas Admin
         Route::resource('tipo-setores', \App\Http\Controllers\Admin\TipoSetorController::class)->parameters([

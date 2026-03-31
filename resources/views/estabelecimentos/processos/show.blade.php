@@ -560,11 +560,24 @@
                         @endphp
                         {{ $tituloChecklist }}
                         @php
+                            // Docs base (sem unidade) - sempre existem
                             $totalObrigatorios = $documentosObrigatorios->count();
                             $totalOk = $documentosObrigatorios->where('status', 'aprovado')->count();
                             $totalPendente = $documentosObrigatorios->where('status', 'pendente')->count();
                             $totalRejeitado = $documentosObrigatorios->where('status', 'rejeitado')->count();
                             $totalNaoEnviado = $documentosObrigatorios->whereNull('status')->count();
+
+                            // Soma docs das unidades (adicionais)
+                            if ($processo->unidades->count() > 0 && !empty($documentosObrigatoriosPorUnidade) && count($documentosObrigatoriosPorUnidade) > 0) {
+                                foreach ($documentosObrigatoriosPorUnidade as $info) {
+                                    $docsObrig = $info['documentos']->where('obrigatorio', true);
+                                    $totalObrigatorios += $docsObrig->count();
+                                    $totalOk += $docsObrig->where('status', 'aprovado')->count();
+                                    $totalPendente += $docsObrig->where('status', 'pendente')->count();
+                                    $totalRejeitado += $docsObrig->where('status', 'rejeitado')->count();
+                                    $totalNaoEnviado += $docsObrig->whereNull('status')->count();
+                                }
+                            }
                             // Barra só aumenta com aprovados
                             $percentualAprovados = $totalObrigatorios > 0 ? round(($totalOk / $totalObrigatorios) * 100) : 0;
                             $todosAprovados = ($totalOk == $totalObrigatorios && $totalObrigatorios > 0);
@@ -640,6 +653,25 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Progresso por Unidade --}}
+                @if(!empty($documentosObrigatoriosPorUnidade) && count($documentosObrigatoriosPorUnidade) > 0)
+                <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Por Unidade</p>
+                    @foreach($documentosObrigatoriosPorUnidade as $pastaId => $info)
+                    @php
+                        $pctUnidade = $info['total'] > 0 ? round(($info['aprovados'] / $info['total']) * 100) : 0;
+                    @endphp
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-24 truncate" title="{{ $info['nome'] }}">{{ $info['nome'] }}</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="h-full rounded-full transition-all {{ $pctUnidade === 100 ? 'bg-green-500' : 'bg-violet-500' }}" style="width: {{ $pctUnidade }}%"></div>
+                        </div>
+                        <span class="text-[10px] font-bold {{ $pctUnidade === 100 ? 'text-green-600' : 'text-violet-600' }}">{{ $info['aprovados'] }}/{{ $info['total'] }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
 
                 <div x-show="checklistAberto" x-transition class="mt-4 space-y-2">
                     {{-- Resumo --}}
@@ -2980,7 +3012,7 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                                 </svg>
                                             </button>
-                                            <button @click="excluirPasta(pasta.id)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                            <button @click="excluirPasta(pasta.id)" x-show="!pasta.protegida" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                 </svg>

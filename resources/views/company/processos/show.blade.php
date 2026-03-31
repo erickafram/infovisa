@@ -394,10 +394,23 @@
 
             {{-- Progresso dos Documentos Obrigatórios --}}
             @php
+                // Docs base (sem unidade) - sempre existem
                 $totalObrigatorios = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->count() : 0;
                 $enviadosOuAprovados = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->whereIn('status_envio', ['pendente', 'aprovado'])->count() : 0;
                 $aprovados = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->where('status_envio', 'aprovado')->count() : 0;
                 $aguardandoAprovacao = isset($documentosObrigatorios) ? $documentosObrigatorios->where('obrigatorio', true)->where('status_envio', 'pendente')->count() : 0;
+
+                // Soma docs das unidades (adicionais)
+                if ($processo->unidades->count() > 0 && !empty($documentosObrigatoriosPorUnidade)) {
+                    foreach ($documentosObrigatoriosPorUnidade as $info) {
+                        $docsObrig = $info['documentos']->where('obrigatorio', true);
+                        $totalObrigatorios += $docsObrig->count();
+                        $enviadosOuAprovados += $docsObrig->whereIn('status_envio', ['pendente', 'aprovado'])->count();
+                        $aprovados += $docsObrig->where('status_envio', 'aprovado')->count();
+                        $aguardandoAprovacao += $docsObrig->where('status_envio', 'pendente')->count();
+                    }
+                }
+
                 $percentual = $totalObrigatorios > 0 ? round(($enviadosOuAprovados / $totalObrigatorios) * 100) : 0;
                 $faltam = $totalObrigatorios - $enviadosOuAprovados;
                 $todosAprovados = ($aprovados == $totalObrigatorios && $totalObrigatorios > 0);
@@ -494,6 +507,25 @@
                     </button>
                     @endif
                 </div>
+
+                {{-- Progresso por Unidade --}}
+                @if(!empty($documentosObrigatoriosPorUnidade) && count($documentosObrigatoriosPorUnidade) > 0)
+                <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Por Unidade</p>
+                    @foreach($documentosObrigatoriosPorUnidade as $pastaId => $info)
+                    @php
+                        $pctUnidade = $info['total'] > 0 ? round(($info['enviados'] / $info['total']) * 100) : 0;
+                    @endphp
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-24 truncate" title="{{ $info['nome'] }}">{{ $info['nome'] }}</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="h-full rounded-full transition-all {{ $pctUnidade === 100 ? 'bg-green-500' : 'bg-violet-500' }}" style="width: {{ $pctUnidade }}%"></div>
+                        </div>
+                        <span class="text-[10px] font-bold {{ $pctUnidade === 100 ? 'text-green-600' : 'text-violet-600' }}">{{ $info['enviados'] }}/{{ $info['total'] }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
             </div>
 
             {{-- Menu de Opções --}}
@@ -512,6 +544,14 @@
                         </svg>
                         Upload de Arquivos
                     </button>
+                    @if(isset($tipoProcessoTemUnidades) && $tipoProcessoTemUnidades)
+                    <button @click="$refs.modalNovaUnidade.classList.remove('hidden')" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-violet-50 hover:text-violet-700 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Solicitar Nova Unidade
+                    </button>
+                    @endif
                     @endif
                     <button @click="modalAlertas = true" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors">
                         <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -746,6 +786,7 @@
                             @endif
                         </button>
                         @endforeach
+
                     </nav>
                 </div>
                 @endif
@@ -1091,6 +1132,58 @@
 
     {{-- Modal Upload --}}
     @include('company.processos.partials.modal-upload')
+
+    {{-- Modal Nova Unidade --}}
+    @if(isset($tipoProcessoTemUnidades) && $tipoProcessoTemUnidades)
+    <div x-ref="modalNovaUnidade" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" @click="$refs.modalNovaUnidade.classList.add('hidden')"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-violet-50 to-purple-50">
+                    <h3 class="text-lg font-semibold text-gray-900">Solicitar Nova Unidade</h3>
+                    <p class="text-xs text-gray-500 mt-1">Selecione a unidade que deseja adicionar ao processo</p>
+                </div>
+                @if(isset($unidadesDisponiveis) && $unidadesDisponiveis->count() > 0)
+                <form action="{{ route('company.processos.adicionar-unidade', $processo->id) }}" method="POST" class="p-6">
+                    @csrf
+                    <div class="space-y-2">
+                        @foreach($unidadesDisponiveis as $unidade)
+                        <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-violet-300 hover:bg-violet-50/50 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 transition-all">
+                            <input type="radio" name="unidade_id" value="{{ $unidade->id }}" required
+                                   class="h-4 w-4 text-violet-600 border-gray-300 focus:ring-violet-500">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">{{ $unidade->nome }}</span>
+                                @if($unidade->descricao)
+                                    <p class="text-xs text-gray-500">{{ $unidade->descricao }}</p>
+                                @endif
+                            </div>
+                        </label>
+                        @endforeach
+                    </div>
+                    <div class="flex items-center gap-3 mt-6 pt-4 border-t border-gray-200">
+                        <button type="submit" class="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition">
+                            Adicionar Unidade
+                        </button>
+                        <button type="button" @click="$refs.modalNovaUnidade.classList.add('hidden')" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+                @else
+                <div class="p-6 text-center">
+                    <svg class="w-12 h-12 text-green-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-gray-600">Todas as unidades disponíveis já foram adicionadas ao processo.</p>
+                    <button type="button" @click="$refs.modalNovaUnidade.classList.add('hidden')" class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+                        Fechar
+                    </button>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Modal Resposta a Documento --}}
     <div x-show="modalResposta" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">

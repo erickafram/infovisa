@@ -15,7 +15,21 @@ class ProcessoPasta extends Model
         'descricao',
         'cor',
         'ordem',
+        'unidade_id',
+        'protegida',
     ];
+
+    protected $casts = [
+        'protegida' => 'boolean',
+    ];
+
+    /**
+     * Relacionamento com Unidade
+     */
+    public function unidade()
+    {
+        return $this->belongsTo(\App\Models\Unidade::class);
+    }
 
     /**
      * Relacionamento com Processo
