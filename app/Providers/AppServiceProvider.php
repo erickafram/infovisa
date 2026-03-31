@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Auth\Events\Login;
+use App\Listeners\RegistrarUltimoLogin;
 use App\Models\OrdemServico;
 use App\Models\DocumentoAssinatura;
 use App\Models\DocumentoAjuda;
@@ -28,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Registra listener de último login
+        Event::listen(Login::class, RegistrarUltimoLogin::class);
+
         // Configura paginação para usar Tailwind CSS
         \Illuminate\Pagination\Paginator::useTailwind();
         

@@ -43,13 +43,6 @@ class LoginController extends Controller
         // Tenta autenticar como usuário INTERNO primeiro
         if (Auth::guard('interno')->attempt(array_merge($credentials, ['ativo' => true]), $remember)) {
             $request->session()->regenerate();
-
-            $usuarioInterno = Auth::guard('interno')->user();
-            if ($usuarioInterno) {
-                $usuarioInterno->forceFill([
-                    'ultimo_login_em' => now(),
-                ])->save();
-            }
             
             // Limpa URL intended se for uma rota AJAX (chat, api, etc)
             $intended = $request->session()->get('url.intended');

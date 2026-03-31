@@ -230,6 +230,8 @@
                         <td class="px-4 py-2.5 text-center text-xs text-gray-500">
                             @if($usr->ultimo_login_em)
                                 {{ \Carbon\Carbon::parse($usr->ultimo_login_em)->format('d/m/Y H:i') }}
+                            @elseif($usr->total_acoes > 0)
+                                <span class="text-amber-600" title="Usuário tem ações registradas mas o registro de login não existia antes de 25/02/2026">Sem registro ⚠️</span>
                             @else
                                 <span class="text-gray-400">Nunca</span>
                             @endif
