@@ -34,6 +34,37 @@
     </div>
 
     @if($aba === 'atividade')
+
+    {{-- Filtros de Escopo --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+        <form method="GET" action="{{ route('admin.usuarios-internos.index') }}" class="flex flex-wrap gap-3 items-end" x-data="{ escopo: '{{ request('escopo_atividade', '') }}' }">
+            <input type="hidden" name="aba" value="atividade">
+            <div class="w-44">
+                <label class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Escopo</label>
+                <select name="escopo_atividade" x-model="escopo"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">Todos</option>
+                    <option value="estadual">🏛️ Estadual</option>
+                    <option value="municipal">🏘️ Municipal</option>
+                </select>
+            </div>
+            <div class="w-52" x-show="escopo === 'municipal'" x-cloak>
+                <label class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Município</label>
+                <select name="municipio_id_atividade"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">Todos os municípios</option>
+                    @foreach($municipios as $mun)
+                    <option value="{{ $mun->id }}" {{ request('municipio_id_atividade') == $mun->id ? 'selected' : '' }}>{{ $mun->nome }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">Filtrar</button>
+            @if(request('escopo_atividade'))
+            <a href="{{ route('admin.usuarios-internos.index', ['aba' => 'atividade']) }}" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Limpar</a>
+            @endif
+        </form>
+    </div>
+
     {{-- Ranking de Atividade no Sistema --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
         <div class="flex items-center justify-between mb-3">
@@ -138,6 +169,80 @@
             <div class="text-center py-6">
                 <p class="text-sm text-gray-500">Nenhum usuário sem ação e sem login no escopo atual.</p>
             </div>
+        @endif
+    </div>
+
+    {{-- Lista Completa de Todos os Usuários --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-900">Lista Completa de Usuários</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Todos os usuários com suas métricas de atividade</p>
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">{{ $todosUsuariosAtividade->count() }} usuários</span>
+            </div>
+        </div>
+
+        @if($todosUsuariosAtividade->isNotEmpty())
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Usuário</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nível</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Docs Criados</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Aprovações</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Uploads</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Processos</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Estabelec.</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Último Login</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach($todosUsuariosAtividade as $usr)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-2.5">
+                            <a href="{{ route('admin.usuarios-internos.show', $usr->id) }}" class="text-sm font-medium text-gray-900 hover:text-indigo-600">{{ $usr->nome }}</a>
+                        </td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ $usr->nivel_acesso->color() }}">
+                                {{ $usr->nivel_acesso->label() }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-center">
+                            @if($usr->ativo)
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Ativo</span>
+                            @else
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inativo</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2.5 text-center text-sm {{ $usr->documentos_criados_count > 0 ? 'text-blue-700 font-medium' : 'text-gray-400' }}">{{ $usr->documentos_criados_count }}</td>
+                        <td class="px-4 py-2.5 text-center text-sm {{ $usr->documentos_aprovados_count > 0 ? 'text-green-700 font-medium' : 'text-gray-400' }}">{{ $usr->documentos_aprovados_count }}</td>
+                        <td class="px-4 py-2.5 text-center text-sm {{ $usr->uploads_documentos_count > 0 ? 'text-amber-700 font-medium' : 'text-gray-400' }}">{{ $usr->uploads_documentos_count }}</td>
+                        <td class="px-4 py-2.5 text-center text-sm {{ $usr->acoes_processos_count > 0 ? 'text-purple-700 font-medium' : 'text-gray-400' }}">{{ $usr->acoes_processos_count }}</td>
+                        <td class="px-4 py-2.5 text-center text-sm {{ $usr->acoes_estabelecimentos_count > 0 ? 'text-pink-700 font-medium' : 'text-gray-400' }}">{{ $usr->acoes_estabelecimentos_count }}</td>
+                        <td class="px-4 py-2.5 text-center">
+                            <span class="text-sm font-bold {{ $usr->total_acoes > 0 ? 'text-indigo-700' : 'text-gray-400' }}">{{ $usr->total_acoes }}</span>
+                        </td>
+                        <td class="px-4 py-2.5 text-center text-xs text-gray-500">
+                            @if($usr->ultimo_login_em)
+                                {{ \Carbon\Carbon::parse($usr->ultimo_login_em)->format('d/m/Y H:i') }}
+                            @else
+                                <span class="text-gray-400">Nunca</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="text-center py-8">
+            <p class="text-sm text-gray-500">Nenhum usuário encontrado para o filtro selecionado.</p>
+        </div>
         @endif
     </div>
     @endif

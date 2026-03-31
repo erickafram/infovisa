@@ -103,6 +103,18 @@ class UsuarioInternoController extends Controller
 
         // Paginação com relacionamento
         $usuarios = $query->with('municipioRelacionado')->paginate(15)->withQueryString();
+
+        // Filtro de escopo para aba de atividade
+        $filtroEscopoAtividade = $request->get('escopo_atividade');
+        if ($filtroEscopoAtividade === 'estadual') {
+            $queryEscopoRanking->whereIn('nivel_acesso', ['administrador', 'gestor_estadual', 'tecnico_estadual']);
+        } elseif ($filtroEscopoAtividade === 'municipal') {
+            $queryEscopoRanking->whereIn('nivel_acesso', ['gestor_municipal', 'tecnico_municipal']);
+            if ($request->filled('municipio_id_atividade')) {
+                $queryEscopoRanking->where('municipio_id', $request->municipio_id_atividade);
+            }
+        }
+
         $resumoAtividadeUsuarios = $this->montarRankingAtividadeUsuarios($queryEscopoRanking);
         $rankingAtividadeUsuarios = $resumoAtividadeUsuarios
             ->filter(fn($usuario) => $usuario->total_acoes > 0)
@@ -113,15 +125,23 @@ class UsuarioInternoController extends Controller
         $usuariosSemAtividadeSemLogin = $resumoAtividadeUsuarios
             ->filter(fn($usuario) => $usuario->total_acoes === 0 && empty($usuario->ultimo_login_em))
             ->values();
+
+        // Lista completa de todos os usuários com métricas (para aba atividade)
+        $todosUsuariosAtividade = $resumoAtividadeUsuarios->sortByDesc('total_acoes')->values();
         
         // Níveis permitidos para filtro
         $niveisPermitidos = $this->getNiveisPermitidos();
+
+        // Municípios para filtro
+        $municipios = \App\Models\Municipio::orderBy('nome')->get();
 
         return view('admin.usuarios-internos.index', compact(
             'usuarios',
             'niveisPermitidos',
             'rankingAtividadeUsuarios',
             'usuariosSemAtividadeSemLogin',
+            'todosUsuariosAtividade',
+            'municipios',
             'aba'
         ));
     }
