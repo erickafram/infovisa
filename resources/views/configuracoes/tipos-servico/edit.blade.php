@@ -16,7 +16,7 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form action="{{ route('admin.configuracoes.tipos-servico.update', $tipo) }}" method="POST">
+        <form action="{{ route('admin.configuracoes.tipos-servico.update', $tipo) }}" method="POST" x-data="{ escopo: '{{ old('escopo', $tipo->escopo ?? 'estadual') }}' }">
             @csrf
             @method('PUT')
 
@@ -37,6 +37,33 @@
                     @error('descricao')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Escopo *</label>
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition"
+                               :class="escopo === 'estadual' ? 'border-blue-400 bg-blue-50' : 'border-gray-200'">
+                            <input type="radio" name="escopo" value="estadual" x-model="escopo" class="text-blue-600">
+                            <span class="text-sm">🏛️ Estadual</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition"
+                               :class="escopo === 'municipal' ? 'border-green-400 bg-green-50' : 'border-gray-200'">
+                            <input type="radio" name="escopo" value="municipal" x-model="escopo" class="text-green-600">
+                            <span class="text-sm">🏘️ Municipal</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="escopo === 'municipal'" x-cloak>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Município *</label>
+                    <select name="municipio_id" :required="escopo === 'municipal'"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecione...</option>
+                        @foreach(\App\Models\Municipio::orderBy('nome')->get() as $mun)
+                        <option value="{{ $mun->id }}" {{ old('municipio_id', $tipo->municipio_id) == $mun->id ? 'selected' : '' }}>{{ $mun->nome }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div>

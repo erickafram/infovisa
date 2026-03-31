@@ -1142,6 +1142,11 @@
                 <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-violet-50 to-purple-50">
                     <h3 class="text-lg font-semibold text-gray-900">Solicitar Nova Unidade</h3>
                     <p class="text-xs text-gray-500 mt-1">Selecione a unidade que deseja adicionar ao processo</p>
+                    <div class="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <p class="text-xs text-amber-800 leading-relaxed">
+                            ⚠️ Solicitação de nova unidade para análise de projeto arquitetônico. Após adicionar, será necessário enviar os documentos obrigatórios para análise da Vigilância Sanitária.
+                        </p>
+                    </div>
                 </div>
                 @if(isset($unidadesDisponiveis) && $unidadesDisponiveis->count() > 0)
                 <form action="{{ route('company.processos.adicionar-unidade', $processo->id) }}" method="POST" class="p-6">

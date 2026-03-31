@@ -14,6 +14,8 @@ class TipoServico extends Model
     protected $fillable = [
         'nome',
         'descricao',
+        'escopo',
+        'municipio_id',
         'ativo',
         'ordem',
     ];
@@ -22,6 +24,14 @@ class TipoServico extends Model
         'ativo' => 'boolean',
         'ordem' => 'integer',
     ];
+
+    /**
+     * Relacionamento com município
+     */
+    public function municipio()
+    {
+        return $this->belongsTo(Municipio::class);
+    }
 
     /**
      * Relacionamento com atividades

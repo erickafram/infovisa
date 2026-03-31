@@ -122,8 +122,19 @@
                      
                      this.enviandoTodos = true;
                      
-                     for (const docId of docIds) {
-                         await this.enviarObrigatorioAjax(docId);
+                     for (const docKey of docIds) {
+                         // Verifica se é documento de unidade (formato: docId_pastaId)
+                         if (docKey.includes('_')) {
+                             const parts = docKey.split('_');
+                             const docId = parseInt(parts[0]);
+                             const pastaId = parseInt(parts[1]);
+                             if (!isNaN(docId) && !isNaN(pastaId)) {
+                                 await this.enviarObrigatorioUnidade(docKey, docId, pastaId);
+                                 continue;
+                             }
+                         }
+                         // Documento base (sem unidade)
+                         await this.enviarObrigatorioAjax(docKey);
                      }
                      
                      this.enviandoTodos = false;
@@ -622,11 +633,16 @@
 
                     {{-- SEÇÃO DE UNIDADES (adicional, aparece abaixo dos docs base) --}}
                     @if(!empty($documentosObrigatoriosPorUnidade) && count($documentosObrigatoriosPorUnidade) > 0)
-                    <div class="mt-6 pt-4 border-t border-gray-200" x-data="{ unidadeAtiva: null }">
-                        <div class="mb-4 p-3 bg-violet-50 border border-violet-200 rounded-xl">
-                            <label class="block text-sm font-medium text-violet-800 mb-2">Documentos por Unidade</label>
-                            <p class="text-xs text-violet-600">Cada unidade requer seus próprios documentos obrigatórios.</p>
+                    <div class="mt-6 pt-4 border-t-2 border-violet-300" x-data="{ unidadeAtiva: null }">
+                        <div class="mb-4 p-4 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-xl">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                <label class="text-sm font-bold text-violet-900">📂 Documentos por Unidade</label>
+                            </div>
+                            <p class="text-xs text-violet-700">Clique na unidade abaixo e envie os documentos obrigatórios de cada uma. Unidades com pendência aparecem em laranja.</p>
                         </div>
+
+                        <p class="text-[11px] text-gray-500 mb-2 font-medium">👇 Selecione a unidade para enviar os documentos:</p>
 
                         <div class="grid grid-cols-2 gap-2 mb-4">
                             @foreach($documentosObrigatoriosPorUnidade as $pastaId => $info)
@@ -642,8 +658,10 @@
                         </div>
 
                         <template x-if="!unidadeAtiva">
-                            <div class="text-center py-4 text-gray-400">
-                                <p class="text-sm">Selecione uma unidade para ver os documentos.</p>
+                            <div class="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                <svg class="w-8 h-8 text-violet-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                                <p class="text-sm font-medium text-gray-500">Selecione uma unidade acima</p>
+                                <p class="text-xs text-gray-400 mt-0.5">para ver e enviar os documentos obrigatórios</p>
                             </div>
                         </template>
 

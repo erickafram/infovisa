@@ -77,7 +77,7 @@ class ListaDocumentoController extends Controller
         $tiposDocumento = $queryTiposDocumento->ordenado()->paginate(15)->withQueryString();
 
         // Tipos de Serviço com contagem de atividades
-        $tiposServico = TipoServico::withCount('atividades')->ordenado()->get();
+        $tiposServico = TipoServico::with('municipio')->withCount('atividades')->ordenado()->get();
 
         // Atividades
         $queryAtividades = Atividade::with('tipoServico');

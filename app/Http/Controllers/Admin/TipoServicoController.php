@@ -39,12 +39,17 @@ class TipoServicoController extends Controller
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
+            'escopo' => 'required|in:estadual,municipal',
+            'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        if ($validated['escopo'] === 'estadual') {
+            $validated['municipio_id'] = null;
+        }
 
         TipoServico::create($validated);
 
@@ -65,12 +70,17 @@ class TipoServicoController extends Controller
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'descricao' => 'nullable|string',
+            'escopo' => 'required|in:estadual,municipal',
+            'municipio_id' => 'nullable|required_if:escopo,municipal|exists:municipios,id',
             'ativo' => 'boolean',
             'ordem' => 'nullable|integer|min:0',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+        if ($validated['escopo'] === 'estadual') {
+            $validated['municipio_id'] = null;
+        }
 
         $tipos_servico->update($validated);
 
