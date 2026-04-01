@@ -289,7 +289,8 @@ class ProcessoController extends Controller
                 ];
                 
                 // Calcula prazo da fila pública se aplicável
-                if ($totalOk === $total && 
+                if ($processo->status !== 'arquivado' &&
+                    $totalOk === $total && 
                     $processo->tipoProcesso && 
                     $processo->tipoProcesso->exibir_fila_publica && 
                     $processo->tipoProcesso->prazo_fila_publica > 0) {
