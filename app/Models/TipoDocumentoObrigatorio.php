@@ -28,6 +28,8 @@ class TipoDocumentoObrigatorio extends Model
         'observacao_publica',
         'observacao_privada',
         'prazo_validade_dias',
+        'criterio_ia',
+        'ia_modelo_visao',
     ];
 
     protected $casts = [

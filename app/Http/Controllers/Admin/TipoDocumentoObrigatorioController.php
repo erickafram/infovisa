@@ -61,12 +61,14 @@ class TipoDocumentoObrigatorioController extends Controller
             'observacao_publica' => 'nullable|string',
             'observacao_privada' => 'nullable|string',
             'prazo_validade_dias' => 'nullable|integer|min:1',
+            'criterio_ia' => 'nullable|string',
+            'ia_modelo_visao' => 'nullable|string|max:255',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
-        
+
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
             $validated['tipo_processo_id'] = null;
@@ -106,12 +108,14 @@ class TipoDocumentoObrigatorioController extends Controller
             'observacao_publica' => 'nullable|string',
             'observacao_privada' => 'nullable|string',
             'prazo_validade_dias' => 'nullable|integer|min:1',
+            'criterio_ia' => 'nullable|string',
+            'ia_modelo_visao' => 'nullable|string|max:255',
         ]);
 
         $validated['ativo'] = $request->has('ativo');
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
-        
+
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
             $validated['tipo_processo_id'] = null;

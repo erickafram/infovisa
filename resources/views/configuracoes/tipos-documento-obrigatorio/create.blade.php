@@ -131,6 +131,42 @@
                 </div>
             </div>
 
+            {{-- Seção IA --}}
+            <div class="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden mt-6">
+                <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.346.346a51.8 51.8 0 00-1.228 1.2 1 1 0 01-1.415 0 51.8 51.8 0 00-1.228-1.2l-.346-.346z"/>
+                    </svg>
+                    <h3 class="text-sm font-semibold text-purple-800">Análise por Inteligência Artificial</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label for="criterio_ia" class="block text-sm font-medium text-gray-700 mb-1">
+                            Critérios de Análise para IA
+                        </label>
+                        <textarea name="criterio_ia" id="criterio_ia" rows="5"
+                                  placeholder="Descreva o que a IA deve verificar neste documento. Exemplo:&#10;1. O CNPJ do documento deve ser idêntico ao cadastrado no sistema&#10;2. A razão social deve corresponder ao cadastro&#10;3. O documento deve estar registrado em Junta Comercial (NIRE presente)&#10;4. A data de registro não deve ser superior a 5 anos"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">{{ old('criterio_ia') }}</textarea>
+                        <p class="text-xs text-gray-500 mt-1">
+                            A IA receberá os dados do estabelecimento cadastrado e analisará o documento com base nesses critérios.
+                            Se vazio, o botão "Analisar com IA" não será exibido para este tipo de documento.
+                        </p>
+                    </div>
+                    <div>
+                        <label for="ia_modelo_visao" class="block text-sm font-medium text-gray-700 mb-1">
+                            Modelo de Visão (para PDFs scaneados)
+                        </label>
+                        <input type="text" name="ia_modelo_visao" id="ia_modelo_visao"
+                               value="{{ old('ia_modelo_visao') }}"
+                               placeholder="Padrão: Qwen/Qwen3-VL-8B-Instruct"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+                        <p class="text-xs text-gray-500 mt-1">
+                            Usado quando o PDF não possui texto extraível. Deixe em branco para usar o padrão configurado.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
                 <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.index') }}" 
                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">

@@ -1797,6 +1797,259 @@ class ProcessoController extends Controller
     }
 
     /**
+     * Analisa documento com IA e retorna sugestão de aprovação ou rejeição
+     */
+    public function analisarDocumentoIA(Request $request, $estabelecimentoId, $processoId, $documentoId)
+    {
+        $documento = ProcessoDocumento::where('processo_id', $processoId)
+            ->where('status_aprovacao', 'pendente')
+            ->findOrFail($documentoId);
+
+        $estabelecimento = \App\Models\Estabelecimento::findOrFail($estabelecimentoId);
+
+        // Carrega configurações de IA
+        $configs = \App\Models\ConfiguracaoSistema::whereIn('chave', [
+            'ia_api_url', 'ia_api_key', 'ia_model', 'ia_model_visao',
+        ])->pluck('valor', 'chave');
+
+        $apiUrl  = $configs['ia_api_url'] ?? null;
+        $apiKey  = $configs['ia_api_key'] ?? null;
+        $modeloTexto = $configs['ia_model'] ?? 'deepseek-ai/DeepSeek-V3';
+        $modeloVisaoPadrao = $configs['ia_model_visao'] ?? 'Qwen/Qwen3-VL-8B-Instruct';
+
+        if (!$apiUrl || !$apiKey) {
+            return response()->json(['error' => 'IA não está configurada no sistema (API URL / API Key ausente).'], 422);
+        }
+
+        // Critérios do tipo de documento
+        $tipoDoc    = $documento->tipoDocumentoObrigatorio;
+        $criterios  = $tipoDoc?->criterio_ia;
+        $tipoDocNome = $tipoDoc?->nome ?? $documento->tipo_documento ?? 'Documento';
+        // Modelo de visão pode ser sobrescrito por documento
+        $modeloVisao = ($tipoDoc?->ia_modelo_visao) ?: $modeloVisaoPadrao;
+
+        if (empty(trim($criterios ?? ''))) {
+            return response()->json(['error' => 'Nenhum critério de análise configurado para este tipo de documento. Configure em Configurações → Tipos de Documento Obrigatório.'], 422);
+        }
+
+        // Localiza o arquivo
+        $caminhoCompleto = null;
+        if ($documento->caminho) {
+            foreach ([
+                storage_path('app/' . $documento->caminho),
+                storage_path('app/public/' . $documento->caminho),
+            ] as $tentativa) {
+                if (file_exists($tentativa)) {
+                    $caminhoCompleto = $tentativa;
+                    break;
+                }
+            }
+        }
+
+        if (!$caminhoCompleto) {
+            return response()->json(['error' => 'Arquivo do documento não encontrado no servidor.'], 404);
+        }
+
+        // Dados do estabelecimento para comparação
+        $dadosEstab = [
+            'razao_social'   => $estabelecimento->nome_razao_social ?? '',
+            'nome_fantasia'  => $estabelecimento->nome_fantasia ?? '',
+            'cnpj_formatado' => $estabelecimento->documento_formatado ?? '',
+            'cnpj'           => preg_replace('/\D/', '', $estabelecimento->documento ?? ''),
+            'endereco'       => trim(implode(', ', array_filter([
+                $estabelecimento->endereco,
+                $estabelecimento->numero,
+                $estabelecimento->bairro,
+                $estabelecimento->cidade . '/' . $estabelecimento->estado,
+            ]))),
+        ];
+
+        // Tenta extrair texto do PDF
+        $textoExtraido = '';
+        try {
+            $parser = new \Smalot\PdfParser\Parser();
+            $pdf    = $parser->parseFile($caminhoCompleto);
+            $textoExtraido = trim($pdf->getText() ?? '');
+        } catch (\Exception $e) {
+            \Log::warning('IA: Erro ao extrair texto do PDF', ['msg' => $e->getMessage()]);
+        }
+
+        $usouVisao = false;
+
+        if (strlen($textoExtraido) >= 100) {
+            // PDF com texto — usa modelo de texto
+            $resultado = $this->iaAnalisarComTexto($apiUrl, $apiKey, $modeloTexto, $tipoDocNome, $criterios, $dadosEstab, $textoExtraido);
+        } else {
+            // PDF scaneado — converte para imagem
+            $usouVisao   = true;
+            $imagemBase64 = $this->iaPdfParaImagemBase64($caminhoCompleto);
+
+            if ($imagemBase64) {
+                $resultado = $this->iaAnalisarComVisao($apiUrl, $apiKey, $modeloVisao, $tipoDocNome, $criterios, $dadosEstab, $imagemBase64);
+            } elseif (strlen($textoExtraido) > 0) {
+                // Ghostscript indisponível, usa o pouco texto extraído
+                $usouVisao = false;
+                $resultado = $this->iaAnalisarComTexto($apiUrl, $apiKey, $modeloTexto, $tipoDocNome, $criterios, $dadosEstab,
+                    $textoExtraido . "\n[AVISO: PDF pode ser scaneado; texto extraído pode estar incompleto]");
+            } else {
+                return response()->json([
+                    'error' => 'Não foi possível extrair conteúdo do documento. O PDF parece ser uma imagem scaneada e o Ghostscript não está disponível para conversão.',
+                ], 422);
+            }
+        }
+
+        if (isset($resultado['error'])) {
+            return response()->json($resultado, 422);
+        }
+
+        $resultado['usou_visao']  = $usouVisao;
+        $resultado['modelo_usado'] = $usouVisao ? $modeloVisao : $modeloTexto;
+
+        return response()->json($resultado);
+    }
+
+    private function iaBuildSystemPrompt(string $tipoDocNome, string $criterios, array $dadosEstab): string
+    {
+        $dados  = "- Razão Social: {$dadosEstab['razao_social']}\n";
+        if ($dadosEstab['nome_fantasia']) {
+            $dados .= "- Nome Fantasia: {$dadosEstab['nome_fantasia']}\n";
+        }
+        $dados .= "- CNPJ: {$dadosEstab['cnpj_formatado']} ({$dadosEstab['cnpj']})\n";
+        $dados .= "- Endereço: {$dadosEstab['endereco']}\n";
+
+        return <<<PROMPT
+Você é um analisador de documentos para vigilância sanitária estadual do Brasil. Sua função é verificar se o documento enviado por uma empresa está correto e pode ser aprovado.
+
+DADOS DO ESTABELECIMENTO CADASTRADO NO SISTEMA:
+{$dados}
+TIPO DE DOCUMENTO A ANALISAR: {$tipoDocNome}
+
+CRITÉRIOS DE ANÁLISE:
+{$criterios}
+
+INSTRUÇÕES OBRIGATÓRIAS:
+1. Analise o documento com base nos critérios acima
+2. Compare os dados do documento com os dados cadastrados no sistema
+3. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
+4. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
+5. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
+6. Se aprovado: confirme brevemente quais critérios foram atendidos
+7. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
+
+FORMATO EXIGIDO:
+{"decisao":"aprovado","motivo":"Motivo aqui"}
+PROMPT;
+    }
+
+    private function iaAnalisarComTexto(string $apiUrl, string $apiKey, string $modelo, string $tipoDocNome, string $criterios, array $dadosEstab, string $texto): array
+    {
+        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab);
+        $userMsg      = "Analise o seguinte conteúdo do documento ({$tipoDocNome}):\n\n" . mb_substr($texto, 0, 40000);
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type'  => 'application/json',
+        ])->timeout(60)->post($apiUrl, [
+            'model'       => $modelo,
+            'messages'    => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user',   'content' => $userMsg],
+            ],
+            'max_tokens'  => 600,
+            'temperature' => 0.1,
+        ]);
+
+        return $this->iaParseResposta($response);
+    }
+
+    private function iaAnalisarComVisao(string $apiUrl, string $apiKey, string $modeloVisao, string $tipoDocNome, string $criterios, array $dadosEstab, string $imagemBase64): array
+    {
+        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab);
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type'  => 'application/json',
+        ])->timeout(90)->post($apiUrl, [
+            'model'    => $modeloVisao,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => [
+                    ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,' . $imagemBase64]],
+                    ['type' => 'text',      'text'      => "Analise este documento ({$tipoDocNome}) e retorne a decisão em JSON."],
+                ]],
+            ],
+            'max_tokens'  => 600,
+            'temperature' => 0.1,
+        ]);
+
+        return $this->iaParseResposta($response);
+    }
+
+    private function iaPdfParaImagemBase64(string $pdfPath): ?string
+    {
+        try {
+            $tempFile  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ia_pdf_' . uniqid() . '.jpg';
+            $gsCmd     = PHP_OS_FAMILY === 'Windows' ? 'gswin64c' : 'gs';
+            $redirect  = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
+
+            $cmd = sprintf(
+                '%s -dNOPAUSE -dBATCH -dSAFER -sDEVICE=jpeg -r150 -dFirstPage=1 -dLastPage=1 -sOutputFile=%s %s %s',
+                $gsCmd,
+                escapeshellarg($tempFile),
+                escapeshellarg($pdfPath),
+                $redirect
+            );
+
+            exec($cmd, $out, $code);
+
+            if ($code !== 0 || !file_exists($tempFile)) {
+                \Log::warning('IA: Ghostscript falhou', ['code' => $code, 'cmd' => $cmd]);
+                return null;
+            }
+
+            $bytes = file_get_contents($tempFile);
+            @unlink($tempFile);
+
+            return $bytes ? base64_encode($bytes) : null;
+        } catch (\Exception $e) {
+            \Log::error('IA: Erro ao converter PDF para imagem', ['msg' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    private function iaParseResposta($response): array
+    {
+        if (!$response->successful()) {
+            \Log::error('IA: Erro na API', ['status' => $response->status(), 'body' => $response->body()]);
+            return ['error' => 'Erro ao consultar a IA (HTTP ' . $response->status() . '). Verifique as configurações de API.'];
+        }
+
+        $data    = $response->json();
+        $content = trim($data['choices'][0]['message']['content'] ?? '');
+
+        // Remove blocos de código markdown se presentes
+        $content = preg_replace('/^```(?:json)?\s*/i', '', $content);
+        $content = preg_replace('/\s*```$/', '', $content);
+        $content = trim($content);
+
+        // Tenta extrair JSON da resposta
+        if (preg_match('/\{.*"decisao".*\}/s', $content, $m)) {
+            $json = json_decode($m[0], true);
+            if ($json && isset($json['decisao'])) {
+                return ['decisao' => $json['decisao'], 'motivo' => $json['motivo'] ?? ''];
+            }
+        }
+
+        $json = json_decode($content, true);
+        if ($json && isset($json['decisao'])) {
+            return ['decisao' => $json['decisao'], 'motivo' => $json['motivo'] ?? ''];
+        }
+
+        \Log::warning('IA: Resposta não é JSON válido', ['content' => $content]);
+        return ['error' => 'A IA retornou uma resposta em formato inesperado.', 'raw' => mb_substr($content, 0, 500)];
+    }
+
+    /**
      * Revalida documento aprovado ou rejeitado (volta para pendente)
      */
     public function revalidarDocumento($estabelecimentoId, $processoId, $documentoId)

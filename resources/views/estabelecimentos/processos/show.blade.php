@@ -1818,7 +1818,7 @@
                                     {{-- Layout Flex: Título+Data | Opções --}}
                                     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                         {{-- ESQUERDA: Ícone + Nome + Data --}}
-                                        <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }}, '{{ addslashes($documento->nome_original) }}')" 
+                                        <div @click="abrirVisualizadorAnotacoes({{ $documento->id }}, '{{ route('admin.estabelecimentos.processos.visualizar', [$estabelecimento->id, $processo->id, $documento->id]) }}', {{ $documento->tipo_usuario === 'externo' && $documento->status_aprovacao === 'pendente' ? 'true' : 'false' }}, '{{ addslashes($documento->nome_original) }}', {{ !empty($documento->tipoDocumentoObrigatorio?->criterio_ia) ? 'true' : 'false' }})"
                                              class="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
                                             {{-- Ícone por tipo de arquivo --}}
                                             <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -2822,9 +2822,26 @@
                                 </div>
                             </template>
                             
-                            {{-- Botões Aprovar/Rejeitar (só aparecem se documento é externo e pendente) --}}
+                            {{-- Botões Aprovar/Rejeitar/IA (só aparecem se documento é externo e pendente) --}}
                             <template x-if="documentoPendente">
                                 <div class="flex items-center gap-2">
+                                    {{-- Botão Analisar com IA (só aparece se tipo de documento tem critérios configurados) --}}
+                                    <button type="button" x-show="iaTemCriterio"
+                                            @click="analisarDocumentoComIA()"
+                                            :disabled="iaAnalisando"
+                                            class="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed">
+                                        <template x-if="!iaAnalisando">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.346.346a51.8 51.8 0 00-1.228 1.2 1 1 0 01-1.415 0 51.8 51.8 0 00-1.228-1.2l-.346-.346z"/>
+                                            </svg>
+                                        </template>
+                                        <template x-if="iaAnalisando">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                        </template>
+                                        <span x-text="iaAnalisando ? 'Analisando...' : 'Analisar IA'"></span>
+                                    </button>
                                     <button type="button"
                                             @click="aprovarDocumentoNoModal()"
                                             class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
@@ -2833,7 +2850,7 @@
                                         </svg>
                                         Aprovar
                                     </button>
-                                    <button type="button" 
+                                    <button type="button"
                                             @click="documentoRejeitando = documentoIdAnotacoes; modalRejeitar = true"
                                             class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2852,6 +2869,92 @@
                             </button>
                         </div>
                     </div>
+
+                    {{-- Painel Resultado IA --}}
+                    <template x-if="iaResultado">
+                        <div class="flex-shrink-0 border-b border-gray-200"
+                             :class="iaResultado.decisao === 'aprovado' ? 'bg-green-50' : (iaResultado.error ? 'bg-red-50' : 'bg-red-50')">
+                            <div class="px-4 py-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-2 flex-1 min-w-0">
+                                        {{-- Ícone da decisão --}}
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <template x-if="iaResultado.decisao === 'aprovado'">
+                                                <div class="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                            <template x-if="iaResultado.decisao === 'rejeitado'">
+                                                <div class="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                            <template x-if="iaResultado.error">
+                                                <div class="w-7 h-7 rounded-full bg-orange-400 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="text-xs font-bold uppercase tracking-wide"
+                                                      :class="iaResultado.decisao === 'aprovado' ? 'text-green-700' : (iaResultado.error ? 'text-orange-700' : 'text-red-700')"
+                                                      x-text="iaResultado.error ? 'Erro na análise' : ('IA sugere: ' + (iaResultado.decisao === 'aprovado' ? 'APROVAR' : 'REJEITAR'))"></span>
+                                                <template x-if="iaResultado.usou_visao">
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] rounded font-medium">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                        </svg>
+                                                        Visão (PDF scaneado)
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <p class="text-xs mt-1 leading-relaxed"
+                                               :class="iaResultado.decisao === 'aprovado' ? 'text-green-800' : (iaResultado.error ? 'text-orange-800' : 'text-red-800')"
+                                               x-text="iaResultado.error || iaResultado.motivo"></p>
+                                        </div>
+                                    </div>
+                                    {{-- Botões de ação rápida baseados na sugestão --}}
+                                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                                        <template x-if="iaResultado.decisao === 'aprovado' && !iaResultado.error">
+                                            <button type="button"
+                                                    @click="aprovarDocumentoNoModal()"
+                                                    class="px-2.5 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                Confirmar Aprovação
+                                            </button>
+                                        </template>
+                                        <template x-if="iaResultado.decisao === 'rejeitado' && !iaResultado.error">
+                                            <button type="button"
+                                                    @click="documentoRejeitando = documentoIdAnotacoes; motivoRejeicao = iaResultado.motivo; modalRejeitar = true"
+                                                    class="px-2.5 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                                Confirmar Rejeição
+                                            </button>
+                                        </template>
+                                        <button type="button"
+                                                @click="iaResultado = null"
+                                                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors"
+                                                title="Fechar">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
 
                     {{-- PDF Viewer (Visualização Rápida) --}}
                     <div class="flex-1 overflow-hidden">
@@ -4283,6 +4386,11 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 // Rejeição de documento
                 documentoRejeitando: null,
                 motivoRejeicao: '',
+
+                // Análise por IA
+                iaAnalisando: false,
+                iaResultado: null, // { decisao, motivo, usou_visao, error? }
+                iaTemCriterio: false, // Se o tipo de documento tem criterio_ia configurado
                 
                 // Dados gerais
                 pdfUrl: '',
@@ -4798,12 +4906,14 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 },
 
                 // Abre o visualizador de PDF com ferramentas de anotação
-                async abrirVisualizadorAnotacoes(documentoId, pdfUrl, isPendente = false, nomeDocumento = '') {
+                async abrirVisualizadorAnotacoes(documentoId, pdfUrl, isPendente = false, nomeDocumento = '', temCriterioIA = false) {
                     this.documentoIdAnotacoes = documentoId;
                     this.pdfUrlAnotacoes = pdfUrl;
                     this.documentoPendente = isPendente;
                     this.documentoNomeAnotacoes = nomeDocumento;
                     this.modalVisualizadorAnotacoes = true;
+                    this.iaTemCriterio = temCriterioIA;
+                    this.iaResultado = null; // Limpa resultado de IA anterior ao abrir novo documento
                     
                     // Se é um documento pendente, constrói a lista de documentos pendentes
                     if (isPendente) {
@@ -4837,15 +4947,16 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             const clickAttr = linkElement.getAttribute('@click') || linkElement.getAttribute('x-on:click');
                             console.log('@click encontrado:', clickAttr);
                             
-                            // Regex para capturar os parâmetros
-                            const matches = clickAttr.match(/abrirVisualizadorAnotacoes\((\d+),\s*'([^']+)',\s*(true|false),\s*'([^']*)'\)/);
-                            
+                            // Regex para capturar os parâmetros (incluindo 5º: temCriterioIA)
+                            const matches = clickAttr.match(/abrirVisualizadorAnotacoes\((\d+),\s*'([^']+)',\s*(true|false),\s*'([^']*)',\s*(true|false)\)/);
+
                             if (matches) {
-                                const [, id, url, isPending, nome] = matches;
+                                const [, id, url, isPending, nome, temIA] = matches;
                                 this.documentosPendentesLista.push({
                                     id: parseInt(id),
                                     url: url,
-                                    nome: nome
+                                    nome: nome,
+                                    temCriterioIA: temIA === 'true',
                                 });
                                 
                                 console.log('Documento adicionado:', { id: parseInt(id), nome });
@@ -4877,7 +4988,9 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.documentoIdAnotacoes = doc.id;
                     this.pdfUrlAnotacoes = doc.url;
                     this.documentoNomeAnotacoes = doc.nome;
-                    
+                    this.iaTemCriterio = doc.temCriterioIA ?? false;
+                    this.iaResultado = null; // Limpa resultado de IA ao navegar
+
                     // Recarrega o documento na IA
                     this.carregarDocumentoNaIA();
                 },
@@ -4911,6 +5024,38 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
 
                     this.carregarDocumentoNaIA();
                     this.mostrarNotificacao(`Documento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'} com sucesso!`, 'success');
+                },
+
+                async analisarDocumentoComIA() {
+                    if (!this.documentoIdAnotacoes) return;
+
+                    this.iaAnalisando = true;
+                    this.iaResultado  = null;
+
+                    const url = `{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}/${this.documentoIdAnotacoes}/analisar-ia`;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept':       'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok || data.error) {
+                            this.iaResultado = { error: data.error || 'Erro desconhecido ao analisar o documento.' };
+                        } else {
+                            this.iaResultado = data;
+                        }
+                    } catch (e) {
+                        this.iaResultado = { error: 'Falha de comunicação com o servidor: ' + e.message };
+                    } finally {
+                        this.iaAnalisando = false;
+                    }
                 },
 
                 async aprovarDocumentoNoModal() {
