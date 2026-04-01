@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<style>
+body { background: white; margin: 15px; font-family: Arial, sans-serif; }
+h2 { text-align: center; color: #1e293b; font-size: 14px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h2>📐 Fluxo - Projeto Arquitetônico com Unidades</h2>
+<div class="mermaid">
+flowchart LR
+    A["🏢 Empresa abre\nProcesso Arq."] --> B["📄 Envia docs\nobrigatórios"]
+    B --> C{"Docs\naprovados?"}
+    C -- Não --> B
+    C -- Sim --> D["⏱️ Prazo 30d\ninicia p/ análise"]
+
+    D --> E["📁 Pode adicionar\nUnidade(s)\n(opcional, em andamento)"]
+    E --> E2["📄 Envia docs\nda unidade"]
+    E2 --> E3{"Docs unidade\naprovados?"}
+    E3 -- Não --> E2
+    E3 -- Sim --> E4["⏱️ Prazo 30d\nda unidade inicia"]
+
+    D --> F{"Parecer do\nSetor de Projeto"}
+    E4 --> F
+
+    F -- "✅ Deferido" --> G["🏁 Processo\nencerrado"]
+    F -- "❌ Indeferido" --> H["⏸️ Processo para\nPrazo suspende"]
+    H --> I["📋 Prazo p/ empresa\nprotocolar correções\ndo indeferimento"]
+    I --> J["📄 Empresa envia\ncorreções"]
+    J --> K{"Docs\ncorrigidos?"}
+    K -- Não --> J
+    K -- Sim --> L["▶️ Processo retoma\nPrazo reinicia"]
+    L --> F
+</div>
+<script>mermaid.initialize({theme:'default',flowchart:{curve:'basis',nodeSpacing:15,rankSpacing:35}});</script>
+</body>
+</html>
