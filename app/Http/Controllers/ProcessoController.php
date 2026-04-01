@@ -1943,6 +1943,12 @@ class ProcessoController extends Controller
             return response()->json($resultado, 422);
         }
 
+        $resultado = $this->iaSanitizarResultado($resultado);
+
+        if (isset($resultado['error'])) {
+            return response()->json($resultado, 422);
+        }
+
         $resultado['usou_visao']  = $usouVisao;
         $resultado['modelo_usado'] = $usouVisao ? $modeloVisao : $modeloTexto;
 
@@ -1951,6 +1957,10 @@ class ProcessoController extends Controller
 
     private function iaBuildSystemPrompt(string $tipoDocNome, string $criterios, array $dadosEstab): string
     {
+        $dataAtual = now();
+        $dataAtualBr = $dataAtual->format('d/m/Y');
+        $dataAtualIso = $dataAtual->format('Y-m-d');
+
         $dados  = "- Razão Social: {$dadosEstab['razao_social']}\n";
         if ($dadosEstab['nome_fantasia']) {
             $dados .= "- Nome Fantasia: {$dadosEstab['nome_fantasia']}\n";
@@ -1986,6 +1996,10 @@ class ProcessoController extends Controller
         return <<<PROMPT
 Você é um analisador de documentos para vigilância sanitária estadual do Brasil. Sua função é verificar se o documento enviado por uma empresa está correto e pode ser aprovado.
 
+DATA ATUAL DO SISTEMA PARA COMPARAÇÕES DE DATA:
+- Hoje é {$dataAtualBr} no formato brasileiro DD/MM/AAAA
+- Data ISO equivalente: {$dataAtualIso}
+
 DADOS DO ESTABELECIMENTO CADASTRADO NO SISTEMA:
 {$dados}
 TIPO DE DOCUMENTO A ANALISAR: {$tipoDocNome}
@@ -2000,11 +2014,16 @@ INSTRUÇÕES OBRIGATÓRIAS:
 4. Para RESPONSÁVEL TÉCNICO, considere válido se o nome do documento corresponder claramente a qualquer um dos responsáveis técnicos ativos listados no sistema, mesmo com pequenas variações de acentuação, caixa ou abreviação.
 5. Só rejeite por endereço quando houver divergência relevante, suficiente para indicar outro local.
 6. Só rejeite por responsável técnico quando o documento apontar outro profissional ou quando realmente não houver correspondência com os responsáveis técnicos cadastrados.
-7. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
-8. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
-9. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
-10. Se aprovado: confirme brevemente quais critérios foram atendidos
-11. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
+7. Para datas, use obrigatoriamente a data atual informada acima. Não invente a data de hoje e não assuma outro ano.
+8. Interprete datas numéricas no padrão brasileiro DD/MM/AAAA. Exemplo: 01/04/2026 = 1 de abril de 2026 e 15/01/2026 = 15 de janeiro de 2026.
+9. Interprete datas por extenso em português corretamente. Exemplo: "15 de janeiro de 2026" = 2026-01-15.
+10. Só diga que uma data é futura se ela for posterior à data atual informada acima.
+11. Não confunda data de emissão com data de validade ou vencimento. Se o documento só trouxer emissão e o critério exigir validade vigente, a inconsistência correta é ausência de validade explícita, não "data futura", salvo se a emissão realmente for posterior à data atual.
+12. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
+13. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
+14. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
+15. Se aprovado: confirme brevemente quais critérios foram atendidos
+16. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
 
 FORMATO EXIGIDO:
 {"decisao":"aprovado","motivo":"Motivo aqui"}
@@ -2117,6 +2136,164 @@ PROMPT;
 
         \Log::warning('IA: Resposta não é JSON válido', ['content' => $content]);
         return ['error' => 'A IA retornou uma resposta em formato inesperado.', 'raw' => mb_substr($content, 0, 500)];
+    }
+
+    private function iaSanitizarResultado(array $resultado): array
+    {
+        $motivoOriginal = trim((string) ($resultado['motivo'] ?? ''));
+
+        if ($motivoOriginal === '') {
+            return $resultado;
+        }
+
+        $motivoSanitizado = $this->iaRemoverFrasesComDataInconsistente($motivoOriginal);
+
+        if ($motivoSanitizado === $motivoOriginal) {
+            return $resultado;
+        }
+
+        \Log::warning('IA: Motivo sanitizado por inconsistência de datas', [
+            'motivo_original' => $motivoOriginal,
+            'motivo_sanitizado' => $motivoSanitizado,
+        ]);
+
+        if ($motivoSanitizado === '') {
+            return [
+                'error' => 'A IA retornou uma justificativa inconsistente sobre datas. Revise manualmente o documento.',
+            ];
+        }
+
+        $resultado['motivo'] = $motivoSanitizado;
+
+        return $resultado;
+    }
+
+    private function iaRemoverFrasesComDataInconsistente(string $motivo): string
+    {
+        $frases = preg_split('/(?<=\.)\s+/', trim($motivo), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (!$frases) {
+            return $motivo;
+        }
+
+        $frasesMantidas = [];
+        $removeuAlguma = false;
+
+        foreach ($frases as $frase) {
+            if ($this->iaFraseTemDataInconsistente($frase)) {
+                $removeuAlguma = true;
+                continue;
+            }
+
+            $frasesMantidas[] = trim($frase);
+        }
+
+        if (!$removeuAlguma) {
+            return $motivo;
+        }
+
+        if (empty($frasesMantidas)) {
+            return '';
+        }
+
+        $frasesMantidas[0] = preg_replace('/^(Além disso|Alem disso|Ademais|Também|Tambem|Ainda|Por outro lado),\s*/i', '', $frasesMantidas[0]);
+        $frasesMantidas[0] = $this->iaCapitalizarPrimeiraLetra($frasesMantidas[0]);
+
+        return trim(implode(' ', $frasesMantidas));
+    }
+
+    private function iaFraseTemDataInconsistente(string $frase): bool
+    {
+        if (!preg_match('/futur|posterior\s+(?:à|a)\s+data\s+atual|posterior\s+ao\s+dia\s+de\s+hoje/i', $frase)) {
+            return false;
+        }
+
+        $datas = $this->iaExtrairDatasDoTexto($frase);
+
+        if (empty($datas)) {
+            return false;
+        }
+
+        if (preg_match('/validade|venciment|vig[êe]ncia/i', $frase)) {
+            return true;
+        }
+
+        $hoje = now()->startOfDay();
+
+        foreach ($datas as $data) {
+            if ($data->gt($hoje)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function iaExtrairDatasDoTexto(string $texto): array
+    {
+        $datas = [];
+
+        if (preg_match_all('/\b(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/(\d{4})\b/', $texto, $matchesNumericos, PREG_SET_ORDER)) {
+            foreach ($matchesNumericos as $match) {
+                $data = $this->iaCriarDataSegura((int) $match[3], (int) $match[2], (int) $match[1]);
+                if ($data) {
+                    $datas[] = $data;
+                }
+            }
+        }
+
+        if (preg_match_all('/\b(0?[1-9]|[12][0-9]|3[01])\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})\b/iu', $texto, $matchesExtenso, PREG_SET_ORDER)) {
+            $meses = [
+                'janeiro' => 1,
+                'fevereiro' => 2,
+                'marco' => 3,
+                'abril' => 4,
+                'maio' => 5,
+                'junho' => 6,
+                'julho' => 7,
+                'agosto' => 8,
+                'setembro' => 9,
+                'outubro' => 10,
+                'novembro' => 11,
+                'dezembro' => 12,
+            ];
+
+            foreach ($matchesExtenso as $match) {
+                $mesNormalizado = strtolower(\Illuminate\Support\Str::ascii($match[2]));
+                $mes = $meses[$mesNormalizado] ?? null;
+
+                if (!$mes) {
+                    continue;
+                }
+
+                $data = $this->iaCriarDataSegura((int) $match[3], $mes, (int) $match[1]);
+                if ($data) {
+                    $datas[] = $data;
+                }
+            }
+        }
+
+        return $datas;
+    }
+
+    private function iaCriarDataSegura(int $ano, int $mes, int $dia): ?\Carbon\Carbon
+    {
+        try {
+            return \Carbon\Carbon::createFromDate($ano, $mes, $dia)->startOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function iaCapitalizarPrimeiraLetra(string $texto): string
+    {
+        $texto = trim($texto);
+
+        if ($texto === '') {
+            return '';
+        }
+
+        return mb_strtoupper(mb_substr($texto, 0, 1), 'UTF-8') . mb_substr($texto, 1, null, 'UTF-8');
     }
 
     /**
