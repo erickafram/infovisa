@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Responsavel;
+use App\Services\ResponsavelTecnicoNomeGuard;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ResponsavelGlobalController extends Controller
 {
@@ -237,6 +239,15 @@ class ResponsavelGlobalController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        $mensagemBloqueioRt = app(ResponsavelTecnicoNomeGuard::class)
+            ->obterMensagemDeBloqueio($validated['nome'], $responsavel->cpf);
+
+        if ($mensagemBloqueioRt) {
+            throw ValidationException::withMessages([
+                'nome' => $mensagemBloqueioRt,
+            ]);
+        }
 
         // Limpa formatação do telefone
         if (isset($validated['telefone'])) {

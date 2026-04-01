@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Estabelecimento;
 use App\Models\Pactuacao;
+use App\Services\ResponsavelTecnicoNomeGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class EstabelecimentoController extends Controller
 {
@@ -242,6 +244,27 @@ class EstabelecimentoController extends Controller
                 return back()->withErrors(['cpf' => 'Este CPF já está cadastrado no sistema.'])->withInput();
             }
             $validated['cpf'] = $cpfLimpo;
+        }
+
+        if ($request->input('vinculo_usuario') === 'responsavel_tecnico') {
+            $estabelecimentoTemporario = new Estabelecimento([
+                'tipo_pessoa' => $validated['tipo_pessoa'],
+                'razao_social' => $validated['razao_social'] ?? null,
+                'nome_completo' => $validated['nome_completo'] ?? null,
+                'nome_fantasia' => $validated['nome_fantasia'] ?? null,
+            ]);
+
+            $nomeResponsavelTecnico = auth('externo')->user()?->nome ?? '';
+            $cpfResponsavelTecnico = auth('externo')->user()?->cpf ?? null;
+
+            $mensagemBloqueioRt = app(ResponsavelTecnicoNomeGuard::class)
+                ->obterMensagemDeBloqueio($nomeResponsavelTecnico, $cpfResponsavelTecnico, $estabelecimentoTemporario);
+
+            if ($mensagemBloqueioRt) {
+                throw ValidationException::withMessages([
+                    'vinculo_usuario' => $mensagemBloqueioRt,
+                ]);
+            }
         }
 
         // Processa campos JSON
@@ -603,6 +626,19 @@ class EstabelecimentoController extends Controller
 
         $validated = $request->validate($rules);
 
+        $mensagemBloqueioRt = app(ResponsavelTecnicoNomeGuard::class)
+            ->obterMensagemDeBloqueio(
+                $validated['nome'],
+                $validated['cpf'],
+                $validated['tipo_vinculo'] === 'tecnico' ? $estabelecimento : null,
+            );
+
+        if ($mensagemBloqueioRt) {
+            throw ValidationException::withMessages([
+                'nome' => $mensagemBloqueioRt,
+            ]);
+        }
+
         // Limpa formatação
         $validated['cpf'] = preg_replace('/\D/', '', $validated['cpf']);
         if (isset($validated['telefone'])) {
@@ -771,6 +807,19 @@ class EstabelecimentoController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        $mensagemBloqueioRt = app(ResponsavelTecnicoNomeGuard::class)
+            ->obterMensagemDeBloqueio(
+                $validated['nome'],
+                $responsavel->cpf,
+                $tipo === 'tecnico' ? $estabelecimento : null,
+            );
+
+        if ($mensagemBloqueioRt) {
+            throw ValidationException::withMessages([
+                'nome' => $mensagemBloqueioRt,
+            ]);
+        }
 
         // Limpa formatação
         if (isset($validated['telefone'])) {

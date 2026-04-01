@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Responsavel;
 use App\Models\Estabelecimento;
 use App\Models\UsuarioExterno;
+use App\Services\ResponsavelTecnicoNomeGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ResponsavelController extends Controller
 {
@@ -163,6 +165,19 @@ class ResponsavelController extends Controller
         }
         
         $validated = $request->validate($rules);
+
+        $mensagemBloqueioRt = app(ResponsavelTecnicoNomeGuard::class)
+            ->obterMensagemDeBloqueio(
+                $validated['nome'],
+                $validated['cpf'],
+                $tipo === 'tecnico' ? $estabelecimento : null,
+            );
+
+        if ($mensagemBloqueioRt) {
+            throw ValidationException::withMessages([
+                'nome' => $mensagemBloqueioRt,
+            ]);
+        }
         
         // Limpar CPF
         $validated['cpf'] = $cpfLimpo;
