@@ -1915,39 +1915,79 @@ class ProcessoController extends Controller
             \Log::warning('IA: Erro ao extrair texto do PDF', ['msg' => $e->getMessage()]);
         }
 
-        $usouVisao = false;
+        $imagemBase64 = null;
+        $executarAnalise = function (?string $orientacaoAdicional = null) use (&$imagemBase64, $apiUrl, $apiKey, $modeloTexto, $modeloVisao, $tipoDocNome, $criterios, $dadosEstab, $textoExtraido, $caminhoCompleto) {
+            if (strlen($textoExtraido) >= 100) {
+                return [
+                    $this->iaAnalisarComTexto($apiUrl, $apiKey, $modeloTexto, $tipoDocNome, $criterios, $dadosEstab, $textoExtraido, $orientacaoAdicional),
+                    false,
+                ];
+            }
 
-        if (strlen($textoExtraido) >= 100) {
-            // PDF com texto — usa modelo de texto
-            $resultado = $this->iaAnalisarComTexto($apiUrl, $apiKey, $modeloTexto, $tipoDocNome, $criterios, $dadosEstab, $textoExtraido);
-        } else {
-            // PDF scaneado — converte para imagem
-            $usouVisao   = true;
-            $imagemBase64 = $this->iaPdfParaImagemBase64($caminhoCompleto);
+            $imagemBase64 ??= $this->iaPdfParaImagemBase64($caminhoCompleto);
 
             if ($imagemBase64) {
-                $resultado = $this->iaAnalisarComVisao($apiUrl, $apiKey, $modeloVisao, $tipoDocNome, $criterios, $dadosEstab, $imagemBase64);
-            } elseif (strlen($textoExtraido) > 0) {
-                // Ghostscript indisponível, usa o pouco texto extraído
-                $usouVisao = false;
-                $resultado = $this->iaAnalisarComTexto($apiUrl, $apiKey, $modeloTexto, $tipoDocNome, $criterios, $dadosEstab,
-                    $textoExtraido . "\n[AVISO: PDF pode ser scaneado; texto extraído pode estar incompleto]");
-            } else {
-                return response()->json([
-                    'error' => 'Não foi possível extrair conteúdo do documento. O PDF parece ser uma imagem scaneada e o Ghostscript não está disponível para conversão.',
-                ], 422);
+                return [
+                    $this->iaAnalisarComVisao($apiUrl, $apiKey, $modeloVisao, $tipoDocNome, $criterios, $dadosEstab, $imagemBase64, $orientacaoAdicional),
+                    true,
+                ];
+            }
+
+            if (strlen($textoExtraido) > 0) {
+                return [
+                    $this->iaAnalisarComTexto(
+                        $apiUrl,
+                        $apiKey,
+                        $modeloTexto,
+                        $tipoDocNome,
+                        $criterios,
+                        $dadosEstab,
+                        $textoExtraido . "\n[AVISO: PDF pode ser scaneado; texto extraído pode estar incompleto]",
+                        $orientacaoAdicional,
+                    ),
+                    false,
+                ];
+            }
+
+            return [[
+                'error' => 'Não foi possível extrair conteúdo do documento. O PDF parece ser uma imagem scaneada e o Ghostscript não está disponível para conversão.',
+            ], false];
+        };
+
+        [$resultado, $usouVisao] = $executarAnalise();
+
+        if (isset($resultado['error'])) {
+            return response()->json($resultado, 422);
+        }
+
+        $resultado = $this->iaSanitizarResultado($resultado, $criterios);
+
+        if (($resultado['_reanalisar_sem_data_inconsistente'] ?? false) === true) {
+            [$resultadoReanalise, $usouVisaoReanalise] = $executarAnalise($this->iaBuildOrientacaoCorretivaDatas());
+
+            if (!isset($resultadoReanalise['error'])) {
+                $resultado = $this->iaSanitizarResultado($resultadoReanalise, $criterios);
+                $usouVisao = $usouVisaoReanalise;
             }
         }
 
+        if (($resultado['_reanalisar_sem_data_inconsistente'] ?? false) === true) {
+            \Log::warning('IA: Reanálise não encontrou inconsistência válida após correção de datas', [
+                'resultado' => $resultado,
+                'tipo_documento' => $tipoDocNome,
+            ]);
+
+            $resultado = [
+                'decisao' => 'aprovado',
+                'motivo' => 'Não foi identificada inconsistência válida após aplicar as regras de data configuradas para este documento.',
+            ];
+        }
+
         if (isset($resultado['error'])) {
             return response()->json($resultado, 422);
         }
 
-        $resultado = $this->iaSanitizarResultado($resultado);
-
-        if (isset($resultado['error'])) {
-            return response()->json($resultado, 422);
-        }
+        unset($resultado['_reanalisar_sem_data_inconsistente']);
 
         $resultado['usou_visao']  = $usouVisao;
         $resultado['modelo_usado'] = $usouVisao ? $modeloVisao : $modeloTexto;
@@ -1955,7 +1995,7 @@ class ProcessoController extends Controller
         return response()->json($resultado);
     }
 
-    private function iaBuildSystemPrompt(string $tipoDocNome, string $criterios, array $dadosEstab): string
+    private function iaBuildSystemPrompt(string $tipoDocNome, string $criterios, array $dadosEstab, ?string $orientacaoAdicional = null): string
     {
         $dataAtual = now();
         $dataAtualBr = $dataAtual->format('d/m/Y');
@@ -1993,6 +2033,11 @@ class ProcessoController extends Controller
             $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum cadastrado\n";
         }
 
+        $orientacaoAdicional = trim((string) $orientacaoAdicional);
+        $blocoOrientacaoAdicional = $orientacaoAdicional !== ''
+            ? "\nORIENTAÇÃO ADICIONAL DE REAVALIAÇÃO:\n{$orientacaoAdicional}\n"
+            : '';
+
         return <<<PROMPT
 Você é um analisador de documentos para vigilância sanitária estadual do Brasil. Sua função é verificar se o documento enviado por uma empresa está correto e pode ser aprovado.
 
@@ -2006,6 +2051,7 @@ TIPO DE DOCUMENTO A ANALISAR: {$tipoDocNome}
 
 CRITÉRIOS DE ANÁLISE:
 {$criterios}
+{$blocoOrientacaoAdicional}
 
 INSTRUÇÕES OBRIGATÓRIAS:
 1. Analise o documento com base nos critérios acima
@@ -2030,9 +2076,9 @@ FORMATO EXIGIDO:
 PROMPT;
     }
 
-    private function iaAnalisarComTexto(string $apiUrl, string $apiKey, string $modelo, string $tipoDocNome, string $criterios, array $dadosEstab, string $texto): array
+    private function iaAnalisarComTexto(string $apiUrl, string $apiKey, string $modelo, string $tipoDocNome, string $criterios, array $dadosEstab, string $texto, ?string $orientacaoAdicional = null): array
     {
-        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab);
+        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab, $orientacaoAdicional);
         $userMsg      = "Analise o seguinte conteúdo do documento ({$tipoDocNome}):\n\n" . mb_substr($texto, 0, 40000);
 
         $response = \Illuminate\Support\Facades\Http::withHeaders([
@@ -2051,9 +2097,9 @@ PROMPT;
         return $this->iaParseResposta($response);
     }
 
-    private function iaAnalisarComVisao(string $apiUrl, string $apiKey, string $modeloVisao, string $tipoDocNome, string $criterios, array $dadosEstab, string $imagemBase64): array
+    private function iaAnalisarComVisao(string $apiUrl, string $apiKey, string $modeloVisao, string $tipoDocNome, string $criterios, array $dadosEstab, string $imagemBase64, ?string $orientacaoAdicional = null): array
     {
-        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab);
+        $systemPrompt = $this->iaBuildSystemPrompt($tipoDocNome, $criterios, $dadosEstab, $orientacaoAdicional);
 
         $response = \Illuminate\Support\Facades\Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
@@ -2138,7 +2184,7 @@ PROMPT;
         return ['error' => 'A IA retornou uma resposta em formato inesperado.', 'raw' => mb_substr($content, 0, 500)];
     }
 
-    private function iaSanitizarResultado(array $resultado): array
+    private function iaSanitizarResultado(array $resultado, ?string $criterios = null): array
     {
         $motivoOriginal = trim((string) ($resultado['motivo'] ?? ''));
 
@@ -2146,7 +2192,7 @@ PROMPT;
             return $resultado;
         }
 
-        $motivoSanitizado = $this->iaRemoverFrasesComDataInconsistente($motivoOriginal);
+        $motivoSanitizado = $this->iaRemoverFrasesComDataInconsistente($motivoOriginal, $criterios);
 
         if ($motivoSanitizado === $motivoOriginal) {
             return $resultado;
@@ -2158,9 +2204,10 @@ PROMPT;
         ]);
 
         if ($motivoSanitizado === '') {
-            return [
-                'error' => 'A IA retornou uma justificativa inconsistente sobre datas. Revise manualmente o documento.',
-            ];
+            $resultado['motivo'] = '';
+            $resultado['_reanalisar_sem_data_inconsistente'] = true;
+
+            return $resultado;
         }
 
         $resultado['motivo'] = $motivoSanitizado;
@@ -2168,7 +2215,17 @@ PROMPT;
         return $resultado;
     }
 
-    private function iaRemoverFrasesComDataInconsistente(string $motivo): string
+    private function iaBuildOrientacaoCorretivaDatas(): string
+    {
+        return <<<TXT
+Reavalie o documento sem reprovar apenas porque a data de emissão é anterior à data atual.
+Data de emissão anterior à data atual pode ser válida quando o critério do tipo documental permitir isso.
+Só considere problema de data se a emissão for futura, se a data contrariar explicitamente o critério configurado, ou se houver validade expressa vencida.
+Se a única inconsistência anterior era uma interpretação errada da data, desconsidere esse ponto e reavalie os demais critérios normalmente.
+TXT;
+    }
+
+    private function iaRemoverFrasesComDataInconsistente(string $motivo, ?string $criterios = null): string
     {
         $frases = preg_split('/(?<=\.)\s+/', trim($motivo), -1, PREG_SPLIT_NO_EMPTY);
 
@@ -2180,7 +2237,7 @@ PROMPT;
         $removeuAlguma = false;
 
         foreach ($frases as $frase) {
-            if ($this->iaFraseTemDataInconsistente($frase)) {
+            if ($this->iaFraseTemDataInconsistente($frase, $criterios)) {
                 $removeuAlguma = true;
                 continue;
             }
@@ -2202,9 +2259,14 @@ PROMPT;
         return trim(implode(' ', $frasesMantidas));
     }
 
-    private function iaFraseTemDataInconsistente(string $frase): bool
+    private function iaFraseTemDataInconsistente(string $frase, ?string $criterios = null): bool
     {
-        if (!preg_match('/futur|posterior\s+(?:à|a)\s+data\s+atual|posterior\s+ao\s+dia\s+de\s+hoje/i', $frase)) {
+        $fraseNormalizada = $this->iaNormalizarTextoComparacao($frase);
+
+        $falaDataFutura = preg_match('/\bfutur\w*\b|posterior(?:\s+a)?\s+data\s+atual|posterior\s+ao\s+dia\s+de\s+hoje/', $fraseNormalizada) === 1;
+        $falaDataAnteriorInvalida = preg_match('/anterior(?:\s+a)?\s+data\s+atual|inferior(?:\s+a)?\s+data\s+atual|antes\s+da\s+data\s+atual/', $fraseNormalizada) === 1;
+
+        if (!$falaDataFutura && !$falaDataAnteriorInvalida) {
             return false;
         }
 
@@ -2214,11 +2276,25 @@ PROMPT;
             return false;
         }
 
-        if (preg_match('/validade|venciment|vig[êe]ncia/i', $frase)) {
+        if ($falaDataAnteriorInvalida && !$this->iaCriterioPermiteEmissaoAnterior($criterios)) {
+            return false;
+        }
+
+        if ($falaDataFutura && preg_match('/validade|venciment\w*|vigenc\w*/', $fraseNormalizada)) {
             return true;
         }
 
         $hoje = now()->startOfDay();
+
+        if ($falaDataFutura) {
+            foreach ($datas as $data) {
+                if ($data->gt($hoje)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         foreach ($datas as $data) {
             if ($data->gt($hoje)) {
@@ -2227,6 +2303,28 @@ PROMPT;
         }
 
         return true;
+    }
+
+    private function iaCriterioPermiteEmissaoAnterior(?string $criterios): bool
+    {
+        $criterios = $this->iaNormalizarTextoComparacao((string) $criterios);
+
+        if ($criterios === '') {
+            return false;
+        }
+
+        return preg_match('/data\s+de\s+emiss[a-z\s]*pode\s+ser\s+anterior(?:\s+a)?\s+data\s+atual/', $criterios) === 1
+            || preg_match('/se\s+houver\s+apenas\s+data\s+de\s+emiss[a-z\s]*considere\s+valido.*nao\s+for\s+futura/', $criterios) === 1
+            || str_contains($criterios, 'so considerar problema de data quando')
+            || preg_match('/nao\s+confundir\s+data\s+de\s+emiss[a-z\s]*com\s+data\s+de\s+validade/', $criterios) === 1;
+    }
+
+    private function iaNormalizarTextoComparacao(string $texto): string
+    {
+        $texto = mb_strtolower(\Illuminate\Support\Str::ascii($texto), 'UTF-8');
+        $texto = preg_replace('/[^a-z0-9]+/', ' ', $texto);
+
+        return trim(preg_replace('/\s+/', ' ', (string) $texto));
     }
 
     private function iaExtrairDatasDoTexto(string $texto): array
