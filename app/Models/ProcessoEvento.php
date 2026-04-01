@@ -172,7 +172,7 @@ class ProcessoEvento extends Model
     /**
      * Registrar evento de arquivamento do processo
      */
-    public static function registrarArquivamento(Processo $processo, $motivo, $usuario = null)
+    public static function registrarArquivamento(Processo $processo, $motivo, $usuario = null, array $dadosContexto = [])
     {
         return self::create([
             'processo_id' => $processo->id,
@@ -180,10 +180,10 @@ class ProcessoEvento extends Model
             'tipo_evento' => 'processo_arquivado',
             'titulo' => 'Processo Arquivado',
             'descricao' => $motivo,
-            'dados_adicionais' => [
+            'dados_adicionais' => array_merge([
                 'motivo' => $motivo,
                 'data_arquivamento' => now()->toDateTimeString(),
-            ],
+            ], $dadosContexto),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);

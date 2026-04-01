@@ -9,6 +9,7 @@
         'completo' => 0,
         'nao_enviado' => 0,
         'aguardando' => 0,
+        'arquivado' => 0,
         'nao_atribuido' => 0,
     ];
 @endphp
@@ -183,30 +184,35 @@
 
         {{-- Lista de Processos --}}
         <div class="flex-1 min-w-0">
+            {{-- Filtros rápidos --}}
+            <div class="flex items-center gap-2 mb-4 flex-wrap">
+                <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ !request('quick') ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300' }}">
+                    Todos <span class="ml-1 opacity-75">{{ $resumoQuick['todos'] ?? 0 }}</span>
+                </a>
+                <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'completo'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'completo' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300' }}">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1"></span>Completos <span class="ml-1 opacity-75">{{ $resumoQuick['completo'] ?? 0 }}</span>
+                </a>
+                <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_enviado'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'nao_enviado' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-red-300' }}">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span>Incompletos <span class="ml-1 opacity-75">{{ $resumoQuick['nao_enviado'] ?? 0 }}</span>
+                </a>
+                <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'aguardando'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'aguardando' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-amber-300' }}">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1"></span>Aguardando <span class="ml-1 opacity-75">{{ $resumoQuick['aguardando'] ?? 0 }}</span>
+                </a>
+                <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'arquivado'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'arquivado' ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-slate-300' }}">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1"></span>Arquivados <span class="ml-1 opacity-75">{{ $resumoQuick['arquivado'] ?? 0 }}</span>
+                </a>
+                <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_atribuido'])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'nao_atribuido' ? 'bg-gray-700 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400' }}">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1"></span>Não atribuídos <span class="ml-1 opacity-75">{{ $resumoQuick['nao_atribuido'] ?? 0 }}</span>
+                </a>
+            </div>
+
             @if($processos->count() > 0)
-                {{-- Filtros rápidos --}}
-                <div class="flex items-center gap-2 mb-4 flex-wrap">
-                    <a href="{{ route('admin.processos.index-geral', request()->except('quick')) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ !request('quick') ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300' }}">
-                        Todos <span class="ml-1 opacity-75">{{ $resumoQuick['todos'] ?? 0 }}</span>
-                    </a>
-                    <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'completo'])) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'completo' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300' }}">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1"></span>Completos <span class="ml-1 opacity-75">{{ $resumoQuick['completo'] ?? 0 }}</span>
-                    </a>
-                    <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_enviado'])) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'nao_enviado' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-red-300' }}">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span>Incompletos <span class="ml-1 opacity-75">{{ $resumoQuick['nao_enviado'] ?? 0 }}</span>
-                    </a>
-                    <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'aguardando'])) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'aguardando' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-amber-300' }}">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1"></span>Aguardando <span class="ml-1 opacity-75">{{ $resumoQuick['aguardando'] ?? 0 }}</span>
-                    </a>
-                    <a href="{{ route('admin.processos.index-geral', array_merge(request()->query(), ['quick' => 'nao_atribuido'])) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ request('quick') === 'nao_atribuido' ? 'bg-gray-700 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400' }}">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1"></span>Não atribuídos <span class="ml-1 opacity-75">{{ $resumoQuick['nao_atribuido'] ?? 0 }}</span>
-                    </a>
-                </div>
 
                 {{-- Cards de processos --}}
                 <div class="space-y-2">

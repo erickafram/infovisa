@@ -441,24 +441,61 @@
     </div>
 
     {{-- Card Setor/Responsável Atual --}}
-    <div class="bg-white rounded-xl shadow-sm border {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'border-cyan-200' : 'border-gray-200' }} p-3 sm:p-4 mb-6 overflow-hidden">
+    @php
+        $processoArquivado = $processo->status === 'arquivado';
+        $temDestinoExibicao = $processoArquivado
+            ? ($processo->setor_antes_arquivar || $processo->responsavelAntesArquivar)
+            : ($processo->setor_atual || $processo->responsavel_atual_id);
+        $setorExibicaoNome = $processoArquivado ? $processo->setor_antes_arquivar_nome : $processo->setor_atual_nome;
+        $responsavelExibicao = $processoArquivado ? $processo->responsavelAntesArquivar : $processo->responsavelAtual;
+        $classesCardAtribuicao = $processoArquivado
+            ? 'border-orange-200'
+            : ($temDestinoExibicao ? 'border-cyan-200' : 'border-gray-200');
+        $classesIconeAtribuicao = $processoArquivado
+            ? 'bg-orange-100 text-orange-600'
+            : ($temDestinoExibicao ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-400');
+    @endphp
+    <div class="bg-white rounded-xl shadow-sm border {{ $classesCardAtribuicao }} p-3 sm:p-4 mb-6 overflow-hidden">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-start gap-2.5 sm:gap-3 min-w-0">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'bg-cyan-100' : 'bg-gray-100' }} flex items-center justify-center">
-                    <svg class="w-5 h-5 {{ $processo->setor_atual || $processo->responsavel_atual_id ? 'text-cyan-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg {{ explode(' ', $classesIconeAtribuicao)[0] }} flex items-center justify-center">
+                    <svg class="w-5 h-5 {{ explode(' ', $classesIconeAtribuicao)[1] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="text-xs font-medium text-gray-500 uppercase">Com (Setor/Responsável)</p>
-                    @if($processo->setor_atual || $processo->responsavel_atual_id)
-                        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0.5 sm:gap-2 mt-1 min-w-0">
-                            @if($processo->setor_atual)
-                                <span class="text-sm font-semibold text-cyan-700 break-words">{{ $processo->setor_atual_nome }}</span>
+                    <p class="text-xs font-medium text-gray-500 uppercase">{{ $processoArquivado ? 'Situação' : 'Com (Setor/Responsável)' }}</p>
+                    @if($processoArquivado)
+                        <div class="mt-1 flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-sm font-semibold">
+                                Arquivado
+                            </span>
+                            @if($processo->data_arquivamento)
+                                <span class="text-xs text-gray-500">em {{ $processo->data_arquivamento->format('d/m/Y H:i') }}</span>
                             @endif
-                            @if($processo->responsavelAtual)
+                        </div>
+                        @if($temDestinoExibicao)
+                            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0.5 sm:gap-2 mt-2 min-w-0">
+                                <span class="text-xs font-medium text-gray-500">Última tramitação:</span>
+                                @if($setorExibicaoNome)
+                                    <span class="text-sm font-semibold text-orange-700 break-words">{{ $setorExibicaoNome }}</span>
+                                @endif
+                                @if($responsavelExibicao)
+                                    <span class="text-sm text-gray-700 break-words">{{ $setorExibicaoNome ? '- ' : '' }}{{ $responsavelExibicao->nome }}</span>
+                                @endif
+                            </div>
+                        @endif
+                        @if($processo->motivo_arquivamento)
+                            <p class="mt-2 text-xs text-gray-500 break-words leading-5">Motivo: {{ $processo->motivo_arquivamento }}</p>
+                        @endif
+                    @elseif($temDestinoExibicao)
+                        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0.5 sm:gap-2 mt-1 min-w-0">
+                            @if($setorExibicaoNome)
+                                <span class="text-sm font-semibold text-cyan-700 break-words">{{ $setorExibicaoNome }}</span>
+                            @endif
+                            @if($responsavelExibicao)
                                 <span class="text-sm text-gray-700 break-words">
-                                    {{ $processo->setor_atual ? '- ' : '' }}{{ $processo->responsavelAtual->nome }}
+                                    {{ $setorExibicaoNome ? '- ' : '' }}{{ $responsavelExibicao->nome }}
                                 </span>
                             @endif
                         </div>
@@ -4003,7 +4040,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                         @php
                             try {
                                 $eventosAtribuicao = $processo->eventos()
-                                    ->where('tipo_evento', 'processo_atribuido')
+                                    ->whereIn('tipo_evento', ['processo_atribuido', 'processo_arquivado', 'processo_desarquivado'])
                                     ->with('usuario')
                                     ->orderBy('created_at', 'desc')
                                     ->get();
@@ -4013,15 +4050,34 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                         @endphp
 
                         @forelse($eventosAtribuicao as $evento)
+                        @php
+                            $dadosEvento = $evento->dados_adicionais ?? [];
+                            $isAtribuicao = $evento->tipo_evento === 'processo_atribuido';
+                            $isArquivamento = $evento->tipo_evento === 'processo_arquivado';
+                            $isDesarquivamento = $evento->tipo_evento === 'processo_desarquivado';
+                            $classeIconeEvento = $isArquivamento
+                                ? 'bg-orange-100 text-orange-600 border-orange-200'
+                                : ($isDesarquivamento ? 'bg-green-100 text-green-600 border-green-200' : 'bg-cyan-100 text-cyan-600 border-cyan-200');
+                        @endphp
                         <div class="mb-4 last:mb-0">
                             <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                 {{-- Header do evento --}}
                                 <div class="flex items-start justify-between gap-3 mb-3">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
-                                            <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                            </svg>
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center {{ $isArquivamento ? 'bg-orange-100' : ($isDesarquivamento ? 'bg-green-100' : 'bg-cyan-100') }}">
+                                            @if($isArquivamento)
+                                                <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8l2-3h10l2 3m-1 4v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H6"/>
+                                                </svg>
+                                            @elseif($isDesarquivamento)
+                                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-4-4l4 4-4 4"/>
+                                                </svg>
+                                            @else
+                                                <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                </svg>
+                                            @endif
                                         </div>
                                         <div>
                                             <p class="text-sm font-semibold text-gray-900">{{ $evento->titulo }}</p>
@@ -4033,17 +4089,17 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                 </div>
                                 
                                 {{-- Detalhes da atribuição --}}
-                                <div class="bg-white rounded-lg p-3 border border-cyan-200">
+                                <div class="bg-white rounded-lg p-3 border {{ $isArquivamento ? 'border-orange-200' : ($isDesarquivamento ? 'border-green-200' : 'border-cyan-200') }}">
                                     <div class="grid grid-cols-2 gap-4">
                                         {{-- De --}}
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase mb-1">De</p>
-                                            @if(isset($evento->dados_adicionais['setor_anterior_nome']) || isset($evento->dados_adicionais['responsavel_anterior']))
+                                            @if(isset($dadosEvento['setor_anterior_nome']) || isset($dadosEvento['responsavel_anterior']))
                                                 <p class="text-sm text-gray-700">
-                                                    {{ $evento->dados_adicionais['setor_anterior_nome'] ?? 'Sem setor' }}
+                                                    {{ $dadosEvento['setor_anterior_nome'] ?? 'Sem setor' }}
                                                 </p>
-                                                @if(isset($evento->dados_adicionais['responsavel_anterior']))
-                                                <p class="text-xs text-gray-500">{{ $evento->dados_adicionais['responsavel_anterior'] }}</p>
+                                                @if(isset($dadosEvento['responsavel_anterior']))
+                                                <p class="text-xs text-gray-500">{{ $dadosEvento['responsavel_anterior'] }}</p>
                                                 @endif
                                             @else
                                                 <p class="text-sm text-gray-400 italic">Não atribuído</p>
@@ -4053,12 +4109,17 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                         {{-- Para --}}
                                         <div>
                                             <p class="text-xs font-medium text-gray-500 uppercase mb-1">Para</p>
-                                            @if(isset($evento->dados_adicionais['setor_novo_nome']) || isset($evento->dados_adicionais['responsavel_novo']))
-                                                <p class="text-sm text-cyan-700 font-medium">
-                                                    {{ $evento->dados_adicionais['setor_novo_nome'] ?? 'Sem setor' }}
+                                            @if($isArquivamento)
+                                                <p class="text-sm text-orange-700 font-medium">Arquivado</p>
+                                                @if(isset($dadosEvento['data_arquivamento']))
+                                                <p class="text-xs text-orange-600">{{ \Carbon\Carbon::parse($dadosEvento['data_arquivamento'])->format('d/m/Y H:i') }}</p>
+                                                @endif
+                                            @elseif(isset($dadosEvento['setor_novo_nome']) || isset($dadosEvento['responsavel_novo']) || isset($dadosEvento['setor_restaurado_nome']) || isset($dadosEvento['responsavel_restaurado']))
+                                                <p class="text-sm {{ $isDesarquivamento ? 'text-green-700' : 'text-cyan-700' }} font-medium">
+                                                    {{ $dadosEvento['setor_novo_nome'] ?? $dadosEvento['setor_restaurado_nome'] ?? 'Sem setor' }}
                                                 </p>
-                                                @if(isset($evento->dados_adicionais['responsavel_novo']))
-                                                <p class="text-xs text-cyan-600">{{ $evento->dados_adicionais['responsavel_novo'] }}</p>
+                                                @if(isset($dadosEvento['responsavel_novo']) || isset($dadosEvento['responsavel_restaurado']))
+                                                <p class="text-xs {{ $isDesarquivamento ? 'text-green-600' : 'text-cyan-600' }}">{{ $dadosEvento['responsavel_novo'] ?? $dadosEvento['responsavel_restaurado'] }}</p>
                                                 @endif
                                             @else
                                                 <p class="text-sm text-gray-400 italic">Atribuição removida</p>
@@ -4067,30 +4128,30 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                     </div>
                                     
                                     {{-- Motivo --}}
-                                    @if(isset($evento->dados_adicionais['motivo']) && $evento->dados_adicionais['motivo'])
+                                    @if(isset($dadosEvento['motivo']) && $dadosEvento['motivo'])
                                     <div class="mt-3 pt-3 border-t border-gray-200">
-                                        <p class="text-xs font-medium text-gray-500 uppercase mb-1">Motivo da Atribuição</p>
-                                        <p class="text-sm text-gray-700 bg-cyan-50 rounded p-2 border border-cyan-100">
-                                            {{ $evento->dados_adicionais['motivo'] }}
+                                        <p class="text-xs font-medium text-gray-500 uppercase mb-1">{{ $isArquivamento ? 'Motivo do Arquivamento' : 'Motivo da Atribuição' }}</p>
+                                        <p class="text-sm text-gray-700 {{ $isArquivamento ? 'bg-orange-50 border-orange-100' : 'bg-cyan-50 border-cyan-100' }} rounded p-2 border">
+                                            {{ $dadosEvento['motivo'] }}
                                         </p>
                                     </div>
                                     @endif
                                     
                                     {{-- Prazo --}}
-                                    @if(isset($evento->dados_adicionais['prazo']) && $evento->dados_adicionais['prazo'])
+                                    @if(isset($dadosEvento['prazo']) && $dadosEvento['prazo'])
                                     <div class="mt-3 pt-3 border-t border-gray-200">
                                         <p class="text-xs font-medium text-gray-500 uppercase mb-1">Prazo para Resolução</p>
                                         <p class="text-sm text-gray-700 flex items-center gap-2">
                                             <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
-                                            {{ \Carbon\Carbon::parse($evento->dados_adicionais['prazo'])->format('d/m/Y') }}
+                                            {{ \Carbon\Carbon::parse($dadosEvento['prazo'])->format('d/m/Y') }}
                                         </p>
                                     </div>
                                     @endif
                                     
                                     {{-- Ciência --}}
-                                    @if(isset($evento->dados_adicionais['ciente_em']) && $evento->dados_adicionais['ciente_em'])
+                                    @if(isset($dadosEvento['ciente_em']) && $dadosEvento['ciente_em'])
                                     <div class="mt-3 pt-3 border-t border-gray-200">
                                         <div class="flex items-center gap-2 bg-green-50 rounded-lg p-2 border border-green-200">
                                             <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4099,10 +4160,24 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                                             <div>
                                                 <p class="text-xs font-medium text-green-700">Ciente</p>
                                                 <p class="text-xs text-green-600">
-                                                    {{ $evento->dados_adicionais['ciente_por_nome'] ?? 'Responsável' }} 
-                                                    em {{ \Carbon\Carbon::parse($evento->dados_adicionais['ciente_em'])->format('d/m/Y \à\s H:i') }}
+                                                    {{ $dadosEvento['ciente_por_nome'] ?? 'Responsável' }} 
+                                                    em {{ \Carbon\Carbon::parse($dadosEvento['ciente_em'])->format('d/m/Y \à\s H:i') }}
                                                 </p>
                                             </div>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($isDesarquivamento && (isset($dadosEvento['motivo_arquivamento_anterior']) || isset($dadosEvento['data_arquivamento_anterior'])))
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <p class="text-xs font-medium text-gray-500 uppercase mb-1">Arquivamento anterior</p>
+                                        <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 text-sm text-gray-700 space-y-1">
+                                            @if(isset($dadosEvento['data_arquivamento_anterior']) && $dadosEvento['data_arquivamento_anterior'])
+                                                <p>Arquivado em {{ \Carbon\Carbon::parse($dadosEvento['data_arquivamento_anterior'])->format('d/m/Y H:i') }}</p>
+                                            @endif
+                                            @if(isset($dadosEvento['motivo_arquivamento_anterior']) && $dadosEvento['motivo_arquivamento_anterior'])
+                                                <p>{{ $dadosEvento['motivo_arquivamento_anterior'] }}</p>
+                                            @endif
                                         </div>
                                     </div>
                                     @endif
@@ -4114,8 +4189,8 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                             </svg>
-                            <p class="mt-2 text-sm text-gray-500">Nenhuma atribuição registrada</p>
-                            <p class="text-xs text-gray-400 mt-1">O histórico de atribuições aparecerá aqui quando o processo for tramitado.</p>
+                            <p class="mt-2 text-sm text-gray-500">Nenhuma tramitação registrada</p>
+                            <p class="text-xs text-gray-400 mt-1">O histórico de tramitação, arquivamento e restauração aparecerá aqui.</p>
                         </div>
                         @endforelse
                     </div>

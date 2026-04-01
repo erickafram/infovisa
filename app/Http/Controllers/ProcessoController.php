@@ -170,7 +170,9 @@ class ProcessoController extends Controller
                     }
                     break;
                 case 'nao_atribuido':
-                    $query->whereNull('responsavel_atual_id')->whereNull('setor_atual');
+                    $query->whereNull('responsavel_atual_id')
+                        ->whereNull('setor_atual')
+                        ->where('status', '!=', 'arquivado');
                     break;
             }
         }
@@ -335,7 +337,8 @@ class ProcessoController extends Controller
             'completo' => collect($statusDocsObrigatorios)->filter(fn($s) => $s['completo'] ?? false)->count(),
             'nao_enviado' => collect($statusDocsObrigatorios)->filter(fn($s) => ($s['nao_enviado'] ?? 0) > 0)->count(),
             'aguardando' => $processosComPendencias->intersect($idsProcessosBase)->count(),
-            'nao_atribuido' => $processosCollection->filter(fn($p) => !$p->responsavel_atual_id && !$p->setor_atual)->count(),
+            'arquivado' => $processosCollection->where('status', 'arquivado')->count(),
+            'nao_atribuido' => $processosCollection->filter(fn($p) => $p->status !== 'arquivado' && !$p->responsavel_atual_id && !$p->setor_atual)->count(),
         ];
 
         // Filtro por documentos obrigatórios (completos/pendentes)
@@ -374,8 +377,12 @@ class ProcessoController extends Controller
                     return $processosComPendencias->contains($processo->id);
                 }
 
+                if ($filtroRapido === 'arquivado') {
+                    return $processo->status === 'arquivado';
+                }
+
                 if ($filtroRapido === 'nao_atribuido') {
-                    return !$processo->responsavel_atual_id && !$processo->setor_atual;
+                    return $processo->status !== 'arquivado' && !$processo->responsavel_atual_id && !$processo->setor_atual;
                 }
 
                 return true;
@@ -733,6 +740,8 @@ class ProcessoController extends Controller
                 'usuario', 
                 'estabelecimento', 
                 'tipoProcesso',
+                'responsavelAtual',
+                'responsavelAntesArquivar',
                 'documentos' => function($query) {
                     $query->with(['documentoSubstituido', 'ordemServico', 'aprovadoPor'])->orderBy('created_at', 'desc');
                 },
@@ -2291,6 +2300,7 @@ class ProcessoController extends Controller
             // Guardar setor/responsável atual antes de arquivar (para restaurar depois)
             $setorAnterior = $processo->setor_atual;
             $responsavelAnteriorId = $processo->responsavel_atual_id;
+            $responsavelAnterior = $processo->responsavelAtual;
 
             // Atualizar processo - limpa setor/responsável e guarda backup
             $processo->update([
@@ -2310,7 +2320,15 @@ class ProcessoController extends Controller
             // ✅ REGISTRAR EVENTO NO HISTÓRICO
             \App\Models\ProcessoEvento::registrarArquivamento(
                 $processo,
-                $request->motivo_arquivamento
+                $request->motivo_arquivamento,
+                null,
+                [
+                    'status_antigo' => $statusAntigo,
+                    'setor_anterior' => $setorAnterior,
+                    'setor_anterior_nome' => $processo->setor_antes_arquivar_nome ?? $setorAnterior,
+                    'responsavel_anterior_id' => $responsavelAnteriorId,
+                    'responsavel_anterior' => $responsavelAnterior?->nome,
+                ]
             );
 
             return redirect()
@@ -2337,6 +2355,7 @@ class ProcessoController extends Controller
             // Restaurar setor/responsável anterior (se existia)
             $setorRestaurar = $processo->setor_antes_arquivar;
             $responsavelRestaurarId = $processo->responsavel_antes_arquivar_id;
+            $responsavelRestaurar = $responsavelRestaurarId ? UsuarioInterno::find($responsavelRestaurarId) : null;
 
             // Atualizar processo - restaura setor/responsável
             $processo->update([
@@ -2363,7 +2382,9 @@ class ProcessoController extends Controller
                     'motivo_arquivamento_anterior' => $processo->motivo_arquivamento,
                     'data_arquivamento_anterior' => $processo->data_arquivamento?->toDateTimeString(),
                     'setor_restaurado' => $setorRestaurar,
+                    'setor_restaurado_nome' => $processo->setor_antes_arquivar_nome ?? $setorRestaurar,
                     'responsavel_restaurado_id' => $responsavelRestaurarId,
+                    'responsavel_restaurado' => $responsavelRestaurar?->nome,
                 ],
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),

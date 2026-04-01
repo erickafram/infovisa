@@ -217,6 +217,14 @@ class Processo extends Model
     }
 
     /**
+     * Relacionamento com responsável anterior ao arquivamento
+     */
+    public function responsavelAntesArquivar()
+    {
+        return $this->belongsTo(UsuarioInterno::class, 'responsavel_antes_arquivar_id');
+    }
+
+    /**
      * Relacionamento com usuário externo que criou
      */
     public function usuarioExterno()
@@ -670,19 +678,29 @@ class Processo extends Model
     public function getComQuemAttribute(): string
     {
         $partes = [];
-        
-        if ($this->setor_atual) {
-            $partes[] = $this->setor_atual_nome ?? $this->setor_atual;
+
+        if ($this->status === 'arquivado') {
+            if ($this->setor_antes_arquivar) {
+                $partes[] = $this->setor_antes_arquivar_nome ?? $this->setor_antes_arquivar;
+            }
+
+            if ($this->responsavelAntesArquivar) {
+                $partes[] = $this->responsavelAntesArquivar->nome;
+            }
+        } else {
+            if ($this->setor_atual) {
+                $partes[] = $this->setor_atual_nome ?? $this->setor_atual;
+            }
+
+            if ($this->responsavelAtual) {
+                $partes[] = $this->responsavelAtual->nome;
+            }
         }
-        
-        if ($this->responsavelAtual) {
-            $partes[] = $this->responsavelAtual->nome;
-        }
-        
+
         if (empty($partes)) {
-            return 'Não atribuído';
+            return $this->status === 'arquivado' ? 'Arquivado' : 'Não atribuído';
         }
-        
+
         return implode(' - ', $partes);
     }
 
@@ -697,6 +715,19 @@ class Processo extends Model
         
         $tipoSetor = \App\Models\TipoSetor::where('codigo', $this->setor_atual)->first();
         return $tipoSetor ? $tipoSetor->nome : $this->setor_atual;
+    }
+
+    /**
+     * Retorna o nome do setor salvo antes do arquivamento
+     */
+    public function getSetorAntesArquivarNomeAttribute(): ?string
+    {
+        if (!$this->setor_antes_arquivar) {
+            return null;
+        }
+
+        $tipoSetor = \App\Models\TipoSetor::where('codigo', $this->setor_antes_arquivar)->first();
+        return $tipoSetor ? $tipoSetor->nome : $this->setor_antes_arquivar;
     }
 
     /**
