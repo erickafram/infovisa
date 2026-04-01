@@ -1805,7 +1805,7 @@ class ProcessoController extends Controller
             ->where('status_aprovacao', 'pendente')
             ->findOrFail($documentoId);
 
-        $estabelecimento = \App\Models\Estabelecimento::findOrFail($estabelecimentoId);
+        $estabelecimento = \App\Models\Estabelecimento::with('responsaveisTecnicos')->findOrFail($estabelecimentoId);
 
         // Carrega configurações de IA
         $configs = \App\Models\ConfiguracaoSistema::whereIn('chave', [
@@ -1856,12 +1856,34 @@ class ProcessoController extends Controller
             'nome_fantasia'  => $estabelecimento->nome_fantasia ?? '',
             'cnpj_formatado' => $estabelecimento->documento_formatado ?? '',
             'cnpj'           => preg_replace('/\D/', '', $estabelecimento->documento ?? ''),
+            'logradouro'     => (string) ($estabelecimento->endereco ?? ''),
+            'numero'         => (string) ($estabelecimento->numero ?? ''),
+            'bairro'         => (string) ($estabelecimento->bairro ?? ''),
+            'cidade'         => (string) ($estabelecimento->cidade ?? ''),
+            'estado'         => (string) ($estabelecimento->estado ?? ''),
             'endereco'       => trim(implode(', ', array_filter([
                 $estabelecimento->endereco,
                 $estabelecimento->numero,
                 $estabelecimento->bairro,
                 $estabelecimento->cidade . '/' . $estabelecimento->estado,
             ]))),
+            'responsaveis_tecnicos' => $estabelecimento->responsaveisTecnicos
+                ->map(function ($responsavel) {
+                    $registroConselho = trim(implode(' ', array_filter([
+                        $responsavel->conselho,
+                        $responsavel->numero_registro_conselho,
+                    ])));
+
+                    return [
+                        'nome' => (string) ($responsavel->nome ?? ''),
+                        'cpf' => (string) preg_replace('/\D/', '', $responsavel->cpf ?? ''),
+                        'cpf_formatado' => (string) ($responsavel->cpf_formatado ?? ''),
+                        'conselho' => (string) ($registroConselho ?: ($responsavel->conselho ?? '')),
+                    ];
+                })
+                ->filter(fn ($responsavel) => !empty($responsavel['nome']))
+                ->values()
+                ->all(),
         ];
 
         // Tenta extrair texto do PDF
@@ -1917,6 +1939,25 @@ class ProcessoController extends Controller
         $dados .= "- CNPJ: {$dadosEstab['cnpj_formatado']} ({$dadosEstab['cnpj']})\n";
         $dados .= "- Endereço: {$dadosEstab['endereco']}\n";
 
+        if (!empty($dadosEstab['responsaveis_tecnicos'])) {
+            $dados .= "- Responsáveis Técnicos ativos no sistema:\n";
+            foreach ($dadosEstab['responsaveis_tecnicos'] as $responsavelTecnico) {
+                $linhaResponsavel = '  - ' . $responsavelTecnico['nome'];
+
+                if (!empty($responsavelTecnico['cpf_formatado']) || !empty($responsavelTecnico['cpf'])) {
+                    $linhaResponsavel .= ' | CPF: ' . ($responsavelTecnico['cpf_formatado'] ?: $responsavelTecnico['cpf']);
+                }
+
+                if (!empty($responsavelTecnico['conselho'])) {
+                    $linhaResponsavel .= ' | Conselho: ' . $responsavelTecnico['conselho'];
+                }
+
+                $dados .= $linhaResponsavel . "\n";
+            }
+        } else {
+            $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum cadastrado\n";
+        }
+
         return <<<PROMPT
 Você é um analisador de documentos para vigilância sanitária estadual do Brasil. Sua função é verificar se o documento enviado por uma empresa está correto e pode ser aprovado.
 
@@ -1930,11 +1971,15 @@ CRITÉRIOS DE ANÁLISE:
 INSTRUÇÕES OBRIGATÓRIAS:
 1. Analise o documento com base nos critérios acima
 2. Compare os dados do documento com os dados cadastrados no sistema
-3. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
-4. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
-5. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
-6. Se aprovado: confirme brevemente quais critérios foram atendidos
-7. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
+3. Para ENDEREÇO, não exija igualdade literal. Considere compatível quando o logradouro for claramente o mesmo, mesmo com abreviações ou pequenas variações de escrita, desde que número, bairro, cidade ou contexto não indiquem outro endereço.
+4. Para RESPONSÁVEL TÉCNICO, considere válido se o nome do documento corresponder claramente a qualquer um dos responsáveis técnicos ativos listados no sistema, mesmo com pequenas variações de acentuação, caixa ou abreviação.
+5. Só rejeite por endereço quando houver divergência relevante, suficiente para indicar outro local.
+6. Só rejeite por responsável técnico quando o documento apontar outro profissional ou quando realmente não houver correspondência com os responsáveis técnicos cadastrados.
+7. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
+8. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
+9. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
+10. Se aprovado: confirme brevemente quais critérios foram atendidos
+11. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
 
 FORMATO EXIGIDO:
 {"decisao":"aprovado","motivo":"Motivo aqui"}
