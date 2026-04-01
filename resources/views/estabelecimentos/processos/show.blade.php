@@ -236,6 +236,72 @@
         </div>
     @endif
 
+    {{-- Avisos de Prazo por Unidade --}}
+    @if(isset($avisoFilaPublicaPorUnidade) && $avisoFilaPublicaPorUnidade->count() > 0 && $processo->status !== 'arquivado')
+        @foreach($avisoFilaPublicaPorUnidade as $pastaId => $avisoU)
+        @php
+            $diasU = $avisoU['dias_restantes'];
+            $pausadoU = $avisoU['pausado'] ?? false;
+            $corBgU = $pausadoU ? 'bg-gray-50' : ($avisoU['atrasado'] ? 'bg-red-50' : ($diasU <= 5 ? 'bg-amber-50' : 'bg-violet-50'));
+            $corBordaU = $pausadoU ? 'border-gray-400' : ($avisoU['atrasado'] ? 'border-red-400' : ($diasU <= 5 ? 'border-amber-400' : 'border-violet-400'));
+            $corTextoU = $pausadoU ? 'text-gray-700' : ($avisoU['atrasado'] ? 'text-red-700' : ($diasU <= 5 ? 'text-amber-700' : 'text-violet-700'));
+        @endphp
+        <div class="mb-2 {{ $corBgU }} border-l-4 {{ $corBordaU }} px-4 py-2 rounded-r-lg">
+            <div class="flex items-center gap-2 {{ $corTextoU }} text-sm">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span>
+                    <strong>{{ $avisoU['nome'] }}:</strong>
+                    @if($pausadoU && $avisoU['atrasado'])
+                        Prazo suspenso com atraso de {{ abs($diasU) }} {{ abs($diasU) == 1 ? 'dia' : 'dias' }}
+                    @elseif($pausadoU)
+                        Prazo suspenso • Restavam {{ $diasU }} {{ $diasU == 1 ? 'dia' : 'dias' }}
+                    @elseif($avisoU['atrasado'])
+                        Prazo vencido! Atrasado há {{ abs($diasU) }} {{ abs($diasU) == 1 ? 'dia' : 'dias' }}
+                    @else
+                        Documentação completa em {{ $avisoU['data_documentos_completos']->format('d/m/Y') }} • Prazo: {{ $avisoU['prazo'] }} dias • Restam {{ $diasU }} dias
+                    @endif
+                </span>
+            </div>
+        </div>
+        @endforeach
+    @endif
+
+    {{-- Unidades Paradas (com botão retomar) --}}
+    @if($processo->unidades->count() > 0 && $processo->status !== 'arquivado')
+        @foreach($processo->unidades as $unidadeParada)
+        @if($unidadeParada->pivot->status === 'parado')
+        <div class="mb-3 bg-red-50 border border-red-300 rounded-xl px-5 py-4">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-red-800">{{ $unidadeParada->nome }} — Parada</p>
+                        <p class="text-xs text-red-600 mt-0.5 truncate">{{ $unidadeParada->pivot->motivo_parada }}</p>
+                    </div>
+                </div>
+                <form action="{{ route('admin.estabelecimentos.processos.retomar-unidade', [$estabelecimento->id, $processo->id, $unidadeParada->id]) }}" method="POST" class="flex-shrink-0">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Retomar esta unidade?')"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Retomar Unidade
+                    </button>
+                </form>
+            </div>
+        </div>
+        @endif
+        @endforeach
+    @endif
+
     {{-- Card Superior: Dados do Estabelecimento e Processo --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3043,7 +3109,8 @@
                 <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="modalParar = false"></div>
 
                 {{-- Modal --}}
-                <div class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl">
+                <div class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-lg shadow-xl"
+                     x-data="{ escopoParada: 'principal' }">
                     <form action="{{ route('admin.estabelecimentos.processos.parar', [$estabelecimento->id, $processo->id]) }}" method="POST">
                         @csrf
                         
@@ -3064,12 +3131,57 @@
 
                         {{-- Conteúdo --}}
                         <div class="px-6 py-6">
+                            <p class="text-sm text-gray-600 mb-4">
+                                Você está prestes a parar o processo <strong>{{ $processo->numero_processo }}</strong>. 
+                                Por favor, informe o motivo da parada.
+                            </p>
+
+                            {{-- Escopo da parada (só aparece se tem unidades) --}}
+                            @if($processo->unidades->count() > 0)
                             <div class="mb-4">
-                                <p class="text-sm text-gray-600 mb-4">
-                                    Você está prestes a parar o processo <strong>{{ $processo->numero_processo }}</strong>. 
-                                    Por favor, informe o motivo da parada.
-                                </p>
-                                
+                                <label class="block text-sm font-medium text-gray-700 mb-2">O que deseja parar?</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition"
+                                           :class="escopoParada === 'principal' ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:bg-gray-50'">
+                                        <input type="radio" name="escopo_parada" value="principal" x-model="escopoParada" class="text-red-600">
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-900">Processo inteiro</span>
+                                            <p class="text-xs text-gray-500">Para o processo e todas as unidades</p>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition"
+                                           :class="escopoParada === 'unidades' ? 'border-violet-400 bg-violet-50' : 'border-gray-200 hover:bg-gray-50'">
+                                        <input type="radio" name="escopo_parada" value="unidades" x-model="escopoParada" class="text-violet-600">
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-900">Apenas unidade(s) específica(s)</span>
+                                            <p class="text-xs text-gray-500">O processo continua, só a(s) unidade(s) selecionada(s) para(m)</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {{-- Seleção de unidades --}}
+                            <div x-show="escopoParada === 'unidades'" x-cloak class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Selecione as unidades para parar:</label>
+                                <div class="space-y-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                                    @foreach($processo->unidades as $unidade)
+                                    @if($unidade->pivot->status !== 'parado')
+                                    <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                        <input type="checkbox" name="unidades_parar[]" value="{{ $unidade->id }}" class="text-violet-600 rounded">
+                                        <span class="text-sm text-gray-700">{{ $unidade->nome }}</span>
+                                    </label>
+                                    @else
+                                    <div class="flex items-center gap-2 p-2 opacity-50">
+                                        <input type="checkbox" disabled checked class="text-gray-400 rounded">
+                                        <span class="text-sm text-gray-500">{{ $unidade->nome }} <span class="text-xs text-red-500">(já parada)</span></span>
+                                    </div>
+                                    @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
+                            <div class="mb-4">
                                 <label for="motivo_parada" class="block text-sm font-medium text-gray-700 mb-2">
                                     Motivo da Parada <span class="text-red-500">*</span>
                                 </label>
@@ -3094,7 +3206,7 @@
                                     </svg>
                                     <div class="ml-3">
                                         <p class="text-sm text-yellow-700">
-                                            <strong>Atenção:</strong> O processo será marcado como parado e esta ação ficará registrada no histórico.
+                                            <strong>Atenção:</strong> Esta ação ficará registrada no histórico do processo.
                                         </p>
                                     </div>
                                 </div>
@@ -3107,7 +3219,7 @@
                                 Cancelar
                             </button>
                             <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
-                                Parar Processo
+                                Parar
                             </button>
                         </div>
                     </form>

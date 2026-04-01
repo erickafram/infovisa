@@ -606,6 +606,103 @@ class ProcessoController extends Controller
                 ->ordenadas()
                 ->get();
         }
+
+        // Calcula prazo geral da fila pública
+        $avisoFilaPublica = null;
+        $avisoFilaPublicaPorUnidade = collect();
+        if ($processo->status !== 'arquivado' &&
+            $processo->tipoProcesso &&
+            $processo->tipoProcesso->exibir_fila_publica &&
+            $processo->tipoProcesso->prazo_fila_publica > 0) {
+
+            // Verifica docs obrigatórios base
+            $docsObrigBase = $documentosObrigatorios->where('obrigatorio', true);
+            $todosAprovadosBase = true;
+            $dataDocCompletos = null;
+
+            if ($docsObrigBase->isEmpty()) {
+                $todosAprovadosBase = true;
+                $dataDocCompletos = $processo->created_at;
+            } else {
+                foreach ($docsObrigBase as $docObrig) {
+                    if ($docObrig['status_envio'] !== 'aprovado') {
+                        $todosAprovadosBase = false;
+                        break;
+                    }
+                    $docP = $processo->documentos
+                        ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
+                        ->where('status_aprovacao', 'aprovado')
+                        ->sortByDesc(fn ($d) => $d->aprovado_em ?? $d->updated_at)
+                        ->first();
+                    $dataRef = $docP?->aprovado_em ?? $docP?->updated_at;
+                    if ($dataRef && (!$dataDocCompletos || $dataRef > $dataDocCompletos)) {
+                        $dataDocCompletos = $dataRef;
+                    }
+                }
+            }
+
+            if ($todosAprovadosBase && $dataDocCompletos) {
+                $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                $dataRefPrazo = $processo->getDataReferenciaFilaPublica($dataDocCompletos);
+                $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocCompletos, $prazo);
+                $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
+
+                $avisoFilaPublica = [
+                    'prazo' => $prazo,
+                    'data_documentos_completos' => $dataDocCompletos,
+                    'data_referencia_prazo' => $dataRefPrazo,
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $diasRestantes < 0,
+                    'pausado' => $processo->status === 'parado',
+                    'prazo_reiniciado' => $processo->prazoFilaPublicaFoiReiniciado($dataDocCompletos),
+                ];
+            }
+
+            // Calcula prazo por unidade
+            if ($documentosObrigatoriosPorUnidade instanceof \Illuminate\Support\Collection && $documentosObrigatoriosPorUnidade->isNotEmpty()) {
+                foreach ($documentosObrigatoriosPorUnidade as $pastaId => $info) {
+                    $docsObrigU = $info['documentos']->where('obrigatorio', true);
+                    if ($docsObrigU->isEmpty()) continue;
+
+                    $todosAprovU = true;
+                    $dataUltimoAprovU = null;
+
+                    foreach ($docsObrigU as $docObrig) {
+                        if ($docObrig['status_envio'] !== 'aprovado') {
+                            $todosAprovU = false;
+                            break;
+                        }
+                        $docP = $processo->documentos
+                            ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
+                            ->where('pasta_id', $pastaId)
+                            ->where('status_aprovacao', 'aprovado')
+                            ->sortByDesc(fn ($d) => $d->aprovado_em ?? $d->updated_at)
+                            ->first();
+                        $dataRef = $docP?->aprovado_em ?? $docP?->updated_at;
+                        if ($dataRef && (!$dataUltimoAprovU || $dataRef > $dataUltimoAprovU)) {
+                            $dataUltimoAprovU = $dataRef;
+                        }
+                    }
+
+                    if ($todosAprovU && $dataUltimoAprovU) {
+                        $prazoU = $processo->tipoProcesso->prazo_fila_publica;
+                        $dataRefU = $processo->getDataReferenciaFilaPublica($dataUltimoAprovU);
+                        $dataLimiteU = $processo->calcularDataLimiteFilaPublica($dataUltimoAprovU, $prazoU);
+                        $diasRestantesU = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimiteU, false));
+
+                        $avisoFilaPublicaPorUnidade[$pastaId] = [
+                            'nome' => $info['nome'],
+                            'prazo' => $prazoU,
+                            'data_documentos_completos' => $dataUltimoAprovU,
+                            'data_referencia_prazo' => $dataRefU,
+                            'dias_restantes' => $diasRestantesU,
+                            'atrasado' => $diasRestantesU < 0,
+                            'pausado' => $processo->status === 'parado',
+                        ];
+                    }
+                }
+            }
+        }
         
         return view('company.processos.show', compact(
             'processo',
@@ -622,7 +719,9 @@ class ProcessoController extends Controller
             'precisaCadastrarEquipamentos',
             'precisaCadastrarResponsavelTecnico',
             'unidadesDisponiveis',
-            'tipoProcessoTemUnidades'
+            'tipoProcessoTemUnidades',
+            'avisoFilaPublica',
+            'avisoFilaPublicaPorUnidade'
         ));
     }
 

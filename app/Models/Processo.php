@@ -234,7 +234,9 @@ class Processo extends Model
 
     public function unidades()
     {
-        return $this->belongsToMany(Unidade::class, 'processo_unidades');
+        return $this->belongsToMany(Unidade::class, 'processo_unidades')
+            ->withPivot(['status', 'motivo_parada', 'data_parada', 'usuario_parada_id', 'tempo_total_parado_segundos'])
+            ->withTimestamps();
     }
 
     public function resolverEscopoCompetencia(): ?string

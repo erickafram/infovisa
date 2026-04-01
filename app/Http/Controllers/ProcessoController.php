@@ -15,6 +15,7 @@ use App\Models\UsuarioInterno;
 use App\Models\DocumentoResposta;
 use App\Models\DocumentoDigital;
 use App\Models\TipoSetor;
+use App\Models\Unidade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -946,8 +947,76 @@ class ProcessoController extends Controller
                 ];
             }
         }
+
+        // Calcula prazo por unidade (mesma lógica, mas verificando docs da pasta da unidade)
+        $avisoFilaPublicaPorUnidade = collect();
+        if ($processo->status !== 'arquivado' &&
+            $processo->tipoProcesso &&
+            $processo->tipoProcesso->exibir_fila_publica &&
+            $processo->tipoProcesso->prazo_fila_publica > 0 &&
+            $documentosObrigatoriosPorUnidade->isNotEmpty()) {
+
+            foreach ($documentosObrigatoriosPorUnidade as $pastaId => $info) {
+                $docsObrigUnidade = $info['documentos']->where('obrigatorio', true);
+                if ($docsObrigUnidade->isEmpty()) continue;
+
+                $todosAprovadosUnidade = true;
+                $dataUltimoAprovadoUnidade = null;
+
+                foreach ($docsObrigUnidade as $docObrig) {
+                    if ($docObrig['status'] !== 'aprovado') {
+                        $todosAprovadosUnidade = false;
+                        break;
+                    }
+                    $docProcesso = $processo->documentos
+                        ->where('tipo_documento_obrigatorio_id', $docObrig['id'])
+                        ->where('pasta_id', $pastaId)
+                        ->where('status_aprovacao', 'aprovado')
+                        ->sortByDesc(fn ($d) => $d->aprovado_em ?? $d->updated_at)
+                        ->first();
+
+                    $dataRef = $docProcesso?->aprovado_em ?? $docProcesso?->updated_at;
+                    if ($dataRef && (!$dataUltimoAprovadoUnidade || $dataRef > $dataUltimoAprovadoUnidade)) {
+                        $dataUltimoAprovadoUnidade = $dataRef;
+                    }
+                }
+
+                if ($todosAprovadosUnidade && $dataUltimoAprovadoUnidade) {
+                    $prazoU = $processo->tipoProcesso->prazo_fila_publica;
+                    
+                    // Verifica se a unidade específica está parada (via pivot)
+                    $pasta = $info['pasta'] ?? null;
+                    $unidadeId = $pasta?->unidade_id;
+                    $pivotUnidade = $unidadeId ? $processo->unidades->where('id', $unidadeId)->first() : null;
+                    $unidadePausada = $processo->status === 'parado' || ($pivotUnidade && $pivotUnidade->pivot->status === 'parado');
+
+                    // Calcula tempo parado da unidade
+                    $tempoParadoUnidade = 0;
+                    if ($pivotUnidade) {
+                        $tempoParadoUnidade = (int) ($pivotUnidade->pivot->tempo_total_parado_segundos ?? 0);
+                        if ($pivotUnidade->pivot->status === 'parado' && $pivotUnidade->pivot->data_parada) {
+                            $tempoParadoUnidade += max(0, now()->getTimestamp() - \Carbon\Carbon::parse($pivotUnidade->pivot->data_parada)->getTimestamp());
+                        }
+                    }
+
+                    $dataRefU = $processo->getDataReferenciaFilaPublica($dataUltimoAprovadoUnidade);
+                    $dataLimiteU = $dataRefU->copy()->addDays($prazoU)->addSeconds($tempoParadoUnidade + $processo->getTempoTotalParadoConsiderandoParadaAtual());
+                    $diasRestantesU = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimiteU, false));
+
+                    $avisoFilaPublicaPorUnidade[$pastaId] = [
+                        'nome' => $info['nome'],
+                        'prazo' => $prazoU,
+                        'data_documentos_completos' => $dataUltimoAprovadoUnidade,
+                        'data_referencia_prazo' => $dataRefU,
+                        'dias_restantes' => $diasRestantesU,
+                        'atrasado' => $diasRestantesU < 0,
+                        'pausado' => $unidadePausada,
+                    ];
+                }
+            }
+        }
         
-        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios', 'documentosObrigatoriosPorUnidade', 'avisoFilaPublica'));
+        return view('estabelecimentos.processos.show', compact('estabelecimento', 'processo', 'modelosDocumento', 'documentosDigitais', 'todosDocumentos', 'designacoes', 'alertas', 'documentosObrigatorios', 'documentosObrigatoriosPorUnidade', 'avisoFilaPublica', 'avisoFilaPublicaPorUnidade'));
     }
 
     /**
@@ -2320,6 +2389,9 @@ class ProcessoController extends Controller
         
         $request->validate([
             'motivo_parada' => 'required|string|min:10',
+            'escopo_parada' => 'nullable|string|in:principal,unidades',
+            'unidades_parar' => 'nullable|array',
+            'unidades_parar.*' => 'exists:unidades,id',
         ], [
             'motivo_parada.required' => 'O motivo da parada é obrigatório.',
             'motivo_parada.min' => 'O motivo deve ter no mínimo 10 caracteres.',
@@ -2329,15 +2401,46 @@ class ProcessoController extends Controller
             $processo = Processo::where('estabelecimento_id', $estabelecimentoId)
                 ->findOrFail($processoId);
 
-            // Atualizar processo
+            $escopoParada = $request->input('escopo_parada', 'principal');
+            $unidadesParar = $request->input('unidades_parar', []);
+            $usuarioId = Auth::guard('interno')->user()->id;
+
+            // Se escopo é "unidades" e tem unidades selecionadas, para só as unidades
+            if ($escopoParada === 'unidades' && !empty($unidadesParar)) {
+                foreach ($unidadesParar as $unidadeId) {
+                    $pivot = $processo->unidades()->where('unidade_id', $unidadeId)->first();
+                    if ($pivot && $pivot->pivot->status !== 'parado') {
+                        $processo->unidades()->updateExistingPivot($unidadeId, [
+                            'status' => 'parado',
+                            'motivo_parada' => $request->motivo_parada,
+                            'data_parada' => now(),
+                            'usuario_parada_id' => $usuarioId,
+                        ]);
+                    }
+                }
+
+                $nomesUnidades = Unidade::whereIn('id', $unidadesParar)->pluck('nome')->implode(', ');
+                \App\Models\ProcessoEvento::create([
+                    'processo_id' => $processo->id,
+                    'usuario_interno_id' => $usuarioId,
+                    'tipo_evento' => 'unidade_parada',
+                    'titulo' => "Unidade(s) parada(s): {$nomesUnidades}",
+                    'descricao' => "Unidade(s) parada(s): {$nomesUnidades}. Motivo: {$request->motivo_parada}",
+                ]);
+
+                return redirect()
+                    ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                    ->with('success', "Unidade(s) parada(s): {$nomesUnidades}");
+            }
+
+            // Parada do processo principal (comportamento original)
             $processo->update([
                 'status' => 'parado',
                 'motivo_parada' => $request->motivo_parada,
                 'data_parada' => now(),
-                'usuario_parada_id' => Auth::guard('interno')->user()->id,
+                'usuario_parada_id' => $usuarioId,
             ]);
 
-            // ✅ REGISTRAR EVENTO NO HISTÓRICO
             \App\Models\ProcessoEvento::registrarParada(
                 $processo,
                 $request->motivo_parada
@@ -2383,6 +2486,54 @@ class ProcessoController extends Controller
 
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao reiniciar processo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Retoma uma unidade específica que estava parada
+     */
+    public function retomarUnidade($estabelecimentoId, $processoId, $unidadeId)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($estabelecimentoId);
+        $this->validarPermissaoAcesso($estabelecimento);
+
+        try {
+            $processo = Processo::where('estabelecimento_id', $estabelecimentoId)->findOrFail($processoId);
+            $pivot = $processo->unidades()->where('unidade_id', $unidadeId)->first();
+
+            if (!$pivot || $pivot->pivot->status !== 'parado') {
+                return back()->with('error', 'Esta unidade não está parada.');
+            }
+
+            // Calcula tempo parado e acumula
+            $tempoParado = $pivot->pivot->tempo_total_parado_segundos ?? 0;
+            if ($pivot->pivot->data_parada) {
+                $tempoParado += max(0, now()->getTimestamp() - \Carbon\Carbon::parse($pivot->pivot->data_parada)->getTimestamp());
+            }
+
+            $processo->unidades()->updateExistingPivot($unidadeId, [
+                'status' => 'ativo',
+                'motivo_parada' => null,
+                'data_parada' => null,
+                'usuario_parada_id' => null,
+                'tempo_total_parado_segundos' => $tempoParado,
+            ]);
+
+            $nomeUnidade = Unidade::find($unidadeId)?->nome ?? 'Unidade';
+            \App\Models\ProcessoEvento::create([
+                'processo_id' => $processo->id,
+                'usuario_interno_id' => Auth::guard('interno')->user()->id,
+                'tipo_evento' => 'unidade_retomada',
+                'titulo' => "Unidade retomada: {$nomeUnidade}",
+                'descricao' => "Unidade retomada: {$nomeUnidade}",
+            ]);
+
+            return redirect()
+                ->route('admin.estabelecimentos.processos.show', [$estabelecimentoId, $processoId])
+                ->with('success', "Unidade '{$nomeUnidade}' retomada com sucesso!");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao retomar unidade: ' . $e->getMessage());
         }
     }
 

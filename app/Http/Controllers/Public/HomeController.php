@@ -37,7 +37,7 @@ class HomeController extends Controller
         foreach ($tiposComFilaPublica as $tipo) {
             $processos = Processo::where('tipo', $tipo->codigo)
                 ->whereIn('status', ['aberto', 'em_analise', 'pendente', 'parado'])
-                ->with(['estabelecimento:id,nome_fantasia,razao_social,cnpj,cpf,nome_completo,atividades_exercidas,tipo_setor,municipio_id'])
+                ->with(['estabelecimento:id,nome_fantasia,razao_social,cnpj,cpf,nome_completo,atividades_exercidas,tipo_setor,municipio_id', 'unidades', 'pastas', 'documentos'])
                 ->orderBy('created_at', 'asc') // Mais antigo primeiro
                 ->get();
 
@@ -83,6 +83,7 @@ class HomeController extends Controller
                         'pausado' => $processo->status === 'parado',
                         'prazo_reiniciado' => $processo->prazoFilaPublicaFoiReiniciado($dataDocumentosCompletos),
                         'data_referencia_prazo_sort' => $dataRef->timestamp,
+                        'unidades_prazo' => $this->calcularPrazosUnidades($processo, $tipo, $prazo),
                     ];
                 }
             }
@@ -107,6 +108,54 @@ class HomeController extends Controller
         }
 
         return view('public.fila-processos', compact('filaProcessos'));
+    }
+
+    /**
+     * Calcula prazos por unidade para um processo
+     */
+    private function calcularPrazosUnidades($processo, $tipoProcesso, $prazo)
+    {
+        $unidadesPrazo = [];
+        $pastasUnidade = $processo->pastas->whereNotNull('unidade_id');
+        if ($pastasUnidade->isEmpty() || !$prazo) return $unidadesPrazo;
+
+        // Busca docs obrigatórios do processo
+        $statusDocsBase = $this->verificarDocumentosObrigatorios($processo, $tipoProcesso);
+        if (!$statusDocsBase['completo']) {
+            // Se os docs base não estão completos, não calcula por unidade
+            // (a lógica pode ser que cada unidade tem seus próprios docs)
+        }
+
+        // Para cada pasta de unidade, verifica se todos os docs obrigatórios estão aprovados
+        foreach ($pastasUnidade as $pasta) {
+            $docsAprovadosNaPasta = $processo->documentos
+                ->where('pasta_id', $pasta->id)
+                ->where('status_aprovacao', 'aprovado')
+                ->whereNotNull('tipo_documento_obrigatorio_id');
+
+            if ($docsAprovadosNaPasta->isEmpty()) continue;
+
+            // Pega a data do último doc aprovado na pasta
+            $dataUltimoAprov = $docsAprovadosNaPasta
+                ->sortByDesc(fn ($d) => $d->aprovado_em ?? $d->updated_at)
+                ->first();
+            $dataRef = $dataUltimoAprov->aprovado_em ?? $dataUltimoAprov->updated_at;
+
+            if (!$dataRef) continue;
+
+            $dataRefPrazo = $processo->getDataReferenciaFilaPublica($dataRef);
+            $dataLimite = $processo->calcularDataLimiteFilaPublica($dataRef, $prazo);
+            $diasRestantes = (int) round(Carbon::now()->diffInDays($dataLimite, false));
+
+            $unidadesPrazo[] = [
+                'nome' => $pasta->nome,
+                'dias_restantes' => $diasRestantes,
+                'atrasado' => $diasRestantes < 0,
+                'pausado' => $processo->status === 'parado',
+            ];
+        }
+
+        return $unidadesPrazo;
     }
 
     /**

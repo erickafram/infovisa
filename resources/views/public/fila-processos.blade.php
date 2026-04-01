@@ -373,6 +373,32 @@
                                     </td>
                                     @endif
                                 </tr>
+                                {{-- Sub-linhas de unidades com prazo --}}
+                                @if(!empty($processo['unidades_prazo']))
+                                @foreach($processo['unidades_prazo'] as $uPrazo)
+                                <tr class="bg-violet-50/50" x-show="mostrarProcesso('{{ $processo['status'] }}')">
+                                    <td class="px-6 py-1.5"></td>
+                                    <td class="px-6 py-1.5" colspan="4">
+                                        <div class="flex items-center gap-2 text-xs text-violet-700">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                            <span class="font-medium">{{ $uPrazo['nome'] }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-1.5"></td>
+                                    @if($fila['prazo_analise'])
+                                    <td class="px-6 py-1.5 whitespace-nowrap">
+                                        @if($uPrazo['pausado'])
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800">Suspenso</span>
+                                        @elseif($uPrazo['atrasado'])
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">{{ abs($uPrazo['dias_restantes']) }}d atrasado</span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium {{ $uPrazo['dias_restantes'] <= 2 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700' }}">{{ $uPrazo['dias_restantes'] }}d restante(s)</span>
+                                        @endif
+                                    </td>
+                                    @endif
+                                </tr>
+                                @endforeach
+                                @endif
                                 @endforeach
                             </tbody>
                         </table>

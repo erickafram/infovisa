@@ -103,6 +103,47 @@ class DashboardController extends Controller
             ->paraNivel('usuario_externo')
             ->orderBy('tipo', 'desc')
             ->get();
+
+        // Processos com prazo de análise ativo (documentação completa na fila pública)
+        $processosComPrazoFila = collect();
+        $processosAtivos = $processos->whereIn('status', ['aberto', 'em_analise', 'pendente', 'parado']);
+        foreach ($processosAtivos as $proc) {
+            if (!$proc->tipoProcesso || !$proc->tipoProcesso->exibir_fila_publica || !$proc->tipoProcesso->prazo_fila_publica) continue;
+
+            $proc->loadMissing(['documentos', 'pastas', 'unidades']);
+            $checklist = $proc->getDocumentosObrigatoriosChecklist();
+            $docsObrig = $checklist->where('obrigatorio', true);
+
+            if ($docsObrig->isEmpty()) continue;
+
+            $todosAprov = true;
+            $dataUltimoAprov = null;
+            foreach ($docsObrig as $docO) {
+                if ($docO['status'] !== 'aprovado') { $todosAprov = false; break; }
+                $docP = $proc->documentos
+                    ->where('tipo_documento_obrigatorio_id', $docO['id'])
+                    ->where('status_aprovacao', 'aprovado')
+                    ->sortByDesc(fn ($d) => $d->aprovado_em ?? $d->updated_at)
+                    ->first();
+                $dr = $docP?->aprovado_em ?? $docP?->updated_at;
+                if ($dr && (!$dataUltimoAprov || $dr > $dataUltimoAprov)) $dataUltimoAprov = $dr;
+            }
+
+            if ($todosAprov && $dataUltimoAprov) {
+                $prazo = $proc->tipoProcesso->prazo_fila_publica;
+                $dataLimite = $proc->calcularDataLimiteFilaPublica($dataUltimoAprov, $prazo);
+                $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
+
+                $processosComPrazoFila->push([
+                    'processo' => $proc,
+                    'prazo' => $prazo,
+                    'dias_restantes' => $diasRestantes,
+                    'atrasado' => $diasRestantes < 0,
+                    'pausado' => $proc->status === 'parado',
+                    'data_documentos_completos' => $dataUltimoAprov,
+                ]);
+            }
+        }
         
         return view('company.dashboard', compact(
             'estatisticasEstabelecimentos',
@@ -113,7 +154,8 @@ class DashboardController extends Controller
             'documentosPendentesVisualizacao',
             'documentosRejeitados',
             'documentosComPrazo',
-            'avisos_sistema'
+            'avisos_sistema',
+            'processosComPrazoFila'
         ));
     }
 

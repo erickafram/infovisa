@@ -239,6 +239,66 @@
     </div>
     @endif
 
+    {{-- Aviso de Prazo da Fila Pública --}}
+    @if(isset($avisoFilaPublica) && $avisoFilaPublica && $processo->status !== 'arquivado')
+        @php
+            $dias = $avisoFilaPublica['dias_restantes'];
+            $prazoPausado = $avisoFilaPublica['pausado'] ?? false;
+            $prazoReiniciado = $avisoFilaPublica['prazo_reiniciado'] ?? false;
+            $corBg = $prazoPausado ? 'bg-gray-50' : ($avisoFilaPublica['atrasado'] ? 'bg-red-50' : ($dias <= 5 ? 'bg-amber-50' : 'bg-cyan-50'));
+            $corBorda = $prazoPausado ? 'border-gray-400' : ($avisoFilaPublica['atrasado'] ? 'border-red-400' : ($dias <= 5 ? 'border-amber-400' : 'border-cyan-400'));
+            $corTexto = $prazoPausado ? 'text-gray-700' : ($avisoFilaPublica['atrasado'] ? 'text-red-700' : ($dias <= 5 ? 'text-amber-700' : 'text-cyan-700'));
+        @endphp
+        <div class="mb-3 {{ $corBg }} border-l-4 {{ $corBorda }} px-4 py-2.5 rounded-r-lg">
+            <div class="flex items-center gap-2 {{ $corTexto }} text-sm">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>
+                    @if($prazoPausado)
+                        <strong>Prazo suspenso.</strong> {{ $avisoFilaPublica['atrasado'] ? 'Atraso de ' . abs($dias) . ' dias' : 'Restavam ' . $dias . ' dias' }}
+                    @elseif($avisoFilaPublica['atrasado'])
+                        <strong>Prazo vencido!</strong> Atrasado há {{ abs($dias) }} {{ abs($dias) == 1 ? 'dia' : 'dias' }}
+                    @else
+                        Documentação completa em {{ $avisoFilaPublica['data_documentos_completos']->format('d/m/Y') }} • Prazo: {{ $avisoFilaPublica['prazo'] }} dias • <strong>Restam {{ $dias }} dias</strong>
+                    @endif
+                </span>
+            </div>
+        </div>
+    @endif
+
+    {{-- Avisos de Prazo por Unidade --}}
+    @if(isset($avisoFilaPublicaPorUnidade) && $avisoFilaPublicaPorUnidade instanceof \Illuminate\Support\Collection && $avisoFilaPublicaPorUnidade->count() > 0 && $processo->status !== 'arquivado')
+        @foreach($avisoFilaPublicaPorUnidade as $pastaId => $avisoU)
+        @php
+            $diasU = $avisoU['dias_restantes'];
+            $pausadoU = $avisoU['pausado'] ?? false;
+            $corBgU = $pausadoU ? 'bg-gray-50' : ($avisoU['atrasado'] ? 'bg-red-50' : ($diasU <= 5 ? 'bg-amber-50' : 'bg-violet-50'));
+            $corBordaU = $pausadoU ? 'border-gray-400' : ($avisoU['atrasado'] ? 'border-red-400' : ($diasU <= 5 ? 'border-amber-400' : 'border-violet-400'));
+            $corTextoU = $pausadoU ? 'text-gray-700' : ($avisoU['atrasado'] ? 'text-red-700' : ($diasU <= 5 ? 'text-amber-700' : 'text-violet-700'));
+        @endphp
+        <div class="mb-2 {{ $corBgU }} border-l-4 {{ $corBordaU }} px-4 py-2 rounded-r-lg">
+            <div class="flex items-center gap-2 {{ $corTextoU }} text-sm">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span>
+                    <strong>{{ $avisoU['nome'] }}:</strong>
+                    @if($pausadoU && $avisoU['atrasado'])
+                        Prazo suspenso com atraso de {{ abs($diasU) }} dias
+                    @elseif($pausadoU)
+                        Prazo suspenso • Restavam {{ $diasU }} dias
+                    @elseif($avisoU['atrasado'])
+                        Prazo vencido! Atrasado há {{ abs($diasU) }} dias
+                    @else
+                        Documentação completa em {{ $avisoU['data_documentos_completos']->format('d/m/Y') }} • Prazo: {{ $avisoU['prazo'] }} dias • Restam {{ $diasU }} dias
+                    @endif
+                </span>
+            </div>
+        </div>
+        @endforeach
+    @endif
+
     {{-- Alerta de Documentos com Prazo + Upload Inline --}}
     @php
         $documentosComPrazo = collect();
