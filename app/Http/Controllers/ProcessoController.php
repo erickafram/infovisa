@@ -16,6 +16,7 @@ use App\Models\DocumentoResposta;
 use App\Models\DocumentoDigital;
 use App\Models\TipoSetor;
 use App\Models\Unidade;
+use App\Services\ResponsavelTecnicoNomeGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -1850,6 +1851,21 @@ class ProcessoController extends Controller
             return response()->json(['error' => 'Arquivo do documento não encontrado no servidor.'], 404);
         }
 
+        $guardRt = app(ResponsavelTecnicoNomeGuard::class);
+        $responsaveisTecnicosInvalidosDescartados = false;
+        $responsaveisTecnicosValidos = $estabelecimento->responsaveisTecnicos
+            ->reject(function ($responsavel) use ($estabelecimento, $guardRt, &$responsaveisTecnicosInvalidosDescartados) {
+                $nomeResponsavel = (string) ($responsavel->nome ?? '');
+
+                if ($nomeResponsavel === '' || !$guardRt->nomePareceNomeDoEstabelecimento($nomeResponsavel, $estabelecimento)) {
+                    return false;
+                }
+
+                $responsaveisTecnicosInvalidosDescartados = true;
+
+                return true;
+            });
+
         // Dados do estabelecimento para comparação
         $dadosEstab = [
             'razao_social'   => $estabelecimento->nome_razao_social ?? '',
@@ -1867,7 +1883,7 @@ class ProcessoController extends Controller
                 $estabelecimento->bairro,
                 $estabelecimento->cidade . '/' . $estabelecimento->estado,
             ]))),
-            'responsaveis_tecnicos' => $estabelecimento->responsaveisTecnicos
+            'responsaveis_tecnicos' => $responsaveisTecnicosValidos
                 ->map(function ($responsavel) {
                     $registroConselho = trim(implode(' ', array_filter([
                         $responsavel->conselho,
@@ -1884,6 +1900,9 @@ class ProcessoController extends Controller
                 ->filter(fn ($responsavel) => !empty($responsavel['nome']))
                 ->values()
                 ->all(),
+            'observacao_responsaveis_tecnicos' => $responsaveisTecnicosInvalidosDescartados
+                ? 'Foram encontrados cadastros de RT com nome empresarial do estabelecimento; esses nomes foram desconsiderados na comparação.'
+                : null,
         ];
 
         // Tenta extrair texto do PDF
@@ -1954,6 +1973,12 @@ class ProcessoController extends Controller
 
                 $dados .= $linhaResponsavel . "\n";
             }
+            if (!empty($dadosEstab['observacao_responsaveis_tecnicos'])) {
+                $dados .= "- Observação sobre RTs: {$dadosEstab['observacao_responsaveis_tecnicos']}\n";
+            }
+        } elseif (!empty($dadosEstab['observacao_responsaveis_tecnicos'])) {
+            $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum nome válido para comparação\n";
+            $dados .= "- Observação sobre RTs: {$dadosEstab['observacao_responsaveis_tecnicos']}\n";
         } else {
             $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum cadastrado\n";
         }

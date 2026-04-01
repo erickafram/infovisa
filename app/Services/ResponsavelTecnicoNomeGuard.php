@@ -50,6 +50,12 @@ class ResponsavelTecnicoNomeGuard
         return null;
     }
 
+    public function nomePareceNomeDoEstabelecimento(string $nomeInformado, Estabelecimento $estabelecimento): bool
+    {
+        return $this->saoMuitoParecidos($nomeInformado, $estabelecimento->nome_razao_social)
+            || $this->saoMuitoParecidos($nomeInformado, $estabelecimento->nome_fantasia);
+    }
+
     private function buscarEstabelecimentosTecnicosPorCpf(?string $cpf): Collection
     {
         $cpfLimpo = preg_replace('/\D/', '', (string) $cpf);
