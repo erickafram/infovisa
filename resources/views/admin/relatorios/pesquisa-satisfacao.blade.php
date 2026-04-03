@@ -13,6 +13,13 @@
         </div>
         <div class="flex items-center gap-3">
             @if($pesquisasSelecionadas->count() > 0 && $dados)
+            @if($iaPesquisaSatisfacaoAtiva)
+            <button type="button" onclick="abrirModalIA()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Gerar Análise com IA
+            </button>
+            @endif
             <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                 Imprimir
@@ -249,75 +256,94 @@
     </div>
     @endforeach
 
-    {{-- Análise de IA --}}
+    {{-- Modal de Análise IA (popup) --}}
     @if($iaPesquisaSatisfacaoAtiva)
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="secaoAnaliseIA">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+    <div id="modalAnaliseIA" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="modalAnaliseIATitulo">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="fecharModalIA()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col relative">
+                {{-- Header do modal --}}
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-900" id="modalAnaliseIATitulo">Análise Inteligente (IA)</h3>
+                            <p class="text-[11px] text-gray-400">Insights e recomendações baseados nos dados</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-gray-900">Análise Inteligente (IA)</h3>
-                        <p class="text-[11px] text-gray-400">Insights e recomendações para tomada de decisão</p>
+                    <button type="button" onclick="fecharModalIA()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition" aria-label="Fechar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Corpo do modal (scrollável) --}}
+                <div class="flex-1 overflow-y-auto px-6 py-5">
+                    {{-- Loading --}}
+                    <div id="analiseIALoading" class="hidden">
+                        <div class="flex flex-col items-center justify-center py-16">
+                            <svg class="w-10 h-10 text-violet-600 animate-spin mb-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-sm font-medium text-violet-800">Analisando dados com Inteligência Artificial...</p>
+                            <p class="text-[11px] text-gray-400 mt-1">Isso pode levar alguns segundos</p>
+                        </div>
+                    </div>
+
+                    {{-- Erro --}}
+                    <div id="analiseIAErro" class="hidden">
+                        <div class="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+                            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <p class="text-sm text-red-700" id="analiseIAErroTexto"></p>
+                        </div>
+                    </div>
+
+                    {{-- Estado inicial (antes de gerar) --}}
+                    <div id="analiseIAInicial">
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            </div>
+                            <p class="text-sm text-gray-500 max-w-sm">Clique no botão abaixo para gerar uma análise estratégica com base nos dados do relatório.</p>
+                        </div>
+                    </div>
+
+                    {{-- Resultado --}}
+                    <div id="analiseIAResultado" class="hidden">
+                        {{-- Gráfico de resumo das médias --}}
+                        <div id="analiseIAGraficoContainer" class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <h4 class="text-xs font-semibold text-gray-700 mb-2">Resumo das Notas por Pergunta</h4>
+                            <div style="height: 180px;"><canvas id="chartAnaliseIA"></canvas></div>
+                        </div>
+                        <div class="prose prose-sm max-w-none
+                            prose-headings:text-gray-900 prose-headings:font-bold prose-headings:mt-5 prose-headings:mb-2
+                            prose-h2:text-base prose-h2:border-b prose-h2:border-gray-100 prose-h2:pb-2
+                            prose-p:text-gray-600 prose-p:leading-relaxed
+                            prose-li:text-gray-600
+                            prose-strong:text-gray-800
+                            prose-ul:my-2 prose-ol:my-2" id="analiseIAConteudo">
+                        </div>
                     </div>
                 </div>
-                <button type="button" id="btnGerarAnaliseIA"
-                    onclick="gerarAnaliseIA()"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-violet-700 hover:to-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span id="btnTextoAnaliseIA">Gerar Análise com IA</span>
-                </button>
-            </div>
-        </div>
 
-        {{-- Loading --}}
-        <div id="analiseIALoading" class="hidden px-6 pb-6">
-            <div class="flex items-center gap-3 p-4 bg-violet-50 rounded-xl border border-violet-100">
-                <svg class="w-5 h-5 text-violet-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <div>
-                    <p class="text-sm font-medium text-violet-800">Analisando dados com Inteligência Artificial...</p>
-                    <p class="text-[11px] text-violet-500 mt-0.5">Isso pode levar alguns segundos</p>
-                </div>
-            </div>
-        </div>
-
-        {{-- Erro --}}
-        <div id="analiseIAErro" class="hidden px-6 pb-6">
-            <div class="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
-                <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <p class="text-sm text-red-700" id="analiseIAErroTexto"></p>
-            </div>
-        </div>
-
-        {{-- Resultado --}}
-        <div id="analiseIAResultado" class="hidden">
-            <div class="border-t border-gray-100 px-6 py-5">
-                <div class="prose prose-sm max-w-none
-                    prose-headings:text-gray-900 prose-headings:font-bold prose-headings:mt-5 prose-headings:mb-2
-                    prose-h2:text-base prose-h2:border-b prose-h2:border-gray-100 prose-h2:pb-2
-                    prose-p:text-gray-600 prose-p:leading-relaxed
-                    prose-li:text-gray-600
-                    prose-strong:text-gray-800
-                    prose-ul:my-2 prose-ol:my-2" id="analiseIAConteudo">
-                </div>
-                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                {{-- Footer do modal --}}
+                <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0">
                     <p class="text-[10px] text-gray-400">
                         <svg class="w-3 h-3 inline-block mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Análise gerada por IA — revise antes de tomar decisões
                     </p>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="copiarAnaliseIA()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+                        <button type="button" id="btnCopiarIA" onclick="copiarAnaliseIA()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                             Copiar
                         </button>
-                        <button type="button" onclick="gerarAnaliseIA()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            Gerar Novamente
+                        <button type="button" id="btnGerarAnaliseIA"
+                            onclick="gerarAnaliseIA()"
+                            class="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-violet-700 hover:to-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span id="btnTextoAnaliseIA">Gerar Análise com IA</span>
                         </button>
                     </div>
                 </div>
@@ -441,8 +467,71 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// --- Análise IA ---
+// --- Análise IA (Modal) ---
 let analiseIARaw = '';
+let chartAnaliseIAInstance = null;
+
+function abrirModalIA() {
+    document.getElementById('modalAnaliseIA').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModalIA() {
+    document.getElementById('modalAnaliseIA').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Fechar com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModalIA();
+});
+
+function renderizarGraficoIA() {
+    const perguntas = @json($dados['perguntas']);
+    const escalas = perguntas.filter(p => p.tipo === 'escala_1_5' && p.media > 0);
+    const container = document.getElementById('analiseIAGraficoContainer');
+    
+    if (escalas.length === 0) {
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+
+    if (chartAnaliseIAInstance) chartAnaliseIAInstance.destroy();
+
+    const labels = escalas.map(p => {
+        const t = p.texto.length > 40 ? p.texto.substring(0, 40) + '...' : p.texto;
+        return t;
+    });
+    const medias = escalas.map(p => p.media);
+    const bgColors = medias.map(m => m >= 4 ? 'rgba(16,185,129,0.8)' : m >= 3 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)');
+
+    chartAnaliseIAInstance = new Chart(document.getElementById('chartAnaliseIA'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: medias,
+                backgroundColor: bgColors,
+                borderRadius: 6,
+                maxBarThickness: 32,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ctx.raw + ' / 5.0' } }
+            },
+            scales: {
+                x: { min: 0, max: 5, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f3f4f6' } },
+                y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+}
 
 function montarDadosRelatorio() {
     const dados = @json($dados);
@@ -501,12 +590,16 @@ function gerarAnaliseIA() {
     const loading = document.getElementById('analiseIALoading');
     const erro = document.getElementById('analiseIAErro');
     const resultado = document.getElementById('analiseIAResultado');
+    const inicial = document.getElementById('analiseIAInicial');
+    const btnCopiar = document.getElementById('btnCopiarIA');
 
     btn.disabled = true;
     btnTexto.textContent = 'Analisando...';
     loading.classList.remove('hidden');
     erro.classList.add('hidden');
     resultado.classList.add('hidden');
+    inicial.classList.add('hidden');
+    btnCopiar.classList.add('hidden');
 
     const dadosRelatorio = montarDadosRelatorio();
 
@@ -523,22 +616,24 @@ function gerarAnaliseIA() {
     .then(data => {
         loading.classList.add('hidden');
         btn.disabled = false;
-        btnTexto.textContent = 'Gerar Análise com IA';
+        btnTexto.textContent = 'Gerar Novamente';
 
         if (data.success) {
             analiseIARaw = data.analise;
             document.getElementById('analiseIAConteudo').innerHTML = markdownToHtml(data.analise);
             resultado.classList.remove('hidden');
-            document.getElementById('secaoAnaliseIA').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            btnCopiar.classList.remove('hidden');
+            renderizarGraficoIA();
         } else {
             document.getElementById('analiseIAErroTexto').textContent = data.error || 'Erro desconhecido ao gerar análise.';
             erro.classList.remove('hidden');
+            btnTexto.textContent = 'Tentar Novamente';
         }
     })
     .catch(err => {
         loading.classList.add('hidden');
         btn.disabled = false;
-        btnTexto.textContent = 'Gerar Análise com IA';
+        btnTexto.textContent = 'Tentar Novamente';
         document.getElementById('analiseIAErroTexto').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
         erro.classList.remove('hidden');
     });
