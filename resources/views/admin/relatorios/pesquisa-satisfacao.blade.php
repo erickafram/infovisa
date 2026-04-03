@@ -249,6 +249,83 @@
     </div>
     @endforeach
 
+    {{-- Análise de IA --}}
+    @if($iaPesquisaSatisfacaoAtiva)
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="secaoAnaliseIA">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900">Análise Inteligente (IA)</h3>
+                        <p class="text-[11px] text-gray-400">Insights e recomendações para tomada de decisão</p>
+                    </div>
+                </div>
+                <button type="button" id="btnGerarAnaliseIA"
+                    onclick="gerarAnaliseIA()"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-violet-700 hover:to-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span id="btnTextoAnaliseIA">Gerar Análise com IA</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- Loading --}}
+        <div id="analiseIALoading" class="hidden px-6 pb-6">
+            <div class="flex items-center gap-3 p-4 bg-violet-50 rounded-xl border border-violet-100">
+                <svg class="w-5 h-5 text-violet-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-violet-800">Analisando dados com Inteligência Artificial...</p>
+                    <p class="text-[11px] text-violet-500 mt-0.5">Isso pode levar alguns segundos</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Erro --}}
+        <div id="analiseIAErro" class="hidden px-6 pb-6">
+            <div class="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+                <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-sm text-red-700" id="analiseIAErroTexto"></p>
+            </div>
+        </div>
+
+        {{-- Resultado --}}
+        <div id="analiseIAResultado" class="hidden">
+            <div class="border-t border-gray-100 px-6 py-5">
+                <div class="prose prose-sm max-w-none
+                    prose-headings:text-gray-900 prose-headings:font-bold prose-headings:mt-5 prose-headings:mb-2
+                    prose-h2:text-base prose-h2:border-b prose-h2:border-gray-100 prose-h2:pb-2
+                    prose-p:text-gray-600 prose-p:leading-relaxed
+                    prose-li:text-gray-600
+                    prose-strong:text-gray-800
+                    prose-ul:my-2 prose-ol:my-2" id="analiseIAConteudo">
+                </div>
+                <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                    <p class="text-[10px] text-gray-400">
+                        <svg class="w-3 h-3 inline-block mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Análise gerada por IA — revise antes de tomar decisões
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="copiarAnaliseIA()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                            Copiar
+                        </button>
+                        <button type="button" onclick="gerarAnaliseIA()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Gerar Novamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @elseif($pesquisasSelecionadas->count() === 0)
     {{-- Estado vazio --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
@@ -363,6 +440,142 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// --- Análise IA ---
+let analiseIARaw = '';
+
+function montarDadosRelatorio() {
+    const dados = @json($dados);
+    let texto = '';
+
+    texto += `RESUMO GERAL:\n`;
+    texto += `- Total de respostas: ${dados.total_respostas}\n`;
+    texto += `- Respondentes internos (técnicos): ${dados.por_tipo_respondente.interno}\n`;
+    texto += `- Respondentes externos (empresas): ${dados.por_tipo_respondente.externo}\n`;
+    texto += `- Respondentes anônimos: ${dados.por_tipo_respondente.anonimo}\n\n`;
+
+    texto += `RESPOSTAS POR MÊS (últimos 6 meses):\n`;
+    dados.por_mes.forEach(m => {
+        texto += `- ${m.label}: ${m.count} respostas\n`;
+    });
+    texto += '\n';
+
+    if (dados.por_pesquisa && dados.por_pesquisa.length > 1) {
+        texto += `RESPOSTAS POR PESQUISA:\n`;
+        dados.por_pesquisa.forEach(p => {
+            texto += `- ${p.titulo}: ${p.count} respostas\n`;
+        });
+        texto += '\n';
+    }
+
+    texto += `ANÁLISE POR PERGUNTA:\n\n`;
+    dados.perguntas.forEach((p, i) => {
+        texto += `Pergunta ${i + 1}: "${p.texto}" (Tipo: ${p.tipo})\n`;
+        if (p.tipo === 'escala_1_5') {
+            texto += `  Média: ${p.media}/5.0\n`;
+            texto += `  Distribuição: 1-Péssimo: ${p.distribuicao['1']||0}, 2-Ruim: ${p.distribuicao['2']||0}, 3-Regular: ${p.distribuicao['3']||0}, 4-Bom: ${p.distribuicao['4']||0}, 5-Ótimo: ${p.distribuicao['5']||0}\n`;
+            texto += `  Total de respostas: ${p.total||0}\n`;
+        } else if (p.tipo === 'multipla_escolha') {
+            texto += `  Opções:\n`;
+            p.distribuicao.forEach(o => {
+                texto += `    - ${o.texto}: ${o.count} respostas\n`;
+            });
+        } else if (p.tipo === 'texto_livre') {
+            texto += `  Respostas de texto livre (${p.textos_livres.length}):\n`;
+            p.textos_livres.slice(0, 30).forEach(t => {
+                texto += `    - "${t.texto}" (${t.respondente}, ${t.data})\n`;
+            });
+            if (p.textos_livres.length > 30) {
+                texto += `    ... e mais ${p.textos_livres.length - 30} respostas\n`;
+            }
+        }
+        texto += '\n';
+    });
+
+    return texto;
+}
+
+function gerarAnaliseIA() {
+    const btn = document.getElementById('btnGerarAnaliseIA');
+    const btnTexto = document.getElementById('btnTextoAnaliseIA');
+    const loading = document.getElementById('analiseIALoading');
+    const erro = document.getElementById('analiseIAErro');
+    const resultado = document.getElementById('analiseIAResultado');
+
+    btn.disabled = true;
+    btnTexto.textContent = 'Analisando...';
+    loading.classList.remove('hidden');
+    erro.classList.add('hidden');
+    resultado.classList.add('hidden');
+
+    const dadosRelatorio = montarDadosRelatorio();
+
+    fetch('{{ route("admin.relatorios.pesquisa-satisfacao.analise-ia") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ dados_relatorio: dadosRelatorio }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+        btnTexto.textContent = 'Gerar Análise com IA';
+
+        if (data.success) {
+            analiseIARaw = data.analise;
+            document.getElementById('analiseIAConteudo').innerHTML = markdownToHtml(data.analise);
+            resultado.classList.remove('hidden');
+            document.getElementById('secaoAnaliseIA').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            document.getElementById('analiseIAErroTexto').textContent = data.error || 'Erro desconhecido ao gerar análise.';
+            erro.classList.remove('hidden');
+        }
+    })
+    .catch(err => {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+        btnTexto.textContent = 'Gerar Análise com IA';
+        document.getElementById('analiseIAErroTexto').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        erro.classList.remove('hidden');
+    });
+}
+
+function copiarAnaliseIA() {
+    if (analiseIARaw) {
+        navigator.clipboard.writeText(analiseIARaw).then(() => {
+            const btn = event.target.closest('button');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copiado!';
+            setTimeout(() => { btn.innerHTML = textoOriginal; }, 2000);
+        });
+    }
+}
+
+function markdownToHtml(md) {
+    let html = md
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+            return '<ul>' + match + '</ul>';
+        })
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    html = '<p>' + html + '</p>';
+    html = html.replace(/<p><h([1-3])>/g, '<h$1>').replace(/<\/h([1-3])><\/p>/g, '</h$1>');
+    html = html.replace(/<p><ul>/g, '<ul>').replace(/<\/ul><\/p>/g, '</ul>');
+    html = html.replace(/<p><\/p>/g, '');
+    return html;
+}
 </script>
 @endif
 @endpush

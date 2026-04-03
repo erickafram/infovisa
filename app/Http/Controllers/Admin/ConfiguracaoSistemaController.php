@@ -52,6 +52,10 @@ class ConfiguracaoSistemaController extends Controller
         // Configuração do Assistente de Redação
         $assistenteRedacaoAtivo = ConfiguracaoSistema::where('chave', 'assistente_redacao_ativo')->first();
         
+        // Configuração do Assistente de Pesquisa de Satisfação
+        $iaPesquisaSatisfacaoAtiva = ConfiguracaoSistema::where('chave', 'ia_pesquisa_satisfacao_ativa')->first();
+        $iaPesquisaSatisfacaoPrompt = ConfiguracaoSistema::where('chave', 'ia_pesquisa_satisfacao_prompt')->first();
+        
         return view('admin.configuracoes.sistema.index', compact(
             'logomarcaEstadual',
             'rodapeEstadual',
@@ -63,7 +67,9 @@ class ConfiguracaoSistemaController extends Controller
             'iaModel',
             'iaBuscaWeb',
             'chatInternoAtivo',
-            'assistenteRedacaoAtivo'
+            'assistenteRedacaoAtivo',
+            'iaPesquisaSatisfacaoAtiva',
+            'iaPesquisaSatisfacaoPrompt'
         ));
     }
 
@@ -85,6 +91,8 @@ class ConfiguracaoSistemaController extends Controller
             'ia_model' => 'nullable|string',
             'chat_interno_ativo' => 'nullable|boolean',
             'assistente_redacao_ativo' => 'nullable|boolean',
+            'ia_pesquisa_satisfacao_ativa' => 'nullable|boolean',
+            'ia_pesquisa_satisfacao_prompt' => 'nullable|string|max:5000',
         ], [
             'logomarca_estadual.image' => 'O arquivo deve ser uma imagem',
             'logomarca_estadual.mimes' => 'A logomarca deve ser um arquivo: jpeg, png, jpg ou svg',
@@ -160,6 +168,23 @@ class ConfiguracaoSistemaController extends Controller
             return redirect()
                 ->route('admin.configuracoes.sistema.index')
                 ->with('success', 'Configurações do Chat Interno atualizadas com sucesso!');
+        }
+        
+        // Atualiza configurações do Assistente de Pesquisa de Satisfação
+        if ($request->has('_form_pesquisa_satisfacao')) {
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_pesquisa_satisfacao_ativa'],
+                ['valor' => $request->has('ia_pesquisa_satisfacao_ativa') ? 'true' : 'false']
+            );
+            
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'ia_pesquisa_satisfacao_prompt'],
+                ['valor' => $request->input('ia_pesquisa_satisfacao_prompt', '')]
+            );
+            
+            return redirect()
+                ->route('admin.configuracoes.sistema.index')
+                ->with('success', 'Configurações do Assistente de Pesquisa de Satisfação atualizadas com sucesso!');
         }
         
         // Verifica se foi apenas atualização de IA (sem logomarca) - fallback para compatibilidade

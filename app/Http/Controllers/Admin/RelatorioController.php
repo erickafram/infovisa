@@ -19,6 +19,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\PesquisaSatisfacao;
 use App\Models\PesquisaSatisfacaoResposta;
+use App\Models\ConfiguracaoSistema;
+use Illuminate\Support\Facades\Http;
 
 class RelatorioController extends Controller
 {
@@ -939,6 +941,8 @@ class RelatorioController extends Controller
         $respostasExterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'externo')->count();
         $mediaGeralNotas = $this->calcularMediaGeralNotasPesquisa($respostasFiltradas);
 
+        $iaPesquisaSatisfacaoAtiva = ConfiguracaoSistema::obter('ia_pesquisa_satisfacao_ativa', 'true') !== 'false';
+
         return view('admin.relatorios.pesquisa-satisfacao', compact(
             'aba',
             'pesquisas',
@@ -948,8 +952,124 @@ class RelatorioController extends Controller
             'totalRespostas',
             'respostasInterno',
             'respostasExterno',
-            'mediaGeralNotas'
+            'mediaGeralNotas',
+            'iaPesquisaSatisfacaoAtiva'
         ));
+    }
+
+    /**
+     * Análise de IA para Pesquisa de Satisfação
+     */
+    public function pesquisaSatisfacaoAnaliseIA(Request $request)
+    {
+        $request->validate([
+            'dados_relatorio' => 'required|string',
+        ]);
+
+        $iaPesquisaSatisfacaoAtiva = ConfiguracaoSistema::obter('ia_pesquisa_satisfacao_ativa', 'true');
+        if ($iaPesquisaSatisfacaoAtiva === 'false') {
+            return response()->json([
+                'success' => false,
+                'error' => 'O Assistente de IA para Pesquisa de Satisfação está desativado. Ative-o em Configurações > Sistema.',
+            ], 403);
+        }
+
+        $apiKey = ConfiguracaoSistema::obter('ia_api_key');
+        $apiUrl = ConfiguracaoSistema::obter('ia_api_url');
+        $model = ConfiguracaoSistema::obter('ia_model');
+
+        if (empty($apiKey) || empty($apiUrl) || empty($model)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Configurações da IA não encontradas. Configure a API em Configurações > Sistema.',
+            ], 500);
+        }
+
+        $dadosRelatorio = $request->input('dados_relatorio');
+
+        // Verifica se há um prompt customizado configurado
+        $promptCustomizado = trim((string) ConfiguracaoSistema::obter('ia_pesquisa_satisfacao_prompt', ''));
+
+        $systemPrompt = "Você é um analista especialista em gestão da qualidade e satisfação de clientes do sistema InfoVISA (Vigilância Sanitária).\n\n"
+            . "Sua função é analisar os dados de pesquisas de satisfação e fornecer uma análise estratégica completa para tomada de decisão.\n\n"
+            . "FORMATO OBRIGATÓRIO DA RESPOSTA (use exatamente estas seções com os títulos em markdown):\n\n"
+            . "## 📊 Resumo Executivo\n"
+            . "Síntese geral dos resultados em 2-3 frases.\n\n"
+            . "## ✅ Pontos Fortes\n"
+            . "Liste os aspectos com melhor avaliação e o que está funcionando bem.\n\n"
+            . "## ⚠️ Pontos de Atenção\n"
+            . "Liste os aspectos com pior avaliação ou que precisam de melhorias urgentes.\n\n"
+            . "## 📈 Tendências Identificadas\n"
+            . "Analise a evolução mensal das respostas e identifique padrões.\n\n"
+            . "## 🎯 Recomendações de Ação\n"
+            . "Liste ações concretas e priorizadas que a gestão deve tomar, baseadas nos dados.\n\n"
+            . "## 🔮 Projeção\n"
+            . "Com base nos dados atuais, projete o cenário caso as ações sejam (ou não) implementadas.\n\n"
+            . "REGRAS:\n"
+            . "- Responda SEMPRE em português do Brasil\n"
+            . "- Baseie-se EXCLUSIVAMENTE nos dados fornecidos, não invente dados\n"
+            . "- Seja objetivo e direto, focando em insights acionáveis\n"
+            . "- Use linguagem profissional adequada para relatórios de gestão\n"
+            . "- Se houver textos livres dos respondentes, extraia os temas mais recorrentes\n"
+            . "- Considere que a escala é de 1 a 5 (1=Péssimo, 2=Ruim, 3=Regular, 4=Bom, 5=Ótimo)\n"
+            . "- Notas médias abaixo de 3.0 são críticas, entre 3.0 e 3.9 requerem atenção, acima de 4.0 são positivas";
+
+        if (!empty($promptCustomizado)) {
+            $systemPrompt .= "\n\nINSTRUÇÕES ADICIONAIS DO ADMINISTRADOR:\n" . $promptCustomizado;
+        }
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => "Analise os seguintes dados da pesquisa de satisfação e forneça insights para tomada de decisão:\n\n" . $dadosRelatorio],
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(90)->post($apiUrl, [
+                'model' => $model,
+                'messages' => $messages,
+                'max_tokens' => 2000,
+                'temperature' => 0.3,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $resposta = $data['choices'][0]['message']['content'] ?? null;
+
+                if ($resposta) {
+                    return response()->json([
+                        'success' => true,
+                        'analise' => $resposta,
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'A IA não retornou uma resposta válida.',
+                ], 500);
+            }
+
+            \Log::error('Erro na API da IA - Análise Pesquisa Satisfação', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao comunicar com a IA. Tente novamente.',
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Exceção na análise IA da pesquisa de satisfação', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao processar análise: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

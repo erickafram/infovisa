@@ -500,6 +500,95 @@
         </div>
     </div>
 
+    {{-- Seção: Assistente de Pesquisa de Satisfação --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div class="px-6 py-4 bg-gradient-to-r from-violet-50 to-white border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Assistente IA — Pesquisa de Satisfação
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">Configure o assistente de IA que gera análises inteligentes nos relatórios de pesquisa de satisfação</p>
+        </div>
+
+        <div class="p-6">
+            <form action="{{ route('admin.configuracoes.sistema.update') }}" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="_form_pesquisa_satisfacao" value="1">
+
+                <div class="space-y-6">
+                    {{-- Ativar/Desativar --}}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Análise com IA na Pesquisa de Satisfação
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1">Ative ou desative o botão "Gerar Análise com IA" nos relatórios de pesquisa de satisfação</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="ia_pesquisa_satisfacao_ativa" 
+                                   value="1"
+                                   {{ $iaPesquisaSatisfacaoAtiva && $iaPesquisaSatisfacaoAtiva->valor === 'true' ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900">
+                                {{ $iaPesquisaSatisfacaoAtiva && $iaPesquisaSatisfacaoAtiva->valor === 'true' ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </label>
+                    </div>
+
+                    {{-- Prompt Customizado --}}
+                    <div>
+                        <label for="ia_pesquisa_satisfacao_prompt" class="block text-sm font-medium text-gray-700 mb-2">
+                            Instruções Adicionais para a IA (opcional)
+                        </label>
+                        <textarea id="ia_pesquisa_satisfacao_prompt"
+                                  name="ia_pesquisa_satisfacao_prompt"
+                                  rows="5"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                                  placeholder="Ex: Foque na comparação entre pesquisas, destaque indicadores abaixo de 3.0, sugira ações específicas para o setor de atendimento...">{{ old('ia_pesquisa_satisfacao_prompt', $iaPesquisaSatisfacaoPrompt->valor ?? '') }}</textarea>
+                        <p class="mt-2 text-xs text-gray-500">Essas instruções serão adicionadas ao prompt padrão da IA ao gerar análises. Use para personalizar o foco e o estilo da análise.</p>
+                    </div>
+
+                    {{-- Informações --}}
+                    <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm text-violet-800">
+                                <p class="font-semibold mb-2">Sobre o Assistente de Pesquisa de Satisfação:</p>
+                                <ul class="space-y-1 text-xs">
+                                    <li>• Gera análises estratégicas com base nos dados das pesquisas de satisfação</li>
+                                    <li>• Identifica pontos fortes, pontos de atenção e tendências</li>
+                                    <li>• Fornece recomendações de ação para tomada de decisão</li>
+                                    <li>• Requer que o Assistente de IA principal esteja ativo e configurado</li>
+                                    <li>• Acessível em: Relatórios → Pesquisa de Satisfação → Gerar Análise com IA</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                    <button type="submit" 
+                            class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Salvar Configurações da Pesquisa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Informações Adicionais --}}
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div class="flex items-start gap-3">
