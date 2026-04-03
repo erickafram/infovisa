@@ -4,7 +4,7 @@
 @section('page-title', 'Avisos do Sistema')
 
 @section('content')
-<div class="max-w-6xl mx-auto">
+<div class="max-w-8xl mx-auto">
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
         <div>

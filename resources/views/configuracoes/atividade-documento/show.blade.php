@@ -4,7 +4,7 @@
 @section('page-title', 'Gerenciar Documentos da Atividade')
 
 @section('content')
-<div class="max-w-6xl mx-auto" x-data="atividadeDocumentoForm()">
+<div class="max-w-8xl mx-auto" x-data="atividadeDocumentoForm()">
     {{-- Voltar --}}
     <div class="mb-6">
         <a href="{{ route('admin.configuracoes.atividade-documento.index', ['tab' => 'atividades']) }}" 

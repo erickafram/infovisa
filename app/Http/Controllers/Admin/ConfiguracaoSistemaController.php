@@ -115,7 +115,7 @@ class ConfiguracaoSistemaController extends Controller
         $isFormularioLogomarca = $request->hasFile('logomarca_estadual') || 
                                   $request->has('remover_logomarca_estadual');
         
-        // Atualiza configurações da IA apenas se for o formulário de IA
+        // Atualiza todas as configurações de IA (formulário unificado)
         if ($isFormularioIA) {
             ConfiguracaoSistema::updateOrCreate(
                 ['chave' => 'ia_ativa'],
@@ -142,22 +142,9 @@ class ConfiguracaoSistemaController extends Controller
                 ['valor' => $request->ia_model ?? '']
             );
             
-            // Busca na web
             ConfiguracaoSistema::updateOrCreate(
                 ['chave' => 'ia_busca_web'],
                 ['valor' => $request->has('ia_busca_web') ? 'true' : 'false']
-            );
-            
-            return redirect()
-                ->route('admin.configuracoes.sistema.index')
-                ->with('success', 'Configurações do Assistente de IA atualizadas com sucesso!');
-        }
-        
-        // Atualiza configurações do Chat Interno apenas se for o formulário de Chat
-        if ($isFormularioChat) {
-            ConfiguracaoSistema::updateOrCreate(
-                ['chave' => 'chat_interno_ativo'],
-                ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
             );
             
             ConfiguracaoSistema::updateOrCreate(
@@ -165,13 +152,6 @@ class ConfiguracaoSistemaController extends Controller
                 ['valor' => $request->has('assistente_redacao_ativo') ? 'true' : 'false']
             );
             
-            return redirect()
-                ->route('admin.configuracoes.sistema.index')
-                ->with('success', 'Configurações do Chat Interno atualizadas com sucesso!');
-        }
-        
-        // Atualiza configurações do Assistente de Pesquisa de Satisfação
-        if ($request->has('_form_pesquisa_satisfacao')) {
             ConfiguracaoSistema::updateOrCreate(
                 ['chave' => 'ia_pesquisa_satisfacao_ativa'],
                 ['valor' => $request->has('ia_pesquisa_satisfacao_ativa') ? 'true' : 'false']
@@ -183,8 +163,20 @@ class ConfiguracaoSistemaController extends Controller
             );
             
             return redirect()
-                ->route('admin.configuracoes.sistema.index')
-                ->with('success', 'Configurações do Assistente de Pesquisa de Satisfação atualizadas com sucesso!');
+                ->to(route('admin.configuracoes.sistema.index') . '#inteligencia-artificial')
+                ->with('success', 'Configurações de Inteligência Artificial atualizadas com sucesso!');
+        }
+        
+        // Atualiza configurações do Chat Interno apenas se for o formulário de Chat
+        if ($isFormularioChat) {
+            ConfiguracaoSistema::updateOrCreate(
+                ['chave' => 'chat_interno_ativo'],
+                ['valor' => $request->has('chat_interno_ativo') ? 'true' : 'false']
+            );
+            
+            return redirect()
+                ->to(route('admin.configuracoes.sistema.index') . '#comunicacao')
+                ->with('success', 'Configurações do Chat Interno atualizadas com sucesso!');
         }
         
         // Verifica se foi apenas atualização de IA (sem logomarca) - fallback para compatibilidade
