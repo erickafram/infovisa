@@ -62,6 +62,9 @@ Homestead.json
 Homestead.yaml
 vagrant/.vagrant
 
+# Claude Code
+.claude/
+
 # Cache
 .cache/
 cache/
