@@ -37,23 +37,18 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Configurar redirect para usuários não autenticados
         $middleware->redirectGuestsTo(function ($request) {
-            // Se a rota começa com /admin ou /company, redireciona para login
-            if ($request->is('admin/*') || $request->is('company/*')) {
-                return route('login');
-            }
-            return route('login');
+            return url('/login');
         });
         
         // Configurar redirect após autenticação bem-sucedida
         $middleware->redirectUsersTo(function () {
-            // Detecta qual guard está autenticado e redireciona adequadamente
             if (auth('interno')->check()) {
-                return route('admin.dashboard');
+                return url('/admin/dashboard');
             }
             if (auth('externo')->check()) {
-                return route('company.dashboard');
+                return url('/company/dashboard');
             }
-            return '/';
+            return url('/');
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {

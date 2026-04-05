@@ -55,7 +55,9 @@ class LoginController extends Controller
                 $request->session()->forget('url.intended');
             }
             
-            return redirect()->intended(route('admin.dashboard'));
+            // Garante que o redirect use a URL completa com prefixo
+            $fallback = url('/admin/dashboard');
+            return redirect()->intended($fallback);
         }
 
         // Se falhar, tenta autenticar como usuário EXTERNO
@@ -73,7 +75,9 @@ class LoginController extends Controller
                 $request->session()->forget('url.intended');
             }
             
-            return redirect()->intended(route('company.dashboard'));
+            // Garante que o redirect use a URL completa com prefixo
+            $fallback = url('/company/dashboard');
+            return redirect()->intended($fallback);
         }
 
         // Se ambos falharem, retorna erro
