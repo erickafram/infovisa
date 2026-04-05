@@ -50,40 +50,6 @@
     </div>
     @endif
 
-    {{-- Avisos de Prazo de Análise (Fila Pública) --}}
-    @if(isset($processosComPrazoFila) && $processosComPrazoFila->count() > 0)
-    <div class="space-y-2">
-        @foreach($processosComPrazoFila as $pf)
-        @php
-            $diasPf = $pf['dias_restantes'];
-            $corPf = $pf['pausado'] ? 'border-gray-300 bg-gray-50' : ($pf['atrasado'] ? 'border-red-300 bg-red-50' : ($diasPf <= 5 ? 'border-amber-300 bg-amber-50' : 'border-cyan-300 bg-cyan-50'));
-            $corTextoPf = $pf['pausado'] ? 'text-gray-700' : ($pf['atrasado'] ? 'text-red-700' : ($diasPf <= 5 ? 'text-amber-700' : 'text-cyan-700'));
-        @endphp
-        <a href="{{ route('company.processos.show', $pf['processo']->id) }}" class="flex items-start gap-3 p-3 rounded-xl border {{ $corPf }} hover:shadow-sm transition-all">
-            <svg class="w-5 h-5 flex-shrink-0 mt-0.5 {{ $corTextoPf }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium {{ $corTextoPf }}">
-                    Processo {{ $pf['processo']->numero_processo }}
-                    @if($pf['pausado'])
-                        — Prazo suspenso
-                    @elseif($pf['atrasado'])
-                        — Prazo vencido ({{ abs($diasPf) }}d de atraso)
-                    @else
-                        — Restam {{ $diasPf }} {{ $diasPf == 1 ? 'dia' : 'dias' }} para análise
-                    @endif
-                </p>
-                <p class="text-xs {{ $corTextoPf }} opacity-75 mt-0.5">
-                    {{ $pf['processo']->estabelecimento->nome_fantasia ?? $pf['processo']->estabelecimento->razao_social ?? '' }}
-                    · Documentação completa em {{ $pf['data_documentos_completos']->format('d/m/Y') }}
-                </p>
-            </div>
-        </a>
-        @endforeach
-    </div>
-    @endif
-
     {{-- Cards de resumo clicáveis --}}
     <div id="tour-stats-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <a href="{{ route('company.estabelecimentos.index') }}" id="tour-meus-estabelecimentos" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:border-blue-200 transition-all group">
