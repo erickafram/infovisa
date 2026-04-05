@@ -2054,22 +2054,26 @@ CRITÉRIOS DE ANÁLISE:
 {$blocoOrientacaoAdicional}
 
 INSTRUÇÕES OBRIGATÓRIAS:
-1. Analise o documento com base nos critérios acima
-2. Compare os dados do documento com os dados cadastrados no sistema
-3. Para ENDEREÇO, não exija igualdade literal. Considere compatível quando o logradouro for claramente o mesmo, mesmo com abreviações ou pequenas variações de escrita, desde que número, bairro, cidade ou contexto não indiquem outro endereço.
-4. Para RESPONSÁVEL TÉCNICO, considere válido se o nome do documento corresponder claramente a qualquer um dos responsáveis técnicos ativos listados no sistema, mesmo com pequenas variações de acentuação, caixa ou abreviação.
-5. Só rejeite por endereço quando houver divergência relevante, suficiente para indicar outro local.
-6. Só rejeite por responsável técnico quando o documento apontar outro profissional ou quando realmente não houver correspondência com os responsáveis técnicos cadastrados.
-7. Para datas, use obrigatoriamente a data atual informada acima. Não invente a data de hoje e não assuma outro ano.
-8. Interprete datas numéricas no padrão brasileiro DD/MM/AAAA. Exemplo: 01/04/2026 = 1 de abril de 2026 e 15/01/2026 = 15 de janeiro de 2026.
-9. Interprete datas por extenso em português corretamente. Exemplo: "15 de janeiro de 2026" = 2026-01-15.
-10. Só diga que uma data é futura se ela for posterior à data atual informada acima.
-11. Não confunda data de emissão com data de validade ou vencimento. Se o documento só trouxer emissão e o critério exigir validade vigente, a inconsistência correta é ausência de validade explícita, não "data futura", salvo se a emissão realmente for posterior à data atual.
-12. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois
-13. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado"
-14. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres)
-15. Se aprovado: confirme brevemente quais critérios foram atendidos
-16. Se rejeitado: explique exatamente qual inconsistência ou problema foi encontrado
+1. Analise o documento com base EXCLUSIVAMENTE nos critérios acima. Os critérios são a autoridade máxima — se um critério diz que algo não é exigido, NÃO rejeite por esse motivo.
+2. Compare os dados do documento com os dados cadastrados no sistema, mas SOMENTE os dados que os critérios pedem para verificar.
+3. Para ENDEREÇO: só verifique se os critérios pedirem. Não exija igualdade literal. Considere compatível quando o logradouro for claramente o mesmo, mesmo com abreviações ou variações de escrita. Só rejeite quando houver divergência relevante que indique outro local.
+4. Para RESPONSÁVEL TÉCNICO: só verifique se os critérios pedirem. Considere válido se o nome corresponder claramente a qualquer RT ativo no sistema, mesmo com variações de acentuação, caixa ou abreviação. Se os critérios dizem que não é necessário, ignore completamente.
+5. Para CNPJ: só verifique se os critérios pedirem.
+6. Para DATAS — regras fundamentais:
+   a) Use obrigatoriamente a data atual informada acima. Não invente a data de hoje.
+   b) Interprete datas numéricas no padrão brasileiro DD/MM/AAAA. Exemplo: 01/04/2026 = 1 de abril de 2026.
+   c) Interprete datas por extenso em português corretamente.
+   d) Não confunda data de emissão com data de validade/vencimento.
+   e) Se os critérios dizem que o documento não tem prazo de validade, NÃO rejeite por data de validade.
+   f) Se os critérios dizem que a data de emissão pode ser anterior à data atual, NÃO rejeite por data de emissão anterior.
+   g) Só rejeite por data quando os critérios EXPLICITAMENTE definirem regras de data E essas regras forem violadas.
+   h) Quando os critérios definirem regras de data, aplique EXATAMENTE o que dizem — nem mais, nem menos.
+7. NÃO invente exigências que não estão nos critérios. Se os critérios não mencionam responsável técnico, CNPJ, endereço ou validade, não exija esses dados.
+8. Retorne SOMENTE um objeto JSON válido — sem markdown, sem texto adicional antes ou depois.
+9. O campo "decisao" deve ser exatamente "aprovado" ou "rejeitado".
+10. O campo "motivo" deve estar em português, ser claro e objetivo (máximo 400 caracteres).
+11. Se aprovado: confirme brevemente quais critérios foram atendidos.
+12. Se rejeitado: explique exatamente qual critério configurado foi violado.
 
 FORMATO EXIGIDO:
 {"decisao":"aprovado","motivo":"Motivo aqui"}
@@ -2218,10 +2222,11 @@ PROMPT;
     private function iaBuildOrientacaoCorretivaDatas(): string
     {
         return <<<TXT
-Reavalie o documento sem reprovar apenas porque a data de emissão é anterior à data atual.
-Data de emissão anterior à data atual pode ser válida quando o critério do tipo documental permitir isso.
-Só considere problema de data se a emissão for futura, se a data contrariar explicitamente o critério configurado, ou se houver validade expressa vencida.
-Se a única inconsistência anterior era uma interpretação errada da data, desconsidere esse ponto e reavalie os demais critérios normalmente.
+ATENÇÃO — REAVALIAÇÃO OBRIGATÓRIA:
+A análise anterior rejeitou o documento por questão de data, mas isso pode estar ERRADO.
+Releia os CRITÉRIOS DE ANÁLISE com atenção. Se os critérios dizem que a data de emissão pode ser anterior, ou que o documento não tem prazo de validade, NÃO rejeite por data.
+Só considere problema de data se: a emissão for futura, se contrariar EXPLICITAMENTE um critério configurado, ou se houver validade expressa vencida.
+Se a única inconsistência era uma interpretação errada da data, APROVE o documento e confirme os critérios atendidos.
 TXT;
     }
 
