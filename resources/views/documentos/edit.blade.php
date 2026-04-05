@@ -27,6 +27,16 @@
     .tox-tinymce {
         border-radius: 0 0 0.5rem 0.5rem !important;
     }
+    /* Forçar cursor de texto visível dentro do editor */
+    .tox-tinymce .tox-edit-area__iframe {
+        cursor: text !important;
+    }
+    .tox .tox-edit-area {
+        cursor: text !important;
+    }
+    .tox .tox-edit-area__iframe {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='18' viewBox='0 0 12 18'%3E%3Cline x1='6' y1='1' x2='6' y2='17' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='3' y1='1' x2='9' y2='1' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='3' y1='17' x2='9' y2='17' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='6' y1='1' x2='6' y2='17' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='1' x2='9' y2='1' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='17' x2='9' y2='17' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") 6 9, text !important;
+    }
     .tox .tox-edit-area__iframe {
         background: #fff !important;
     }
@@ -480,9 +490,14 @@ function documentoEditor() {
                         color: #000; 
                         padding: 15px;
                         margin: 0;
+                        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='18' viewBox='0 0 12 18'%3E%3Cline x1='6' y1='1' x2='6' y2='17' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='3' y1='1' x2='9' y2='1' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='3' y1='17' x2='9' y2='17' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='6' y1='1' x2='6' y2='17' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='1' x2='9' y2='1' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='17' x2='9' y2='17' stroke='%23000000' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") 6 9, text;
+                        caret-color: #000;
                     }
-                    table { border-collapse: collapse; width: 100%; }
-                    table td, table th { border: 1px solid #ddd; padding: 8px; }
+                    body * {
+                        cursor: inherit;
+                    }
+                    table { border-collapse: collapse; width: 100%; cursor: text; }
+                    table td, table th { border: 1px solid #ddd; padding: 8px; cursor: text; }
                     img { max-width: 100%; height: auto; }
                     .variavel-dinamica {
                         background: transparent !important;
