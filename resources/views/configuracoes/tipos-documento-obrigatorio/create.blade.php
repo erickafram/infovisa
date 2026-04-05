@@ -131,7 +131,8 @@
                 </div>
             </div>
 
-            {{-- Seção IA --}}
+            {{-- Seção IA — somente Admin --}}
+            @if(auth('interno')->user()->isAdmin())
             <div class="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden mt-6">
                 <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100 flex items-center gap-2">
                     <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,6 +167,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <div class="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
                 <a href="{{ route('admin.configuracoes.tipos-documento-obrigatorio.index') }}" 

@@ -69,6 +69,11 @@ class TipoDocumentoObrigatorioController extends Controller
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
 
+        // Campos de IA só podem ser definidos por administradores
+        if (!auth('interno')->user()->isAdmin()) {
+            unset($validated['criterio_ia'], $validated['ia_modelo_visao']);
+        }
+
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
             $validated['tipo_processo_id'] = null;
@@ -115,6 +120,11 @@ class TipoDocumentoObrigatorioController extends Controller
         $validated['ativo'] = $request->has('ativo');
         $validated['documento_comum'] = $request->has('documento_comum');
         $validated['ordem'] = $validated['ordem'] ?? 0;
+
+        // Campos de IA só podem ser alterados por administradores
+        if (!auth('interno')->user()->isAdmin()) {
+            unset($validated['criterio_ia'], $validated['ia_modelo_visao']);
+        }
 
         // Se não é documento comum, limpa o tipo_processo_id
         if (!$validated['documento_comum']) {
