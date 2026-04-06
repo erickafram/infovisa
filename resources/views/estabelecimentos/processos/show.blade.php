@@ -9,6 +9,12 @@
         $documentoDigitalDirecionadoId = request()->integer('documento_digital') ?: null;
         $responsavelCienteEfetivo = $processo->responsavel_ciente_em_efetivo;
         $dataTramitacaoEfetiva = $processo->data_tramitacao_efetiva;
+        $documentosPendentesComIA = $processo->documentos
+            ->where('tipo_usuario', 'externo')
+            ->where('status_aprovacao', 'pendente')
+            ->filter(function($d) { return !empty($d->tipoDocumentoObrigatorio?->criterio_ia); })
+            ->map(function($d) { return ['id' => $d->id, 'nome' => $d->nome_original]; })
+            ->values();
     @endphp
     {{-- Botão Voltar --}}
     <div class="mb-6">
@@ -5108,14 +5114,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 async analisarDocumentosIA() {
                     if (this.iaAnalisandoLote) return;
 
-                    const documentosComIA = @json(
-                        $processo->documentos
-                            ->where('tipo_usuario', 'externo')
-                            ->where('status_aprovacao', 'pendente')
-                            ->filter(fn($d) => !empty($d->tipoDocumentoObrigatorio?->criterio_ia))
-                            ->map(fn($d) => ['id' => $d->id, 'nome' => $d->nome_original])
-                            ->values()
-                    );
+                    const documentosComIA = @json($documentosPendentesComIA);
 
                     if (documentosComIA.length === 0) {
                         alert('Nenhum documento pendente com critérios de IA configurados.');
