@@ -185,13 +185,28 @@ class WhatsappService
         $telefoneFormatado = $this->formatarTelefone($telefone);
 
         try {
+            $payload = [
+                'jid' => $telefoneFormatado . '@s.whatsapp.net',
+                'type' => 'text',
+                'message' => $mensagem,
+                // Campos alternativos usados por diferentes versões do Baileys REST
+                'text' => $mensagem,
+            ];
+
+            Log::info('WhatsApp: Enviando mensagem', [
+                'url' => $this->getBaseUrl() . '/sessions/' . $this->config->session_name . '/messages/send',
+                'telefone' => $telefoneFormatado,
+                'payload_keys' => array_keys($payload),
+            ]);
+
             $response = Http::withHeaders($this->getHeaders())
                 ->timeout(30)
-                ->post($this->getBaseUrl() . '/sessions/' . $this->config->session_name . '/messages/send', [
-                    'jid' => $telefoneFormatado . '@s.whatsapp.net',
-                    'type' => 'text',
-                    'message' => $mensagem,
-                ]);
+                ->post($this->getBaseUrl() . '/sessions/' . $this->config->session_name . '/messages/send', $payload);
+
+            Log::info('WhatsApp: Resposta do servidor', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
