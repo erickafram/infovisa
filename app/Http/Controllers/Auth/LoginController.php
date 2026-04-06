@@ -10,6 +10,36 @@ use Illuminate\Validation\ValidationException;
 class LoginController extends Controller
 {
     /**
+     * Corrige a URL intended adicionando o prefixo do APP_URL se necessário.
+     * O proxy reverso faz strip do /infovisacore, então o Laravel salva sem prefixo.
+     */
+    private function corrigirUrlIntended(Request $request): void
+    {
+        $intended = $request->session()->get('url.intended');
+        if (!$intended) {
+            return;
+        }
+
+        $appUrl = config('app.url');
+        $parsedApp = parse_url($appUrl);
+        $prefix = rtrim($parsedApp['path'] ?? '', '/');
+
+        if (!$prefix) {
+            return;
+        }
+
+        $parsedIntended = parse_url($intended);
+        $intendedPath = $parsedIntended['path'] ?? '';
+
+        if (!str_starts_with($intendedPath, $prefix)) {
+            $host = ($parsedIntended['scheme'] ?? 'https') . '://' . ($parsedIntended['host'] ?? $parsedApp['host']);
+            $corrected = $host . $prefix . $intendedPath
+                . (isset($parsedIntended['query']) ? '?' . $parsedIntended['query'] : '');
+            $request->session()->put('url.intended', $corrected);
+        }
+    }
+
+    /**
      * Exibe o formulário de login unificado
      */
     public function showLoginForm()
@@ -55,8 +85,9 @@ class LoginController extends Controller
                 $request->session()->forget('url.intended');
             }
             
-            // Garante que o redirect use a URL completa com prefixo
-            $fallback = url('/admin/dashboard');
+            $this->corrigirUrlIntended($request);
+            
+            $fallback = route('admin.dashboard');
             return redirect()->intended($fallback);
         }
 
@@ -75,8 +106,9 @@ class LoginController extends Controller
                 $request->session()->forget('url.intended');
             }
             
-            // Garante que o redirect use a URL completa com prefixo
-            $fallback = url('/company/dashboard');
+            $this->corrigirUrlIntended($request);
+            
+            $fallback = route('company.dashboard');
             return redirect()->intended($fallback);
         }
 
