@@ -37,16 +37,16 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Configurar redirect para usuários não autenticados
         $middleware->redirectGuestsTo(function ($request) {
-            return url('/login');
+            return route('login');
         });
         
         // Configurar redirect após autenticação bem-sucedida
         $middleware->redirectUsersTo(function () {
             if (auth('interno')->check()) {
-                return url('/admin/dashboard');
+                return route('admin.dashboard');
             }
             if (auth('externo')->check()) {
-                return url('/company/dashboard');
+                return route('company.dashboard');
             }
             return url('/');
         });
