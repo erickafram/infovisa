@@ -5121,7 +5121,7 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                         return;
                     }
 
-                    if (!confirm(`Analisar ${documentosComIA.length} documento(s) pendente(s) com IA?\n\nA IA vai avaliar cada documento e sugerir aprovação ou rejeição. Nenhuma ação será executada automaticamente.`)) {
+                    if (!confirm(`Analisar e processar ${documentosComIA.length} documento(s) pendente(s) com IA?\n\nA IA vai avaliar cada documento e executar a ação automaticamente:\n• Aprovados → serão aprovados\n• Rejeitados → serão rejeitados com o motivo da IA`)) {
                         return;
                     }
 
@@ -5131,38 +5131,60 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     this.iaLoteResultados = [];
 
                     const baseUrl = `{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}`;
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                     for (const doc of documentosComIA) {
                         this.iaLoteProgresso++;
                         try {
+                            // 1. Analisar com IA
                             const response = await fetch(`${baseUrl}/${doc.id}/analisar-ia`, {
                                 method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                },
+                                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
                             });
                             const data = await response.json();
+
                             if (!response.ok || data.error) {
                                 let motivo = data.error || 'Erro ao analisar';
-                                if (response.status === 402) {
-                                    motivo = 'Créditos da API esgotados. Verifique o saldo da conta Together AI.';
-                                } else if (response.status === 429) {
-                                    motivo = 'Limite de requisições atingido. Tente novamente em alguns minutos.';
-                                }
+                                if (response.status === 402) motivo = 'Créditos da API esgotados.';
+                                else if (response.status === 429) motivo = 'Limite de requisições atingido.';
                                 this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo });
-                                // Se for erro de crédito/limite, para o lote
-                                if (response.status === 402 || response.status === 429) {
-                                    break;
+                                if (response.status === 402 || response.status === 429) break;
+                                continue;
+                            }
+
+                            // 2. Executar ação baseada na decisão da IA
+                            if (data.decisao === 'aprovado') {
+                                const aprResponse = await fetch(`${baseUrl}/${doc.id}/aprovar`, {
+                                    method: 'POST',
+                                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                                });
+                                const aprData = await aprResponse.json();
+                                if (aprData.success) {
+                                    this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'aprovado', motivo: data.motivo });
+                                    if (window.atualizarDocumentoUI) window.atualizarDocumentoUI(doc.id, 'aprovado');
+                                } else {
+                                    this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'IA aprovou mas erro ao salvar: ' + (aprData.message || '') });
+                                }
+                            } else if (data.decisao === 'rejeitado') {
+                                const rejResponse = await fetch(`${baseUrl}/${doc.id}/rejeitar`, {
+                                    method: 'POST',
+                                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ motivo_rejeicao: data.motivo || 'Rejeitado pela análise de IA' }),
+                                });
+                                const rejData = await rejResponse.json();
+                                if (rejData.success) {
+                                    this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'rejeitado', motivo: data.motivo });
+                                    if (window.atualizarDocumentoUI) window.atualizarDocumentoUI(doc.id, 'rejeitado');
+                                } else {
+                                    this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'IA rejeitou mas erro ao salvar: ' + (rejData.message || '') });
                                 }
                             } else {
-                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: data.decisao, motivo: data.motivo });
+                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'Decisão inesperada: ' + data.decisao });
                             }
                         } catch (e) {
                             this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'Falha de conexão' });
                         }
-                        // Delay entre chamadas para não estourar rate limit
+                        // Delay entre chamadas
                         if (this.iaLoteProgresso < this.iaLoteTotal) {
                             await new Promise(r => setTimeout(r, 1500));
                         }
