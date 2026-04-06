@@ -273,7 +273,7 @@ class WhatsappService
         // Monta o link para a área logada do usuário externo (registra visualização)
         $processo = $documento->processo;
         $linkDocumento = $processo
-            ? route('processos.documento-digital.visualizar', [$processo->id, $documento->id])
+            ? route('company.processos.documento-digital.visualizar', [$processo->id, $documento->id])
             : route('verificar.autenticidade.form');
 
         $variaveis = [
