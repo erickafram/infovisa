@@ -990,6 +990,47 @@
                         Histórico
                     </button>
                     @if(auth('interno')->user()->isAdmin())
+                    <button @click="analisarDocumentosIA()" 
+                            :disabled="iaAnalisandoLote"
+                            class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <template x-if="!iaAnalisandoLote">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </template>
+                        <template x-if="iaAnalisandoLote">
+                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <span x-text="iaAnalisandoLote ? `Analisando ${iaLoteProgresso}/${iaLoteTotal}...` : 'Analisar Documentos com IA'"></span>
+                    </button>
+                    @endif
+
+                    {{-- Resultado da análise em lote --}}
+                    <template x-if="iaLoteResultados.length > 0">
+                        <div class="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1.5">
+                            <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Resultado da Análise IA</p>
+                            <template x-for="r in iaLoteResultados" :key="r.id">
+                                <div class="flex items-start gap-2 text-xs py-1">
+                                    <span x-show="r.decisao === 'aprovado'" class="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mt-0.5">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                    </span>
+                                    <span x-show="r.decisao === 'rejeitado'" class="flex-shrink-0 w-4 h-4 rounded-full bg-red-100 text-red-600 flex items-center justify-center mt-0.5">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </span>
+                                    <span x-show="r.decisao === 'erro'" class="flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mt-0.5">!</span>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-gray-800 truncate" x-text="r.nome"></p>
+                                        <p class="text-gray-500 leading-snug" x-text="r.motivo"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    @if(auth('interno')->user()->isAdmin())
                     <button @click="modalExcluirProcesso = true" 
                             class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4392,6 +4433,12 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                 iaResultado: null, // { decisao, motivo, usou_visao, error? }
                 iaTemCriterio: false, // Se o tipo de documento tem criterio_ia configurado
                 
+                // Análise IA em lote
+                iaAnalisandoLote: false,
+                iaLoteProgresso: 0,
+                iaLoteTotal: 0,
+                iaLoteResultados: [],
+                
                 // Dados gerais
                 pdfUrl: '',
                 pdfUrlAnotacoes: '',
@@ -5056,6 +5103,59 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                     } finally {
                         this.iaAnalisando = false;
                     }
+                },
+
+                async analisarDocumentosIA() {
+                    if (this.iaAnalisandoLote) return;
+
+                    const documentosComIA = @json(
+                        $processo->documentos
+                            ->where('tipo_usuario', 'externo')
+                            ->where('status_aprovacao', 'pendente')
+                            ->filter(fn($d) => !empty($d->tipoDocumentoObrigatorio?->criterio_ia))
+                            ->map(fn($d) => ['id' => $d->id, 'nome' => $d->nome_original])
+                            ->values()
+                    );
+
+                    if (documentosComIA.length === 0) {
+                        alert('Nenhum documento pendente com critérios de IA configurados.');
+                        return;
+                    }
+
+                    if (!confirm(`Analisar ${documentosComIA.length} documento(s) pendente(s) com IA?\n\nA IA vai avaliar cada documento e sugerir aprovação ou rejeição. Nenhuma ação será executada automaticamente.`)) {
+                        return;
+                    }
+
+                    this.iaAnalisandoLote = true;
+                    this.iaLoteProgresso = 0;
+                    this.iaLoteTotal = documentosComIA.length;
+                    this.iaLoteResultados = [];
+
+                    const baseUrl = `{{ url('admin/estabelecimentos/' . $estabelecimento->id . '/processos/' . $processo->id . '/documentos') }}`;
+
+                    for (const doc of documentosComIA) {
+                        this.iaLoteProgresso++;
+                        try {
+                            const response = await fetch(`${baseUrl}/${doc.id}/analisar-ia`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                },
+                            });
+                            const data = await response.json();
+                            if (!response.ok || data.error) {
+                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: data.error || 'Erro ao analisar' });
+                            } else {
+                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: data.decisao, motivo: data.motivo });
+                            }
+                        } catch (e) {
+                            this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'Falha de conexão' });
+                        }
+                    }
+
+                    this.iaAnalisandoLote = false;
                 },
 
                 async aprovarDocumentoNoModal() {
