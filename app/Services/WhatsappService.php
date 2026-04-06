@@ -334,6 +334,17 @@ class WhatsappService
             return $resultados;
         }
 
+        // Só dispara WhatsApp para documentos cujo tipo possui prazo/validade
+        $tipoDocumento = $documento->tipoDocumento;
+        if (!$tipoDocumento || !$tipoDocumento->tem_prazo) {
+            Log::info('WhatsApp: Documento ignorado (tipo sem prazo/validade)', [
+                'documento_id' => $documento->id,
+                'tipo_documento' => $tipoDocumento?->nome ?? 'N/A',
+                'tem_prazo' => $tipoDocumento?->tem_prazo ?? false,
+            ]);
+            return $resultados;
+        }
+
         // Garante código de autenticidade para montar o link na mensagem
         if (empty($documento->codigo_autenticidade)) {
             $documento->codigo_autenticidade = DocumentoDigital::gerarCodigoAutenticidade();
