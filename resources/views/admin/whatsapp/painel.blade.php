@@ -332,7 +332,7 @@ function whatsappPainel() {
             this.carregandoDetalhes = true;
             this.detalhesMensagem = null;
             try {
-                const response = await fetch(`/admin/whatsapp/mensagens/${id}/detalhes`);
+                const response = await fetch(`{{ url('admin/whatsapp/mensagens') }}/${id}/detalhes`);
                 this.detalhesMensagem = await response.json();
             } catch (e) {
                 this.mostrarFeedback('Erro ao carregar detalhes.', 'erro');
@@ -344,7 +344,7 @@ function whatsappPainel() {
         async reenviar(id) {
             this.reenviandoId = id;
             try {
-                const response = await fetch(`/admin/whatsapp/mensagens/${id}/reenviar`, {
+                const response = await fetch(`{{ url('admin/whatsapp/mensagens') }}/${id}/reenviar`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
