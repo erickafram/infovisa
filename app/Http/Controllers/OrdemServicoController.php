@@ -665,6 +665,14 @@ class OrdemServicoController extends Controller
         }
         
         $ordemServico->update($validated);
+
+        \Log::info('OS Update Debug', [
+            'os_id' => $ordemServico->id,
+            'processo_id_salvo' => $validated['processo_id'] ?? 'NAO_DEFINIDO',
+            'estabelecimentos_ids' => $estabelecimentosIds,
+            'processos_estabelecimentos' => $processosEstabelecimentos,
+            'processo_id_request' => $request->input('processo_id'),
+        ]);
         
         // Sincroniza estabelecimentos na tabela pivot com processo_id
         if (!empty($estabelecimentosIds)) {
