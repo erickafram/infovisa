@@ -95,20 +95,27 @@ class ResponsavelTecnicoNomeGuard
             return false;
         }
 
+        // Igualdade exata
         if ($nomePessoa === $nomeEmpresa) {
             return true;
         }
 
-        if (min(strlen($nomePessoa), strlen($nomeEmpresa)) >= 12
-            && (str_contains($nomePessoa, $nomeEmpresa) || str_contains($nomeEmpresa, $nomePessoa))) {
-            return true;
+        // Contenção: só se a diferença de tamanho for mínima (máx 10%)
+        // Evita falso positivo como "R BARBOSA JUNIOR" contido em "RUI BARBOSA JUNIOR"
+        if (min(strlen($nomePessoa), strlen($nomeEmpresa)) >= 12) {
+            $diffRatio = abs(strlen($nomePessoa) - strlen($nomeEmpresa)) / max(strlen($nomePessoa), strlen($nomeEmpresa));
+            if ($diffRatio <= 0.10 && (str_contains($nomePessoa, $nomeEmpresa) || str_contains($nomeEmpresa, $nomePessoa))) {
+                return true;
+            }
         }
 
+        // Similaridade textual: exige 93%+ para evitar falsos positivos com nomes parciais
         similar_text($nomePessoa, $nomeEmpresa, $similaridade);
-        if (min(strlen($nomePessoa), strlen($nomeEmpresa)) >= 12 && $similaridade >= 88.0) {
+        if (min(strlen($nomePessoa), strlen($nomeEmpresa)) >= 12 && $similaridade >= 93.0) {
             return true;
         }
 
+        // Comparação por tokens relevantes (palavras com 3+ caracteres)
         $tokensPessoa = $this->tokensRelevantes($nomePessoa);
         $tokensEmpresa = $this->tokensRelevantes($nomeEmpresa);
 

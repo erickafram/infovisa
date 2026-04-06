@@ -941,7 +941,8 @@ class RelatorioController extends Controller
         $respostasExterno = PesquisaSatisfacaoResposta::where('tipo_respondente', 'externo')->count();
         $mediaGeralNotas = $this->calcularMediaGeralNotasPesquisa($respostasFiltradas);
 
-        $iaPesquisaSatisfacaoAtiva = ConfiguracaoSistema::obter('ia_pesquisa_satisfacao_ativa', 'true') !== 'false';
+        $iaConfigurada = !empty(ConfiguracaoSistema::obter('ia_api_key')) && !empty(ConfiguracaoSistema::obter('ia_api_url'));
+        $iaPesquisaSatisfacaoAtiva = $iaConfigurada;
 
         return view('admin.relatorios.pesquisa-satisfacao', compact(
             'aba',
