@@ -270,9 +270,10 @@ class WhatsappService
     {
         $template = $this->config->mensagem_template ?? WhatsappConfiguracao::getTemplatePadrao();
 
-        // Monta o link para o documento
-        $linkDocumento = !empty($documento->codigo_autenticidade)
-            ? route('verificar.autenticidade', ['codigo' => $documento->codigo_autenticidade])
+        // Monta o link para a área logada do usuário externo (registra visualização)
+        $processo = $documento->processo;
+        $linkDocumento = $processo
+            ? route('processos.documento-digital.visualizar', [$processo->id, $documento->id])
             : route('verificar.autenticidade.form');
 
         $variaveis = [
