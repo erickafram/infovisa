@@ -241,14 +241,23 @@ class WhatsappService
         // Remove tudo que não é dígito
         $telefone = preg_replace('/\D/', '', $telefone);
 
-        // Se já começa com 55 e tem 12-13 dígitos, retorna direto
-        if (str_starts_with($telefone, '55') && strlen($telefone) >= 12) {
-            return $telefone;
-        }
-
         // Adiciona código do país se não tiver
         if (strlen($telefone) === 10 || strlen($telefone) === 11) {
             $telefone = '55' . $telefone;
+        }
+
+        // Remove o nono dígito (9) para celulares brasileiros
+        // WhatsApp registra números BR sem o 9 extra
+        // Formato com 9: 55 + DD + 9XXXX-XXXX (13 dígitos)
+        // Formato sem 9: 55 + DD + XXXX-XXXX  (12 dígitos)
+        if (str_starts_with($telefone, '55') && strlen($telefone) === 13) {
+            $ddd = substr($telefone, 2, 2);
+            $nono = substr($telefone, 4, 1);
+
+            // Se o 5º dígito é 9, é celular com nono dígito — remove
+            if ($nono === '9') {
+                $telefone = '55' . $ddd . substr($telefone, 5);
+            }
         }
 
         return $telefone;
