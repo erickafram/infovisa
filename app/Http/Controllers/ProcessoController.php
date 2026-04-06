@@ -1851,22 +1851,11 @@ class ProcessoController extends Controller
             return response()->json(['error' => 'Arquivo do documento não encontrado no servidor.'], 404);
         }
 
-        $guardRt = app(ResponsavelTecnicoNomeGuard::class);
-        $responsaveisTecnicosInvalidosDescartados = false;
-        $responsaveisTecnicosValidos = $estabelecimento->responsaveisTecnicos
-            ->reject(function ($responsavel) use ($estabelecimento, $guardRt, &$responsaveisTecnicosInvalidosDescartados) {
-                $nomeResponsavel = (string) ($responsavel->nome ?? '');
-
-                if ($nomeResponsavel === '' || !$guardRt->nomePareceNomeDoEstabelecimento($nomeResponsavel, $estabelecimento)) {
-                    return false;
-                }
-
-                $responsaveisTecnicosInvalidosDescartados = true;
-
-                return true;
-            });
-
         // Dados do estabelecimento para comparação
+        // Envia TODOS os RTs cadastrados para a IA (sem filtro do guard)
+        // O guard existe para impedir cadastro de RT com nome empresarial,
+        // mas na análise de IA ele remove RTs legítimos como "RUI BARBOSA JUNIOR"
+        // quando a razão social é "R BARBOSA JUNIOR"
         $dadosEstab = [
             'razao_social'   => $estabelecimento->nome_razao_social ?? '',
             'nome_fantasia'  => $estabelecimento->nome_fantasia ?? '',
@@ -1883,7 +1872,7 @@ class ProcessoController extends Controller
                 $estabelecimento->bairro,
                 $estabelecimento->cidade . '/' . $estabelecimento->estado,
             ]))),
-            'responsaveis_tecnicos' => $responsaveisTecnicosValidos
+            'responsaveis_tecnicos' => $estabelecimento->responsaveisTecnicos
                 ->map(function ($responsavel) {
                     $registroConselho = trim(implode(' ', array_filter([
                         $responsavel->conselho,
@@ -1900,9 +1889,17 @@ class ProcessoController extends Controller
                 ->filter(fn ($responsavel) => !empty($responsavel['nome']))
                 ->values()
                 ->all(),
-            'observacao_responsaveis_tecnicos' => $responsaveisTecnicosInvalidosDescartados
-                ? 'Foram encontrados cadastros de RT com nome empresarial do estabelecimento; esses nomes foram desconsiderados na comparação.'
-                : null,
+            'responsaveis_legais' => $estabelecimento->responsaveisLegais
+                ->map(function ($responsavel) {
+                    return [
+                        'nome' => (string) ($responsavel->nome ?? ''),
+                        'cpf' => (string) preg_replace('/\D/', '', $responsavel->cpf ?? ''),
+                        'cpf_formatado' => (string) ($responsavel->cpf_formatado ?? ''),
+                    ];
+                })
+                ->filter(fn ($responsavel) => !empty($responsavel['nome']))
+                ->values()
+                ->all(),
         ];
 
         // Tenta extrair texto do PDF
@@ -2023,14 +2020,19 @@ class ProcessoController extends Controller
 
                 $dados .= $linhaResponsavel . "\n";
             }
-            if (!empty($dadosEstab['observacao_responsaveis_tecnicos'])) {
-                $dados .= "- Observação sobre RTs: {$dadosEstab['observacao_responsaveis_tecnicos']}\n";
-            }
-        } elseif (!empty($dadosEstab['observacao_responsaveis_tecnicos'])) {
-            $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum nome válido para comparação\n";
-            $dados .= "- Observação sobre RTs: {$dadosEstab['observacao_responsaveis_tecnicos']}\n";
         } else {
             $dados .= "- Responsáveis Técnicos ativos no sistema: nenhum cadastrado\n";
+        }
+
+        if (!empty($dadosEstab['responsaveis_legais'])) {
+            $dados .= "- Responsáveis Legais ativos no sistema:\n";
+            foreach ($dadosEstab['responsaveis_legais'] as $responsavelLegal) {
+                $linhaResponsavel = '  - ' . $responsavelLegal['nome'];
+                if (!empty($responsavelLegal['cpf_formatado']) || !empty($responsavelLegal['cpf'])) {
+                    $linhaResponsavel .= ' | CPF: ' . ($responsavelLegal['cpf_formatado'] ?: $responsavelLegal['cpf']);
+                }
+                $dados .= $linhaResponsavel . "\n";
+            }
         }
 
         $orientacaoAdicional = trim((string) $orientacaoAdicional);
