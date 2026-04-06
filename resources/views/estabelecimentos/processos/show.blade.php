@@ -5145,12 +5145,26 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
                             });
                             const data = await response.json();
                             if (!response.ok || data.error) {
-                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: data.error || 'Erro ao analisar' });
+                                let motivo = data.error || 'Erro ao analisar';
+                                if (response.status === 402) {
+                                    motivo = 'Créditos da API esgotados. Verifique o saldo da conta Together AI.';
+                                } else if (response.status === 429) {
+                                    motivo = 'Limite de requisições atingido. Tente novamente em alguns minutos.';
+                                }
+                                this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo });
+                                // Se for erro de crédito/limite, para o lote
+                                if (response.status === 402 || response.status === 429) {
+                                    break;
+                                }
                             } else {
                                 this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: data.decisao, motivo: data.motivo });
                             }
                         } catch (e) {
                             this.iaLoteResultados.push({ id: doc.id, nome: doc.nome, decisao: 'erro', motivo: 'Falha de conexão' });
+                        }
+                        // Delay entre chamadas para não estourar rate limit
+                        if (this.iaLoteProgresso < this.iaLoteTotal) {
+                            await new Promise(r => setTimeout(r, 1500));
                         }
                     }
 

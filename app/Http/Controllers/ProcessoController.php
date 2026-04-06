@@ -2160,7 +2160,17 @@ PROMPT;
     {
         if (!$response->successful()) {
             \Log::error('IA: Erro na API', ['status' => $response->status(), 'body' => $response->body()]);
-            return ['error' => 'Erro ao consultar a IA (HTTP ' . $response->status() . '). Verifique as configurações de API.'];
+            
+            $status = $response->status();
+            $mensagem = match($status) {
+                402 => 'Créditos da API esgotados. Verifique o saldo da conta Together AI.',
+                429 => 'Limite de requisições da API atingido. Aguarde alguns minutos e tente novamente.',
+                401 => 'Chave de API inválida ou expirada. Verifique em Configurações > Sistema.',
+                503 => 'Serviço da IA temporariamente indisponível. Tente novamente em instantes.',
+                default => 'Erro ao consultar a IA (HTTP ' . $status . '). Verifique as configurações de API.',
+            };
+            
+            return ['error' => $mensagem];
         }
 
         $data    = $response->json();
