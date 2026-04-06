@@ -578,8 +578,9 @@ class OrdemServicoController extends Controller
         if (!empty($estabelecimentosIds)) {
             $validated['estabelecimento_id'] = $estabelecimentosIds[0];
             // Processo principal = processo do primeiro estabelecimento (compatibilidade)
-            if (isset($processosEstabelecimentos[$estabelecimentosIds[0]])) {
-                $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
+            $processoDoEstab = $processosEstabelecimentos[$estabelecimentosIds[0]] ?? null;
+            if (!empty($processoDoEstab)) {
+                $validated['processo_id'] = (int) $processoDoEstab;
             }
         }
         
@@ -635,6 +636,12 @@ class OrdemServicoController extends Controller
                 $validated['processo_id'] = $processosEstabelecimentos[$estabelecimentosIds[0]];
             } else {
                 $validated['processo_id'] = null;
+            }
+        } elseif (!empty($estabelecimentosIds) && count($estabelecimentosIds) === 1) {
+            // Mesmo estabelecimento, 1 só - usa o processo selecionado no formulário
+            $processoDoEstab = $processosEstabelecimentos[$estabelecimentosIds[0]] ?? null;
+            if (!empty($processoDoEstab)) {
+                $validated['processo_id'] = (int) $processoDoEstab;
             }
         }
 
