@@ -130,8 +130,10 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinatário</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processo</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estabelecimento</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visualizado</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
@@ -151,14 +153,33 @@
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600">
                             @if($mensagem->documentoDigital)
-                                <div class="font-medium text-gray-900">{{ $mensagem->documentoDigital->tipoDocumento->nome ?? 'N/A' }}</div>
-                                <div class="text-xs text-gray-500">#{{ $mensagem->documentoDigital->numero_formatado ?? $mensagem->documento_digital_id }}</div>
+                                <a href="{{ route('admin.documentos.show', $mensagem->documentoDigital->id) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    <div class="font-medium">{{ $mensagem->documentoDigital->tipoDocumento->nome ?? 'N/A' }}</div>
+                                    <div class="text-xs">#{{ $mensagem->documentoDigital->numero_formatado ?? $mensagem->documento_digital_id }}</div>
+                                </a>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            @if($mensagem->documentoDigital && $mensagem->documentoDigital->processo)
+                                <a href="{{ route('admin.estabelecimentos.processos.show', [$mensagem->documentoDigital->processo->estabelecimento_id, $mensagem->documentoDigital->processo->id]) }}"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline text-xs font-medium">
+                                    {{ $mensagem->documentoDigital->processo->numero_processo }}
+                                </a>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate" title="{{ $mensagem->estabelecimento->nome_fantasia ?? '' }}">
-                            {{ $mensagem->estabelecimento->nome_fantasia ?? $mensagem->estabelecimento->razao_social ?? '-' }}
+                            @if($mensagem->estabelecimento)
+                                <a href="{{ route('admin.estabelecimentos.show', $mensagem->estabelecimento->id) }}"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    {{ $mensagem->estabelecimento->nome_fantasia ?? $mensagem->estabelecimento->razao_social ?? '-' }}
+                                </a>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             @php
@@ -183,6 +204,25 @@
                                 <div class="text-xs text-gray-400 mt-1">
                                     Enviado: {{ $mensagem->enviado_em->format('d/m H:i') }}
                                 </div>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            @if($mensagem->lido_em)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700" title="Lido em {{ $mensagem->lido_em->format('d/m/Y H:i') }}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Sim
+                                </span>
+                                <div class="text-[10px] text-gray-400 mt-0.5">{{ $mensagem->lido_em->format('d/m H:i') }}</div>
+                            @elseif($mensagem->status === 'lido')
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Sim
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Não
+                                </span>
                             @endif
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm">

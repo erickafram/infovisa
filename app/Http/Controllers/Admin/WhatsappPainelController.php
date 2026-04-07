@@ -14,7 +14,7 @@ class WhatsappPainelController extends Controller
      */
     public function index(Request $request)
     {
-        $query = WhatsappMensagem::with(['documentoDigital.tipoDocumento', 'estabelecimento', 'usuarioExterno'])
+        $query = WhatsappMensagem::with(['documentoDigital.tipoDocumento', 'documentoDigital.processo', 'estabelecimento', 'usuarioExterno'])
             ->orderBy('created_at', 'desc');
 
         // Filtro por status
