@@ -149,6 +149,18 @@ class WhatsappPainelController extends Controller
     }
 
     /**
+     * Excluir registro de mensagem
+     */
+    public function destroy($id)
+    {
+        $mensagem = WhatsappMensagem::findOrFail($id);
+        $mensagem->delete();
+
+        return redirect()->route('admin.whatsapp.painel')
+            ->with('success', 'Registro excluído com sucesso.');
+    }
+
+    /**
      * Exportar log de mensagens (CSV)
      */
     public function exportar(Request $request)

@@ -767,6 +767,7 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
         Route::get('/mensagens/{id}/detalhes', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'detalhes'])->name('mensagens.detalhes');
         Route::post('/mensagens/{id}/reenviar', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'reenviar'])->name('mensagens.reenviar');
         Route::post('/reenviar-todas', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'reenviarTodas'])->name('reenviar-todas');
+        Route::delete('/mensagens/{id}', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'destroy'])->name('mensagens.destroy');
         Route::get('/exportar', [\App\Http\Controllers\Admin\WhatsappPainelController::class, 'exportar'])->name('exportar');
     });
     
