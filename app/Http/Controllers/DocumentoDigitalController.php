@@ -92,23 +92,27 @@ class DocumentoDigitalController extends Controller
             ->orderBy('nome')
             ->get();
         
-        // Estatísticas para badges
-        $statsQuery = $this->montarQueryDocumentosIndex($usuarioLogado, $escopo);
+        // Estatísticas para badges (sem eager loading, apenas count)
+        $statsBaseQuery = function() use ($usuarioLogado, $escopo) {
+            $q = DocumentoDigital::query();
+            if ($escopo === 'setor') {
+                $tecnicosIds = $this->buscarTecnicosDoSetorIds($usuarioLogado);
+                return empty($tecnicosIds) ? $q->whereRaw('1 = 0') : $q->whereIn('usuario_criador_id', $tecnicosIds);
+            }
+            return $q->where(function($sq) use ($usuarioLogado) {
+                $sq->where('usuario_criador_id', $usuarioLogado->id)
+                   ->orWhereHas('assinaturas', fn($aq) => $aq->where('usuario_interno_id', $usuarioLogado->id));
+            });
+        };
         $stats = [
-            'rascunhos' => (clone $statsQuery)->where('status', 'rascunho')->when($escopo === 'meus', fn($q) => $q->where('usuario_criador_id', $usuarioLogado->id))->count(),
+            'rascunhos' => $statsBaseQuery()->where('status', 'rascunho')->when($escopo === 'meus', fn($q) => $q->where('usuario_criador_id', $usuarioLogado->id))->count(),
             'aguardando_minha_assinatura' => $escopo === 'setor'
-                ? (clone $statsQuery)->where('status', 'aguardando_assinatura')->count()
-                : (clone $statsQuery)->where('status', 'aguardando_assinatura')->whereHas('assinaturas', function($q) use ($usuarioLogado) {
-                    $q->where('usuario_interno_id', $usuarioLogado->id)
-                      ->where('status', 'pendente');
-                })->count(),
+                ? $statsBaseQuery()->where('status', 'aguardando_assinatura')->count()
+                : $statsBaseQuery()->where('status', 'aguardando_assinatura')->whereHas('assinaturas', fn($q) => $q->where('usuario_interno_id', $usuarioLogado->id)->where('status', 'pendente'))->count(),
             'assinados_por_mim' => $escopo === 'setor'
-                ? (clone $statsQuery)->where('status', 'assinado')->count()
-                : (clone $statsQuery)->whereHas('assinaturas', function($q) use ($usuarioLogado) {
-                    $q->where('usuario_interno_id', $usuarioLogado->id)
-                      ->where('status', 'assinado');
-                })->count(),
-            'com_prazos' => (clone $statsQuery)->whereNotNull('data_vencimento')->count(),
+                ? $statsBaseQuery()->where('status', 'assinado')->count()
+                : $statsBaseQuery()->whereHas('assinaturas', fn($q) => $q->where('usuario_interno_id', $usuarioLogado->id)->where('status', 'assinado'))->count(),
+            'com_prazos' => $statsBaseQuery()->whereNotNull('data_vencimento')->count(),
         ];
 
         return view('documentos.index', compact('documentos', 'filtroStatus', 'stats', 'tiposDocumento', 'escopo', 'podeVerDocumentosDoSetor'));

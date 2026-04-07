@@ -128,21 +128,20 @@ class EstabelecimentoController extends Controller
     {
         $usuarioInterno = auth('interno')->user();
 
-        // Buscar estabelecimentos do usuário logado (externo ou interno)
         $query = Estabelecimento::query();
 
-        // Se usuário externo estiver logado, mostrar apenas seus estabelecimentos
         if (auth('externo')->check()) {
             $query->doUsuario(auth('externo')->id());
         }
 
-        // Se usuário interno estiver logado, aplicar filtros baseados no perfil
         if (auth('interno')->check()) {
-            // Aplica filtro baseado no perfil do usuário
             $query->paraUsuario($usuarioInterno);
-            
-            // Mostrar apenas estabelecimentos aprovados
             $query->aprovados();
+
+            // Filtro por município direto no banco para usuários municipais
+            if ($usuarioInterno->isMunicipal() && $usuarioInterno->municipio_id) {
+                $query->where('municipio_id', $usuarioInterno->municipio_id);
+            }
         }
 
         // Filtro de município
@@ -153,61 +152,55 @@ class EstabelecimentoController extends Controller
         // Filtro de busca
         if ($request->filled('search')) {
             $search = $request->search;
-            // Remove formatação de CNPJ/CPF para busca (pontos, traços, barras)
             $searchLimpo = preg_replace('/[^a-zA-Z0-9]/', '', $search);
             
             $query->where(function ($q) use ($search, $searchLimpo) {
-                // Busca case-insensitive usando ILIKE (PostgreSQL) ou LOWER (MySQL)
-                $q->whereRaw('LOWER(nome_fantasia) LIKE ?', ['%' . strtolower($search) . '%'])
-                  ->orWhereRaw('LOWER(razao_social) LIKE ?', ['%' . strtolower($search) . '%'])
-                  ->orWhereRaw('LOWER(cidade) LIKE ?', ['%' . strtolower($search) . '%']);
+                $q->where('nome_fantasia', 'ilike', '%' . $search . '%')
+                  ->orWhere('razao_social', 'ilike', '%' . $search . '%')
+                  ->orWhere('cidade', 'ilike', '%' . $search . '%');
                 
-                // Busca por CNPJ/CPF - tanto formatado quanto sem formatação
                 if (!empty($searchLimpo)) {
-                    $q->orWhere('cnpj', 'like', "%{$search}%")
-                      ->orWhere('cnpj', 'like', "%{$searchLimpo}%")
-                      ->orWhereRaw("REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '-', ''), '/', '') LIKE ?", ['%' . $searchLimpo . '%'])
-                      ->orWhere('cpf', 'like', "%{$search}%")
-                      ->orWhere('cpf', 'like', "%{$searchLimpo}%")
-                      ->orWhereRaw("REPLACE(REPLACE(cpf, '.', ''), '-', '') LIKE ?", ['%' . $searchLimpo . '%']);
+                    $q->orWhere('cnpj', 'like', "%{$searchLimpo}%")
+                      ->orWhere('cpf', 'like', "%{$searchLimpo}%");
                 }
             });
         }
 
-        $estabelecimentosFiltrados = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        if (auth('interno')->check()) {
-            $estabelecimentosFiltrados = $this->filtrarEstabelecimentosPorEscopo($estabelecimentosFiltrados, $usuarioInterno);
-        }
-        
-        // Filtro por Grupo de Risco
+        // Filtro por Grupo de Risco (precisa ser em memória pois é calculado)
         if ($request->filled('risco')) {
             $riscoFiltro = $request->risco;
-            $estabelecimentosFiltrados = $estabelecimentosFiltrados->filter(function ($estabelecimento) use ($riscoFiltro) {
-                return $estabelecimento->getGrupoRisco() === $riscoFiltro;
-            })->values();
+            $estabelecimentosFiltrados = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->filter(fn ($e) => $e->getGrupoRisco() === $riscoFiltro)
+                ->values();
+            $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados, 10, $request);
+        } else {
+            // Paginação direto no banco (muito mais rápido)
+            $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(10)
+                ->withQueryString();
         }
 
-        $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados, 10, $request);
-
-        // Estatísticas para o dashboard
-        // Cada contagem precisa de uma query separada para evitar acúmulo de filtros
-        $baseQuery = function() {
-            $query = Estabelecimento::query();
+        // Estatísticas com contagem direto no banco (sem carregar registros)
+        $baseQuery = function() use ($usuarioInterno) {
+            $q = Estabelecimento::query();
             if (auth('interno')->check()) {
-                $query->paraUsuario(auth('interno')->user());
+                $q->paraUsuario($usuarioInterno);
+                if ($usuarioInterno->isMunicipal() && $usuarioInterno->municipio_id) {
+                    $q->where('municipio_id', $usuarioInterno->municipio_id);
+                }
             }
-            return $query;
+            return $q;
         };
         
         $estatisticas = [
-            'total' => auth('interno')->check() ? $this->contarEstabelecimentosPorEscopo($baseQuery()->aprovados(), $usuarioInterno) : $baseQuery()->aprovados()->count(),
-            'pendentes' => auth('interno')->check() ? $this->contarEstabelecimentosPorEscopo($baseQuery()->pendentes(), $usuarioInterno) : $baseQuery()->pendentes()->count(),
-            'aprovados' => auth('interno')->check() ? $this->contarEstabelecimentosPorEscopo($baseQuery()->aprovados()->where('ativo', true), $usuarioInterno) : $baseQuery()->aprovados()->where('ativo', true)->count(),
-            'rejeitados' => auth('interno')->check() ? $this->contarEstabelecimentosPorEscopo($baseQuery()->rejeitados(), $usuarioInterno) : $baseQuery()->rejeitados()->count(),
-            'desativados' => auth('interno')->check() ? $this->contarEstabelecimentosPorEscopo($baseQuery()->where('ativo', false), $usuarioInterno) : $baseQuery()->where('ativo', false)->count(),
+            'total' => $baseQuery()->aprovados()->count(),
+            'pendentes' => $baseQuery()->pendentes()->count(),
+            'aprovados' => $baseQuery()->aprovados()->where('ativo', true)->count(),
+            'rejeitados' => $baseQuery()->rejeitados()->count(),
+            'desativados' => $baseQuery()->where('ativo', false)->count(),
         ];
 
         return view('estabelecimentos.index', compact('estabelecimentos', 'estatisticas'));

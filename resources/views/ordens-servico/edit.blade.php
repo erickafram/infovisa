@@ -795,7 +795,7 @@
         }
 
         // Selecionar processo para um estabelecimento específico (edit)
-        function selecionarProcessoEstabelecimentoEdit(estId, processoId) {
+        window.selecionarProcessoEstabelecimentoEdit = function(estId, processoId) {
             const hiddenInput = document.getElementById(`processo-hidden-est-edit-${estId}`);
             if (hiddenInput) {
                 hiddenInput.value = processoId;
