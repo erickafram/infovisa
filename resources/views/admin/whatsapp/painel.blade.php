@@ -207,17 +207,15 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-center">
-                            @if($mensagem->lido_em)
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700" title="Lido em {{ $mensagem->lido_em->format('d/m/Y H:i') }}">
+                            @php
+                                $visualizacao = $mensagem->documentoDigital?->primeiraVisualizacao;
+                            @endphp
+                            @if($visualizacao)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700" title="Visualizado por {{ $visualizacao->usuarioExterno->nome ?? 'N/D' }} em {{ $visualizacao->created_at->format('d/m/Y H:i') }}">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     Sim
                                 </span>
-                                <div class="text-[10px] text-gray-400 mt-0.5">{{ $mensagem->lido_em->format('d/m H:i') }}</div>
-                            @elseif($mensagem->status === 'lido')
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                    Sim
-                                </span>
+                                <div class="text-[10px] text-gray-400 mt-0.5">{{ $visualizacao->created_at->format('d/m H:i') }}</div>
                             @else
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
