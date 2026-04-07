@@ -26,7 +26,7 @@
     </div>
     @endif
 
-    <div x-data="whatsappConfig()" x-init="verificarStatus()">
+    <div x-data="whatsappConfig()" x-init="verificarStatus(); iniciarMonitoramento()">
 
         {{-- Status da Conexão --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -43,6 +43,7 @@
                               'bg-green-100 text-green-800': statusConexao === 'conectado',
                               'bg-yellow-100 text-yellow-800': statusConexao === 'aguardando_qr',
                               'bg-red-100 text-red-800': statusConexao === 'desconectado',
+                              'bg-blue-100 text-blue-800': statusConexao === 'reconectando',
                               'bg-gray-100 text-gray-800': statusConexao === 'verificando'
                           }">
                         <span class="w-2 h-2 rounded-full"
@@ -50,6 +51,7 @@
                                   'bg-green-500': statusConexao === 'conectado',
                                   'bg-yellow-500 animate-pulse': statusConexao === 'aguardando_qr',
                                   'bg-red-500': statusConexao === 'desconectado',
+                                  'bg-blue-500 animate-pulse': statusConexao === 'reconectando',
                                   'bg-gray-400 animate-pulse': statusConexao === 'verificando'
                               }"></span>
                         <span x-text="statusTexto"></span>
@@ -300,13 +302,16 @@ function whatsappConfig() {
         testeFeedback: '',
         testeTipo: '',
         pollingInterval: null,
+        autoReconectando: false,
+        monitorInterval: null,
 
         get statusTexto() {
             const textos = {
                 'conectado': 'Conectado',
                 'desconectado': 'Desconectado',
                 'aguardando_qr': 'Aguardando QR Code',
-                'verificando': 'Verificando...'
+                'verificando': 'Verificando...',
+                'reconectando': 'Reconectando...'
             };
             return textos[this.statusConexao] || this.statusConexao;
         },
@@ -327,11 +332,78 @@ function whatsappConfig() {
                 if (data.mensagem && !data.sucesso) {
                     this.mostrarFeedback(data.mensagem, 'erro');
                 }
+                // Auto-reconectar se desconectou
+                if (this.statusConexao === 'desconectado' && !this.autoReconectando) {
+                    this.tentarAutoReconectar();
+                }
             } catch (e) {
                 this.statusConexao = 'desconectado';
                 this.mostrarFeedback('Erro ao verificar status: ' + e.message, 'erro');
             }
             this.carregando = false;
+        },
+
+        async tentarAutoReconectar() {
+            this.autoReconectando = true;
+            this.statusConexao = 'reconectando';
+            this.mostrarFeedback('Desconectado. Tentando reconectar em 3 segundos...', 'aviso');
+            
+            await new Promise(r => setTimeout(r, 3000));
+            
+            try {
+                const response = await fetch('{{ route("admin.whatsapp.iniciar-sessao") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+                const data = await response.json();
+                if (data.sucesso) {
+                    this.qrCode = data.qr_code || data.qr || null;
+                    this.statusConexao = data.qr_code ? 'aguardando_qr' : 'conectado';
+                    this.mostrarFeedback('Reconectando... ' + (data.mensagem || ''), 'sucesso');
+                    this.iniciarPolling();
+                } else {
+                    this.statusConexao = 'desconectado';
+                    this.mostrarFeedback('Falha ao reconectar: ' + (data.mensagem || ''), 'erro');
+                }
+            } catch (e) {
+                this.statusConexao = 'desconectado';
+                this.mostrarFeedback('Erro ao reconectar: ' + e.message, 'erro');
+            }
+            this.autoReconectando = false;
+        },
+
+        iniciarMonitoramento() {
+            this.pararMonitoramento();
+            // Verifica status a cada 60 segundos
+            this.monitorInterval = setInterval(() => {
+                if (this.statusConexao === 'conectado') {
+                    this.verificarStatusSilencioso();
+                }
+            }, 60000);
+        },
+
+        pararMonitoramento() {
+            if (this.monitorInterval) {
+                clearInterval(this.monitorInterval);
+                this.monitorInterval = null;
+            }
+        },
+
+        async verificarStatusSilencioso() {
+            try {
+                const response = await fetch('{{ route("admin.whatsapp.status") }}');
+                const data = await response.json();
+                const novoStatus = data.status || 'desconectado';
+                if (novoStatus !== 'conectado' && this.statusConexao === 'conectado') {
+                    this.statusConexao = novoStatus;
+                    this.tentarAutoReconectar();
+                }
+            } catch (e) {
+                // Silencioso - não mostra erro
+            }
         },
 
         async iniciarSessao() {

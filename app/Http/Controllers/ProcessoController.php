@@ -239,6 +239,16 @@ class ProcessoController extends Controller
                 ->values();
         }
 
+        // Filtro: processos monitorados pelo usuário
+        if ($request->boolean('monitorando')) {
+            $idsMonitorados = \DB::table('processo_acompanhamentos')
+                ->where('usuario_interno_id', $usuario->id)
+                ->pluck('processo_id');
+            $processosCollection = $processosCollection
+                ->whereIn('id', $idsMonitorados)
+                ->values();
+        }
+
         // Dados para filtros
         $codigosTiposVisiveis = $processosCollection
             ->pluck('tipo')

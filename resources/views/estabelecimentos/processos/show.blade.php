@@ -1688,6 +1688,11 @@
                                                                                 • <span class="text-green-600">✓ {{ $resposta->avaliadoPor->nome }}</span>
                                                                             @endif
                                                                         </p>
+                                                                        @if($resposta->status === 'rejeitado' && $resposta->motivo_rejeicao)
+                                                                        <p class="text-[10px] text-red-600 mt-0.5 leading-relaxed">
+                                                                            <span class="font-semibold">Motivo:</span> {{ $resposta->motivo_rejeicao }}
+                                                                        </p>
+                                                                        @endif
                                                                     </div>
                                                                     
                                                                     {{-- Ações da resposta --}}
@@ -2622,12 +2627,19 @@
                                                 </span>
                                             </template>
                                             <template x-if="respostaAtual.status === 'rejeitado'">
-                                                <span class="text-xs text-red-600 font-medium truncate max-w-[250px]" :title="respostaAtual.motivoRejeicao">
-                                                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                    </svg>
-                                                    Rejeitado: <span x-text="respostaAtual.motivoRejeicao"></span>
-                                                </span>
+                                                <div class="w-full">
+                                                    <div class="p-2.5 bg-red-50 border border-red-200 rounded-lg">
+                                                        <div class="flex items-start gap-2">
+                                                            <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            <div class="min-w-0">
+                                                                <p class="text-xs font-semibold text-red-700">Rejeitado</p>
+                                                                <p class="text-xs text-red-600 mt-0.5 leading-relaxed" x-text="respostaAtual.motivoRejeicao || 'Sem motivo informado'"></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </template>
                                         </div>
 
