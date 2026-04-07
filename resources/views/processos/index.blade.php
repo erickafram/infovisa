@@ -27,6 +27,7 @@
 
     @php
         $filtrosAtivos = [
+            'Monitorando' => request()->boolean('monitorando') ? 'Processos que acompanho' : null,
             'Busca' => request('busca'),
             'Tipo' => $tiposProcesso->firstWhere('codigo', request('tipo'))->nome ?? null,
             'Status' => request('status') ? ($statusDisponiveis[request('status')] ?? request('status')) : null,
@@ -67,7 +68,7 @@
                         </svg>
                         Filtros
                     </h3>
-                    @if(request()->hasAny(['busca', 'tipo', 'status', 'docs_obrigatorios', 'ano', 'responsavel', 'setor', 'ordenacao']))
+                    @if(request()->hasAny(['busca', 'tipo', 'status', 'docs_obrigatorios', 'ano', 'responsavel', 'setor', 'ordenacao', 'monitorando']))
                         <a href="{{ route('admin.processos.index-geral') }}" class="text-xs text-red-500 hover:text-red-700 font-medium" title="Limpar todos os filtros">Limpar</a>
                     @endif
                 </div>
