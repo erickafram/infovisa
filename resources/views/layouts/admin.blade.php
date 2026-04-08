@@ -94,6 +94,7 @@
                 sidebarOpen: false,
                 sidebarExpanded: initialExpanded,
                 userMenuOpen: false,
+                helpMenuOpen: false,
                 isMobile: window.innerWidth < 1024,
                 
                 init() {

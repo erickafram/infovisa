@@ -382,9 +382,10 @@ class AssistenteIAController extends Controller
             . "SELEÇÃO DO DOCUMENTO CORRETO:\n"
             . "- Cada documento trata de um ASSUNTO ESPECÍFICO. Identifique qual documento é o correto para a pergunta.\n"
             . "- O documento marcado como [MAIS RELEVANTE] foi selecionado automaticamente, mas CONFIRME se o conteúdo realmente responde à pergunta.\n"
+            . "- 'Manual InfoVISA 3.0' → guia completo do sistema: cadastro, estabelecimentos, processos, documentos, responsáveis, alertas, perfil. USE COMO FONTE PRINCIPAL.\n"
             . "- 'INSTRUTIVO DARE' → trata de gerar boletos/guias DARE para pagamento de taxas.\n"
             . "- 'Instrutivo INFOVISA' ou 'MANUAL DE CADASTRO' → trata de cadastrar estabelecimentos, abrir processos, usar o sistema InfoVISA.\n"
-            . "- Se a pergunta é sobre cadastro de estabelecimento, use o Instrutivo INFOVISA ou MANUAL DE CADASTRO, NÃO o INSTRUTIVO DARE.\n"
+            . "- Se a pergunta é sobre como usar o sistema (cadastro, processos, documentos, responsáveis), priorize o 'Manual InfoVISA 3.0'.\n"
             . "- Se a pergunta é sobre gerar DARE/boleto/guia de pagamento, use o INSTRUTIVO DARE.\n"
             . "\n"
             . "FORMATO DE RESPOSTA:\n"
@@ -405,69 +406,62 @@ class AssistenteIAController extends Controller
     {
         $documentos = DocumentoAjuda::ativos()->ordenado()->get(['id', 'titulo', 'arquivo', 'updated_at']);
 
-        if ($documentos->isEmpty()) {
-            return [];
-        }
-
         $hashBase = md5(
             $documentos->count() . '|' .
             optional($documentos->max('updated_at'))->timestamp . '|' .
-            $documentos->pluck('id')->implode('-')
+            $documentos->pluck('id')->implode('-') . '|manual-v1'
         );
 
         return Cache::remember("ia_externo_docs_{$hashBase}", now()->addMinutes(20), function () use ($documentos) {
-            $parser = new PdfParser();
             $base = [];
 
-            foreach ($documentos as $doc) {
+            // 1. Carrega o Manual InfoVISA 3.0 (HTML fixo)
+            $manualPath = public_path('Manual/manual-infovisa.html');
+            if (file_exists($manualPath)) {
                 try {
-                    if (empty($doc->arquivo)) {
-                        \Log::warning('DocumentoAjuda sem arquivo para IA externa', [
-                            'documento_id' => $doc->id,
-                            'titulo' => $doc->titulo,
-                        ]);
-                        continue;
+                    $htmlContent = file_get_contents($manualPath);
+                    // Extrai apenas o texto do HTML (remove tags, scripts, styles)
+                    $textoManual = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $htmlContent);
+                    $textoManual = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $textoManual);
+                    $textoManual = strip_tags($textoManual);
+                    $textoManual = preg_replace('/\s+/', ' ', $textoManual);
+                    $textoManual = trim($textoManual);
+
+                    if (mb_strlen($textoManual) > 100) {
+                        $base[] = [
+                            'titulo' => 'Manual InfoVISA 3.0 — Guia Completo do Sistema',
+                            'conteudo' => mb_substr($textoManual, 0, 50000),
+                        ];
                     }
-
-                    if (!Storage::disk('local')->exists($doc->arquivo)) {
-                        \Log::warning('Arquivo de DocumentoAjuda não encontrado no disco', [
-                            'documento_id' => $doc->id,
-                            'titulo' => $doc->titulo,
-                            'arquivo' => $doc->arquivo,
-                            'path_tentado' => Storage::disk('local')->path($doc->arquivo),
-                        ]);
-                        continue;
-                    }
-
-                    $caminhoArquivo = Storage::disk('local')->path($doc->arquivo);
-                    $pdf = $parser->parseFile($caminhoArquivo);
-                    $texto = $this->normalizarTextoDocumentoAjuda($pdf->getText() ?? '');
-
-                    \Log::info('DocumentoAjuda extraído para IA externa', [
-                        'documento_id' => $doc->id,
-                        'titulo' => $doc->titulo,
-                        'texto_length' => mb_strlen($texto),
-                    ]);
-
-                    if (mb_strlen($texto) < 40) {
-                        \Log::warning('DocumentoAjuda com texto muito curto', [
-                            'documento_id' => $doc->id,
-                            'titulo' => $doc->titulo,
-                            'texto_length' => mb_strlen($texto),
-                        ]);
-                        continue;
-                    }
-
-                    $base[] = [
-                        'titulo' => $doc->titulo,
-                        'conteudo' => mb_substr($texto, 0, 50000),
-                    ];
                 } catch (\Throwable $e) {
-                    \Log::warning('Falha ao extrair DocumentoAjuda para IA externa', [
-                        'documento_id' => $doc->id,
-                        'titulo' => $doc->titulo,
-                        'erro' => $e->getMessage(),
-                    ]);
+                    \Log::warning('Falha ao carregar Manual InfoVISA para IA externa', ['erro' => $e->getMessage()]);
+                }
+            }
+
+            // 2. Carrega documentos de ajuda do banco (PDFs)
+            if ($documentos->isNotEmpty()) {
+                $parser = new PdfParser();
+                foreach ($documentos as $doc) {
+                    try {
+                        if (empty($doc->arquivo)) continue;
+                        if (!Storage::disk('local')->exists($doc->arquivo)) continue;
+
+                        $caminhoArquivo = Storage::disk('local')->path($doc->arquivo);
+                        $pdf = $parser->parseFile($caminhoArquivo);
+                        $texto = $this->normalizarTextoDocumentoAjuda($pdf->getText() ?? '');
+
+                        if (mb_strlen($texto) < 40) continue;
+
+                        $base[] = [
+                            'titulo' => $doc->titulo,
+                            'conteudo' => mb_substr($texto, 0, 50000),
+                        ];
+                    } catch (\Throwable $e) {
+                        \Log::warning('Falha ao extrair DocumentoAjuda para IA externa', [
+                            'documento_id' => $doc->id,
+                            'erro' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 

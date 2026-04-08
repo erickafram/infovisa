@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual do Usuário – InfoVISA 3.0</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+      color: #222;
+      line-height: 1.7;
+    }
+
+    /* ── SIDEBAR NAV FIXA ── */
+    .sidebar-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 270px;
+      height: 100vh;
+      background: #0d2d6b;
+      color: #fff;
+      overflow-y: auto;
+      z-index: 1000;
+      padding: 20px 0;
+      transition: transform .3s ease;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.2) transparent;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 5px; }
+    .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+
+    .sidebar-logo {
+      text-align: center;
+      padding: 10px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      margin-bottom: 10px;
+    }
+    .sidebar-logo .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .sidebar-logo .logo-text span { color: #f7c948; }
+    .sidebar-logo .version {
+      font-size: 11px;
+      opacity: .6;
+      margin-top: 4px;
+    }
+
+    .sidebar-nav ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar-nav li a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      color: rgba(255,255,255,.75);
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all .2s ease;
+    }
+    .sidebar-nav li a:hover {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+    }
+    .sidebar-nav li a.active {
+      background: rgba(255,255,255,.12);
+      color: #f7c948;
+      border-left-color: #f7c948;
+      font-weight: 600;
+    }
+    .sidebar-nav li a .nav-num {
+      background: rgba(255,255,255,.15);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .sidebar-nav li a.active .nav-num {
+      background: #f7c948;
+      color: #0d2d6b;
+    }
+
+    /* ── BREADCRUMB FLUTUANTE ── */
+    .breadcrumb-bar {
+      position: fixed;
+      top: 0;
+      left: 270px;
+      right: 0;
+      height: 48px;
+      background: #fff;
+      border-bottom: 1px solid #e0e7f3;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      z-index: 999;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      font-size: 13px;
+      color: #666;
+      gap: 8px;
+    }
+    .breadcrumb-bar .bc-home { color: #1a4fa0; text-decoration: none; }
+    .breadcrumb-bar .bc-home:hover { text-decoration: underline; }
+    .breadcrumb-bar .bc-sep { color: #ccc; }
+    .breadcrumb-bar .bc-current { color: #1a4fa0; font-weight: 600; }
+
+    /* ── BOTÃO MOBILE ── */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #1a4fa0;
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 1100;
+      box-shadow: 0 4px 16px rgba(0,0,0,.25);
+      transition: transform .2s;
+    }
+    .sidebar-toggle:hover { transform: scale(1.1); }
+
+    /* ── OVERLAY MOBILE ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 999;
+    }
+
+    /* ── CONTEÚDO PRINCIPAL ── */
+    .main-content {
+      margin-left: 270px;
+      padding-top: 48px;
+    }
+
+    /* ── CAPA ── */
+    .capa {
+      background: linear-gradient(135deg, #1a4fa0 0%, #0d2d6b 100%);
+      color: #fff;
+      text-align: center;
+      padding: 60px 40px 50px;
+    }
+    .capa .logo-text-capa {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+    .capa .logo-text-capa span { color: #f7c948; }
+    .capa h1 { font-size: 24px; font-weight: 400; margin-top: 10px; opacity: .9; }
+    .capa .subtitle { margin-top: 6px; font-size: 15px; opacity: .75; }
+    .capa .badge {
+      display: inline-block; margin-top: 20px;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.4);
+      border-radius: 30px; padding: 5px 22px; font-size: 13px;
+    }
+
+    .aviso-importante {
+      background: #fff3cd; border-left: 5px solid #f7c948;
+      padding: 18px 24px; margin: 30px auto; max-width: 900px;
+      border-radius: 6px; font-size: 14px;
+    }
+    .aviso-importante strong { color: #856404; }
+    .aviso-importante ul { margin-top: 8px; padding-left: 20px; }
+    .aviso-importante li { margin-bottom: 4px; }
+
+    /* ── SUMÁRIO ── */
+    .toc {
+      background: #fff; max-width: 900px; margin: 0 auto 40px;
+      border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      padding: 28px 32px;
+    }
+    .toc h2 { font-size: 18px; color: #1a4fa0; margin-bottom: 14px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 6px; }
+    .toc a { color: #1a4fa0; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── SEÇÕES ── */
+    .section {
+      max-width: 900px; margin: 0 auto 44px;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      overflow: hidden;
+      scroll-margin-top: 64px;
+    }
+    .section-header {
+      background: #1a4fa0; color: #fff;
+      padding: 16px 26px; display: flex; align-items: center; gap: 14px;
+    }
+    .section-header .num {
+      background: rgba(255,255,255,.25); border-radius: 50%;
+      width: 36px; height: 36px; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 19px; font-weight: 600; }
+    .section-body { padding: 26px 30px; }
+
+    /* ── SCREENSHOT ── */
+    .screenshot-box {
+      margin: 18px 0;
+      border: 2px solid #e0e7f3;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .screenshot-box .caption {
+      background: #e8eef8; padding: 8px 14px;
+      font-size: 13px; color: #1a4fa0; font-weight: 600;
+      border-bottom: 1px solid #d0dcf0;
+    }
+    .screenshot-box img { width: 100%; display: block; }
+
+    /* ── STEPS ── */
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      background: #1a4fa0; color: #fff;
+      border-radius: 50%; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+    .steps li .text { flex: 1; }
+
+    /* ── CALLOUTS ── */
+    .callout {
+      display: flex; gap: 12px; align-items: flex-start;
+      border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px;
+    }
+    .callout.dica { background: #e8f5e9; border-left: 4px solid #43a047; }
+    .callout.atencao { background: #fff3e0; border-left: 4px solid #fb8c00; }
+    .callout.nota { background: #e3f2fd; border-left: 4px solid #1976d2; }
+    .callout.perigo { background: #fce4ec; border-left: 4px solid #e53935; }
+    .callout .icon { font-size: 20px; flex-shrink: 0; }
+    .callout .content strong { display: block; margin-bottom: 3px; }
+
+    /* ── CAMPOS ── */
+    .fields { background: #f9fbff; border: 1px solid #dce6f5; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+    .fields ul { list-style: disc; padding-left: 20px; }
+    .fields li { margin-bottom: 4px; font-size: 14px; }
+    .fields li strong { color: #1a4fa0; }
+
+    /* ── STATUS BADGES ── */
+    .badge-status {
+      display: inline-block; border-radius: 20px; padding: 3px 14px;
+      font-size: 12px; font-weight: 700;
+    }
+    .badge-aprovado { background: #e8f5e9; color: #388e3c; }
+    .badge-pendente { background: #fff3e0; color: #f57c00; }
+    .badge-rejeitado { background: #fce4ec; color: #c62828; }
+    .badge-aberto { background: #e3f2fd; color: #1565c0; }
+    .badge-parado { background: #f3e5f5; color: #7b1fa2; }
+
+    /* ── FAQ ── */
+    .faq-item { border-bottom: 1px solid #e8eef8; padding: 16px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-item .q { font-weight: 600; color: #1a4fa0; margin-bottom: 6px; }
+    .faq-item .a { color: #444; font-size: 14px; }
+
+    /* ── BOTÃO VOLTAR AO TOPO ── */
+    .back-to-top {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1a4fa0;
+      color: #fff;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: 998;
+      box-shadow: 0 3px 12px rgba(0,0,0,.2);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .3s, transform .3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back-to-top.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RODAPÉ ── */
+    footer {
+      text-align: center; padding: 32px;
+      color: #888; font-size: 13px; max-width: 900px; margin: 0 auto;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-bar {
+      position: fixed;
+      top: 48px;
+      left: 270px;
+      right: 0;
+      height: 3px;
+      background: #e0e7f3;
+      z-index: 998;
+    }
+    .progress-bar .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1a4fa0, #f7c948);
+      width: 0%;
+      transition: width .15s ease;
+    }
+
+    /* ── RESPONSIVO ── */
+    @media (max-width: 900px) {
+      .sidebar-nav { transform: translateX(-100%); }
+      .sidebar-nav.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+      .main-content { margin-left: 0; }
+      .breadcrumb-bar { left: 0; }
+      .progress-bar { left: 0; }
+      .section { margin-left: 16px; margin-right: 16px; }
+      .toc { margin-left: 16px; margin-right: 16px; }
+      .aviso-importante { margin-left: 16px; margin-right: 16px; }
+      .capa { padding: 40px 20px 30px; }
+      .capa .logo-text-capa { font-size: 36px; }
+      .capa h1 { font-size: 20px; }
+      .back-to-top { bottom: 80px; }
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      .sidebar-nav, .breadcrumb-bar, .sidebar-toggle, .back-to-top, .progress-bar { display: none !important; }
+      .main-content { margin-left: 0; padding-top: 0; }
+      body { background: #fff; }
+      .section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+      .capa { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ SIDEBAR NAVEGAÇÃO FIXA ════════════════ -->
+<nav class="sidebar-nav" id="sidebarNav">
+  <div class="sidebar-logo">
+    <div class="logo-text">info<span>VISA</span></div>
+    <div class="version">Manual do Usuário · v3.0</div>
+  </div>
+  <ul>
+    <li><a href="#sec-pagina-inicial" data-section="sec-pagina-inicial"><span class="nav-num">1</span> Página Inicial</a></li>
+    <li><a href="#sec-cadastro" data-section="sec-cadastro"><span class="nav-num">2</span> Criar Conta</a></li>
+    <li><a href="#sec-acesso" data-section="sec-acesso"><span class="nav-num">3</span> Login</a></li>
+    <li><a href="#sec-dashboard" data-section="sec-dashboard"><span class="nav-num">4</span> Dashboard</a></li>
+    <li><a href="#sec-estabelecimentos" data-section="sec-estabelecimentos"><span class="nav-num">5</span> Estabelecimentos</a></li>
+    <li><a href="#sec-novo-estab" data-section="sec-novo-estab"><span class="nav-num">6</span> Novo Estabelecimento</a></li>
+    <li><a href="#sec-responsaveis" data-section="sec-responsaveis"><span class="nav-num">7</span> Responsáveis</a></li>
+    <li><a href="#sec-processos" data-section="sec-processos"><span class="nav-num">8</span> Processos</a></li>
+    <li><a href="#sec-abrir-processo" data-section="sec-abrir-processo"><span class="nav-num">9</span> Abrir Processo</a></li>
+    <li><a href="#sec-alertas" data-section="sec-alertas"><span class="nav-num">10</span> Alertas</a></li>
+    <li><a href="#sec-perfil" data-section="sec-perfil"><span class="nav-num">11</span> Meu Perfil</a></li>
+    <li><a href="#sec-faq" data-section="sec-faq"><span class="nav-num">12</span> FAQ</a></li>
+  </ul>
+</nav>
+
+<!-- OVERLAY MOBILE -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- BOTÃO MENU MOBILE -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu de navegação">☰</button>
+
+<!-- BREADCRUMB FIXO -->
+<div class="breadcrumb-bar" id="breadcrumbBar">
+  <a href="#" class="bc-home">📖 Manual</a>
+  <span class="bc-sep">›</span>
+  <span class="bc-current" id="bcCurrent">Início</span>
+</div>
+
+<!-- BARRA DE PROGRESSO -->
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- BOTÃO VOLTAR AO TOPO -->
+<button class="back-to-top" id="backToTop" aria-label="Voltar ao topo">↑</button>
+
+<!-- ════════════════ CONTEÚDO PRINCIPAL ════════════════ -->
+<div class="main-content">
+
+<!-- ════════════════ CAPA ════════════════ -->
+<div class="capa">
+  <div class="logo-text-capa">info<span>VISA</span></div>
+  <h1>Manual do Usuário — Área do Estabelecimento</h1>
+  <div class="subtitle">Sistema de Vigilância Sanitária do Tocantins</div>
+  <div class="badge">Versão 3.0 &nbsp;|&nbsp; Março / 2026</div>
+</div>
+
+<!-- ════════════════ AVISO IMPORTANTE ════════════════ -->
+<div class="aviso-importante" style="margin-top:30px;">
+  <strong>⚠️ ATENÇÃO: Processos Antigos × Novos</strong>
+  <ul>
+    <li><strong>Processos de 2025 para trás:</strong> consulte o sistema antigo em
+      <code>https://sistemas.saude.to.gov.br/infovisa2</code></li>
+    <li><strong>Processos a partir de 2026:</strong> abra e acompanhe pelo InfoVISA 3.0.</li>
+  </ul>
+</div>
+
+<!-- ════════════════ SUMÁRIO ════════════════ -->
+<div class="toc" style="margin-top:10px;">
+  <h2>📋 Sumário</h2>
+  <ol>
+    <li><a href="#sec-pagina-inicial">Página Inicial do Sistema</a></li>
+    <li><a href="#sec-cadastro">Como se Cadastrar (Criar Conta)</a></li>
+    <li><a href="#sec-acesso">Como fazer Login</a></li>
+    <li><a href="#sec-dashboard">Entendendo a Dashboard</a></li>
+    <li><a href="#sec-estabelecimentos">Gerenciar Estabelecimentos</a></li>
+    <li><a href="#sec-novo-estab">Cadastrar Novo Estabelecimento</a></li>
+    <li><a href="#sec-responsaveis">Vincular Responsáveis (Legal e Técnico)</a></li>
+    <li><a href="#sec-processos">Acompanhar Processos</a></li>
+    <li><a href="#sec-abrir-processo">Abrir Novo Processo</a></li>
+    <li><a href="#sec-alertas">Pendências e Alertas</a></li>
+    <li><a href="#sec-perfil">Meu Perfil</a></li>
+    <li><a href="#sec-faq">Dúvidas Frequentes</a></li>
+  </ol>
+</div>
+
+<!-- ════════════════ 1. PÁGINA INICIAL ════════════════ -->
+<div class="section" id="sec-pagina-inicial">
+  <div class="section-header">
+    <div class="num">1</div>
+    <h2>Página Inicial do Sistema</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Página Inicial — InfoVISA 3.0</div>
+      <img src="screenshots/00-pagina-inicial.png" alt="Página Inicial do Sistema" />
+    </div>
+
+    <p style="margin:14px 0;">O InfoVISA 3.0 é o Sistema de Vigilância Sanitária do Estado do Tocantins. Para acessá-lo, abra o navegador e acesse o endereço:</p>
+
+    <div style="background:#e8eef8;border:2px solid #1a4fa0;border-radius:8px;padding:16px 20px;text-align:center;margin:16px 0;">
+      <span style="font-size:18px;font-weight:700;color:#1a4fa0;">sistemas.saude.to.gov.br/infovisacore</span>
+    </div>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Entrar no Sistema:</strong> Para usuários já cadastrados. Clique para ir à tela de login.</li>
+        <li><strong>Cadastre-se:</strong> Para novos usuários que ainda não possuem conta. Clique para ir à tela de registro.</li>
+        <li><strong>Informações públicas:</strong> A página inicial pode exibir avisos, comunicados e informações gerais da Vigilância Sanitária.</li>
+      </ul>
+    </div>
+
+    <div class="callout nota">
+      <div class="icon">ℹ️</div>
+      <div class="content">
+        <strong>Processos antigos (2025 para trás)</strong><br/>
+        Para consultar processos do sistema antigo, acesse: <strong>sistemas.saude.to.gov.br/infovisa2</strong>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 2. CADASTRO ════════════════ -->
+<div class="section" id="sec-cadastro">
+  <div class="section-header">
+    <div class="num">2</div>
+    <h2>Como se Cadastrar (Criar Conta)</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Tela de Cadastro — Criar nova conta</div>
+      <img src="screenshots/00-registro.png" alt="Tela de Cadastro" />
+    </div>
+
+    <p style="margin:14px 0;">Se você ainda não possui uma conta, acesse a página inicial e clique em <strong>"Cadastre-se"</strong>, ou acesse diretamente:</p>
+
+    <div style="background:#e8f5e9;border:2px solid #43a047;border-radius:8px;padding:16px 20px;text-align:center;margin:16px 0;">
+      <span style="font-size:16px;font-weight:700;color:#2e7d32;">sistemas.saude.to.gov.br/infovisacore/registro</span>
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">Informe seu <strong>Nome Completo</strong>.</div></li>
+      <li><div class="text">Informe seu <strong>CPF</strong> (apenas números ou com pontuação).</div></li>
+      <li><div class="text">Informe um <strong>E-mail válido</strong> — será usado para receber notificações e recuperar a senha.</div></li>
+      <li><div class="text">Informe seu <strong>Telefone</strong> com DDD.</div></li>
+      <li><div class="text">Crie uma <strong>Senha</strong> segura (mínimo 8 caracteres, com letras e números).</div></li>
+      <li><div class="text">Confirme a senha no campo <strong>"Confirmar Senha"</strong>.</div></li>
+      <li><div class="text">Clique em <strong>"Criar Conta"</strong> ou <strong>"Cadastrar"</strong>.</div></li>
+      <li><div class="text">Após o cadastro, faça login com o CPF e a senha criados.</div></li>
+    </ol>
+
+    <div class="callout dica">
+      <div class="icon">💡</div>
+      <div class="content">
+        <strong>Já tem conta?</strong><br/>
+        Se já possui cadastro, clique em <em>"Já tenho uma conta? Entrar"</em> ou <em>"← Voltar para o login"</em> para ir diretamente à tela de login.
+      </div>
+    </div>
+
+    <div class="callout atencao">
+      <div class="icon">⚠️</div>
+      <div class="content">
+        <strong>CPF já cadastrado?</strong><br/>
+        Se o sistema informar que o CPF já está cadastrado, use a opção <em>"Esqueci minha senha"</em> na tela de login para recuperar o acesso.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 3. LOGIN ════════════════ -->
+<div class="section" id="sec-acesso">
+  <div class="section-header">
+    <div class="num">3</div>
+    <h2>Como fazer Login</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Tela de Login — InfoVISA 3.0</div>
+      <img src="screenshots/01-login.png" alt="Tela de Login" />
+    </div>
+
+    <h3 style="margin:20px 0 10px; color:#1a4fa0;">Fazer Login</h3>
+    <ol class="steps">
+      <li><div class="text">Acesse o endereço: <strong>sistemas.saude.to.gov.br/infovisacore/login</strong></div></li>
+      <li><div class="text">Informe seu <strong>CPF</strong> (com ou sem pontuação).</div></li>
+      <li><div class="text">Informe sua <strong>Senha</strong>. Clique no ícone de olho para visualizá-la.</div></li>
+      <li><div class="text">Marque <strong>"Lembrar-me"</strong> se desejar manter a sessão ativa.</div></li>
+      <li><div class="text">Clique em <strong>"Entrar no Sistema →"</strong>.</div></li>
+    </ol>
+
+    <div class="callout dica">
+      <div class="icon">💡</div>
+      <div class="content">
+        <strong>Esqueceu a senha?</strong>
+        Clique em <em>"Esqueci minha senha"</em> e informe o CPF cadastrado. Um link de redefinição será enviado ao seu e-mail.
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px; color:#1a4fa0;">Primeiro Acesso — Criar Conta</h3>
+    <ol class="steps">
+      <li><div class="text">Na tela de login, clique em <strong>"Não tem uma conta? Cadastre-se aqui"</strong>.</div></li>
+      <li><div class="text">Preencha seu <strong>Nome completo</strong>, <strong>CPF</strong>, <strong>E-mail</strong>, <strong>Telefone</strong> e <strong>Senha</strong>.</div></li>
+      <li><div class="text">Confirme a senha e clique em <strong>"Criar Conta"</strong>.</div></li>
+      <li><div class="text">Faça login com as credenciais recém-criadas.</div></li>
+    </ol>
+
+    <div class="callout nota">
+      <div class="icon">ℹ️</div>
+      <div class="content">
+        <strong>Voltar à página inicial</strong><br/>
+        Clique em <em>"← Voltar para página inicial"</em> para acessar o portal público do InfoVISA sem fazer login.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 4. DASHBOARD ════════════════ -->
+<div class="section" id="sec-dashboard">
+  <div class="section-header">
+    <div class="num">4</div>
+    <h2>Entendendo a Dashboard</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Dashboard Principal</div>
+      <img src="screenshots/02-dashboard.png" alt="Dashboard" />
+    </div>
+
+    <p style="margin-bottom:14px;">Após o login, você é redirecionado à <strong>Dashboard</strong> — a tela inicial do sistema. Ela reúne em um único lugar as principais informações e ações.</p>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Menu lateral (esquerdo):</strong> Acesso rápido a Dashboard, Estabelecimentos, Processos, Alertas e Meu Perfil.</li>
+        <li><strong>Saudação:</strong> Exibe seu nome e a data atual.</li>
+        <li><strong>Aviso em destaque (amarelo):</strong> Comunicados importantes da Vigilância Sanitária aparecem aqui.</li>
+        <li><strong>Cards de estatísticas:</strong>
+          <ul style="padding-left:16px;margin-top:6px;">
+            <li>🏢 <strong>Estabelecimentos</strong> — total cadastrados e aprovados.</li>
+            <li>📄 <strong>Processos</strong> — quantidade de processos abertos.</li>
+            <li>🔔 <strong>Pendências</strong> — itens que requerem sua atenção.</li>
+            <li>➕ <strong>Novo Cadastro</strong> — atalho verde para cadastrar um estabelecimento.</li>
+          </ul>
+        </li>
+        <li><strong>O que precisa da sua atenção:</strong> Lista de notificações, documentos rejeitados e prazos. Cada item tem um botão de ação (<span class="badge-status badge-pendente">Responder</span> ou <span class="badge-status badge-rejeitado">Corrigir</span> ou <span class="badge-status badge-aberto">Visualizar</span>).</li>
+        <li><strong>Meus Estabelecimentos:</strong> Listagem rápida dos seus estabelecimentos com status.</li>
+        <li><strong>Meus Processos:</strong> Listagem rápida dos últimos processos abertos.</li>
+      </ul>
+    </div>
+
+    <div class="callout atencao">
+      <div class="icon">⚠️</div>
+      <div class="content">
+        <strong>Avisos da Vigilância Sanitária</strong><br/>
+        Sempre leia os avisos em amarelo no topo da Dashboard. Eles contêm informações sobre prazos, prorrogações e comunicados oficiais.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 5. ESTABELECIMENTOS ════════════════ -->
+<div class="section" id="sec-estabelecimentos">
+  <div class="section-header">
+    <div class="num">5</div>
+    <h2>Gerenciar Estabelecimentos</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Lista de Estabelecimentos</div>
+      <img src="screenshots/03-estabelecimentos.png" alt="Lista de Estabelecimentos" />
+    </div>
+
+    <p style="margin:14px 0;">Acesse <strong>Estabelecimentos</strong> no menu lateral. Esta tela mostra todos os estabelecimentos vinculados à sua conta.</p>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Cards de resumo:</strong> Total, Pendentes, Aprovados e Rejeitados.</li>
+        <li><strong>Campo de busca:</strong> Pesquise por nome, CNPJ ou CPF.</li>
+        <li><strong>Tabela:</strong> Exibe Documento, Nome/Razão Social, Cidade e Status de cada estabelecimento.</li>
+        <li><strong>Status possíveis:</strong>
+          &nbsp;<span class="badge-status badge-aprovado">Aprovado</span>
+          &nbsp;<span class="badge-status badge-pendente">Pendente</span>
+          &nbsp;<span class="badge-status badge-rejeitado">Rejeitado</span>
+        </li>
+        <li><strong>Ação "Ver detalhes":</strong> Abre a tela completa do estabelecimento.</li>
+      </ul>
+    </div>
+
+    <div class="callout nota">
+      <div class="icon">ℹ️</div>
+      <div class="content">
+        <strong>Apenas estabelecimentos com status "Aprovado" podem abrir processos.</strong><br/>
+        Enquanto o cadastro estiver "Pendente", aguarde a análise da Vigilância Sanitária.
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px; color:#1a4fa0;">Detalhes do Estabelecimento</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Detalhes do Estabelecimento</div>
+      <img src="screenshots/07-detalhes-estabelecimento.png" alt="Detalhes do Estabelecimento" />
+    </div>
+
+    <p style="margin:14px 0;">Ao clicar em <strong>"Ver detalhes"</strong>, você acessa:</p>
+    <div class="fields">
+      <ul>
+        <li><strong>Informações Gerais:</strong> Razão Social, Nome Fantasia, CNPJ, Situação Cadastral, Telefone, E-mail.</li>
+        <li><strong>Endereço:</strong> Endereço completo, Cidade e Estado.</li>
+        <li><strong>Processos Ativos:</strong> Lista dos processos em andamento.</li>
+        <li><strong>Menu lateral interno:</strong>
+          <ul style="padding-left:16px;margin-top:6px;">
+            <li>✏️ Editar Dados</li>
+            <li>👥 Responsáveis</li>
+            <li>📋 Atividades (CNAEs)</li>
+            <li>📄 Processos</li>
+            <li>👤 Usuários Vinculados</li>
+          </ul>
+        </li>
+        <li><strong>Botão "Abrir Processo"</strong> (azul) — inicia um novo processo para este estabelecimento.</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 6. NOVO ESTABELECIMENTO ════════════════ -->
+<div class="section" id="sec-novo-estab">
+  <div class="section-header">
+    <div class="num">6</div>
+    <h2>Cadastrar Novo Estabelecimento</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Escolha do Tipo de Pessoa</div>
+      <img src="screenshots/04-novo-estabelecimento.png" alt="Novo Estabelecimento - Tipo" />
+    </div>
+
+    <p style="margin:14px 0;">Clique em <strong>"+ Novo Estabelecimento"</strong> (botão azul no topo da lista ou card verde na Dashboard). Escolha o tipo de pessoa:</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0;">
+      <div style="border:2px solid #1a4fa0;border-radius:8px;padding:16px;">
+        <div style="font-weight:700;color:#1a4fa0;margin-bottom:8px;">🏢 Pessoa Jurídica</div>
+        <p style="font-size:14px;">Empresas, comércios, indústrias com <strong>CNPJ</strong>. Os dados são buscados automaticamente na Receita Federal.</p>
+      </div>
+      <div style="border:2px solid #43a047;border-radius:8px;padding:16px;">
+        <div style="font-weight:700;color:#43a047;margin-bottom:8px;">👤 Pessoa Física</div>
+        <p style="font-size:14px;">Profissionais autônomos com <strong>CPF</strong>. Os dados são preenchidos manualmente.</p>
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">4.1 Cadastro — Pessoa Jurídica (CNPJ)</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Cadastrar Pessoa Jurídica</div>
+      <img src="screenshots/05-cadastrar-pj.png" alt="Cadastrar PJ" />
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">Clique em <strong>"Cadastrar Pessoa Jurídica"</strong>.</div></li>
+      <li><div class="text">Digite o <strong>CNPJ</strong> (com ou sem pontuação) e clique em <strong>"Buscar CNPJ"</strong>. O sistema consultará a Receita Federal e preencherá os dados automaticamente.</div></li>
+      <li><div class="text">Verifique e complete os campos necessários:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li><strong>Razão Social</strong> e <strong>Nome Fantasia</strong></li>
+            <li><strong>Endereço completo</strong> (CEP, Logradouro, Número, Bairro, Cidade, Estado)</li>
+            <li><strong>Telefone</strong> e <strong>E-mail</strong></li>
+            <li><strong>Atividades (CNAEs)</strong> exercidas pelo estabelecimento</li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Clique em <strong>"Salvar"</strong>.</div></li>
+      <li><div class="text">O cadastro ficará com status <span class="badge-status badge-pendente">Pendente</span> até a aprovação da Vigilância Sanitária.</div></li>
+    </ol>
+
+    <div class="callout dica">
+      <div class="icon">💡</div>
+      <div class="content">
+        <strong>Identificação automática público/privado</strong><br/>
+        O sistema identifica automaticamente se o estabelecimento é <strong>público ou privado</strong> com base na natureza jurídica do CNPJ.
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">4.2 Cadastro — Pessoa Física (CPF)</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Cadastrar Pessoa Física</div>
+      <img src="screenshots/06-cadastrar-pf.png" alt="Cadastrar PF" />
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">Clique em <strong>"Cadastrar Pessoa Física"</strong>.</div></li>
+      <li><div class="text">Informe o <strong>CPF</strong> e clique em <strong>"Buscar"</strong> (o sistema pode preencher o nome automaticamente).</div></li>
+      <li><div class="text">Preencha todos os campos:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li><strong>Nome Completo</strong></li>
+            <li><strong>Data de Nascimento</strong></li>
+            <li><strong>Endereço completo</strong></li>
+            <li><strong>Telefone</strong> e <strong>E-mail</strong></li>
+            <li><strong>Atividades (CNAEs)</strong></li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Clique em <strong>"Salvar"</strong>.</div></li>
+    </ol>
+
+    <div class="callout atencao">
+      <div class="icon">⚠️</div>
+      <div class="content">
+        <strong>Aguarde aprovação</strong><br/>
+        Após salvar, seu estabelecimento ficará com status <span class="badge-status badge-pendente">Pendente</span>. Só após a aprovação pela Vigilância Sanitária você poderá abrir processos.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 7. RESPONSÁVEIS ════════════════ -->
+<div class="section" id="sec-responsaveis">
+  <div class="section-header">
+    <div class="num">7</div>
+    <h2>Vincular Responsáveis (Legal e Técnico)</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Tela de Gerenciamento de Responsáveis</div>
+      <img src="screenshots/08-responsaveis.png" alt="Responsáveis" />
+    </div>
+
+    <p style="margin:14px 0;">Dentro de um estabelecimento, clique em <strong>"Responsáveis"</strong> no menu lateral. A tela mostra dois painéis:</p>
+    <div class="fields">
+      <ul>
+        <li><strong>Responsáveis Legais</strong> — obrigatório ter ao menos um.</li>
+        <li><strong>Responsáveis Técnicos</strong> — opcional (mas pode ser exigido para determinados tipos de processo).</li>
+      </ul>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">5.1 Adicionar Responsável Legal</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Formulário — Adicionar Responsável Legal</div>
+      <img src="screenshots/09-adicionar-responsavel-legal.png" alt="Adicionar Responsável Legal" />
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">No painel <strong>"Responsáveis Legais"</strong>, clique em <strong>"+ Adicionar"</strong> (botão azul).</div></li>
+      <li><div class="text">Informe o <strong>CPF</strong> e clique em <strong>"Buscar"</strong> — o nome pode ser preenchido automaticamente.</div></li>
+      <li><div class="text">Preencha os campos:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li><strong>Nome Completo *</strong></li>
+            <li><strong>E-mail</strong></li>
+            <li><strong>Telefone</strong></li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Na seção <strong>"Documento de Identificação"</strong>, faça o upload do <strong>RG ou CNH</strong> (PDF, JPG ou PNG, máx. 5 MB).</div></li>
+      <li><div class="text">Clique em <strong>"Adicionar Responsável"</strong>.</div></li>
+    </ol>
+
+    <div class="callout nota">
+      <div class="icon">ℹ️</div>
+      <div class="content">
+        <strong>Responsável Legal</strong> é a pessoa que responde juridicamente pelo estabelecimento (sócio, proprietário ou representante legal).
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">5.2 Adicionar Responsável Técnico</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Formulário — Adicionar Responsável Técnico</div>
+      <img src="screenshots/10-adicionar-responsavel-tecnico.png" alt="Adicionar Responsável Técnico" />
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">No painel <strong>"Responsáveis Técnicos"</strong>, clique em <strong>"+ Adicionar"</strong> (botão verde).</div></li>
+      <li><div class="text">Informe o <strong>CPF</strong> e clique em <strong>"Buscar"</strong>.</div></li>
+      <li><div class="text">Preencha os dados:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li><strong>Nome Completo *</strong></li>
+            <li><strong>E-mail</strong> e <strong>Telefone</strong></li>
+            <li><strong>Conselho de Classe</strong> (ex.: CRM, CRO, COREN, CRF, CREA…)</li>
+            <li><strong>Número do registro no conselho</strong></li>
+            <li><strong>UF do conselho</strong></li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Faça upload dos documentos comprobatórios:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li>Certificado / ART de Responsabilidade Técnica</li>
+            <li>Comprovante de regularidade no conselho profissional</li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Clique em <strong>"Adicionar Responsável"</strong>.</div></li>
+    </ol>
+
+    <div class="callout nota">
+      <div class="icon">ℹ️</div>
+      <div class="content">
+        <strong>Responsável Técnico</strong> é o profissional habilitado que responde tecnicamente pelas atividades do estabelecimento (médico, farmacêutico, enfermeiro, engenheiro, etc.).
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 8. PROCESSOS ════════════════ -->
+<div class="section" id="sec-processos">
+  <div class="section-header">
+    <div class="num">8</div>
+    <h2>Acompanhar Processos</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Lista de Processos</div>
+      <img src="screenshots/11-processos.png" alt="Meus Processos" />
+    </div>
+
+    <p style="margin:14px 0;">Acesse <strong>"Processos"</strong> no menu lateral para ver todos os processos dos seus estabelecimentos.</p>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Cards de resumo:</strong> Total, Em Andamento, Concluídos e Arquivados.</li>
+        <li><strong>Busca e filtro:</strong> Pesquise por número do processo ou filtre por estabelecimento.</li>
+        <li><strong>Tabela:</strong> Número, Tipo, Estabelecimento, Status e Data de abertura.</li>
+        <li><strong>Status dos processos:</strong>
+          &nbsp;<span class="badge-status badge-aberto">Aberto</span>
+          &nbsp;<span class="badge-status badge-parado">Parado</span>
+          &nbsp;<span class="badge-status badge-aprovado">Concluído</span>
+          &nbsp;<span class="badge-status badge-rejeitado">Arquivado</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">Detalhes do Processo</h3>
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Detalhes do Processo</div>
+      <img src="screenshots/12-detalhes-processo.png" alt="Detalhes do Processo" />
+    </div>
+
+    <p style="margin:14px 0;">Clique em <strong>"Ver detalhes"</strong> em qualquer processo para acessar:</p>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Número, Tipo, Estabelecimento, Data de Abertura, Última Atualização e Status.</strong></li>
+        <li><strong>Localização do processo:</strong> Qual setor da Vigilância Sanitária está analisando.</li>
+        <li><strong>Documentos de Ajuda:</strong> Instrutivos do DARE, InfoVISA 3.0 e Manual de Cadastro.</li>
+        <li><strong>Documentos Obrigatórios:</strong> Progresso do envio dos documentos exigidos.</li>
+        <li><strong>Lista de Documentos/Arquivos:</strong> Todos os arquivos enviados ao processo. Botão <strong>"+ Enviar Arquivo"</strong> para adicionar novos documentos.</li>
+        <li><strong>Menu do processo:</strong> Upload de Arquivos e Alertas específicos do processo.</li>
+        <li><strong>Resumo:</strong> Contagem de Documentos, Pendentes e Alertas.</li>
+        <li><strong>Protocolo do Processo:</strong> Clique para baixar o comprovante de abertura.</li>
+      </ul>
+    </div>
+
+    <div class="callout dica">
+      <div class="icon">💡</div>
+      <div class="content">
+        <strong>Documentos pendentes aparecem no topo</strong><br/>
+        Envios recentes e documentos pendentes de análise ficam visíveis na área central (painel amarelo). Verifique regularmente.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 9. ABRIR PROCESSO ════════════════ -->
+<div class="section" id="sec-abrir-processo">
+  <div class="section-header">
+    <div class="num">9</div>
+    <h2>Abrir Novo Processo</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Formulário — Abrir Novo Processo</div>
+      <img src="screenshots/13-abrir-processo.png" alt="Abrir Processo" />
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">Acesse o estabelecimento desejado (deve estar com status <span class="badge-status badge-aprovado">Aprovado</span>).</div></li>
+      <li><div class="text">Clique no botão azul <strong>"+ Abrir Processo"</strong>.</div></li>
+      <li><div class="text">Selecione o <strong>tipo de processo</strong> desejado:
+        <div class="fields" style="margin-top:8px;">
+          <ul>
+            <li>🔵 Licenciamento Sanitário</li>
+            <li>🔵 Renovação de Licença</li>
+            <li>🔵 Alteração Cadastral</li>
+            <li>🔵 Projeto Arquitetônico</li>
+            <li>🔵 Análise de Rotulagem</li>
+            <li>🔵 Agência Transfusional</li>
+            <li>🔵 Denúncia</li>
+            <li>🔵 Entre outros disponíveis conforme o estabelecimento</li>
+          </ul>
+        </div>
+      </div></li>
+      <li><div class="text">Opcionalmente, adicione uma <strong>Observação</strong> no campo de texto.</div></li>
+      <li><div class="text">Clique em <strong>"Abrir Processo"</strong>.</div></li>
+      <li><div class="text">Acompanhe o andamento pela lista de processos ou pela Dashboard.</div></li>
+    </ol>
+
+    <div class="callout atencao">
+      <div class="icon">⚠️</div>
+      <div class="content">
+        <strong>Tipos "Único"</strong><br/>
+        Processos marcados com <code>Único</code> só podem ser abertos <strong>uma vez por estabelecimento</strong> ou uma vez por ano. Os já abertos aparecem bloqueados na lista inferior ("Processos já abertos").
+      </div>
+    </div>
+
+    <div class="callout perigo">
+      <div class="icon">🚫</div>
+      <div class="content">
+        <strong>Estabelecimento sem Responsável Legal?</strong><br/>
+        Se o estabelecimento ainda não possui Responsável Legal cadastrado, o sistema redirecionará automaticamente para a tela de responsáveis antes de permitir a abertura do processo. Cadastre o responsável primeiro.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 10. ALERTAS ════════════════ -->
+<div class="section" id="sec-alertas">
+  <div class="section-header">
+    <div class="num">10</div>
+    <h2>Pendências e Alertas</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Tela de Pendências e Alertas</div>
+      <img src="screenshots/14-alertas.png" alt="Alertas" />
+    </div>
+
+    <p style="margin:14px 0;">Acesse <strong>"Alertas"</strong> no menu lateral (o número em vermelho indica quantas pendências existem). Esta tela centraliza todas as pendências dos seus estabelecimentos e processos.</p>
+
+    <div class="fields">
+      <ul>
+        <li>
+          <strong>🔔 Notificações com Prazo para Resposta (amarelo)</strong><br/>
+          Notificações emitidas pela Vigilância Sanitária que exigem resposta dentro de um prazo. Clique em <span class="badge-status badge-pendente">Responder</span> para abrir o formulário de resposta.
+        </li>
+        <li style="margin-top:10px;">
+          <strong>⚠️ Documentos Rejeitados — Correção Necessária (vermelho)</strong><br/>
+          Documentos enviados que foram reprovados. O motivo da rejeição é exibido em laranja. Clique em <span class="badge-status badge-rejeitado">Corrigir</span> para enviar a versão correta.
+        </li>
+        <li style="margin-top:10px;">
+          <strong>👁️ Documentos Pendentes de Visualização (azul)</strong><br/>
+          Novos documentos da Vigilância (Autos de Infração, Notificações) aguardando sua leitura. Clique em <span class="badge-status badge-aberto">Visualizar</span>.
+        </li>
+      </ul>
+    </div>
+
+    <div class="callout atencao">
+      <div class="icon">⚠️</div>
+      <div class="content">
+        <strong>Atenção aos prazos!</strong><br/>
+        Notificações possuem prazo de resposta (geralmente 15 a 30 dias). O sistema exibe quantos dias restam. Após o vencimento, o processo pode ser penalizado.
+      </div>
+    </div>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">Como corrigir um documento rejeitado</h3>
+    <ol class="steps">
+      <li><div class="text">Clique em <span class="badge-status badge-rejeitado">Corrigir</span> ao lado do documento rejeitado.</div></li>
+      <li><div class="text">Leia o motivo da rejeição exibido em laranja.</div></li>
+      <li><div class="text">Prepare o documento corrigido conforme as instruções.</div></li>
+      <li><div class="text">Faça o upload do arquivo corrigido.</div></li>
+      <li><div class="text">Clique em <strong>"Salvar"</strong> para reenviar.</div></li>
+    </ol>
+
+  </div>
+</div>
+
+<!-- ════════════════ 11. MEU PERFIL ════════════════ -->
+<div class="section" id="sec-perfil">
+  <div class="section-header">
+    <div class="num">11</div>
+    <h2>Meu Perfil</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="screenshot-box">
+      <div class="caption">🖥️ Tela — Meu Perfil</div>
+      <img src="screenshots/15-meu-perfil.png" alt="Meu Perfil" />
+    </div>
+
+    <p style="margin:14px 0;">Acesse <strong>"Meu Perfil"</strong> no menu lateral para visualizar e atualizar seus dados pessoais.</p>
+
+    <div class="fields">
+      <ul>
+        <li><strong>Nome:</strong> Exibido mas não pode ser alterado (vinculado ao CPF da Receita Federal).</li>
+        <li><strong>CPF:</strong> Exibido mas não pode ser alterado.</li>
+        <li><strong>E-mail:</strong> Pode ser atualizado. Use um e-mail válido para receber notificações.</li>
+        <li><strong>Telefone:</strong> Pode ser atualizado.</li>
+      </ul>
+    </div>
+
+    <ol class="steps">
+      <li><div class="text">Altere o <strong>E-mail</strong> e/ou <strong>Telefone</strong> conforme necessário.</div></li>
+      <li><div class="text">Clique em <strong>"Salvar Alterações"</strong>.</div></li>
+    </ol>
+
+    <h3 style="margin:20px 0 10px;color:#1a4fa0;">Alterar Senha</h3>
+    <ol class="steps">
+      <li><div class="text">Role a página até a seção <strong>"Alterar Senha"</strong>.</div></li>
+      <li><div class="text">Informe a <strong>senha atual</strong>.</div></li>
+      <li><div class="text">Informe a <strong>nova senha</strong> e confirme.</div></li>
+      <li><div class="text">Clique em <strong>"Alterar Senha"</strong>.</div></li>
+    </ol>
+
+    <div class="callout dica">
+      <div class="icon">💡</div>
+      <div class="content">
+        <strong>Mantenha seu e-mail atualizado!</strong><br/>
+        O sistema envia notificações de processos, alertas e prazos por e-mail. Um e-mail desatualizado pode fazer você perder informações importantes.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ 12. FAQ ════════════════ -->
+<div class="section" id="sec-faq">
+  <div class="section-header">
+    <div class="num">12</div>
+    <h2>Dúvidas Frequentes (FAQ)</h2>
+  </div>
+  <div class="section-body">
+
+    <div class="faq-item">
+      <div class="q">❓ Não consigo abrir um processo. O que fazer?</div>
+      <div class="a">Verifique se o estabelecimento está com status <span class="badge-status badge-aprovado">Aprovado</span>. Estabelecimentos com status <span class="badge-status badge-pendente">Pendente</span> ou <span class="badge-status badge-rejeitado">Rejeitado</span> não podem abrir processos. Verifique também se há pelo menos um Responsável Legal cadastrado.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Meu documento foi rejeitado. Como corrigir?</div>
+      <div class="a">Acesse <strong>Alertas</strong> no menu lateral, localize o documento rejeitado, leia o motivo em laranja e clique em <span class="badge-status badge-rejeitado">Corrigir</span>. Faça o upload do arquivo correto e salve.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Onde vejo meus processos de 2025 ou anteriores?</div>
+      <div class="a">Processos de 2025 para trás estão no sistema antigo. Acesse o link disponível na Dashboard:
+        <br/><strong>sistemas.saude.to.gov.br/infovisa2</strong></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Como acompanho a análise do meu cadastro de estabelecimento?</div>
+      <div class="a">Acesse <strong>Estabelecimentos</strong> e verifique o status. Se estiver <span class="badge-status badge-pendente">Pendente</span>, aguarde a análise. Se <span class="badge-status badge-rejeitado">Rejeitado</span>, verifique os motivos em <strong>Alertas</strong> e corrija as pendências.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Posso ter mais de um estabelecimento na mesma conta?</div>
+      <div class="a">Sim. Você pode cadastrar e gerenciar múltiplos estabelecimentos com a mesma conta de usuário. Todos aparecerão na lista de Estabelecimentos e na Dashboard.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ O que é o "Protocolo do Processo"?</div>
+      <div class="a">É o comprovante oficial de abertura do processo. Acesse os detalhes do processo e clique em <strong>"Protocolo do Processo"</strong> para baixar o PDF. Guarde-o como comprovante.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Como faço upload de documentos no processo?</div>
+      <div class="a">Dentro do processo, clique em <strong>"+ Enviar Arquivo"</strong> ou <strong>"Upload de Arquivos"</strong> no menu lateral do processo. Selecione o arquivo (PDF, JPG ou PNG) e confirme o envio.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Recebi uma notificação. Como responder?</div>
+      <div class="a">Acesse <strong>Alertas</strong>, localize a notificação na seção "Notificações com Prazo para Resposta" e clique em <span class="badge-status badge-pendente">Responder</span>. Preencha a resposta e envie antes do prazo indicado.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">❓ Como sair do sistema com segurança?</div>
+      <div class="a">Clique em <strong>"Sair"</strong> (em vermelho) na parte inferior do menu lateral. Isso encerra sua sessão com segurança.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ RODAPÉ ════════════════ -->
+<footer>
+  <p><strong>InfoVISA 3.0</strong> — Sistema de Vigilância Sanitária do Tocantins</p>
+  <p style="margin-top:6px;">Diretoria de Vigilância Sanitária · Secretaria de Estado da Saúde do Tocantins</p>
+  <p style="margin-top:6px;color:#bbb;">Versão do Manual: Março/2026</p>
+</footer>
+
+</div><!-- fim .main-content -->
+
+<!-- ════════════════ JAVASCRIPT ════════════════ -->
+<script>
+(function() {
+  // Elementos
+  const sidebar = document.getElementById('sidebarNav');
+  const overlay = document.getElementById('sidebarOverlay');
+  const toggle = document.getElementById('sidebarToggle');
+  const bcCurrent = document.getElementById('bcCurrent');
+  const progressFill = document.getElementById('progressFill');
+  const backToTop = document.getElementById('backToTop');
+  const navLinks = sidebar.querySelectorAll('a[data-section]');
+
+  // Mapa de nomes das seções para o breadcrumb
+  const sectionNames = {
+    'sec-pagina-inicial': 'Página Inicial',
+    'sec-cadastro': 'Criar Conta',
+    'sec-acesso': 'Login',
+    'sec-dashboard': 'Dashboard',
+    'sec-estabelecimentos': 'Estabelecimentos',
+    'sec-novo-estab': 'Novo Estabelecimento',
+    'sec-responsaveis': 'Responsáveis',
+    'sec-processos': 'Processos',
+    'sec-abrir-processo': 'Abrir Processo',
+    'sec-alertas': 'Alertas',
+    'sec-perfil': 'Meu Perfil',
+    'sec-faq': 'FAQ'
+  };
+
+  // Toggle sidebar mobile
+  toggle.addEventListener('click', function() {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+    toggle.textContent = sidebar.classList.contains('open') ? '✕' : '☰';
+  });
+
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    toggle.textContent = '☰';
+  });
+
+  // Fechar sidebar ao clicar em link (mobile)
+  navLinks.forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 900) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+        toggle.textContent = '☰';
+      }
+    });
+  });
+
+  // Scroll spy: detectar seção ativa
+  function updateActiveSection() {
+    var sections = document.querySelectorAll('.section[id]');
+    var scrollPos = window.scrollY + 120;
+    var currentId = '';
+
+    sections.forEach(function(sec) {
+      if (sec.offsetTop <= scrollPos) {
+        currentId = sec.id;
+      }
+    });
+
+    // Atualizar link ativo na sidebar
+    navLinks.forEach(function(link) {
+      link.classList.remove('active');
+      if (link.getAttribute('data-section') === currentId) {
+        link.classList.add('active');
+        // Scroll sidebar para manter o item visível
+        link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
+
+    // Atualizar breadcrumb
+    if (currentId && sectionNames[currentId]) {
+      bcCurrent.textContent = sectionNames[currentId];
+    } else {
+      bcCurrent.textContent = 'Início';
+    }
+
+    // Barra de progresso
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    var progress = docHeight > 0 ? (window.scrollY / docHeight) * 100 : 0;
+    progressFill.style.width = Math.min(progress, 100) + '%';
+
+    // Botão voltar ao topo
+    if (window.scrollY > 400) {
+      backToTop.classList.add('visible');
+    } else {
+      backToTop.classList.remove('visible');
+    }
+  }
+
+  // Voltar ao topo
+  backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Throttle do scroll
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        updateActiveSection();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // Inicializar
+  updateActiveSection();
+})();
+</script>
+
+</body>
+</html>

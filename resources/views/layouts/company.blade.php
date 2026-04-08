@@ -313,7 +313,6 @@
 
                     <div class="flex items-center gap-2">
                         {{-- Botão de Ajuda (?) - Documentos Instrutivos --}}
-                        @if(isset($documentosAjuda) && $documentosAjuda->count() > 0)
                         <div class="relative" @click.away="helpMenuOpen = false">
                             <button @click="helpMenuOpen = !helpMenuOpen; userMenuOpen = false"
                                     class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -344,6 +343,26 @@
                                     </div>
                                 </div>
                                 <div class="max-h-80 overflow-y-auto py-1">
+                                    {{-- Manual fixo do InfoVISA 3.0 --}}
+                                    <a href="{{ asset('Manual/manual-infovisa.html') }}" 
+                                       target="_blank"
+                                       class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50 transition-colors group border-b border-gray-100">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-blue-900 group-hover:text-blue-700">Manual InfoVISA 3.0</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">Guia completo do sistema</p>
+                                        </div>
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                        </div>
+                                    </a>
+                                    @if(isset($documentosAjuda) && $documentosAjuda->count() > 0)
                                     @foreach($documentosAjuda as $docAjuda)
                                     <a href="{{ route('company.documentos-ajuda.visualizar', $docAjuda->id) }}" 
                                        target="_blank"
@@ -367,10 +386,10 @@
                                         </div>
                                     </a>
                                     @endforeach
+                                    @endif
                                 </div>
                             </div>
                         </div>
-                        @endif
 
                         {{-- Menu do usuário --}}
                         <div class="relative" @click.away="userMenuOpen = false">
