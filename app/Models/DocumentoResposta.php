@@ -11,6 +11,7 @@ class DocumentoResposta extends Model
     protected $fillable = [
         'documento_digital_id',
         'usuario_externo_id',
+        'tipo_documento_resposta_id',
         'nome_arquivo',
         'nome_original',
         'caminho',
@@ -36,6 +37,14 @@ class DocumentoResposta extends Model
     public function documentoDigital()
     {
         return $this->belongsTo(DocumentoDigital::class);
+    }
+
+    /**
+     * Tipo de documento resposta (quando vinculado)
+     */
+    public function tipoDocumentoResposta()
+    {
+        return $this->belongsTo(TipoDocumentoResposta::class);
     }
 
     /**

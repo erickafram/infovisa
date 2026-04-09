@@ -88,7 +88,9 @@ class TipoDocumentoController extends Controller
      */
     public function edit(TipoDocumento $tipoDocumento)
     {
-        return view('configuracoes.tipos-documento.edit', compact('tipoDocumento'));
+        $tipoDocumento->load('tiposDocumentoResposta');
+        $tiposResposta = \App\Models\TipoDocumentoResposta::ativo()->ordenado()->get();
+        return view('configuracoes.tipos-documento.edit', compact('tipoDocumento', 'tiposResposta'));
     }
 
     /**
@@ -129,6 +131,17 @@ class TipoDocumentoController extends Controller
 
         $tipoDocumento->update($validated);
 
+        // Sincroniza tipos de documento resposta (se permite_resposta)
+        if ($validated['permite_resposta'] && $request->has('tipos_resposta')) {
+            $sync = [];
+            foreach ($request->input('tipos_resposta', []) as $ordem => $id) {
+                $sync[$id] = ['obrigatorio' => true, 'ordem' => $ordem];
+            }
+            $tipoDocumento->tiposDocumentoResposta()->sync($sync);
+        } elseif (!$validated['permite_resposta']) {
+            $tipoDocumento->tiposDocumentoResposta()->detach();
+        }
+
         return redirect()
             ->route('admin.configuracoes.tipos-documento.index')
             ->with('success', 'Tipo de documento atualizado com sucesso!');
@@ -144,5 +157,27 @@ class TipoDocumentoController extends Controller
         return redirect()
             ->route('admin.configuracoes.tipos-documento.index')
             ->with('success', 'Tipo de documento removido com sucesso!');
+    }
+
+    /**
+     * Vincula tipos de documento resposta a um tipo de documento
+     */
+    public function vincularRespostas(Request $request, TipoDocumento $tipoDocumento)
+    {
+        $request->validate([
+            'tipos_resposta' => 'nullable|array',
+            'tipos_resposta.*' => 'exists:tipo_documento_respostas,id',
+        ]);
+
+        $sync = [];
+        foreach ($request->input('tipos_resposta', []) as $ordem => $id) {
+            $sync[$id] = ['obrigatorio' => true, 'ordem' => $ordem];
+        }
+
+        $tipoDocumento->tiposDocumentoResposta()->sync($sync);
+
+        return redirect()
+            ->route('admin.configuracoes.tipos-documento.edit', $tipoDocumento)
+            ->with('success', 'Documentos de resposta vinculados com sucesso!');
     }
 }

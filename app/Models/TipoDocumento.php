@@ -39,6 +39,17 @@ class TipoDocumento extends Model
     }
 
     /**
+     * Tipos de documento de resposta vinculados
+     */
+    public function tiposDocumentoResposta(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(TipoDocumentoResposta::class, 'tipo_documento_tipo_resposta')
+            ->withPivot('obrigatorio', 'ordem')
+            ->withTimestamps()
+            ->orderByPivot('ordem');
+    }
+
+    /**
      * Scope para buscar apenas tipos ativos
      */
     public function scopeAtivo($query)

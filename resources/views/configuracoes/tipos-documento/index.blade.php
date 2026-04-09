@@ -14,6 +14,26 @@
         </nav>
     </div>
 
+    {{-- Abas --}}
+    <div class="mb-4 border-b border-gray-200">
+        <nav class="flex space-x-1 -mb-px">
+            <a href="{{ route('admin.configuracoes.tipos-documento.index') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 border-b-2 text-sm font-medium transition {{ !request('aba') || request('aba') === 'tipos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Tipos de Documento
+            </a>
+            <a href="{{ route('admin.configuracoes.tipos-documento.index', ['aba' => 'resposta']) }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 border-b-2 text-sm font-medium transition {{ request('aba') === 'resposta' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                Tipos Doc. Resposta
+            </a>
+        </nav>
+    </div>
+
+    @if(request('aba') === 'resposta')
+        @include('configuracoes.tipos-documento-resposta.index-partial')
+    @else
+
     {{-- Header --}}
     <div class="flex items-center justify-between mb-4">
         <div>
@@ -191,4 +211,5 @@ function tiposDocumento() {
 }
 </script>
 @endpush
+@endif
 @endsection

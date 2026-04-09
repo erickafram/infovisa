@@ -574,6 +574,10 @@ Route::middleware(['auth:interno', 'no-cache-auth'])->prefix('admin')->name('adm
             'tipos-documento' => 'tipoDocumento'
         ]);
         Route::post('tipos-documento/reordenar', [\App\Http\Controllers\TipoDocumentoController::class, 'reordenar'])->name('tipos-documento.reordenar');
+
+        // Tipos de Documento Resposta - Admin e Gestor Estadual
+        Route::resource('tipos-documento-resposta', \App\Http\Controllers\TipoDocumentoRespostaController::class);
+        Route::post('tipos-documento/{tipoDocumento}/vincular-respostas', [\App\Http\Controllers\TipoDocumentoController::class, 'vincularRespostas'])->name('tipos-documento.vincular-respostas');
         
         // Avisos do Sistema - Admin e Gestor Estadual
         Route::resource('avisos', \App\Http\Controllers\Admin\AvisoController::class);

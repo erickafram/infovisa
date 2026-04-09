@@ -250,7 +250,7 @@
                 </div>
 
                 {{-- Opção: Permitir Resposta do Estabelecimento --}}
-                <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+                <div class="border border-green-200 rounded-lg p-4 bg-green-50" x-data="{ permiteResposta: {{ old('permite_resposta', $tipoDocumento->permite_resposta) ? 'true' : 'false' }} }">
                     <div class="flex items-center mb-3">
                         <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
@@ -265,30 +265,51 @@
                                name="permite_resposta" 
                                id="permite_resposta"
                                value="1"
-                               {{ old('permite_resposta', $tipoDocumento->permite_resposta) ? 'checked' : '' }}
+                               x-model="permiteResposta"
                                class="mt-0.5 w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2">
                         <div class="ml-3">
                             <span class="text-sm font-medium text-gray-900">Permitir que a empresa responda este documento</span>
                             <p class="text-xs text-gray-600 mt-1">
                                 Quando marcado, o estabelecimento poderá enviar uma resposta em PDF vinculada a este documento.
                             </p>
-                            <div class="mt-2 text-xs">
-                                <div class="flex items-start gap-1.5 text-green-700 bg-white p-2 rounded border border-green-200">
-                                    <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <div>
-                                        <strong>Ideal para:</strong> Notificações Sanitárias, Autos de Infração, Intimações, etc.
-                                        <p class="mt-0.5">A resposta ficará vinculada ao documento original e pendente de aprovação pela Vigilância Sanitária.</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </label>
+
+                    {{-- Documentos exigidos na resposta (aparece só se permite_resposta) --}}
+                    @if(isset($tiposResposta) && $tiposResposta->count() > 0)
+                    <div x-show="permiteResposta" x-transition class="mt-4 pt-4 border-t border-green-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Documentos Exigidos na Resposta
+                            </label>
+                            <a href="{{ route('admin.configuracoes.tipos-documento.index', ['aba' => 'resposta']) }}" class="text-[10px] text-blue-600 hover:text-blue-800 font-medium">Gerenciar tipos →</a>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-3">Selecione quais documentos o estabelecimento deve enviar. Se nenhum for selecionado, o upload será livre.</p>
+                        @php $vinculados = $tipoDocumento->tiposDocumentoResposta->pluck('id')->toArray(); @endphp
+                        <div class="space-y-1.5">
+                            @foreach($tiposResposta as $tr)
+                            <label class="flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all
+                                {{ in_array($tr->id, $vinculados) ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300' }}">
+                                <input type="checkbox" name="tipos_resposta[]" value="{{ $tr->id }}"
+                                       {{ in_array($tr->id, $vinculados) ? 'checked' : '' }}
+                                       class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ $tr->nome }}</p>
+                                    @if($tr->descricao)
+                                    <p class="text-xs text-gray-500">{{ $tr->descricao }}</p>
+                                    @endif
+                                </div>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
-
         {{-- Botões --}}
         <div class="flex items-center justify-end gap-4">
             <a href="{{ route('admin.configuracoes.tipos-documento.index') }}" 

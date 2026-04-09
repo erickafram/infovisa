@@ -1292,14 +1292,24 @@ class ProcessoController extends Controller
         $request->validate([
             'arquivo' => 'required|file|max:30720|mimes:pdf',
             'observacoes' => 'nullable|string|max:1000',
+            'tipo_documento_resposta_id' => 'nullable|exists:tipo_documento_respostas,id',
         ], [
             'arquivo.required' => 'Selecione um arquivo PDF para enviar.',
             'arquivo.max' => 'O arquivo não pode ter mais de 30MB.',
             'arquivo.mimes' => 'Apenas arquivos PDF são permitidos.',
         ]);
 
+        $tipoRespostaId = $request->input('tipo_documento_resposta_id');
         $arquivo = $request->file('arquivo');
         $nomeOriginal = $arquivo->getClientOriginalName();
+
+        // Se tem tipo de resposta definido, usa o nome do tipo como nome do arquivo
+        if ($tipoRespostaId) {
+            $tipoResposta = \App\Models\TipoDocumentoResposta::find($tipoRespostaId);
+            if ($tipoResposta) {
+                $nomeOriginal = $tipoResposta->nome . '.pdf';
+            }
+        }
         $extensao = $arquivo->getClientOriginalExtension();
         $tamanho = $arquivo->getSize();
         $nomeArquivo = time() . '_resposta_' . uniqid() . '.' . $extensao;
@@ -1352,6 +1362,7 @@ class ProcessoController extends Controller
             DocumentoResposta::create([
                 'documento_digital_id' => $documento->id,
                 'usuario_externo_id' => $usuarioId,
+                'tipo_documento_resposta_id' => $tipoRespostaId,
                 'nome_arquivo' => $nomeArquivo,
                 'nome_original' => $nomeOriginal,
                 'caminho' => $caminho,

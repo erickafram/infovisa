@@ -4,7 +4,7 @@
 @section('page-title', 'Detalhes do Processo')
 
 @section('content')
-<div class="space-y-6" x-data="{ modalUpload: false, modalAlertas: false, modalVisualizador: false, documentoUrl: '', documentoNome: '', documentoExtensao: '', modalResposta: false, docRespostaId: null, docRespostaNome: '', modalReenvio: false, docReenvioId: null, docReenvioNome: '', docReenvioMotivo: '' }" data-processo-root>
+<div class="space-y-6" x-data="{ modalUpload: false, modalAlertas: false, modalVisualizador: false, documentoUrl: '', documentoNome: '', documentoExtensao: '', modalResposta: false, docRespostaId: null, docRespostaNome: '', docRespostaTipos: [], docRespostaEnviados: [], modalReenvio: false, docReenvioId: null, docReenvioNome: '', docReenvioMotivo: '' }" data-processo-root>
     {{-- Mensagens --}}
     @if(session('success'))
     <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
@@ -357,45 +357,26 @@
                             <a href="{{ route('company.processos.documento-digital.visualizar', [$processo->id, $docPrazo->id]) }}" target="_blank"
                                class="text-[11px] text-blue-600 hover:text-blue-700 font-medium">Ver</a>
                             @if($docPrazo->permiteResposta())
-                            <button @click="uploadAberto = uploadAberto === {{ $docPrazo->id }} ? null : {{ $docPrazo->id }}"
+                            @php
+                                $setorEstabPrazo = $processo->estabelecimento?->tipo_setor ?? 'privado';
+                                $tiposRespPrazo = ($docPrazo->tipoDocumento?->tiposDocumentoResposta ?? collect())
+                                    ->filter(function($tr) use ($setorEstabPrazo) { return $tr->tipo_setor === 'todos' || $tr->tipo_setor === $setorEstabPrazo; })
+                                    ->map(function($tr) { return ['id' => $tr->id, 'nome' => $tr->nome, 'descricao' => $tr->descricao]; })
+                                    ->values();
+                                $enviadosPrazo = $docPrazo->respostas
+                                    ->whereIn('status', ['pendente', 'aprovado'])
+                                    ->pluck('tipo_documento_resposta_id')
+                                    ->filter()
+                                    ->values();
+                            @endphp
+                            <button @click="docRespostaId = {{ $docPrazo->id }}; docRespostaNome = '{{ $docPrazo->tipoDocumento->nome ?? 'Documento' }}'; docRespostaTipos = {{ $tiposRespPrazo->toJson() }}; docRespostaEnviados = {{ $enviadosPrazo->toJson() }}; arquivosResposta = []; modalResposta = true"
                                     class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                                <span x-text="uploadAberto === {{ $docPrazo->id }} ? 'Fechar' : 'Anexar Resposta'"></span>
+                                Anexar Resposta
                             </button>
                             @endif
                         </div>
                     </div>
-
-                    {{-- Formulário de upload inline --}}
-                    @if($docPrazo->permiteResposta())
-                    <div x-show="uploadAberto === {{ $docPrazo->id }}" x-cloak x-transition class="mt-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <form action="{{ route('company.processos.documento-digital.resposta', [$processo->id, $docPrazo->id]) }}" method="POST" enctype="multipart/form-data"
-                              @submit="enviando = true">
-                            @csrf
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="text-xs font-medium text-gray-700">Arquivo PDF (máx. 30MB)</label>
-                                    <input type="file" name="arquivo" accept=".pdf" required
-                                           class="mt-1 block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 file:cursor-pointer">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-gray-700">Observações (opcional)</label>
-                                    <input type="text" name="observacoes" maxlength="1000" placeholder="Ex: Segue resposta à notificação..."
-                                           class="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button type="submit" :disabled="enviando"
-                                            class="px-4 py-2 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 inline-flex items-center gap-1.5">
-                                        <svg x-show="!enviando" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                        <svg x-show="enviando" x-cloak class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                        <span x-text="enviando ? 'Enviando...' : 'Enviar Resposta'"></span>
-                                    </button>
-                                    <button type="button" @click="uploadAberto = null" class="px-3 py-2 text-xs text-gray-500 hover:text-gray-700">Cancelar</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    @endif
 
                     {{-- Respostas já enviadas para este documento --}}
                     @if($docPrazo->respostas->count() > 0)
@@ -965,8 +946,20 @@
                                             Download
                                         </a>
                                         @if($docDigital->permiteResposta())
+                                        @php
+                                            $setorEstab = $processo->estabelecimento?->tipo_setor ?? 'privado';
+                                            $tiposResp = ($docDigital->tipoDocumento?->tiposDocumentoResposta ?? collect())
+                                                ->filter(function($tr) use ($setorEstab) { return $tr->tipo_setor === 'todos' || $tr->tipo_setor === $setorEstab; })
+                                                ->map(function($tr) { return ['id' => $tr->id, 'nome' => $tr->nome, 'descricao' => $tr->descricao]; })
+                                                ->values();
+                                            $enviadosDoc = ($docDigital->respostas ?? collect())
+                                                ->whereIn('status', ['pendente', 'aprovado'])
+                                                ->pluck('tipo_documento_resposta_id')
+                                                ->filter()
+                                                ->values();
+                                        @endphp
                                         <button type="button"
-                                                @click="docRespostaId = {{ $docDigital->id }}; docRespostaNome = '{{ $docDigital->tipoDocumento->nome ?? 'Documento' }}'; modalResposta = true"
+                                                @click="docRespostaId = {{ $docDigital->id }}; docRespostaNome = '{{ $docDigital->tipoDocumento->nome ?? 'Documento' }}'; docRespostaTipos = {{ $tiposResp->toJson() }}; docRespostaEnviados = {{ $enviadosDoc->toJson() }}; arquivosResposta = []; modalResposta = true"
                                                 class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors inline-flex items-center gap-1">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
@@ -1291,7 +1284,7 @@
                          this.enviando = true;
                          let sucessos = 0;
                          let erros = 0;
-                         const observacoes = document.getElementById('observacoesResposta').value;
+                         const observacoes = '';
                          
                          for (let i = 0; i < this.arquivosResposta.length; i++) {
                              const arquivo = this.arquivosResposta[i];
@@ -1299,6 +1292,9 @@
                              formData.append('arquivo', arquivo.file);
                              formData.append('observacoes', observacoes);
                              formData.append('_token', '{{ csrf_token() }}');
+                             if (arquivo.tipoRespostaId) {
+                                 formData.append('tipo_documento_resposta_id', arquivo.tipoRespostaId);
+                             }
                              
                              try {
                                  const response = await fetch(`{{ url('/company/processos/' . $processo->id . '/documentos-vigilancia') }}/${docRespostaId}/resposta`, {
@@ -1364,17 +1360,77 @@
                             </svg>
                             Respondendo a: <span x-text="docRespostaNome" class="text-green-900"></span>
                         </p>
-                        <p class="text-xs text-green-700 mt-2">
-                            <strong>Atenção:</strong> A resposta ficará vinculada ao documento original e aguardará aprovação da Vigilância Sanitária.
-                        </p>
                     </div>
+
+                    {{-- Upload com tipos definidos --}}
+                    <template x-if="docRespostaTipos.length > 0">
+                        <div class="space-y-2">
+                            <template x-for="(tipoResp, idx) in docRespostaTipos" :key="tipoResp.id">
+                                <div class="flex items-center gap-3 p-3 rounded-lg border"
+                                     :class="docRespostaEnviados.includes(tipoResp.id) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200'">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                         :class="docRespostaEnviados.includes(tipoResp.id) ? 'bg-gray-100' : 'bg-green-100'">
+                                        <template x-if="!docRespostaEnviados.includes(tipoResp.id)">
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </template>
+                                        <template x-if="docRespostaEnviados.includes(tipoResp.id)">
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </template>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium" :class="docRespostaEnviados.includes(tipoResp.id) ? 'text-gray-500' : 'text-gray-900'" x-text="tipoResp.nome"></p>
+                                        <template x-if="docRespostaEnviados.includes(tipoResp.id)">
+                                            <p class="text-[10px] text-gray-400">Já enviado — aguardando análise</p>
+                                        </template>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        {{-- Não enviado ainda --}}
+                                        <template x-if="!docRespostaEnviados.includes(tipoResp.id) && !arquivosResposta.some(f => f.tipoRespostaId === tipoResp.id)">
+                                            <label class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition cursor-pointer inline-flex items-center gap-1">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                                Anexar
+                                                <input type="file" accept=".pdf" class="hidden"
+                                                       @change="
+                                                           const file = $event.target.files[0];
+                                                           if (file && file.size > 30*1024*1024) { alert('Máximo 30MB'); $event.target.value=''; return; }
+                                                           if (file) {
+                                                               arquivosResposta = arquivosResposta.filter(f => f.tipoRespostaId !== tipoResp.id);
+                                                               arquivosResposta.push({ file, name: tipoResp.nome + '.pdf', size: (file.size/1024/1024).toFixed(2)+' MB', tipoRespostaId: tipoResp.id });
+                                                           }
+                                                           $event.target.value = '';
+                                                       ">
+                                            </label>
+                                        </template>
+                                        {{-- Arquivo selecionado --}}
+                                        <template x-if="!docRespostaEnviados.includes(tipoResp.id) && arquivosResposta.some(f => f.tipoRespostaId === tipoResp.id)">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-xs text-green-700 font-medium flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    Anexado
+                                                </span>
+                                                <button type="button" @click="arquivosResposta = arquivosResposta.filter(f => f.tipoRespostaId !== tipoResp.id)"
+                                                        class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                     
-                    {{-- Área de Upload --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Arquivos de Resposta * 
-                            <span class="text-gray-500 font-normal">(<span x-text="arquivosResposta.length"></span>/6 selecionados)</span>
-                        </label>
+                    {{-- Upload livre (sem tipos definidos) --}}
+                    <template x-if="docRespostaTipos.length === 0">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Arquivos de Resposta * 
+                                <span class="text-gray-500 font-normal">(<span x-text="arquivosResposta.length"></span>/6 selecionados)</span>
+                            </label>
                         
                         {{-- Área de drop --}}
                         <div class="relative mb-3"
@@ -1439,12 +1495,8 @@
                             </div>
                         </template>
                     </div>
+                    </template>
                     
-                    {{-- Observações --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
-                        <textarea id="observacoesResposta" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Descreva a resposta ou justificativa (opcional)"></textarea>
-                    </div>
                 </div>
                 
                 {{-- Footer --}}
