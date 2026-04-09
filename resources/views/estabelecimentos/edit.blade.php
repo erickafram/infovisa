@@ -388,8 +388,8 @@ function estabelecimentoEdit() {
 
                     // Verifica CNAEs secundários
                     const cnaesApi = d.cnaes_secundarios || [];
-                    const cnaePrincipalApi = d.cnae_fiscal ? d.cnae_fiscal.replace(/[^0-9]/g, '') : null;
-                    const cnaePrincipalAtual = '{{ $estabelecimento->cnae_fiscal }}'.replace(/[^0-9]/g, '');
+                    const cnaePrincipalApi = d.cnae_fiscal ? String(d.cnae_fiscal).replace(/[^0-9]/g, '') : null;
+                    const cnaePrincipalAtual = '{{ $estabelecimento->cnae_fiscal ?? '' }}'.replace(/[^0-9]/g, '');
 
                     if (cnaePrincipalApi && cnaePrincipalApi !== cnaePrincipalAtual) {
                         alteracoes.push(`CNAE Principal: "${cnaePrincipalAtual}" → "${cnaePrincipalApi} - ${d.cnae_fiscal_descricao || ''}"`);
@@ -397,8 +397,8 @@ function estabelecimentoEdit() {
 
                     // Compara CNAEs secundários
                     const cnaesAtuais = @json($estabelecimento->cnaes_secundarios ?? []);
-                    const codigosAtuais = (cnaesAtuais || []).map(c => (c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
-                    const codigosApi = cnaesApi.map(c => (c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
+                    const codigosAtuais = (cnaesAtuais || []).map(c => String(c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
+                    const codigosApi = cnaesApi.map(c => String(c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
 
                     const novos = codigosApi.filter(c => !codigosAtuais.includes(c));
                     const removidos = codigosAtuais.filter(c => !codigosApi.includes(c));
