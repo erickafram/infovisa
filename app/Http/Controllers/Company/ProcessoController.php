@@ -642,7 +642,8 @@ class ProcessoController extends Controller
             }
 
             if ($todosAprovadosBase && $dataDocCompletos) {
-                $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                $grupoRisco = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                $prazo = $processo->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRisco);
                 $dataRefPrazo = $processo->getDataReferenciaFilaPublica($dataDocCompletos);
                 $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocCompletos, $prazo);
                 $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
@@ -685,7 +686,8 @@ class ProcessoController extends Controller
                     }
 
                     if ($todosAprovU && $dataUltimoAprovU) {
-                        $prazoU = $processo->tipoProcesso->prazo_fila_publica;
+                        $grupoRiscoU = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                        $prazoU = $processo->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRiscoU);
                         $dataRefU = $processo->getDataReferenciaFilaPublica($dataUltimoAprovU);
                         $dataLimiteU = $processo->calcularDataLimiteFilaPublica($dataUltimoAprovU, $prazoU);
                         $diasRestantesU = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimiteU, false));

@@ -57,7 +57,8 @@ class HomeController extends Controller
                     $horas = intdiv($tempoTotalSegundos % 86400, 3600);
                     
                     // Calcula prazo restante
-                    $prazo = $tipo->prazo_fila_publica ?? null;
+                    $grupoRisco = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                    $prazo = $tipo->getPrazoFilaPublicaPorRisco($grupoRisco);
                     if ($prazo) {
                         $dataLimite = $processo->calcularDataLimiteFilaPublica($dataRef, $prazo);
                         $diasRestantes = (int) round(Carbon::now()->diffInDays($dataLimite, false));

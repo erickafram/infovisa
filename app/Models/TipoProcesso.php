@@ -15,6 +15,9 @@ class TipoProcesso extends Model
         'usuario_externo_pode_visualizar',
         'exibir_fila_publica',
         'prazo_fila_publica',
+        'prazo_fila_publica_alto',
+        'prazo_fila_publica_medio',
+        'prazo_fila_publica_baixo',
         'exibir_aviso_prazo_fila',
         'unico_por_estabelecimento',
         'ativo',
@@ -31,6 +34,9 @@ class TipoProcesso extends Model
         'usuario_externo_pode_visualizar' => 'boolean',
         'exibir_fila_publica' => 'boolean',
         'prazo_fila_publica' => 'integer',
+        'prazo_fila_publica_alto' => 'integer',
+        'prazo_fila_publica_medio' => 'integer',
+        'prazo_fila_publica_baixo' => 'integer',
         'exibir_aviso_prazo_fila' => 'boolean',
         'unico_por_estabelecimento' => 'boolean',
         'ativo' => 'boolean',
@@ -38,6 +44,25 @@ class TipoProcesso extends Model
         'municipios_descentralizados' => 'array',
         'municipios_descentralizados_ids' => 'array',
     ];
+
+    /**
+     * Retorna o prazo da fila pública baseado no grupo de risco do estabelecimento.
+     * Se não houver prazo específico por risco, usa o prazo padrão.
+     */
+    public function getPrazoFilaPublicaPorRisco(?string $grupoRisco): ?int
+    {
+        if ($grupoRisco === 'alto' && $this->prazo_fila_publica_alto) {
+            return $this->prazo_fila_publica_alto;
+        }
+        if (($grupoRisco === 'medio' || $grupoRisco === 'médio') && $this->prazo_fila_publica_medio) {
+            return $this->prazo_fila_publica_medio;
+        }
+        if ($grupoRisco === 'baixo' && $this->prazo_fila_publica_baixo) {
+            return $this->prazo_fila_publica_baixo;
+        }
+        // Fallback para o prazo padrão
+        return $this->prazo_fila_publica;
+    }
 
     /**
      * Relacionamento com o setor responsável pela análise inicial

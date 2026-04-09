@@ -130,7 +130,8 @@ class DashboardController extends Controller
             }
 
             if ($todosAprov && $dataUltimoAprov) {
-                $prazo = $proc->tipoProcesso->prazo_fila_publica;
+                $grupoRisco = $proc->estabelecimento ? $proc->estabelecimento->getGrupoRisco() : null;
+                $prazo = $proc->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRisco);
                 $dataLimite = $proc->calcularDataLimiteFilaPublica($dataUltimoAprov, $prazo);
                 $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
 

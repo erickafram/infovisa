@@ -43,6 +43,9 @@ class TipoProcessoController extends Controller
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
             'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_alto' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_medio' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_baixo' => 'nullable|integer|min:1|max:365',
             'setores_municipais' => 'nullable|array',
             'setores_municipais.*' => 'nullable|exists:tipo_setores,id',
         ]);
@@ -126,6 +129,9 @@ class TipoProcessoController extends Controller
             'competencia' => 'required|in:estadual,municipal,estadual_exclusivo',
             'tipo_setor_id' => 'nullable|exists:tipo_setores,id',
             'prazo_fila_publica' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_alto' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_medio' => 'nullable|integer|min:1|max:365',
+            'prazo_fila_publica_baixo' => 'nullable|integer|min:1|max:365',
             'setores_municipais' => 'nullable|array',
             'setores_municipais.*' => 'nullable|exists:tipo_setores,id',
         ]);

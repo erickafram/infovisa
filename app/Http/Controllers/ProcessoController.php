@@ -301,7 +301,8 @@ class ProcessoController extends Controller
                         if ($dataRef && (!$dataCompletos || $dataRef > $dataCompletos)) $dataCompletos = $dataRef;
                     }
                     if ($dataCompletos) {
-                        $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                        $grupoRisco = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                        $prazo = $processo->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRisco);
                         $dataReferenciaPrazo = $processo->getDataReferenciaFilaPublica($dataCompletos);
                         $dataLimite = $processo->calcularDataLimiteFilaPublica($dataCompletos, $prazo);
                         $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
@@ -855,7 +856,8 @@ class ProcessoController extends Controller
             }
             
             if ($todosAprovados && $dataDocumentosCompletos) {
-                $prazo = $processo->tipoProcesso->prazo_fila_publica;
+                $grupoRisco = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                $prazo = $processo->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRisco);
                 $dataReferenciaPrazo = $processo->getDataReferenciaFilaPublica($dataDocumentosCompletos);
                 $dataLimite = $processo->calcularDataLimiteFilaPublica($dataDocumentosCompletos, $prazo);
                 $diasRestantes = (int) round(\Carbon\Carbon::now()->diffInDays($dataLimite, false));
@@ -908,7 +910,8 @@ class ProcessoController extends Controller
                 }
 
                 if ($todosAprovadosUnidade && $dataUltimoAprovadoUnidade) {
-                    $prazoU = $processo->tipoProcesso->prazo_fila_publica;
+                    $grupoRiscoU = $processo->estabelecimento ? $processo->estabelecimento->getGrupoRisco() : null;
+                    $prazoU = $processo->tipoProcesso->getPrazoFilaPublicaPorRisco($grupoRiscoU);
                     
                     // Verifica se a unidade específica está parada (via pivot)
                     $pasta = $info['pasta'] ?? null;

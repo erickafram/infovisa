@@ -371,7 +371,7 @@ class EstabelecimentoController extends Controller
             }
         }
 
-        // VALIDAÇÃO: Usuários municipais só podem cadastrar estabelecimentos do seu município
+        // VALIDAÇÃO: Usuários municipais só podem cadastrar estabelecimentos do seu município 
         if (auth('interno')->check()) {
             $usuario = auth('interno')->user();
             

@@ -415,22 +415,50 @@
                     {{-- Campo de Prazo (visível apenas quando fila pública está marcada) --}}
                     <div x-show="filaPublica" x-transition class="mt-3 ml-7 p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-4">
                         <div>
-                            <label for="prazo_fila_publica" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            <label class="block text-sm font-medium text-gray-900 mb-1.5">
                                 <svg class="w-4 h-4 inline-block text-purple-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                Prazo para análise (em dias)
+                                Prazo padrão para análise (em dias)
                             </label>
-                            <input type="number" 
-                                   name="prazo_fila_publica" 
-                                   id="prazo_fila_publica"
+                            <input type="number" name="prazo_fila_publica" id="prazo_fila_publica"
                                    value="{{ old('prazo_fila_publica', $tipoProcesso->prazo_fila_publica) }}"
-                                   min="1" max="365"
-                                   placeholder="Ex: 30"
+                                   min="1" max="365" placeholder="Ex: 30"
                                    class="w-32 px-3 py-2 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                             <p class="text-xs text-gray-500 mt-1.5">
-                                Prazo em dias úteis que a equipe da vigilância tem para analisar o processo após todos os documentos obrigatórios estarem <strong>completos e aprovados</strong>.
+                                Prazo padrão em dias úteis. Usado quando não houver prazo específico por grau de risco.
                             </p>
+                        </div>
+
+                        {{-- Prazos por Grau de Risco --}}
+                        <div class="pt-3 border-t border-purple-200">
+                            <label class="block text-sm font-medium text-gray-900 mb-2">
+                                Prazo por Grau de Risco (opcional)
+                            </label>
+                            <p class="text-xs text-gray-500 mb-3">Se preenchido, o prazo será definido pelo grau de risco do estabelecimento. Caso contrário, usa o prazo padrão acima.</p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-red-700 mb-1">Alto Risco</label>
+                                    <input type="number" name="prazo_fila_publica_alto"
+                                           value="{{ old('prazo_fila_publica_alto', $tipoProcesso->prazo_fila_publica_alto) }}"
+                                           min="1" max="365" placeholder="Ex: 60"
+                                           class="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-amber-700 mb-1">Médio Risco</label>
+                                    <input type="number" name="prazo_fila_publica_medio"
+                                           value="{{ old('prazo_fila_publica_medio', $tipoProcesso->prazo_fila_publica_medio) }}"
+                                           min="1" max="365" placeholder="Ex: 30"
+                                           class="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-green-700 mb-1">Baixo Risco</label>
+                                    <input type="number" name="prazo_fila_publica_baixo"
+                                           value="{{ old('prazo_fila_publica_baixo', $tipoProcesso->prazo_fila_publica_baixo) }}"
+                                           min="1" max="365" placeholder="Ex: 15"
+                                           class="w-full px-3 py-2 text-sm border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                </div>
+                            </div>
                         </div>
                         
                         {{-- Checkbox para exibir aviso no processo --}}
