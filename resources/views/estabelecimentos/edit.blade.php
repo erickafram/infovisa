@@ -337,7 +337,7 @@ function estabelecimentoEdit() {
         },
 
         async atualizarPelaApi() {
-            if (!confirm('Deseja atualizar os dados deste estabelecimento consultando a API da Receita Federal? Os dados atuais serão substituídos.')) {
+            if (!confirm('Deseja atualizar os dados deste estabelecimento consultando a API da Receita Federal?\n\nOs dados cadastrais e CNAEs serão atualizados diretamente no banco.')) {
                 return;
             }
 
@@ -345,84 +345,30 @@ function estabelecimentoEdit() {
             this.mensagem = '';
 
             try {
-                const cnpj = '{{ $estabelecimento->cnpj }}';
-                
-                const response = await fetch('{{ url("/api/consultar-cnpj") }}', {
+                const response = await fetch('{{ route("admin.estabelecimentos.atualizar-api", $estabelecimento->id) }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ cnpj })
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    const d = result.data;
-                    let alteracoes = [];
+                    const apiNames = { 'minha_receita': 'Receita Federal', 'brasil_api': 'BrasilAPI', 'receita_ws': 'ReceitaWS' };
+                    const apiName = apiNames[result.api_source] || result.api_source || 'API';
 
-                    // Compara e atualiza cada campo
-                    const campos = {
-                        'razao_social': 'Razão Social',
-                        'nome_fantasia': 'Nome Fantasia',
-                        'natureza_juridica': 'Natureza Jurídica',
-                        'porte': 'Porte',
-                        'cep': 'CEP',
-                        'endereco': 'Endereço',
-                        'numero': 'Número',
-                        'complemento': 'Complemento',
-                        'bairro': 'Bairro',
-                        'cidade': 'Cidade',
-                        'estado': 'Estado',
-                        'telefone': 'Telefone',
-                        'email': 'E-mail',
-                    };
-
-                    for (const [campo, label] of Object.entries(campos)) {
-                        if (d[campo] && d[campo] !== this.formData[campo]) {
-                            alteracoes.push(`${label}: "${this.formData[campo] || '-'}" → "${d[campo]}"`);
-                            this.formData[campo] = d[campo];
-                        }
-                    }
-
-                    // Verifica CNAEs secundários
-                    const cnaesApi = d.cnaes_secundarios || [];
-                    const cnaePrincipalApi = d.cnae_fiscal ? String(d.cnae_fiscal).replace(/[^0-9]/g, '') : null;
-                    const cnaePrincipalAtual = '{{ $estabelecimento->cnae_fiscal ?? '' }}'.replace(/[^0-9]/g, '');
-
-                    if (cnaePrincipalApi && cnaePrincipalApi !== cnaePrincipalAtual) {
-                        alteracoes.push(`CNAE Principal: "${cnaePrincipalAtual}" → "${cnaePrincipalApi} - ${d.cnae_fiscal_descricao || ''}"`);
-                    }
-
-                    // Compara CNAEs secundários
-                    const cnaesAtuais = @json($estabelecimento->cnaes_secundarios ?? []);
-                    const codigosAtuais = (cnaesAtuais || []).map(c => String(c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
-                    const codigosApi = cnaesApi.map(c => String(c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
-
-                    const novos = codigosApi.filter(c => !codigosAtuais.includes(c));
-                    const removidos = codigosAtuais.filter(c => !codigosApi.includes(c));
-
-                    if (novos.length > 0 || removidos.length > 0) {
-                        if (novos.length > 0) {
-                            const novosDesc = novos.map(c => {
-                                const cnae = cnaesApi.find(x => (x.codigo || '').replace(/[^0-9]/g, '') === c);
-                                return `${c} - ${cnae?.descricao || ''}`;
-                            });
-                            alteracoes.push(`CNAEs Novos: ${novosDesc.join(', ')}`);
-                        }
-                        if (removidos.length > 0) {
-                            alteracoes.push(`CNAEs Removidos da Receita: ${removidos.join(', ')}`);
-                        }
-                    }
-
-                    if (alteracoes.length > 0) {
-                        this.mostrarMensagem(`✅ Dados atualizados pela ${result.api_source || 'API'}! ${alteracoes.length} alteração(ões) encontrada(s):\n\n${alteracoes.join('\n')}\n\nRevise e clique em "Salvar Alterações".`, 'success');
+                    if (result.total_alteracoes > 0) {
+                        this.mostrarMensagem(`✅ Dados atualizados e salvos pela ${apiName}! ${result.total_alteracoes} alteração(ões):\n\n${result.alteracoes.join('\n')}\n\nRecarregue a página para ver as alterações.`, 'success');
+                        // Recarrega após 3 segundos
+                        setTimeout(() => location.reload(), 3000);
                     } else {
-                        this.mostrarMensagem(`✅ Consulta realizada pela ${result.api_source || 'API'}. Nenhuma alteração encontrada nos dados cadastrais.`, 'success');
+                        this.mostrarMensagem(`✅ Consulta realizada pela ${apiName}. Nenhuma alteração encontrada - dados já estão atualizados.`, 'success');
                     }
                 } else {
-                    this.mostrarMensagem(result.message || '❌ Erro ao consultar CNPJ na API', 'error');
+                    this.mostrarMensagem(result.message || '❌ Erro ao atualizar pela API', 'error');
                 }
             } catch (error) {
                 console.error('Erro:', error);

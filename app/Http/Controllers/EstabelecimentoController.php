@@ -634,6 +634,89 @@ class EstabelecimentoController extends Controller
     }
 
     /**
+     * Atualizar dados do estabelecimento pela API da Receita Federal
+     */
+    public function atualizarPelaApi(Request $request, string $id)
+    {
+        $estabelecimento = Estabelecimento::findOrFail($id);
+        $this->autorizarAcessoEstabelecimentoInterno($estabelecimento, 'atualizar pela API');
+
+        if (!$estabelecimento->cnpj) {
+            return response()->json(['success' => false, 'message' => 'Estabelecimento sem CNPJ.'], 422);
+        }
+
+        try {
+            $service = new \App\Services\CnpjService();
+            $dados = $service->consultarCnpj($estabelecimento->cnpj);
+
+            if (!$dados) {
+                return response()->json(['success' => false, 'message' => 'CNPJ não encontrado na API.'], 404);
+            }
+
+            $alteracoes = [];
+
+            // Campos para comparar e atualizar
+            $camposMap = [
+                'razao_social' => 'razao_social',
+                'nome_fantasia' => 'nome_fantasia',
+                'natureza_juridica' => 'natureza_juridica',
+                'porte' => 'porte',
+                'cep' => 'cep',
+                'logradouro' => 'endereco',
+                'numero' => 'numero',
+                'complemento' => 'complemento',
+                'bairro' => 'bairro',
+                'cidade' => 'cidade',
+                'estado' => 'estado',
+                'telefone' => 'telefone',
+                'email' => 'email',
+                'cnae_fiscal' => 'cnae_fiscal',
+                'cnae_fiscal_descricao' => 'cnae_fiscal_descricao',
+                'situacao_cadastral' => 'situacao_cadastral',
+            ];
+
+            foreach ($camposMap as $campoApi => $campoBanco) {
+                $valorApi = $dados[$campoApi] ?? null;
+                $valorAtual = $estabelecimento->$campoBanco;
+                if ($valorApi && $valorApi != $valorAtual) {
+                    $alteracoes[] = "{$campoBanco}: \"{$valorAtual}\" → \"{$valorApi}\"";
+                    $estabelecimento->$campoBanco = $valorApi;
+                }
+            }
+
+            // Atualiza CNAEs secundários
+            $cnaesApi = $dados['cnaes_secundarios'] ?? [];
+            $cnaesAtuais = $estabelecimento->cnaes_secundarios ?? [];
+            
+            $codigosAtuais = collect($cnaesAtuais)->pluck('codigo')->map(fn($c) => preg_replace('/[^0-9]/', '', $c))->filter()->sort()->values()->toArray();
+            $codigosApi = collect($cnaesApi)->pluck('codigo')->map(fn($c) => preg_replace('/[^0-9]/', '', $c))->filter()->sort()->values()->toArray();
+
+            if ($codigosAtuais != $codigosApi) {
+                $novos = array_diff($codigosApi, $codigosAtuais);
+                $removidos = array_diff($codigosAtuais, $codigosApi);
+                if (!empty($novos)) $alteracoes[] = "CNAEs Novos: " . implode(', ', $novos);
+                if (!empty($removidos)) $alteracoes[] = "CNAEs Removidos: " . implode(', ', $removidos);
+                $estabelecimento->cnaes_secundarios = $cnaesApi;
+            }
+
+            if (!empty($alteracoes)) {
+                $estabelecimento->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'alteracoes' => $alteracoes,
+                'total_alteracoes' => count($alteracoes),
+                'api_source' => $dados['api_source'] ?? 'desconhecida',
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao atualizar estabelecimento pela API', ['id' => $id, 'erro' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Erro: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Altera manualmente a competência do estabelecimento (decisão administrativa/judicial)
      */
     public function alterarCompetencia(Request $request, string $id)
