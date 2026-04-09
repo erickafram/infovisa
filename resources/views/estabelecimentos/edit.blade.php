@@ -41,7 +41,7 @@
          }"
          class="mb-6 p-4 rounded-lg border"
          x-cloak>
-        <p class="text-sm font-medium" x-text="mensagem"></p>
+        <p class="text-sm font-medium whitespace-pre-line" x-text="mensagem"></p>
     </div>
 
     <form method="POST" action="{{ route('admin.estabelecimentos.update', $estabelecimento->id) }}" class="space-y-6">
@@ -359,22 +359,68 @@ function estabelecimentoEdit() {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Preenche os campos com os dados da API
-                    this.formData.razao_social = result.data.razao_social || this.formData.razao_social;
-                    this.formData.nome_fantasia = result.data.nome_fantasia || this.formData.nome_fantasia;
-                    this.formData.natureza_juridica = result.data.natureza_juridica || this.formData.natureza_juridica;
-                    this.formData.porte = result.data.porte || this.formData.porte;
-                    this.formData.cep = result.data.cep || this.formData.cep;
-                    this.formData.endereco = result.data.endereco || this.formData.endereco;
-                    this.formData.numero = result.data.numero || this.formData.numero;
-                    this.formData.complemento = result.data.complemento || this.formData.complemento;
-                    this.formData.bairro = result.data.bairro || this.formData.bairro;
-                    this.formData.cidade = result.data.cidade || this.formData.cidade;
-                    this.formData.estado = result.data.estado || this.formData.estado;
-                    this.formData.telefone = result.data.telefone || this.formData.telefone;
-                    this.formData.email = result.data.email || this.formData.email;
+                    const d = result.data;
+                    let alteracoes = [];
 
-                    this.mostrarMensagem(`✅ Dados atualizados com sucesso pela ${result.api_source || 'API'}! Revise as informações e clique em "Salvar Alterações" para confirmar.`, 'success');
+                    // Compara e atualiza cada campo
+                    const campos = {
+                        'razao_social': 'Razão Social',
+                        'nome_fantasia': 'Nome Fantasia',
+                        'natureza_juridica': 'Natureza Jurídica',
+                        'porte': 'Porte',
+                        'cep': 'CEP',
+                        'endereco': 'Endereço',
+                        'numero': 'Número',
+                        'complemento': 'Complemento',
+                        'bairro': 'Bairro',
+                        'cidade': 'Cidade',
+                        'estado': 'Estado',
+                        'telefone': 'Telefone',
+                        'email': 'E-mail',
+                    };
+
+                    for (const [campo, label] of Object.entries(campos)) {
+                        if (d[campo] && d[campo] !== this.formData[campo]) {
+                            alteracoes.push(`${label}: "${this.formData[campo] || '-'}" → "${d[campo]}"`);
+                            this.formData[campo] = d[campo];
+                        }
+                    }
+
+                    // Verifica CNAEs secundários
+                    const cnaesApi = d.cnaes_secundarios || [];
+                    const cnaePrincipalApi = d.cnae_fiscal ? d.cnae_fiscal.replace(/[^0-9]/g, '') : null;
+                    const cnaePrincipalAtual = '{{ $estabelecimento->cnae_fiscal }}'.replace(/[^0-9]/g, '');
+
+                    if (cnaePrincipalApi && cnaePrincipalApi !== cnaePrincipalAtual) {
+                        alteracoes.push(`CNAE Principal: "${cnaePrincipalAtual}" → "${cnaePrincipalApi} - ${d.cnae_fiscal_descricao || ''}"`);
+                    }
+
+                    // Compara CNAEs secundários
+                    const cnaesAtuais = @json($estabelecimento->cnaes_secundarios ?? []);
+                    const codigosAtuais = (cnaesAtuais || []).map(c => (c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
+                    const codigosApi = cnaesApi.map(c => (c.codigo || '').replace(/[^0-9]/g, '')).filter(c => c).sort();
+
+                    const novos = codigosApi.filter(c => !codigosAtuais.includes(c));
+                    const removidos = codigosAtuais.filter(c => !codigosApi.includes(c));
+
+                    if (novos.length > 0 || removidos.length > 0) {
+                        if (novos.length > 0) {
+                            const novosDesc = novos.map(c => {
+                                const cnae = cnaesApi.find(x => (x.codigo || '').replace(/[^0-9]/g, '') === c);
+                                return `${c} - ${cnae?.descricao || ''}`;
+                            });
+                            alteracoes.push(`CNAEs Novos: ${novosDesc.join(', ')}`);
+                        }
+                        if (removidos.length > 0) {
+                            alteracoes.push(`CNAEs Removidos da Receita: ${removidos.join(', ')}`);
+                        }
+                    }
+
+                    if (alteracoes.length > 0) {
+                        this.mostrarMensagem(`✅ Dados atualizados pela ${result.api_source || 'API'}! ${alteracoes.length} alteração(ões) encontrada(s):\n\n${alteracoes.join('\n')}\n\nRevise e clique em "Salvar Alterações".`, 'success');
+                    } else {
+                        this.mostrarMensagem(`✅ Consulta realizada pela ${result.api_source || 'API'}. Nenhuma alteração encontrada nos dados cadastrais.`, 'success');
+                    }
                 } else {
                     this.mostrarMensagem(result.message || '❌ Erro ao consultar CNPJ na API', 'error');
                 }
