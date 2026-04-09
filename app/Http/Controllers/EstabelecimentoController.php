@@ -694,9 +694,34 @@ class EstabelecimentoController extends Controller
             if ($codigosAtuais != $codigosApi) {
                 $novos = array_diff($codigosApi, $codigosAtuais);
                 $removidos = array_diff($codigosAtuais, $codigosApi);
-                if (!empty($novos)) $alteracoes[] = "CNAEs Novos: " . implode(', ', $novos);
-                if (!empty($removidos)) $alteracoes[] = "CNAEs Removidos: " . implode(', ', $removidos);
+                if (!empty($novos)) $alteracoes[] = "CNAEs Novos na Receita: " . implode(', ', $novos);
+                if (!empty($removidos)) $alteracoes[] = "CNAEs Removidos da Receita: " . implode(', ', $removidos);
                 $estabelecimento->cnaes_secundarios = $cnaesApi;
+            }
+
+            // Compara atividades exercidas (marcadas) com atividades da Receita
+            $avisos = [];
+            $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+            $codigosExercidos = collect($atividadesExercidas)->map(function($a) {
+                $codigo = is_array($a) ? ($a['codigo'] ?? null) : $a;
+                return $codigo ? preg_replace('/[^0-9]/', '', $codigo) : null;
+            })->filter()->values()->toArray();
+
+            // Todos os CNAEs da Receita (principal + secundários)
+            $cnaePrincipalApi = $dados['cnae_fiscal'] ? preg_replace('/[^0-9]/', '', $dados['cnae_fiscal']) : null;
+            $todosCodigosReceita = $codigosApi;
+            if ($cnaePrincipalApi) {
+                $todosCodigosReceita = array_unique(array_merge([$cnaePrincipalApi], $codigosApi));
+            }
+
+            $exercidasNaoNaReceita = array_diff($codigosExercidos, $todosCodigosReceita);
+            $receitaNaoExercidas = array_diff($todosCodigosReceita, $codigosExercidos);
+
+            if (!empty($exercidasNaoNaReceita)) {
+                $avisos[] = "Atividades marcadas que NÃO estão na Receita: " . implode(', ', $exercidasNaoNaReceita);
+            }
+            if (!empty($receitaNaoExercidas)) {
+                $avisos[] = "Atividades da Receita NÃO marcadas como exercidas: " . implode(', ', $receitaNaoExercidas);
             }
 
             if (!empty($alteracoes)) {
@@ -706,6 +731,7 @@ class EstabelecimentoController extends Controller
             return response()->json([
                 'success' => true,
                 'alteracoes' => $alteracoes,
+                'avisos' => $avisos,
                 'total_alteracoes' => count($alteracoes),
                 'api_source' => $dados['api_source'] ?? 'desconhecida',
             ]);

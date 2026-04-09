@@ -359,13 +359,22 @@ function estabelecimentoEdit() {
                 if (response.ok && result.success) {
                     const apiNames = { 'minha_receita': 'Receita Federal', 'brasil_api': 'BrasilAPI', 'receita_ws': 'ReceitaWS' };
                     const apiName = apiNames[result.api_source] || result.api_source || 'API';
+                    let msg = '';
 
                     if (result.total_alteracoes > 0) {
-                        this.mostrarMensagem(`✅ Dados atualizados e salvos pela ${apiName}! ${result.total_alteracoes} alteração(ões):\n\n${result.alteracoes.join('\n')}\n\nRecarregue a página para ver as alterações.`, 'success');
-                        // Recarrega após 3 segundos
-                        setTimeout(() => location.reload(), 3000);
+                        msg += `✅ Dados atualizados e salvos pela ${apiName}! ${result.total_alteracoes} alteração(ões):\n${result.alteracoes.join('\n')}`;
                     } else {
-                        this.mostrarMensagem(`✅ Consulta realizada pela ${apiName}. Nenhuma alteração encontrada - dados já estão atualizados.`, 'success');
+                        msg += `✅ Dados cadastrais já estão atualizados (${apiName}).`;
+                    }
+
+                    if (result.avisos && result.avisos.length > 0) {
+                        msg += `\n\n⚠️ Divergências nas atividades exercidas:\n${result.avisos.join('\n')}\n\nAcesse a página de Atividades para revisar.`;
+                    }
+
+                    this.mostrarMensagem(msg, result.total_alteracoes > 0 || (result.avisos && result.avisos.length > 0) ? 'success' : 'success');
+                    
+                    if (result.total_alteracoes > 0) {
+                        setTimeout(() => location.reload(), 4000);
                     }
                 } else {
                     this.mostrarMensagem(result.message || '❌ Erro ao atualizar pela API', 'error');
