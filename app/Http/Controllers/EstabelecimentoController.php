@@ -167,41 +167,79 @@ class EstabelecimentoController extends Controller
         }
 
         // Filtro por Grupo de Risco (precisa ser em memória pois é calculado)
+        $aplicarFiltroEscopo = auth('interno')->check() && $usuarioInterno && !$usuarioInterno->isAdmin();
+
         if ($request->filled('risco')) {
             $riscoFiltro = $request->risco;
-            $estabelecimentosFiltrados = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
+            $estabelecimentosFiltrados = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio', 'processos.tipoProcesso'])
                 ->orderBy('created_at', 'desc')
                 ->get()
-                ->filter(fn ($e) => $e->getGrupoRisco() === $riscoFiltro)
-                ->values();
-            $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados, 10, $request);
+                ->filter(fn ($e) => $e->getGrupoRisco() === $riscoFiltro);
+            
+            if ($aplicarFiltroEscopo) {
+                $estabelecimentosFiltrados = $this->filtrarEstabelecimentosPorEscopo($estabelecimentosFiltrados, $usuarioInterno);
+            }
+            
+            $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados->values(), 10, $request);
         } else {
-            // Paginação direto no banco (muito mais rápido)
-            $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(10)
-                ->withQueryString();
+            if ($aplicarFiltroEscopo) {
+                // Precisa filtrar em memória por competência (depende de pactuação)
+                $estabelecimentosFiltrados = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio', 'processos.tipoProcesso'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                
+                $estabelecimentosFiltrados = $this->filtrarEstabelecimentosPorEscopo($estabelecimentosFiltrados, $usuarioInterno);
+                
+                $estabelecimentos = $this->paginarColecao($estabelecimentosFiltrados->values(), 10, $request);
+            } else {
+                // Admin: paginação direto no banco
+                $estabelecimentos = $query->with(['usuarioExterno', 'aprovadoPor', 'municipio'])
+                    ->orderBy('created_at', 'desc')
+                    ->paginate(10)
+                    ->withQueryString();
+            }
         }
 
-        // Estatísticas com contagem direto no banco (sem carregar registros)
-        $baseQuery = function() use ($usuarioInterno) {
-            $q = Estabelecimento::query();
+        // Estatísticas
+        if ($aplicarFiltroEscopo) {
+            // Para usuários não-admin, conta baseado nos estabelecimentos filtrados
+            $todosParaStats = Estabelecimento::query();
             if (auth('interno')->check()) {
-                $q->paraUsuario($usuarioInterno);
+                $todosParaStats->paraUsuario($usuarioInterno);
                 if ($usuarioInterno->isMunicipal() && $usuarioInterno->municipio_id) {
-                    $q->where('municipio_id', $usuarioInterno->municipio_id);
+                    $todosParaStats->where('municipio_id', $usuarioInterno->municipio_id);
                 }
             }
-            return $q;
-        };
-        
-        $estatisticas = [
-            'total' => $baseQuery()->aprovados()->count(),
-            'pendentes' => $baseQuery()->pendentes()->count(),
-            'aprovados' => $baseQuery()->aprovados()->where('ativo', true)->count(),
-            'rejeitados' => $baseQuery()->rejeitados()->count(),
-            'desativados' => $baseQuery()->where('ativo', false)->count(),
-        ];
+            $todosEstabs = $todosParaStats->with('processos.tipoProcesso')->get();
+            $filtrados = $this->filtrarEstabelecimentosPorEscopo($todosEstabs, $usuarioInterno);
+            
+            $estatisticas = [
+                'total' => $filtrados->where('status_cadastro', 'aprovado')->count(),
+                'pendentes' => $filtrados->where('status_cadastro', 'pendente')->count(),
+                'aprovados' => $filtrados->where('status_cadastro', 'aprovado')->where('ativo', true)->count(),
+                'rejeitados' => $filtrados->where('status_cadastro', 'rejeitado')->count(),
+                'desativados' => $filtrados->where('ativo', false)->count(),
+            ];
+        } else {
+            $baseQuery = function() use ($usuarioInterno) {
+                $q = Estabelecimento::query();
+                if (auth('interno')->check()) {
+                    $q->paraUsuario($usuarioInterno);
+                    if ($usuarioInterno->isMunicipal() && $usuarioInterno->municipio_id) {
+                        $q->where('municipio_id', $usuarioInterno->municipio_id);
+                    }
+                }
+                return $q;
+            };
+            
+            $estatisticas = [
+                'total' => $baseQuery()->aprovados()->count(),
+                'pendentes' => $baseQuery()->pendentes()->count(),
+                'aprovados' => $baseQuery()->aprovados()->where('ativo', true)->count(),
+                'rejeitados' => $baseQuery()->rejeitados()->count(),
+                'desativados' => $baseQuery()->where('ativo', false)->count(),
+            ];
+        }
 
         return view('estabelecimentos.index', compact('estabelecimentos', 'estatisticas'));
     }
