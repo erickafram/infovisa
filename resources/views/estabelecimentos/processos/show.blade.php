@@ -320,8 +320,13 @@
                     Nome do Estabelecimento
                 </h2>
                 <div class="space-y-3">
-                    <div>
+                    <div class="flex items-center gap-3">
                         <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}" class="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social }}</a>
+                        @php $grupoRisco = $estabelecimento->getGrupoRisco(); @endphp
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                            {{ $grupoRisco === 'alto' ? 'bg-red-100 text-red-700' : ($grupoRisco === 'medio' ? 'bg-amber-100 text-amber-700' : ($grupoRisco === 'baixo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')) }}">
+                            {{ $grupoRisco === 'alto' ? 'Alto Risco' : ($grupoRisco === 'medio' ? 'Médio Risco' : ($grupoRisco === 'baixo' ? 'Baixo Risco' : 'Indefinido')) }}
+                        </span>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
