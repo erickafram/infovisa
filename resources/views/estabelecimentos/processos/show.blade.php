@@ -5986,63 +5986,127 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onclick="event.stopPropagation()">
             <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Atividades Exercidas</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">Atividades Econômicas</h3>
                     <p class="text-xs text-gray-500">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->razao_social }}</p>
                 </div>
-                <button type="button" onclick="document.getElementById('modal-atividades-estab').classList.add('hidden')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    @php
+                        $competenciaEstab = $estabelecimento->isCompetenciaEstadual() ? 'Estadual' : 'Municipal';
+                        $corCompetencia = $competenciaEstab === 'Estadual' ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700';
+                    @endphp
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ $corCompetencia }}">{{ $competenciaEstab }}</span>
+                    <button type="button" onclick="document.getElementById('modal-atividades-estab').classList.add('hidden')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
             <div class="p-6 overflow-y-auto" style="max-height: calc(80vh - 120px);">
                 @php
                     $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
                     $cnaePrincipal = $estabelecimento->cnae_fiscal ? preg_replace('/[^0-9]/', '', $estabelecimento->cnae_fiscal) : null;
+                    $cnaesSecundarios = $estabelecimento->cnaes_secundarios ?? [];
+
+                    // Monta lista de todos os CNAEs (principal + secundários da Receita)
+                    $todosCodigosReceita = collect();
+                    if ($cnaePrincipal) {
+                        $todosCodigosReceita->push(['codigo' => $cnaePrincipal, 'descricao' => $estabelecimento->cnae_fiscal_descricao ?? '', 'tipo' => 'principal']);
+                    }
+                    foreach ($cnaesSecundarios as $cnae) {
+                        $cod = preg_replace('/[^0-9]/', '', $cnae['codigo'] ?? '');
+                        if ($cod && $cod !== $cnaePrincipal) {
+                            $todosCodigosReceita->push(['codigo' => $cod, 'descricao' => $cnae['descricao'] ?? '', 'tipo' => 'secundaria']);
+                        }
+                    }
+
+                    // Códigos exercidos
+                    $codigosExercidos = collect($atividadesExercidas)->map(function($a) {
+                        $codigo = is_array($a) ? ($a['codigo'] ?? '') : $a;
+                        return preg_replace('/[^0-9A-Z_]/', '', $codigo);
+                    })->filter()->values()->toArray();
                 @endphp
-                @if(!empty($atividadesExercidas))
-                <div class="space-y-2">
-                    @foreach($atividadesExercidas as $atividade)
+
+                {{-- Atividades Exercidas (marcadas) --}}
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Atividades Exercidas ({{ count($codigosExercidos) }})
+                </h4>
+                @if(!empty($codigosExercidos))
+                <div class="space-y-1.5 mb-5">
+                    @foreach($todosCodigosReceita as $cnaeInfo)
                     @php
-                        $codigo = is_array($atividade) ? ($atividade['codigo'] ?? '') : $atividade;
-                        $descricao = is_array($atividade) ? ($atividade['descricao'] ?? '') : '';
-                        $codigoLimpo = preg_replace('/[^0-9]/', '', $codigo);
-                        $isPrincipal = $cnaePrincipal && $codigoLimpo === $cnaePrincipal;
-                        // Formata o código CNAE
-                        $codigoFormatado = $codigoLimpo;
-                        if (strlen($codigoLimpo) === 7) {
-                            $codigoFormatado = substr($codigoLimpo, 0, 2) . '.' . substr($codigoLimpo, 2, 2) . '-' . substr($codigoLimpo, 4, 1) . '-' . substr($codigoLimpo, 5, 2);
-                        }
-                        // Busca descrição se não veio no array
-                        if (empty($descricao) && !in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
-                            $atividadeModel = \App\Models\Atividade::where('codigo_cnae', $codigoLimpo)->first();
-                            $descricao = $atividadeModel->descricao ?? '';
-                        }
-                        // Busca risco
-                        $pactuacao = \App\Models\Pactuacao::where('cnae_codigo', $codigoLimpo)->where('ativo', true)->first();
+                        $codLimpo = $cnaeInfo['codigo'];
+                        $exercida = in_array($codLimpo, $codigosExercidos);
+                        if (!$exercida) continue;
+                        $codigoFmt = strlen($codLimpo) === 7 ? substr($codLimpo,0,2).'.'.substr($codLimpo,2,2).'-'.substr($codLimpo,4,1).'-'.substr($codLimpo,5,2) : $codLimpo;
+                        $pactuacao = \App\Models\Pactuacao::where('cnae_codigo', $codLimpo)->where('ativo', true)->first();
                         $risco = $pactuacao ? strtolower($pactuacao->classificacao_risco ?? '') : '';
+                        $compCnae = $pactuacao ? ($pactuacao->competencia ?? '') : '';
                     @endphp
-                    <div class="flex items-center gap-3 p-3 rounded-lg border {{ $isPrincipal ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white' }}">
+                    <div class="flex items-center gap-3 p-2.5 rounded-lg border {{ $cnaeInfo['tipo'] === 'principal' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50' }}">
+                        <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-sm font-mono font-medium text-gray-700">{{ $codigoFormatado }}</span>
-                                @if($isPrincipal)
-                                <span class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-200 text-blue-800 rounded">Principal</span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-mono font-bold text-gray-700">{{ $codigoFmt }}</span>
+                                @if($cnaeInfo['tipo'] === 'principal')
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-blue-200 text-blue-800 rounded">Principal</span>
                                 @endif
                                 @if($risco)
-                                <span class="px-1.5 py-0.5 text-[10px] font-bold rounded
-                                    {{ $risco === 'alto' ? 'bg-red-100 text-red-700' : ($risco === 'medio' || $risco === 'médio' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700') }}">
-                                    {{ ucfirst($risco) }}
-                                </span>
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold rounded {{ $risco === 'alto' ? 'bg-red-100 text-red-700' : ($risco === 'medio' || $risco === 'médio' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700') }}">{{ ucfirst($risco) }}</span>
                                 @endif
                             </div>
-                            <p class="text-xs text-gray-600 mt-0.5">{{ $descricao ?: $codigo }}</p>
+                            <p class="text-[11px] text-gray-600 truncate">{{ $cnaeInfo['descricao'] }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                    {{-- Atividades exercidas que não estão na Receita --}}
+                    @foreach($codigosExercidos as $codExerc)
+                    @php
+                        if (in_array($codExerc, ['PROJ_ARQ', 'ANAL_ROT'])) continue;
+                        $codExercLimpo = preg_replace('/[^0-9]/', '', $codExerc);
+                        if ($todosCodigosReceita->contains('codigo', $codExercLimpo)) continue;
+                        $codigoFmt = strlen($codExercLimpo) === 7 ? substr($codExercLimpo,0,2).'.'.substr($codExercLimpo,2,2).'-'.substr($codExercLimpo,4,1).'-'.substr($codExercLimpo,5,2) : $codExercLimpo;
+                        $atividadeModel = \App\Models\Atividade::where('codigo_cnae', $codExercLimpo)->first();
+                        $descExerc = $atividadeModel->descricao ?? '';
+                    @endphp
+                    <div class="flex items-center gap-3 p-2.5 rounded-lg border border-orange-200 bg-orange-50">
+                        <svg class="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/></svg>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-mono font-bold text-gray-700">{{ $codigoFmt }}</span>
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-orange-200 text-orange-800 rounded">Fora da Receita</span>
+                            </div>
+                            <p class="text-[11px] text-gray-600 truncate">{{ $descExerc ?: $codExerc }}</p>
                         </div>
                     </div>
                     @endforeach
                 </div>
-                <p class="text-xs text-gray-400 mt-4 text-center">{{ count($atividadesExercidas) }} atividade(s) exercida(s)</p>
-                @else
-                <div class="text-center py-8 text-gray-400">
-                    <p class="text-sm">Nenhuma atividade exercida cadastrada.</p>
+                @endif
+
+                {{-- Atividades NÃO exercidas (na Receita mas não marcadas) --}}
+                @php
+                    $naoExercidas = $todosCodigosReceita->filter(function($cnae) use ($codigosExercidos) {
+                        return !in_array($cnae['codigo'], $codigosExercidos);
+                    });
+                @endphp
+                @if($naoExercidas->count() > 0)
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Na Receita mas não exercidas ({{ $naoExercidas->count() }})
+                </h4>
+                <div class="space-y-1.5">
+                    @foreach($naoExercidas as $cnaeInfo)
+                    @php
+                        $codLimpo = $cnaeInfo['codigo'];
+                        $codigoFmt = strlen($codLimpo) === 7 ? substr($codLimpo,0,2).'.'.substr($codLimpo,2,2).'-'.substr($codLimpo,4,1).'-'.substr($codLimpo,5,2) : $codLimpo;
+                    @endphp
+                    <div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 bg-gray-50 opacity-60">
+                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-xs font-mono font-medium text-gray-500">{{ $codigoFmt }}</span>
+                            <p class="text-[11px] text-gray-400 truncate">{{ $cnaeInfo['descricao'] }}</p>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
                 @endif
             </div>
