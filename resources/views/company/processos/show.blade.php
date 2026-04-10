@@ -358,7 +358,8 @@
                                class="text-[11px] text-blue-600 hover:text-blue-700 font-medium">Ver</a>
                             @if($docPrazo->permiteResposta())
                             @php
-                                $setorEstabPrazo = $processo->estabelecimento?->tipo_setor ?? 'privado';
+                                $setorEstabPrazo = $processo->estabelecimento?->tipo_setor;
+                                $setorEstabPrazo = $setorEstabPrazo instanceof \App\Enums\TipoSetor ? $setorEstabPrazo->value : ($setorEstabPrazo ?? 'privado');
                                 $tiposRespPrazo = ($docPrazo->tipoDocumento?->tiposDocumentoResposta ?? collect())
                                     ->filter(function($tr) use ($setorEstabPrazo) { return $tr->tipo_setor === 'todos' || $tr->tipo_setor === $setorEstabPrazo; })
                                     ->map(function($tr) { return ['id' => $tr->id, 'nome' => $tr->nome, 'descricao' => $tr->descricao]; })
@@ -947,7 +948,8 @@
                                         </a>
                                         @if($docDigital->permiteResposta())
                                         @php
-                                            $setorEstab = $processo->estabelecimento?->tipo_setor ?? 'privado';
+                                            $setorEstab = $processo->estabelecimento?->tipo_setor;
+                                            $setorEstab = $setorEstab instanceof \App\Enums\TipoSetor ? $setorEstab->value : ($setorEstab ?? 'privado');
                                             $tiposResp = ($docDigital->tipoDocumento?->tiposDocumentoResposta ?? collect())
                                                 ->filter(function($tr) use ($setorEstab) { return $tr->tipo_setor === 'todos' || $tr->tipo_setor === $setorEstab; })
                                                 ->map(function($tr) { return ['id' => $tr->id, 'nome' => $tr->nome, 'descricao' => $tr->descricao]; })
