@@ -320,13 +320,18 @@
                     Nome do Estabelecimento
                 </h2>
                 <div class="space-y-3">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-wrap">
                         <a href="{{ route('admin.estabelecimentos.show', $estabelecimento->id) }}" class="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->nome_razao_social }}</a>
                         @php $grupoRisco = $estabelecimento->getGrupoRisco(); @endphp
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
                             {{ $grupoRisco === 'alto' ? 'bg-red-100 text-red-700' : ($grupoRisco === 'medio' ? 'bg-amber-100 text-amber-700' : ($grupoRisco === 'baixo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')) }}">
                             {{ $grupoRisco === 'alto' ? 'Alto Risco' : ($grupoRisco === 'medio' ? 'Médio Risco' : ($grupoRisco === 'baixo' ? 'Baixo Risco' : 'Indefinido')) }}
                         </span>
+                        <button type="button" onclick="document.getElementById('modal-atividades-estab').classList.remove('hidden')"
+                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            Atividades
+                        </button>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -5973,6 +5978,77 @@ Os comprovantes de pagamento dos DAREs devem ser juntados em um único arquivo."
     }
 </style>
 @endpush
+
+{{-- Modal Atividades do Estabelecimento (somente visualização) --}}
+<div id="modal-atividades-estab" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onclick="document.getElementById('modal-atividades-estab').classList.add('hidden')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Atividades Exercidas</h3>
+                    <p class="text-xs text-gray-500">{{ $estabelecimento->nome_fantasia ?? $estabelecimento->razao_social }}</p>
+                </div>
+                <button type="button" onclick="document.getElementById('modal-atividades-estab').classList.add('hidden')" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto" style="max-height: calc(80vh - 120px);">
+                @php
+                    $atividadesExercidas = $estabelecimento->atividades_exercidas ?? [];
+                    $cnaePrincipal = $estabelecimento->cnae_fiscal ? preg_replace('/[^0-9]/', '', $estabelecimento->cnae_fiscal) : null;
+                @endphp
+                @if(!empty($atividadesExercidas))
+                <div class="space-y-2">
+                    @foreach($atividadesExercidas as $atividade)
+                    @php
+                        $codigo = is_array($atividade) ? ($atividade['codigo'] ?? '') : $atividade;
+                        $descricao = is_array($atividade) ? ($atividade['descricao'] ?? '') : '';
+                        $codigoLimpo = preg_replace('/[^0-9]/', '', $codigo);
+                        $isPrincipal = $cnaePrincipal && $codigoLimpo === $cnaePrincipal;
+                        // Formata o código CNAE
+                        $codigoFormatado = $codigoLimpo;
+                        if (strlen($codigoLimpo) === 7) {
+                            $codigoFormatado = substr($codigoLimpo, 0, 2) . '.' . substr($codigoLimpo, 2, 2) . '-' . substr($codigoLimpo, 4, 1) . '-' . substr($codigoLimpo, 5, 2);
+                        }
+                        // Busca descrição se não veio no array
+                        if (empty($descricao) && !in_array($codigo, ['PROJ_ARQ', 'ANAL_ROT'])) {
+                            $atividadeModel = \App\Models\Atividade::where('codigo_cnae', $codigoLimpo)->first();
+                            $descricao = $atividadeModel->descricao ?? '';
+                        }
+                        // Busca risco
+                        $pactuacao = \App\Models\Pactuacao::where('cnae_codigo', $codigoLimpo)->where('ativo', true)->first();
+                        $risco = $pactuacao ? strtolower($pactuacao->classificacao_risco ?? '') : '';
+                    @endphp
+                    <div class="flex items-center gap-3 p-3 rounded-lg border {{ $isPrincipal ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white' }}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm font-mono font-medium text-gray-700">{{ $codigoFormatado }}</span>
+                                @if($isPrincipal)
+                                <span class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-200 text-blue-800 rounded">Principal</span>
+                                @endif
+                                @if($risco)
+                                <span class="px-1.5 py-0.5 text-[10px] font-bold rounded
+                                    {{ $risco === 'alto' ? 'bg-red-100 text-red-700' : ($risco === 'medio' || $risco === 'médio' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700') }}">
+                                    {{ ucfirst($risco) }}
+                                </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-600 mt-0.5">{{ $descricao ?: $codigo }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <p class="text-xs text-gray-400 mt-4 text-center">{{ count($atividadesExercidas) }} atividade(s) exercida(s)</p>
+                @else
+                <div class="text-center py-8 text-gray-400">
+                    <p class="text-sm">Nenhuma atividade exercida cadastrada.</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- Select2 JS --}}
 @push('scripts')
