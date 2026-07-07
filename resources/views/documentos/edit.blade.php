@@ -271,7 +271,7 @@
         </div>
 
         {{-- Seção: Histórico de Versões (Completo com Restaurar) --}}
-        @if($documento->versoes->count() > 0)
+        @if(($totalVersoes ?? $documento->versoes->count()) > 0)
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-3" x-data="{ historicoAberto: false }">
             <div class="px-3 py-2 bg-gradient-to-r from-orange-50 to-white border-b border-gray-200 cursor-pointer" @click="historicoAberto = !historicoAberto">
                 <div class="flex items-center justify-between">
@@ -282,7 +282,7 @@
                             </svg>
                         </span>
                         Histórico de Versões
-                        <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">{{ $documento->versoes->count() }}</span>
+                        <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">{{ $totalVersoes ?? $documento->versoes->count() }}</span>
                     </h2>
                     <svg class="w-4 h-4 text-gray-500 transition-transform" :class="historicoAberto ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -291,9 +291,43 @@
             </div>
             <div x-show="historicoAberto" x-transition>
                 <div class="p-3">
+                    @if(($totalVersoes ?? 0) > ($versoesHistorico ?? collect())->count())
+                    <p class="text-xs text-gray-500 mb-3">
+                        Exibindo as {{ ($versoesHistorico ?? collect())->count() }} versões mais recentes de {{ $totalVersoes }}.
+                    </p>
+                    @endif
                     <div class="space-y-2">
-                        @foreach($documento->versoes->sortByDesc('versao') as $versao)
-                        <div class="border border-gray-200 rounded-lg p-2.5 hover:bg-gray-50 transition-colors" x-data="{ mostrarConteudo: false }">
+                        @foreach(($versoesHistorico ?? $documento->versoes->sortByDesc('versao')) as $versao)
+                        <div class="border border-gray-200 rounded-lg p-2.5 hover:bg-gray-50 transition-colors"
+                             x-data="{
+                                mostrarConteudo: false,
+                                conteudoHtml: '',
+                                carregando: false,
+                                carregado: false,
+                                erro: null,
+                                async carregarConteudo() {
+                                    if (this.carregado || this.carregando) return;
+                                    this.carregando = true;
+                                    this.erro = null;
+                                    try {
+                                        const response = await fetch('{{ route('admin.documentos.versoes.conteudo', [$documento->id, $versao->id]) }}');
+                                        if (!response.ok) throw new Error('Falha ao carregar versão');
+                                        const data = await response.json();
+                                        this.conteudoHtml = data.conteudo || '';
+                                        this.carregado = true;
+                                    } catch (e) {
+                                        this.erro = 'Não foi possível carregar o conteúdo desta versão.';
+                                    } finally {
+                                        this.carregando = false;
+                                    }
+                                },
+                                async alternarConteudo() {
+                                    this.mostrarConteudo = !this.mostrarConteudo;
+                                    if (this.mostrarConteudo) {
+                                        await this.carregarConteudo();
+                                    }
+                                }
+                             }">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-1">
@@ -304,7 +338,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                             </svg>
-                                            <span class="font-medium text-gray-900">{{ $versao->usuarioInterno->nome }}</span>
+                                            <span class="font-medium text-gray-900">{{ $versao->usuarioInterno?->nome ?? 'Usuário removido' }}</span>
                                         </div>
                                         <div class="flex items-center gap-1 text-xs text-gray-500">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,7 +352,7 @@
                                 </div>
                                 <div class="flex gap-1.5">
                                     <button type="button" 
-                                            @click="mostrarConteudo = !mostrarConteudo"
+                                            @click="alternarConteudo()"
                                             class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
                                         <span x-show="!mostrarConteudo">Ver</span>
                                         <span x-show="mostrarConteudo">Ocultar</span>
@@ -339,9 +373,12 @@
                                 </div>
                             </div>
                             <div x-show="mostrarConteudo" x-transition class="mt-2 pt-2 border-t border-gray-200">
-                                <div class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs documento-conteudo-preservado" style="font-family: 'Times New Roman', serif;">
-                                    {!! $versao->conteudo !!}
-                                </div>
+                                <div x-show="carregando" class="text-xs text-gray-500">Carregando conteúdo...</div>
+                                <div x-show="erro" class="text-xs text-red-600" x-text="erro"></div>
+                                <div x-show="carregado && !erro"
+                                     class="bg-gray-50 rounded p-2 max-h-40 overflow-y-auto text-xs documento-conteudo-preservado"
+                                     style="font-family: 'Times New Roman', serif;"
+                                     x-html="conteudoHtml"></div>
                             </div>
                         </div>
                         @endforeach

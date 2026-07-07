@@ -658,8 +658,17 @@ class DocumentoDigitalController extends Controller
             'url_atual' => request()->url(),
         ]);
         
-        $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas', 'versoes.usuarioInterno'])
+        $documento = DocumentoDigital::with(['tipoDocumento', 'processo', 'assinaturas'])
             ->findOrFail($id);
+
+        // Carrega apenas metadados das versões (sem conteúdo HTML) para evitar estouro de memória
+        $totalVersoes = $documento->versoes()->count();
+        $versoesHistorico = $documento->versoes()
+            ->select(['id', 'documento_digital_id', 'usuario_interno_id', 'versao', 'created_at'])
+            ->with('usuarioInterno:id,nome')
+            ->orderByDesc('versao')
+            ->limit(20)
+            ->get();
 
         // Permite editar se for rascunho OU se estiver aguardando assinatura mas ninguém assinou ainda
         if (!$documento->podeEditar()) {
@@ -695,7 +704,20 @@ class DocumentoDigitalController extends Controller
                 ->get();
         }
 
-        return view('documentos.edit', compact('documento', 'tiposDocumento', 'usuariosInternos', 'processo', 'pastasProcesso'));
+        return view('documentos.edit', compact('documento', 'tiposDocumento', 'usuariosInternos', 'processo', 'pastasProcesso', 'versoesHistorico', 'totalVersoes'));
+    }
+
+    /**
+     * Retorna o conteúdo de uma versão específica (carregamento sob demanda)
+     */
+    public function conteudoVersao($documentoId, $versaoId)
+    {
+        $versao = \App\Models\DocumentoDigitalVersao::where('documento_digital_id', $documentoId)
+            ->findOrFail($versaoId);
+
+        return response()->json([
+            'conteudo' => $versao->conteudo,
+        ]);
     }
 
     /**
